@@ -25,6 +25,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SupabaseService } from '../lib/SupabaseService';
 import { RolesService, Role, Permission } from '../services/RolesService';
 import { toast } from 'sonner';
+import UserEditModal from './UserEditModal';
+import UserActivityModal from './UserActivityModal';
 
 export default function UserManagement() {
   const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users');
@@ -37,6 +39,9 @@ export default function UserManagement() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [updatingId, setUpdatingId] = useState<string | number | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
   
   // Roles Tab State
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
@@ -64,6 +69,11 @@ export default function UserManagement() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Correo copiado al portapapeles');
   };
 
   const handleRoleChange = async (userId: string, newRole: string) => {
@@ -126,6 +136,10 @@ export default function UserManagement() {
     } finally {
       setSavingPermissions(false);
     }
+  };
+
+  const handleUpdateUser = (updatedUser: any) => {
+    setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
   };
 
   const filteredUsers = users.filter(user => {
@@ -327,7 +341,11 @@ export default function UserManagement() {
                               </span>
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="text-xs text-slate-500 font-medium truncate max-w-[200px]">{user.email}</span>
-                                <button className="p-1 text-slate-300 hover:text-blue-500 transition-colors" title="Copiar correo">
+                                <button 
+                                  onClick={() => copyToClipboard(user.email)}
+                                  className="p-1 text-slate-300 hover:text-blue-500 transition-colors" 
+                                  title="Copiar correo"
+                                >
                                   <Mail size={12} />
                                 </button>
                               </div>
@@ -399,11 +417,25 @@ export default function UserManagement() {
                                     className="absolute right-0 top-full mt-1 w-56 bg-white border border-slate-200 rounded-2xl shadow-2xl z-[100] overflow-hidden"
                                   >
                                     <div className="p-2 space-y-1">
-                                      <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all">
+                                      <button 
+                                        onClick={() => {
+                                          setSelectedUser(user);
+                                          setIsEditModalOpen(true);
+                                          setOpenMenuId(null);
+                                        }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all"
+                                      >
                                         <Edit2 size={16} />
                                         Editar Perfil
                                       </button>
-                                      <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all">
+                                      <button 
+                                        onClick={() => {
+                                          setSelectedUser(user);
+                                          setIsActivityModalOpen(true);
+                                          setOpenMenuId(null);
+                                        }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all"
+                                      >
                                         <ExternalLink size={16} />
                                         Ver Actividad
                                       </button>
@@ -581,6 +613,26 @@ export default function UserManagement() {
           </div>
         </motion.div>
       )}
+
+      {/* Modals */}
+      <AnimatePresence>
+        {isEditModalOpen && selectedUser && (
+          <UserEditModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            user={selectedUser}
+            roles={roles}
+            onUpdate={handleUpdateUser}
+          />
+        )}
+        {isActivityModalOpen && selectedUser && (
+          <UserActivityModal
+            isOpen={isActivityModalOpen}
+            onClose={() => setIsActivityModalOpen(false)}
+            user={selectedUser}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
