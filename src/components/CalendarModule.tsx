@@ -98,7 +98,7 @@ export default function CalendarModule({ tasks, onAddTask, onUpdateTask, onDelet
     }
   };
 
-  const handleSaveTask = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveTask = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const taskData = {
@@ -114,26 +114,31 @@ export default function CalendarModule({ tasks, onAddTask, onUpdateTask, onDelet
       deliveryStatus: formData.get('deliveryStatus') as CalendarTask['deliveryStatus'],
     };
 
-    if (editingTask) {
-      const change: ChangeLog = {
-        id: `LOG-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        user: user?.name || 'Sistema',
-        action: 'Actualización',
-        details: `Se actualizó la tarea: ${taskData.title}`
-      };
-      onUpdateTask({
-        ...editingTask,
-        ...taskData,
-        changeLog: [change, ...editingTask.changeLog]
-      });
-      toast.success('Tarea actualizada');
-    } else {
-      onAddTask(taskData);
-      toast.success('Tarea creada');
+    try {
+      if (editingTask) {
+        const change: ChangeLog = {
+          id: `LOG-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          user: user?.name || 'Sistema',
+          action: 'Actualización',
+          details: `Se actualizó la tarea: ${taskData.title}`
+        };
+        await onUpdateTask({ 
+          ...editingTask, 
+          ...taskData,
+          changeLog: [change, ...editingTask.changeLog]
+        });
+        toast.success('Tarea actualizada');
+      } else {
+        await onAddTask(taskData);
+        toast.success('Tarea creada');
+      }
+      setIsModalOpen(false);
+      setEditingTask(null);
+    } catch (error) {
+      console.error('Error saving task:', error);
+      // App.tsx already shows error toast, but we can catch here if needed
     }
-    setIsModalOpen(false);
-    setEditingTask(null);
   };
 
   return (

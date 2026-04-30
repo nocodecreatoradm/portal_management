@@ -494,11 +494,7 @@ export const SupabaseService = {
   async getCalendarTasks() {
     const { data, error } = await supabase
       .from('calendar_tasks')
-      .select(`
-        *,
-        requester:profiles!requester_id(full_name),
-        assignee:profiles!assignee_id(full_name)
-      `)
+      .select('*')
       .order('deadline', { ascending: true });
     if (error) throw error;
     return data.map(mapDBToTask);
