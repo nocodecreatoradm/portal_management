@@ -359,25 +359,14 @@ export default function UserManagement() {
                           </div>
                         </td>
                         <td className="px-8 py-6 text-center">
-                          <div className="inline-block relative">
-                            <select
-                              disabled={updatingId === user.id}
-                              value={user.role || 'viewer'}
-                              onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                              className={`
-                                pl-4 pr-10 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] border-2 transition-all cursor-pointer outline-none appearance-none
-                                ${user.role === 'admin' ? 'bg-red-50 text-red-600 border-red-100 hover:border-red-300' : 
-                                  user.role === 'gerente_innovacion' ? 'bg-purple-50 text-purple-600 border-purple-100 hover:border-purple-300' :
-                                  user.role === 'coordinador_id' ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:border-indigo-300' :
-                                  'bg-white text-slate-600 border-slate-200 hover:border-blue-300'}
-                                ${updatingId === user.id ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'}
-                              `}
-                            >
-                              {roles.map(role => (
-                                <option key={role.id} value={role.name} className="font-sans font-bold">{role.display_name}</option>
-                              ))}
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-current opacity-50 pointer-events-none" size={14} />
+                          <div className={`
+                            inline-block px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] border-2 transition-all
+                            ${user.role === 'admin' ? 'bg-red-50 text-red-600 border-red-100' : 
+                              user.role === 'gerente_innovacion' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                              user.role === 'coordinador_id' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                              'bg-slate-50 text-slate-600 border-slate-100'}
+                          `}>
+                            {roles.find(r => r.name === user.role)?.display_name || user.role || 'VISITANTE'}
                           </div>
                         </td>
                         <td className="px-8 py-6 text-center">
