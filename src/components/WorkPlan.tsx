@@ -1331,6 +1331,4 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
       )}
     </div>
   );
-};
-
-export default WorkPlan;
+}
