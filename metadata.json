@@ -1,0 +1,5 @@
+{
+  "name": "R&D Portal Management",
+  "description": "Sistema integral de gestión de R&D, incluyendo inventario, seguimiento de muestras, plan de trabajo y aprobación de artworks.",
+  "requestFramePermissions": []
+}

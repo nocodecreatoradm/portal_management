@@ -1,0 +1,360 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  FileText, 
+  Plus, 
+  Search, 
+  Download, 
+  ExternalLink, 
+  Trash2, 
+  Filter,
+  MoreVertical,
+  BookOpen,
+  X
+} from 'lucide-react';
+import { NTPRegulation } from '../types';
+import { format, parseISO } from 'date-fns';
+import ModuleActions from './ModuleActions';
+import { exportToExcel, generateReportPDF } from '../lib/exportUtils';
+import { saveCalculationRecord } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
+
+const INITIAL_NTP: NTPRegulation[] = [
+  {
+    id: '1',
+    code: 'NTP 111.011-2014',
+    title: 'GAS NATURAL SECO. Sistema de tuberías para instalaciones internas residenciales y comerciales',
+    category: 'Gas Natural',
+    uploadDate: '2018-12-07T16:25:00Z',
+    file: { name: 'NTP_111.011_2014.pdf', url: '#', type: 'application/pdf' },
+    description: 'Sistema de tuberías para instalaciones internas residenciales y comerciales.'
+  },
+  {
+    id: '2',
+    code: 'NTP 111.022-2008',
+    title: 'GAS NATURAL SECO. Requisitos y métodos para ventilación de recintos interiores donde se instalan artefactos a gas',
+    category: 'Gas Natural',
+    uploadDate: '2018-12-07T16:25:00Z',
+    file: { name: 'NTP_111.022_2008.pdf', url: '#', type: 'application/pdf' }
+  },
+  {
+    id: '3',
+    code: 'NTP 370.053',
+    title: 'SEGURIDAD ELECTRICA',
+    category: 'Electricidad',
+    uploadDate: '2020-11-19T08:32:00Z',
+    file: { name: 'NTP_370.053.pdf', url: '#', type: 'application/pdf' }
+  },
+  {
+    id: '4',
+    code: 'NTP 370.502:2019',
+    title: 'TERMAS ELÉCTRICAS',
+    category: 'Electricidad',
+    uploadDate: '2025-05-13T12:51:00Z',
+    file: { name: 'NTP_370.502_2019.pdf', url: '#', type: 'application/pdf' }
+  },
+  {
+    id: '5',
+    code: 'NTP 113.001',
+    title: 'APARATOS DE COCCIÓN DE USO DOMÉSTICO QUE UTILIZAN COMBUSTIBLES GASEOSOS',
+    category: 'Gas',
+    uploadDate: '2025-04-23T17:18:00Z',
+    file: { name: 'NTP_113.001.pdf', url: '#', type: 'application/pdf' }
+  },
+  {
+    id: '6',
+    code: 'NTP 293.101 2014',
+    title: 'Artefactos de producción instantánea de agua caliente para uso doméstico provistos de quemadores atmosféricos',
+    category: 'Agua Caliente',
+    uploadDate: '2021-07-05T11:22:00Z',
+    file: { name: 'NTP_293.101.pdf', url: '#', type: 'application/pdf' }
+  },
+  {
+    id: '7',
+    code: 'EM.040',
+    title: 'NORMA TECNICA DE EDIFICACION INSTALACIONES DE GAS',
+    category: 'Gas',
+    uploadDate: '2018-11-15T16:16:00Z',
+    file: { name: 'EM_040.pdf', url: '#', type: 'application/pdf' }
+  },
+  {
+    id: '8',
+    code: 'NTP 370.501(2008)',
+    title: 'ARTEFACTOS A GAS. Metodología para determinar la eficiencia de calentadores de agua',
+    category: 'Gas',
+    uploadDate: '2019-10-31T14:26:00Z',
+    file: { name: 'NTP_370.501.pdf', url: '#', type: 'application/pdf' }
+  }
+];
+
+interface NTPRegulationsProps {
+  initialData?: any;
+  onExportPPT?: () => void;
+  onLoadRecord?: (record: any) => void;
+}
+
+export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord }: NTPRegulationsProps) {
+  const { user } = useAuth();
+  const [regulations, setRegulations] = useState<NTPRegulation[]>(INITIAL_NTP);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  // Load initial data if provided
+  useEffect(() => {
+    if (initialData) {
+      if (Array.isArray(initialData)) {
+        setRegulations(initialData);
+      } else if (initialData.regulations) {
+        setRegulations(initialData.regulations);
+      }
+    }
+  }, [initialData]);
+
+  // Load saved regulations
+  useEffect(() => {
+    const savedRegs = localStorage.getItem('ntp_regulations_data');
+    if (savedRegs) {
+      try {
+        setRegulations(JSON.parse(savedRegs));
+      } catch (e) {
+        console.error('Error loading NTP regulations', e);
+      }
+    }
+  }, []);
+
+  const handleSave = (details: { projectName: string; sampleId: string; description: string }) => {
+    localStorage.setItem('ntp_regulations_data', JSON.stringify(regulations));
+    saveCalculationRecord(
+      'ntp_regulations', 
+      'save', 
+      regulations, 
+      user?.email || 'unknown',
+      details.projectName,
+      details.sampleId,
+      details.description
+    );
+    toast.success('Listado de normativas guardado localmente y en la base de datos');
+  };
+
+  const handleExportExcel = () => {
+    const exportData = regulations.map(r => ({
+      'Código': r.code,
+      'Título': r.title,
+      'Categoría': r.category,
+      'Fecha de Carga': format(parseISO(r.uploadDate), 'dd/MM/yyyy'),
+      'Archivo': r.file.name
+    }));
+
+    exportToExcel(exportData, `Normativas_NTP_${format(new Date(), 'yyyyMMdd')}`);
+    saveCalculationRecord('ntp_regulations', 'export_excel', exportData, user?.email || 'unknown');
+  };
+
+  const handleExportPDF = async () => {
+    const sections = [
+      { contentId: 'ntp-stats', title: 'Estadísticas de Normativas' },
+      { contentId: 'ntp-grid', title: 'Listado de Normativas Técnicas Peruanas' }
+    ];
+
+    await generateReportPDF(sections, `Informe_Normativas_NTP_${format(new Date(), 'yyyyMMdd')}`, 'Informe de Normativas Técnicas Peruanas');
+    saveCalculationRecord('ntp_regulations', 'export_pdf', { sections }, user?.email || 'unknown');
+  };
+
+  const filteredRegulations = regulations.filter(reg => 
+    reg.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    reg.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    reg.category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const newReg: NTPRegulation = {
+      id: Math.random().toString(36).substr(2, 9),
+      code: formData.get('code') as string,
+      title: formData.get('title') as string,
+      category: formData.get('category') as string,
+      uploadDate: new Date().toISOString(),
+      file: { 
+        name: (formData.get('file') as File).name || 'documento.pdf', 
+        url: '#', 
+        type: 'application/pdf' 
+      },
+      description: formData.get('description') as string
+    };
+    setRegulations([newReg, ...regulations]);
+    setShowAddModal(false);
+  };
+
+  const handleDelete = (id: string) => {
+    const updatedRegs = regulations.filter(r => r.id !== id);
+    setRegulations(updatedRegs);
+    localStorage.setItem('ntp_regulations_data', JSON.stringify(updatedRegs));
+  };
+
+  const handleDownload = (reg: NTPRegulation) => {
+    // Simular descarga de un PDF
+    const link = document.createElement('a');
+    // Base64 de un PDF mínimo válido para que la descarga parezca real
+    link.href = 'data:application/pdf;base64,JVBERi0xLjcKCjEgMCBvYmogICUgZW50cnkgcG9pbnQKPDwKICAvVHlwZSAvQ2F0YWxvZwogIC9QYWdlcyAyIDAgUgo+PgplbmRvYmoKCjIgMCBvYmoKPDwKICAvVHlwZSAvUGFnZXMKICAvQ291bnQgMQogIC9LaWRzIFszIDAgUl0KPj4KZW5kb2JqCgozIDAgb2JqCjw8CiAgL1R5cGUgL1BhZ2UKICAvUGFyZW50IDIgMCBSCiAgL01lZGlhQm94IFswIDAgNjEyIDc5Ml0KICAvQ29udGVudHMgNCAwIFIKPj4KZW5kb2JqCgo0IDAgb2JqCjw8CiAgL0xlbmd0aCA0NAo+PgpzdHJlYW0KQlQKICAvRjEgMjQgVGYKICA3MiA3MjAgVGQKICAoRG9jdW1lbnRvIE5UUCkgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagoKeHJlZgowIDUKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwNjggMDAwMDAgbiAKMDAwMDAwMDEyNSAwMDAwMCBuIAowMDAwMDAwMjExIDAwMDAwIG4gCnRyYWlsZXIKPDwKICAvU2l6ZSA1CiAgL1Jvb3QgMSAwIFIKPj4Kc3RhcnR4cmVmCjI3NQolJUVPRgo=';
+    link.download = reg.file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleOpen = (reg: NTPRegulation) => {
+    // En una aplicación real abriría reg.file.url
+    // Para el prototipo abrimos una página de referencia de Indecopi
+    window.open('https://www.indecopi.gob.pe/normas-tecnicas-peruanas', '_blank');
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">NTP Regulations</h2>
+          <p className="text-slate-500 font-medium mt-1">Gestión de normativas técnicas peruanas aplicadas en R&D</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3.5 rounded-2xl font-black uppercase text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+          >
+            <Plus size={20} />
+            Añadir Normativa
+          </button>
+        </div>
+      </div>
+
+      {/* Stats & Filters */}
+      <div id="ntp-stats" className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="md:col-span-3 relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+          <input 
+            type="text"
+            placeholder="Buscar por código, título o categoría..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700 shadow-sm"
+          />
+        </div>
+        <div className="bg-white border border-slate-200 rounded-2xl px-6 py-4 flex items-center justify-between shadow-sm">
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Normativas</p>
+            <p className="text-2xl font-black text-slate-900">{regulations.length}</p>
+          </div>
+          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+            <BookOpen size={24} />
+          </div>
+        </div>
+      </div>
+
+      {/* Grid View */}
+      <div id="ntp-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredRegulations.map((reg) => (
+          <div key={reg.id} className="bg-white border border-slate-200 rounded-[32px] overflow-hidden hover:shadow-xl hover:shadow-slate-200/50 transition-all group border-b-4 border-b-blue-600/10 hover:border-b-blue-600">
+            <div className="p-8 space-y-6">
+              <div className="flex justify-between items-start">
+                <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                  {reg.category}
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => handleDownload(reg)}
+                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                    title="Descargar PDF"
+                  >
+                    <Download size={18} />
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(reg.id)}
+                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                    title="Eliminar"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-black text-blue-600 uppercase tracking-tight mb-1">{reg.code}</h3>
+                <p className="text-slate-900 font-bold leading-snug line-clamp-3 h-[3.3rem]">
+                  {reg.title}
+                </p>
+              </div>
+
+              <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
+                    <FileText size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subido el</p>
+                    <p className="text-xs font-bold text-slate-700">{format(new Date(reg.uploadDate), 'dd/MM/yyyy')}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => handleOpen(reg)}
+                  className="flex items-center gap-2 text-blue-600 font-black uppercase text-[10px] tracking-widest hover:gap-3 transition-all"
+                >
+                  Abrir
+                  <ExternalLink size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Add Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Añadir Normativa</h3>
+                <p className="text-slate-500 text-sm font-medium">Registra una nueva NTP en el sistema</p>
+              </div>
+              <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-white rounded-full text-slate-400 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleAdd} className="p-8 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Código NTP</label>
+                <input name="code" required placeholder="Ej: NTP 111.011" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Título / Descripción</label>
+                <textarea name="title" required rows={3} placeholder="Nombre completo de la normativa..." className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700 resize-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoría</label>
+                  <select name="category" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700">
+                    <option>Gas Natural</option>
+                    <option>Electricidad</option>
+                    <option>Agua Potable</option>
+                    <option>Eficiencia Energética</option>
+                    <option>Otros</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Archivo PDF</label>
+                  <input type="file" name="file" className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                </div>
+              </div>
+              
+              <div className="flex gap-4 pt-4">
+                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 px-6 py-4 border border-slate-200 rounded-2xl font-black uppercase text-sm text-slate-500 hover:bg-slate-50 transition-all">Cancelar</button>
+                <button type="submit" className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

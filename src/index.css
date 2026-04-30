@@ -1,0 +1,52 @@
+@import "tailwindcss";
+@import 'leaflet/dist/leaflet.css';
+
+@theme {
+  --color-sole-blue: #52627e;
+  --animate-slow-zoom: slow-zoom 20s ease-in-out infinite alternate;
+  --animate-scan: scan 3s linear infinite;
+  
+  @keyframes scan {
+    0% { transform: translateY(0); opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translateY(1100px); opacity: 0; }
+  }
+}
+
+@keyframes slow-zoom {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.1); }
+}
+
+body {
+  background-color: #ffffff;
+  background-image: radial-gradient(circle at top right, transparent 0%, transparent 80%, rgba(82, 98, 126, 0.05) 80%, rgba(82, 98, 126, 0.05) 82%, transparent 82%, transparent 84%, rgba(82, 98, 126, 0.05) 84%, rgba(82, 98, 126, 0.05) 86%, transparent 86%);
+  background-size: 400px 400px;
+  background-repeat: no-repeat;
+  background-position: top right;
+  min-height: 100vh;
+  position: relative;
+  padding-bottom: 80px; /* Space for the footer bar */
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background-color: #52627e;
+  z-index: -1;
+}
+
+@layer utilities {
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
