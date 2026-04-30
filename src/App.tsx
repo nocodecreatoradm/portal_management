@@ -157,6 +157,10 @@ export default function App() {
       
       setLoadingData(true);
       try {
+        const [
+          productsData,
+          suppliersData,
+          samplesData,
           brandsData,
           linesData,
           approversData
@@ -682,7 +686,7 @@ export default function App() {
     }
 
     if (activeModule === 'rd_projects') {
-      return <RDProjectsModule />;
+      return <ProjectsModule />;
     }
 
 
