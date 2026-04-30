@@ -21,12 +21,21 @@ import {
   mapDBToProject,
   mapTaskToDB,
   mapDBToTask,
-  mapProposalToDB,
-  mapDBToProposal,
+  mapProposalToDB, 
+  mapDBToProposal, 
   mapNTPToDB,
   mapDBToNTP,
-  mapLogToDB,
-  mapDBToLog
+  mapLogToDB, 
+  mapDBToLog, 
+  mapProductToDB, 
+  mapDBToProduct,
+  mapSupplierToDB,
+  mapDBToSupplier,
+  mapTemplateToDB,
+  mapDBToTemplate,
+  mapSampleToDB,
+  mapDBToSample,
+  mapDBToPMRecord
 } from './mappings';
 
 
@@ -53,6 +62,12 @@ export const SupabaseService = {
     return data;
   },
 
+  async getCategories() {
+    const { data, error } = await supabase.from('categories').select('*').order('name');
+    if (error) throw error;
+    return data;
+  },
+
   // SAMPLES (MUESTRAS)
   async getSamples() {
     const { data, error } = await supabase
@@ -63,32 +78,48 @@ export const SupabaseService = {
         supplier:suppliers(legal_name),
         line:product_lines(name),
         category:categories(name),
-        technician:profiles!samples_technician_id_fkey(full_name)
+        technician:profiles!samples_technician_id_fkey(full_name),
+        receiver:profiles!samples_received_by_fkey(full_name),
+        history:sample_history(
+          *,
+          user:profiles(full_name)
+        )
       `)
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return data;
+    return data.map(mapDBToSample);
   },
 
   async createSample(sample: Partial<SampleRecord>) {
+    const dbSample = mapSampleToDB(sample);
     const { data, error } = await supabase
       .from('samples')
-      .insert(sample)
+      .insert(dbSample)
       .select()
       .single();
     if (error) throw error;
-    return data;
+    return mapDBToSample(data);
   },
 
   async updateSample(id: string, updates: Partial<SampleRecord>) {
+    const dbUpdates = mapSampleToDB(updates);
     const { data, error } = await supabase
       .from('samples')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', id)
       .select()
       .single();
     if (error) throw error;
-    return data;
+    return mapDBToSample(data);
+  },
+
+  async deleteSample(id: string) {
+    const { error } = await supabase
+      .from('samples')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
   },
 
   // PRODUCTS
@@ -104,18 +135,126 @@ export const SupabaseService = {
       `)
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return data;
+    return data.map(mapDBToProduct);
+  },
+
+  async createProduct(product: Omit<ProductRecord, 'id' | 'createdAt'>) {
+    const dbProduct = mapProductToDB(product);
+    const { data, error } = await supabase
+      .from('products')
+      .insert([dbProduct])
+      .select(`
+        *,
+        brand:brands(name),
+        supplier:suppliers(legal_name),
+        line:product_lines(name),
+        documents:product_documents(*)
+      `)
+      .single();
+    if (error) throw error;
+    return mapDBToProduct(data);
   },
 
   async updateProduct(id: string, updates: Partial<ProductRecord>) {
+    const dbUpdates = mapProductToDB(updates);
     const { data, error } = await supabase
       .from('products')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', id)
-      .select()
+      .select(`
+        *,
+        brand:brands(name),
+        supplier:suppliers(legal_name),
+        line:product_lines(name),
+        documents:product_documents(*)
+      `)
       .single();
     if (error) throw error;
-    return data;
+    return mapDBToProduct(data);
+  },
+
+  async updateProductBySAP(codigoSAP: string, updates: Partial<ProductRecord>) {
+    const dbUpdates = mapProductToDB(updates);
+    const { data, error } = await supabase
+      .from('products')
+      .update(dbUpdates)
+      .eq('sap_code', codigoSAP)
+      .select(`
+        *,
+        brand:brands(name),
+        supplier:suppliers(legal_name),
+        line:product_lines(name),
+        documents:product_documents(*)
+      `)
+      .single();
+    if (error) throw error;
+    return mapDBToProduct(data);
+  },
+
+  async deleteProduct(id: string) {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
+  // PRODUCT MANAGEMENT
+  async getPMRecords() {
+    const { data, error } = await supabase
+      .from('product_management')
+      .select(`
+        *,
+        brand:brands(name),
+        supplier:suppliers(legal_name),
+        line:product_lines(name)
+      `)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data.map(mapDBToPMRecord);
+  },
+
+  async createProductManagementRecord(record: Partial<ProductManagementRecord>) {
+    const dbRecord = mapProductToDB(record);
+    const { data, error } = await supabase
+      .from('product_management')
+      .insert([dbRecord])
+      .select(`
+        *,
+        brand:brands(name),
+        supplier:suppliers(legal_name),
+        line:product_lines(name)
+      `)
+      .single();
+    if (error) throw error;
+    return mapDBToPMRecord(data);
+  },
+
+  async updateProductManagementRecord(id: string, updates: Partial<ProductManagementRecord>) {
+    const dbUpdates = mapProductToDB(updates);
+    const { data, error } = await supabase
+      .from('product_management')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select(`
+        *,
+        brand:brands(name),
+        supplier:suppliers(legal_name),
+        line:product_lines(name)
+      `)
+      .single();
+    if (error) throw error;
+    return mapDBToPMRecord(data);
+  },
+
+  async deleteProductManagementRecord(id: string) {
+    const { error } = await supabase
+      .from('product_management')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
   },
 
   // INVENTORY
@@ -137,7 +276,11 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('rd_inventory')
       .insert(dbItem)
-      .select()
+      .select(`
+        *,
+        responsible:profiles!responsible_id(full_name),
+        certificates:inventory_certificates(*)
+      `)
       .single();
     if (error) throw error;
     return mapDBToInventory(data);
@@ -149,7 +292,11 @@ export const SupabaseService = {
       .from('rd_inventory')
       .update(dbUpdates)
       .eq('id', id)
-      .select()
+      .select(`
+        *,
+        responsible:profiles!responsible_id(full_name),
+        certificates:inventory_certificates(*)
+      `)
       .single();
     if (error) throw error;
     return mapDBToInventory(data);
@@ -210,6 +357,39 @@ export const SupabaseService = {
     return true;
   },
 
+  // PROJECT ACTIVITIES
+  async createProjectActivity(projectId: string, activity: Partial<ProjectActivity>) {
+    const dbActivity = { ...mapActivityToDB(activity), project_id: projectId };
+    const { data, error } = await supabase
+      .from('project_activities')
+      .insert(dbActivity)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToActivity(data);
+  },
+
+  async updateProjectActivity(id: string, updates: Partial<ProjectActivity>) {
+    const dbUpdates = mapActivityToDB(updates);
+    const { data, error } = await supabase
+      .from('project_activities')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToActivity(data);
+  },
+
+  async deleteProjectActivity(id: string) {
+    const { error } = await supabase
+      .from('project_activities')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
   // ENERGY EFFICIENCY
   async getEnergyEfficiencyRecords() {
     const { data, error } = await supabase
@@ -229,7 +409,11 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('energy_efficiency_records')
       .insert(dbRecord)
-      .select()
+      .select(`
+        *,
+        supplier:suppliers(legal_name),
+        sample:samples(correlative_id)
+      `)
       .single();
     if (error) throw error;
     return mapDBToEE(data);
@@ -241,7 +425,11 @@ export const SupabaseService = {
       .from('energy_efficiency_records')
       .update(dbUpdates)
       .eq('id', id)
-      .select()
+      .select(`
+        *,
+        supplier:suppliers(legal_name),
+        sample:samples(correlative_id)
+      `)
       .single();
     if (error) throw error;
     return mapDBToEE(data);
@@ -275,7 +463,11 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('innovation_proposals')
       .insert(dbProposal)
-      .select()
+      .select(`
+        *,
+        author:profiles!author_id(full_name),
+        comments:innovation_comments(*, user:profiles!user_id(full_name))
+      `)
       .single();
     if (error) throw error;
     return mapDBToProposal(data);
@@ -287,7 +479,11 @@ export const SupabaseService = {
       .from('innovation_proposals')
       .update(dbUpdates)
       .eq('id', id)
-      .select()
+      .select(`
+        *,
+        author:profiles!author_id(full_name),
+        comments:innovation_comments(*, user:profiles!user_id(full_name))
+      `)
       .single();
     if (error) throw error;
     return mapDBToProposal(data);
@@ -389,6 +585,90 @@ export const SupabaseService = {
     if (error) throw error;
     return true;
   },
+
+  // SUPPLIERS
+  async getSuppliers() {
+    const { data, error } = await supabase
+      .from('suppliers')
+      .select('*')
+      .order('legal_name');
+    if (error) throw error;
+    return data.map(mapDBToSupplier);
+  },
+
+  async createSupplier(supplier: Partial<Supplier>) {
+    const dbSupplier = mapSupplierToDB(supplier);
+    const { data, error } = await supabase
+      .from('suppliers')
+      .insert([dbSupplier])
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToSupplier(data);
+  },
+
+  async updateSupplier(id: string, updates: Partial<Supplier>) {
+    const dbUpdates = mapSupplierToDB(updates);
+    const { data, error } = await supabase
+      .from('suppliers')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToSupplier(data);
+  },
+
+  async deleteSupplier(id: string) {
+    const { error } = await supabase
+      .from('suppliers')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
+  // RD PROJECT TEMPLATES
+  async getRDProjectTemplates() {
+    const { data, error } = await supabase
+      .from('rd_project_templates')
+      .select('*')
+      .order('name');
+    if (error) throw error;
+    return data.map(mapDBToTemplate);
+  },
+
+  async createRDProjectTemplate(template: Partial<RDProjectTemplate>) {
+    const dbTemplate = mapTemplateToDB(template);
+    const { data, error } = await supabase
+      .from('rd_project_templates')
+      .insert([dbTemplate])
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToTemplate(data);
+  },
+
+  async updateRDProjectTemplate(id: string, updates: Partial<RDProjectTemplate>) {
+    const dbUpdates = mapTemplateToDB(updates);
+    const { data, error } = await supabase
+      .from('rd_project_templates')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToTemplate(data);
+  },
+
+  async deleteRDProjectTemplate(id: string) {
+    const { error } = await supabase
+      .from('rd_project_templates')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  }
 
   // AUDIT LOGS
   async getAuditLogs() {

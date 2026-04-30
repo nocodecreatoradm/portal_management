@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ModuleId } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../contexts/PermissionsContext';
+import { useTranslation } from 'react-i18next';
 
 interface SidebarProps {
   activeModule: ModuleId;
@@ -47,6 +48,7 @@ interface NavGroup {
 export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose }: SidebarProps) {
   const { profile } = useAuth();
   const { hasPermission } = usePermissions();
+  const { t } = useTranslation();
   
   // State for collapsible groups
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
@@ -67,67 +69,67 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
 
   const navGroups: NavGroup[] = [
     {
-      title: 'Gestión Operativa',
+      title: t('menu.operational_management'),
       id: 'seguimiento',
       icon: <CalendarIcon size={18} />,
       modules: [
-        { id: 'calendar', label: 'Calendario', icon: <CalendarIcon size={18} />, permission: 'calendar:view' },
-        { id: 'work_plan', label: 'Plan de Trabajo', icon: <CalendarIcon size={18} />, permission: 'work_plan:view' },
-        { id: 'artwork_followup', label: 'Seguimiento de Artes', icon: <CheckSquare size={18} />, permission: 'artwork:view' },
-        { id: 'technical_datasheet', label: 'Seguimiento Ficha Técnica', icon: <FileText size={18} />, permission: 'technical_sheets:view' },
-        { id: 'commercial_datasheet', label: 'Seguimiento Ficha Comercial', icon: <FileSpreadsheet size={18} />, permission: 'technical_sheets:view' },
+        { id: 'calendar', label: t('menu.calendar'), icon: <CalendarIcon size={18} />, permission: 'calendar:view' },
+        { id: 'work_plan', label: t('menu.work_plan'), icon: <CalendarIcon size={18} />, permission: 'work_plan:view' },
+        { id: 'artwork_followup', label: t('menu.artwork_followup'), icon: <CheckSquare size={18} />, permission: 'artwork:view' },
+        { id: 'technical_datasheet', label: t('menu.technical_datasheet'), icon: <FileText size={18} />, permission: 'technical_sheets:view' },
+        { id: 'commercial_datasheet', label: t('menu.commercial_datasheet'), icon: <FileSpreadsheet size={18} />, permission: 'technical_sheets:view' },
       ]
     },
     {
-      title: 'Archivo Histórico',
+      title: t('menu.historical_archive'),
       id: 'aprobados',
       icon: <CheckSquare size={18} />,
       modules: [
-        { id: 'commercial_artworks', label: 'Artes Aprobados', icon: <ImageIcon size={18} />, permission: 'approved_artworks:view' },
-        { id: 'approved_technical_sheets', label: 'Fichas Técnicas', icon: <FileText size={18} />, permission: 'approved_technical:view' },
-        { id: 'approved_commercial_sheets', label: 'Fichas Comerciales', icon: <FileSpreadsheet size={18} />, permission: 'approved_commercial:view' },
+        { id: 'commercial_artworks', label: t('menu.approved_artworks'), icon: <ImageIcon size={18} />, permission: 'approved_artworks:view' },
+        { id: 'approved_technical_sheets', label: t('menu.approved_technical_sheets'), icon: <FileText size={18} />, permission: 'approved_technical:view' },
+        { id: 'approved_commercial_sheets', label: t('menu.approved_commercial_sheets'), icon: <FileSpreadsheet size={18} />, permission: 'approved_commercial:view' },
       ]
     },
     {
-      title: 'Desarrollo I+D',
+      title: t('menu.rd_development'),
       id: 'gestion',
       icon: <Briefcase size={18} />,
       modules: [
-        { id: 'rd_projects', label: 'Proyectos I+D', icon: <Briefcase size={18} />, permission: 'projects:view' },
-        { id: 'innovation_proposals', label: 'Propuestas de Innovación', icon: <Lightbulb size={18} />, permission: 'proposals:view' },
-        { id: 'rd_inventory', label: 'Inventario I+D', icon: <ClipboardList size={18} />, permission: 'inventory:view' },
-        { id: 'supplier_master', label: 'Maestro de Proveedores', icon: <Users size={18} />, permission: 'suppliers:view' },
+        { id: 'rd_projects', label: t('menu.rd_projects'), icon: <Briefcase size={18} />, permission: 'projects:view' },
+        { id: 'innovation_proposals', label: t('menu.innovation_proposals'), icon: <Lightbulb size={18} />, permission: 'proposals:view' },
+        { id: 'rd_inventory', label: t('menu.rd_inventory'), icon: <ClipboardList size={18} />, permission: 'inventory:view' },
+        { id: 'supplier_master', label: t('menu.supplier_master'), icon: <Users size={18} />, permission: 'suppliers:view' },
       ]
     },
     {
-      title: 'Ingeniería & Productos',
+      title: t('menu.engineering_products'),
       id: 'productos',
       icon: <Package size={18} />,
       modules: [
-        { id: 'samples', label: 'Muestras', icon: <Package size={18} />, permission: 'samples:view' },
-        { id: 'product_management', label: 'Catálogo Productos', icon: <ShoppingBag size={18} />, permission: 'catalog:view' },
-        { id: 'energy_efficiency', label: 'Eficiencia Energética', icon: <Zap size={18} />, permission: 'efficiency:view' },
-        { id: 'calculations_dashboard', label: 'Panel de Cálculos', icon: <Layers size={18} />, permission: 'calculations:view' },
+        { id: 'samples', label: t('menu.samples'), icon: <Package size={18} />, permission: 'samples:view' },
+        { id: 'product_management', label: t('menu.product_catalog'), icon: <ShoppingBag size={18} />, permission: 'catalog:view' },
+        { id: 'energy_efficiency', label: t('menu.energy_efficiency'), icon: <Zap size={18} />, permission: 'efficiency:view' },
+        { id: 'calculations_dashboard', label: t('menu.calculations_dashboard'), icon: <Layers size={18} />, permission: 'calculations:view' },
       ]
     },
     {
-      title: 'Recursos & Guías',
+      title: t('menu.resources_guides'),
       id: 'recursos',
       icon: <Book size={18} />,
       modules: [
-        { id: 'brandbook', label: 'Manual de Marca', icon: <Book size={18} />, permission: 'brandbook:view' },
-        { id: 'ntp_regulations', label: 'Normativas NTP', icon: <FileText size={18} />, permission: 'regulations:view' },
-        { id: 'canton_fair', label: 'Ferias Internacionales', icon: <Briefcase size={18} />, permission: 'fairs:view' },
-        { id: 'applications', label: 'Aplicaciones', icon: <Layers size={18} />, permission: 'apps:view' },
-        { id: 'records', label: 'Registros Base', icon: <Database size={18} />, permission: 'records:view' },
+        { id: 'brandbook', label: t('menu.brandbook'), icon: <Book size={18} />, permission: 'brandbook:view' },
+        { id: 'ntp_regulations', label: t('menu.ntp_regulations'), icon: <FileText size={18} />, permission: 'regulations:view' },
+        { id: 'canton_fair', label: t('menu.international_fairs'), icon: <Briefcase size={18} />, permission: 'fairs:view' },
+        { id: 'applications', label: t('menu.applications'), icon: <Layers size={18} />, permission: 'apps:view' },
+        { id: 'records', label: t('menu.base_records'), icon: <Database size={18} />, permission: 'records:view' },
       ]
     },
     {
-      title: 'Configuración',
+      title: t('menu.configuration'),
       id: 'config',
       icon: <Shield size={18} />,
       modules: [
-        { id: 'user_management', label: 'Usuarios y Permisos', icon: <Users size={18} />, permission: 'users:view' },
+        { id: 'user_management', label: t('menu.users_permissions'), icon: <Users size={18} />, permission: 'users:view' },
       ]
     }
   ];
@@ -188,7 +190,7 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
         <div className="p-6 flex items-center justify-between border-b border-slate-800/50">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-lg shadow-blue-500/20">R</div>
-            <span className="text-lg font-bold text-white tracking-tight">R&D Portal</span>
+            <span className="text-lg font-bold text-white tracking-tight">{t('common.title')}</span>
           </div>
           <button 
             onClick={onClose}
@@ -262,7 +264,7 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-white truncate">{profile?.full_name || 'Usuario'}</p>
-              <p className="text-[10px] font-medium text-slate-500 uppercase tracking-tighter truncate">{profile?.role || 'Invitado'}</p>
+              <p className="text-[10px] font-medium text-slate-500 uppercase tracking-tighter truncate">{profile?.role ? t(`roles.${profile.role.toLowerCase().replace(/ /g, '_')}`) : t('roles.visitor')}</p>
             </div>
           </div>
         </div>

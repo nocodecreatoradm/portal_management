@@ -34,11 +34,13 @@ import { format } from 'date-fns';
 
 interface SupplierMasterProps {
   suppliers: Supplier[];
-  onUpdateSuppliers: (suppliers: Supplier[]) => void;
+  onAddSupplier?: (supplier: Partial<Supplier>) => void;
+  onUpdateSupplier?: (id: string, supplier: Partial<Supplier>) => void;
+  onDeleteSupplier?: (id: string) => void;
   onExportPPT?: () => void;
 }
 
-const SupplierMaster: React.FC<SupplierMasterProps> = ({ suppliers, onUpdateSuppliers, onExportPPT }) => {
+const SupplierMaster: React.FC<SupplierMasterProps> = ({ suppliers, onAddSupplier, onUpdateSupplier, onDeleteSupplier, onExportPPT }) => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -171,13 +173,11 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ suppliers, onUpdateSupp
 
   const handleSave = () => {
     if (editingSupplier) {
-      onUpdateSuppliers(suppliers.map(s => s.id === editingSupplier.id ? { ...s, ...formData } as Supplier : s));
+      onUpdateSupplier?.(editingSupplier.id, formData);
+      toast.success('Socio actualizado');
     } else {
-      const newSupplier: Supplier = {
-        ...formData,
-        id: Math.random().toString(36).substr(2, 9),
-      } as Supplier;
-      onUpdateSuppliers([...suppliers, newSupplier]);
+      onAddSupplier?.(formData);
+      toast.success('Socio registrado');
     }
     setIsModalOpen(false);
   };
@@ -187,7 +187,7 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ suppliers, onUpdateSupp
       id,
       title,
       onConfirm: () => {
-        onUpdateSuppliers(suppliers.filter(s => s.id !== id));
+        onDeleteSupplier?.(id);
         setDeleteConfirm(null);
         toast.success('Proveedor eliminado');
       }

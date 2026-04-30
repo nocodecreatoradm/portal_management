@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { LogIn, Mail, Lock, User as UserIcon, Loader2, AlertCircle, ArrowLeft, UserPlus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface LoginPageProps {
   onBack: () => void;
@@ -15,6 +16,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +36,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
           }
         });
         if (error) throw error;
-        setSuccess('¡Cuenta creada! Revisa tu correo para confirmar tu registro.');
+        setSuccess(t('login.account_created'));
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -43,7 +45,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
         if (error) throw error;
       }
     } catch (err: any) {
-      setError(err.message || 'Error en la autenticación');
+      setError(err.message || t('login.auth_error'));
     } finally {
       setLoading(false);
     }
@@ -77,14 +79,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
               className="flex items-center gap-2 text-white/80 hover:text-white transition-colors mb-12 group relative z-20"
             >
               <ArrowLeft className="w-5 h-5" />
-              <span>Volver</span>
+              <span>{t('login.back')}</span>
             </motion.button>
             <h1 className="text-4xl font-bold mb-6 leading-tight">
               I+D Portal <br />
               <span className="text-white/70 font-light">Management</span>
             </h1>
             <p className="text-white/80 text-lg leading-relaxed max-w-sm">
-              Accede a la plataforma centralizada de Innovación y Desarrollo de Grupo Sole.
+              {t('login.subtitle')}
             </p>
           </div>
 
@@ -94,8 +96,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
                 {isSignUp ? <UserPlus className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
               </div>
               <div>
-                <p className="font-semibold">{isSignUp ? 'Nueva Cuenta' : 'Seguridad Total'}</p>
-                <p className="text-sm text-white/60">{isSignUp ? 'Únete a nuestra plataforma' : 'Acceso cifrado y seguro'}</p>
+                <p className="font-semibold">{isSignUp ? t('login.new_account') : t('login.security')}</p>
+                <p className="text-sm text-white/60">{isSignUp ? t('login.new_account_desc') : t('login.security_desc')}</p>
               </div>
             </div>
           </div>
@@ -105,17 +107,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
         <div className="md:w-1/2 p-12 flex flex-col justify-center bg-[#0a1120]">
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-2">
-              {isSignUp ? 'Crear Usuario' : 'Bienvenido'}
+              {isSignUp ? t('login.register') : t('login.welcome')}
             </h2>
             <p className="text-slate-400">
-              {isSignUp ? 'Regístrate para solicitar acceso' : 'Ingresa tus credenciales para continuar'}
+              {isSignUp ? t('login.signup_instructions') : t('login.login_instructions')}
             </p>
           </div>
 
           <form onSubmit={handleAuth} className="space-y-5">
             {isSignUp && (
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 block">Nombre Completo</label>
+                <label className="text-sm font-medium text-slate-300 block">{t('login.name_label')}</label>
                 <div className="relative group">
                   <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                   <input
@@ -131,7 +133,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
             )}
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300 block">Email</label>
+              <label className="text-sm font-medium text-slate-300 block">{t('login.email_label')}</label>
               <div className="relative group">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                 <input
@@ -146,7 +148,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300 block">Contraseña</label>
+              <label className="text-sm font-medium text-slate-300 block">{t('login.password_label')}</label>
               <div className="relative group">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                 <input
@@ -193,7 +195,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                isSignUp ? 'Crear Usuario' : 'Iniciar Sesión'
+                isSignUp ? t('login.signup_btn') : t('login.login_btn')
               )}
             </button>
           </form>
@@ -208,8 +210,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
               className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
             >
               {isSignUp 
-                ? '¿Ya tienes una cuenta? Inicia sesión' 
-                : '¿No tienes cuenta? Regístrate aquí'}
+                ? t('login.already_have_account') 
+                : t('login.dont_have_account')}
             </button>
           </div>
         </div>

@@ -11,6 +11,7 @@ interface NewRequestModalProps {
   existingData?: ProductRecord[];
   samples?: SampleRecord[];
   mode?: 'artwork' | 'technical_sheet' | 'commercial_sheet';
+  initialData?: ProductRecord | null;
 }
 
 export default function NewRequestModal({ 
@@ -19,27 +20,60 @@ export default function NewRequestModal({
   onSubmit, 
   existingProviders = [], 
   existingData = [],
-  mode = 'artwork'
+  mode = 'artwork',
+  initialData = null
 }: Omit<NewRequestModalProps, 'samples'>) {
   const { samples } = useSamples();
-  const [step, setStep] = useState<1 | 2>(1);
-  const [artworkType, setArtworkType] = useState<'local' | 'imported' | null>(null);
-  const [sampleSearch, setSampleSearch] = useState('');
-  const [isSampleDropdownOpen, setIsSampleDropdownOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    codigoEAN: '',
-    codigoSAP: '',
-    descripcionSAP: '',
-    codProv: '',
-    proveedor: '',
-    correoProveedor: [] as string[],
-    marca: 'SOLE' as 'SOLE' | 'S-Collection',
-    linea: 'LÍNEA BLANCA' as 'LÍNEA BLANCA' | 'AGUA CALIENTE' | 'CLIMATIZACIÓN' | 'PURIFICACIÓN',
-    sampleId: '',
+  const [step, setStep] = React.useState<1 | 2>(initialData ? 2 : 1);
+  const [artworkType, setArtworkType] = React.useState<'local' | 'imported' | null>(initialData ? (initialData.proveedor === 'LOCAL' ? 'local' : 'imported') : null);
+  const [sampleSearch, setSampleSearch] = React.useState('');
+  const [isSampleDropdownOpen, setIsSampleDropdownOpen] = React.useState(false);
+  const [formData, setFormData] = React.useState({
+    codigoEAN: initialData?.codigoEAN || '',
+    codigoSAP: initialData?.codigoSAP || '',
+    descripcionSAP: initialData?.descripcionSAP || '',
+    codProv: initialData?.codProv || '',
+    proveedor: initialData?.proveedor || '',
+    correoProveedor: initialData?.correoProveedor || [] as string[],
+    marca: (initialData?.marca as 'SOLE' | 'S-Collection') || 'SOLE',
+    linea: (initialData?.linea as any) || 'LÍNEA BLANCA',
+    sampleId: initialData?.sampleId || '',
   });
 
-  const [newEmail, setNewEmail] = useState('');
-  const [autoFilled, setAutoFilled] = useState(false);
+  React.useEffect(() => {
+    if (initialData) {
+      setFormData({
+        codigoEAN: initialData.codigoEAN,
+        codigoSAP: initialData.codigoSAP,
+        descripcionSAP: initialData.descripcionSAP,
+        codProv: initialData.codProv,
+        proveedor: initialData.proveedor,
+        correoProveedor: [...initialData.correoProveedor],
+        marca: initialData.marca as any,
+        linea: initialData.linea as any,
+        sampleId: initialData.sampleId || '',
+      });
+      setArtworkType(initialData.proveedor === 'LOCAL' ? 'local' : 'imported');
+      setStep(2);
+    } else {
+      setFormData({
+        codigoEAN: '',
+        codigoSAP: '',
+        descripcionSAP: '',
+        codProv: '',
+        proveedor: '',
+        correoProveedor: [],
+        marca: 'SOLE',
+        linea: 'LÍNEA BLANCA',
+        sampleId: '',
+      });
+      setStep(1);
+      setArtworkType(null);
+    }
+  }, [initialData, isOpen]);
+
+  const [newEmail, setNewEmail] = React.useState('');
+  const [autoFilled, setAutoFilled] = React.useState(false);
 
   if (!isOpen) return null;
 
@@ -61,6 +95,7 @@ export default function NewRequestModal({
   };
 
   const handleBack = () => {
+    if (initialData) return; // Prevent going back if editing
     setStep(1);
     setArtworkType(null);
   };
@@ -69,7 +104,7 @@ export default function NewRequestModal({
     const { name, value } = e.target;
     
     // Auto-fill logic when SAP code is entered
-    if (name === 'codigoSAP' && value.trim() !== '') {
+    if (name === 'codigoSAP' && value.trim() !== '' && !initialData) {
       const existingProduct = existingData?.find(p => p.codigoSAP.toLowerCase() === value.trim().toLowerCase());
       if (existingProduct) {
         setFormData(prev => ({
@@ -80,11 +115,10 @@ export default function NewRequestModal({
           codProv: artworkType === 'local' ? 'N/A' : existingProduct.codProv,
           proveedor: artworkType === 'local' ? 'LOCAL' : existingProduct.proveedor,
           correoProveedor: artworkType === 'local' ? [] : [...existingProduct.correoProveedor],
-          marca: existingProduct.marca,
-          linea: existingProduct.linea,
+          marca: existingProduct.marca as any,
+          linea: existingProduct.linea as any,
         }));
         setAutoFilled(true);
-        // Reset notification after 3 seconds
         setTimeout(() => setAutoFilled(false), 3000);
         return;
       }
@@ -130,32 +164,17 @@ export default function NewRequestModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newRecord: ProductRecord = {
-      id: Date.now().toString(), // Generar ID único temporal
+    const updatedRecord: ProductRecord = {
+      ...(initialData || {}),
       ...formData,
-      artworks: [],
-      technicalSheets: [],
-      commercialSheets: [],
-      createdAt: new Date().toISOString()
-    };
+      id: initialData?.id || Date.now().toString(),
+      artworks: initialData?.artworks || [],
+      technicalSheets: initialData?.technicalSheets || [],
+      commercialSheets: initialData?.commercialSheets || [],
+      createdAt: initialData?.createdAt || new Date().toISOString()
+    } as ProductRecord;
 
-    onSubmit(newRecord);
-    
-    // Reset form
-    setFormData({
-      codigoEAN: '',
-      codigoSAP: '',
-      descripcionSAP: '',
-      codProv: '',
-      proveedor: '',
-      correoProveedor: [],
-      marca: 'SOLE',
-      linea: 'LÍNEA BLANCA',
-      sampleId: '',
-    });
-    setAutoFilled(false);
-    setStep(1);
-    setArtworkType(null);
+    onSubmit(updatedRecord);
     onClose();
   };
 

@@ -9,7 +9,8 @@ import {
   Filter,
   MoreVertical,
   BookOpen,
-  X
+  X,
+  Edit2
 } from 'lucide-react';
 import { NTPRegulation } from '../types';
 import { format, parseISO } from 'date-fns';
@@ -100,6 +101,7 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
   const [regulations, setRegulations] = useState<NTPRegulation[]>(INITIAL_NTP);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingReg, setEditingReg] = useState<NTPRegulation | null>(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -170,30 +172,40 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
     reg.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveReg = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const newReg: Partial<NTPRegulation> = {
+    const regData: Partial<NTPRegulation> = {
       code: formData.get('code') as string,
       title: formData.get('title') as string,
       category: formData.get('category') as string,
-      uploadDate: new Date().toISOString(),
-      file: { 
-        name: (formData.get('file') as File).name || 'documento.pdf', 
-        url: '#', 
-        type: 'application/pdf' 
-      },
       description: formData.get('description') as string
     };
     
     try {
-      const result = await SupabaseService.createNTPRegulation(newReg);
-      setRegulations([result, ...regulations]);
+      if (editingReg) {
+        const result = await SupabaseService.updateNTPRegulation(editingReg.id, regData);
+        setRegulations(regulations.map(r => r.id === result.id ? result : r));
+        toast.success('Normativa actualizada');
+      } else {
+        const newReg: Partial<NTPRegulation> = {
+          ...regData,
+          uploadDate: new Date().toISOString(),
+          file: { 
+            name: (formData.get('file') as File).name || 'documento.pdf', 
+            url: '#', 
+            type: 'application/pdf' 
+          }
+        };
+        const result = await SupabaseService.createNTPRegulation(newReg);
+        setRegulations([result, ...regulations]);
+        toast.success('Normativa añadida correctamente');
+      }
       setShowAddModal(false);
-      toast.success('Normativa añadida correctamente');
+      setEditingReg(null);
     } catch (error) {
-      console.error('Error adding regulation:', error);
-      toast.error('Error al añadir normativa');
+      console.error('Error saving regulation:', error);
+      toast.error('Error al guardar normativa');
     }
   };
 
@@ -278,20 +290,27 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
                   {reg.category}
                 </div>
                 <div className="flex gap-2">
-                  <button 
-                    onClick={() => handleDownload(reg)}
-                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                    title="Descargar PDF"
-                  >
-                    <Download size={18} />
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(reg.id)}
-                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                    title="Eliminar"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                    <button 
+                      onClick={() => {
+                        setEditingReg(reg);
+                        setShowAddModal(true);
+                      }}
+                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                      title="Editar"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if (confirm('¿Está seguro de eliminar esta normativa?')) {
+                          handleDelete(reg.id);
+                        }
+                      }}
+                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                      title="Eliminar"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                 </div>
               </div>
 
@@ -331,27 +350,54 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
           <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
             <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div>
-                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Añadir Normativa</h3>
-                <p className="text-slate-500 text-sm font-medium">Registra una nueva NTP en el sistema</p>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">
+                  {editingReg ? 'Editar Normativa' : 'Añadir Normativa'}
+                </h3>
+                <p className="text-slate-500 text-sm font-medium">
+                  {editingReg ? 'Actualiza los datos de la NTP' : 'Registra una nueva NTP en el sistema'}
+                </p>
               </div>
-              <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-white rounded-full text-slate-400 transition-colors">
+              <button 
+                onClick={() => {
+                  setShowAddModal(false);
+                  setEditingReg(null);
+                }} 
+                className="p-2 hover:bg-white rounded-full text-slate-400 transition-colors"
+              >
                 <X size={24} />
               </button>
             </div>
             
-            <form onSubmit={handleAdd} className="p-8 space-y-6">
+            <form onSubmit={handleSaveReg} className="p-8 space-y-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Código NTP</label>
-                <input name="code" required placeholder="Ej: NTP 111.011" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" />
+                <input 
+                  name="code" 
+                  required 
+                  defaultValue={editingReg?.code}
+                  placeholder="Ej: NTP 111.011" 
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" 
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Título / Descripción</label>
-                <textarea name="title" required rows={3} placeholder="Nombre completo de la normativa..." className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700 resize-none" />
+                <textarea 
+                  name="title" 
+                  required 
+                  rows={3} 
+                  defaultValue={editingReg?.title}
+                  placeholder="Nombre completo de la normativa..." 
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700 resize-none" 
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoría</label>
-                  <select name="category" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700">
+                  <select 
+                    name="category" 
+                    defaultValue={editingReg?.category || 'Gas Natural'}
+                    className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700"
+                  >
                     <option>Gas Natural</option>
                     <option>Electricidad</option>
                     <option>Agua Potable</option>
@@ -359,15 +405,28 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
                     <option>Otros</option>
                   </select>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Archivo PDF</label>
-                  <input type="file" name="file" className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-                </div>
+                {!editingReg && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Archivo PDF</label>
+                    <input type="file" name="file" className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                  </div>
+                )}
               </div>
               
               <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 px-6 py-4 border border-slate-200 rounded-2xl font-black uppercase text-sm text-slate-500 hover:bg-slate-50 transition-all">Cancelar</button>
-                <button type="submit" className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">Guardar</button>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setEditingReg(null);
+                  }} 
+                  className="flex-1 px-6 py-4 border border-slate-200 rounded-2xl font-black uppercase text-sm text-slate-500 hover:bg-slate-50 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
+                  {editingReg ? 'Actualizar' : 'Guardar'}
+                </button>
               </div>
             </form>
           </div>

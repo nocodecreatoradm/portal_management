@@ -32,15 +32,7 @@ interface SamplesProps {
 
 export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<SamplesProps, 'samples' | 'onUpdateSample' | 'onAddSample'>) {
   const { user } = useAuth();
-  const { samples, setSamples } = useSamples();
-  
-  const onUpdateSample = (id: string, updates: Partial<SampleRecord>) => {
-    setSamples(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
-  };
-
-  const onAddSample = (sample: SampleRecord) => {
-    setSamples(prev => [...prev, sample]);
-  };
+  const { samples, addSample, updateSample, deleteSample } = useSamples();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedSample, setSelectedSample] = useState<SampleRecord | null>(null);
@@ -283,11 +275,11 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
   };
 
   const handleStatusChange = (id: string, newStatus: SampleStatus) => {
-    onUpdateSample(id, { 
+    updateSample(id, { 
       inspectionStatus: newStatus,
       history: [
         ...samples.find(s => s.id === id)!.history,
-        { date: new Date().toISOString().split('T')[0], status: newStatus, user: 'Carlos H.' }
+        { date: new Date().toISOString().split('T')[0], status: newStatus, user: user?.name || 'Sistema' }
       ]
     });
   };
@@ -322,7 +314,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
         { date: new Date().toISOString().split('T')[0], status: 'Inspeccionado sin informe', user: 'Carlos H.', comment: 'Muestra registrada y recepcionada' }
       ]
     };
-    onAddSample(newSample);
+    addSample(newSample);
     setIsNewSampleModalOpen(false);
     setReceptionPhoto(null);
   };
@@ -331,12 +323,12 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
     e.preventDefault();
     if (!selectedSample) return;
     const formData = new FormData(e.currentTarget);
-    onUpdateSample(selectedSample.id, {
+    updateSample(selectedSample.id, {
       technician: formData.get('technician') as string,
       plannedStartDate: formData.get('startDate') as string,
       history: [
         ...selectedSample.history,
-        { date: new Date().toISOString().split('T')[0], status: 'Inspeccionado sin informe', user: 'Carlos H.', comment: `Asignado a ${formData.get('technician')}` }
+        { date: new Date().toISOString().split('T')[0], status: 'Inspeccionado sin informe', user: user?.name || 'Sistema', comment: `Asignado a ${formData.get('technician')}` }
       ]
     });
     setIsAssignModalOpen(false);
@@ -359,7 +351,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
       ]
     };
     
-    onUpdateSample(sample.id, updatedSample);
+    updateSample(sample.id, updatedSample);
     setSelectedSample({ ...sample, ...updatedSample });
     setIsInspectionModalOpen(true);
   };
@@ -372,7 +364,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
       toast.loading('Subiendo informe...');
       const newReport = await SupabaseService.uploadFile('rd-files', `samples/${sampleId}/reports/${Date.now()}_${file.name}`, file);
       
-      onUpdateSample(sampleId, {
+      updateSample(sampleId, {
         reportFile: newReport,
         reportDate: new Date().toISOString().split('T')[0],
         history: [
@@ -404,7 +396,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
       const uploadedDocs = await Promise.all(uploadPromises);
       const updatedDocs = [...(sample.providerDocuments || []), ...uploadedDocs];
       
-      onUpdateSample(sampleId, {
+      updateSample(sampleId, {
         providerDocuments: updatedDocs,
         history: [
           ...sample.history,
@@ -459,7 +451,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
         }
       ]
     };
-    onAddSample(newSample);
+    addSample(newSample);
   };
 
   const handleReceptionPhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -513,7 +505,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
         uploadDate: new Date().toISOString()
       };
 
-      onUpdateSample(selectedSampleForDetail.id, {
+      updateSample(selectedSampleForDetail.id, {
         gallery: [...(selectedSampleForDetail.gallery || []), newGalleryItem]
       });
 
@@ -942,7 +934,14 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
                             )}
                           </>
                         )}
-                        <button className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                        <button 
+                          onClick={() => {
+                            if (window.confirm('¿Está seguro de eliminar esta muestra?')) {
+                              deleteSample(sample.id);
+                            }
+                          }}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                        >
                           <Trash2 size={18} />
                         </button>
                       </div>

@@ -1,4 +1,4 @@
-import { RDInventoryItem, EnergyEfficiencyRecord, ProductManagementRecord, Project, ProjectActivity, CalendarTask, InnovationProposal } from '../types';
+import { RDInventoryItem, EnergyEfficiencyRecord, ProductManagementRecord, Project, ProjectActivity, CalendarTask, InnovationProposal, Supplier, RDProjectTemplate, ProductRecord, AuditLog, NTPRegulation } from '../types';
 
 export const mapInventoryToDB = (item: Partial<RDInventoryItem>) => ({
   serial_number: item.serialNumber,
@@ -229,4 +229,171 @@ export const mapDBToLog = (dbLog: any): AuditLog => ({
   entityName: dbLog.entity_name,
   previousData: dbLog.previous_data,
   newData: dbLog.new_data
+});
+export const mapProductToDB = (product: Partial<ProductRecord | ProductManagementRecord>) => {
+  const dbProduct: any = {};
+  if (product.codigoSAP !== undefined) dbProduct.sap_code = product.codigoSAP;
+  if ((product as ProductRecord).codigoEAN !== undefined) dbProduct.ean_code = (product as ProductRecord).codigoEAN;
+  if (product.descripcionSAP !== undefined) dbProduct.sap_description = product.descripcionSAP;
+  if ((product as ProductManagementRecord).marca !== undefined) dbProduct.brand_id = (product as ProductManagementRecord).marca;
+  if (product.proveedor !== undefined) dbProduct.supplier_id = product.proveedor;
+  if (product.linea !== undefined) dbProduct.line_id = product.linea;
+  if (product.sampleId !== undefined) dbProduct.sample_id = product.sampleId;
+  if ((product as ProductRecord).commercialStatus !== undefined) dbProduct.commercial_status = (product as ProductRecord).commercialStatus;
+  if ((product as ProductRecord).qualityInspectionDate !== undefined) dbProduct.quality_inspection_date = (product as ProductRecord).qualityInspectionDate;
+  if (product.fobPrice !== undefined) dbProduct.fob_price = product.fobPrice;
+  if (product.fobPriceHistory !== undefined) dbProduct.fob_price_history = product.fobPriceHistory;
+  if (product.explodeFiles !== undefined) dbProduct.explode_files = product.explodeFiles;
+  if (product.additionalProviderDocuments !== undefined) dbProduct.additional_provider_documents = product.additionalProviderDocuments;
+  if (product.gallery !== undefined) dbProduct.gallery = product.gallery;
+  return dbProduct;
+};
+
+export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
+  id: dbProduct.id,
+  codigoSAP: dbProduct.sap_code || '',
+  codigoEAN: dbProduct.ean_code || '',
+  descripcionSAP: dbProduct.sap_description || '',
+  marca: dbProduct.brand?.name || 'SOLE',
+  proveedor: dbProduct.supplier?.legal_name || 'Desconocido',
+  linea: dbProduct.line?.name || 'AGUA CALIENTE',
+  codProv: '', // Not in DB yet
+  correoProveedor: [], // Not in DB yet
+  artworks: dbProduct.documents ? dbProduct.documents.filter((d: any) => d.category === 'Artwork') : [],
+  technicalSheets: dbProduct.documents ? dbProduct.documents.filter((d: any) => d.category === 'Technical Sheet') : [],
+  commercialSheets: dbProduct.documents ? dbProduct.documents.filter((d: any) => d.category === 'Commercial Sheet') : [],
+  commercialStatus: dbProduct.commercial_status,
+  qualityInspectionDate: dbProduct.quality_inspection_date,
+  fobPrice: dbProduct.fob_price,
+  fobPriceHistory: dbProduct.fob_price_history || [],
+  explodeFiles: dbProduct.explode_files || [],
+  additionalProviderDocuments: dbProduct.additional_provider_documents || [],
+  gallery: dbProduct.gallery || [],
+  createdAt: dbProduct.created_at,
+});
+
+export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
+  id: dbRecord.id,
+  codigoSAP: dbRecord.sap_code || '',
+  descripcionSAP: dbRecord.sap_description || '',
+  marca: dbRecord.brand?.name || 'SOLE',
+  proveedor: dbRecord.supplier?.legal_name || 'Desconocido',
+  linea: dbRecord.line?.name || 'AGUA CALIENTE',
+  sampleId: dbRecord.sample_id,
+  fobPrice: dbRecord.fob_price || 0,
+  fobPriceHistory: dbRecord.fob_price_history || [],
+  explodeFiles: dbRecord.explode_files || [],
+  additionalProviderDocuments: dbRecord.additional_provider_documents || [],
+  gallery: dbRecord.gallery || [],
+  approvedDocuments: [] // To be synced from products table if needed
+});
+
+export const mapSupplierToDB = (supplier: Partial<Supplier>) => {
+  const dbSupplier: any = {};
+  if (supplier.legalName !== undefined) dbSupplier.legal_name = supplier.legalName;
+  if (supplier.commercialAlias !== undefined) dbSupplier.commercial_alias = supplier.commercialAlias;
+  if (supplier.erpCode !== undefined) dbSupplier.erp_code = supplier.erpCode;
+  if (supplier.country !== undefined) dbSupplier.country = supplier.country;
+  if (supplier.logoUrl !== undefined) dbSupplier.logo_url = supplier.logoUrl;
+  if (supplier.contacts !== undefined) dbSupplier.contacts = supplier.contacts;
+  if (supplier.website !== undefined) dbSupplier.website = supplier.website;
+  if (supplier.wechat !== undefined) dbSupplier.wechat = supplier.wechat;
+  if (supplier.email !== undefined) dbSupplier.email = supplier.email;
+  if (supplier.evaluation !== undefined) dbSupplier.evaluation = supplier.evaluation;
+  return dbSupplier;
+};
+
+export const mapDBToSupplier = (dbSupplier: any): Supplier => ({
+  id: dbSupplier.id,
+  legalName: dbSupplier.legal_name,
+  commercialAlias: dbSupplier.commercial_alias,
+  erpCode: dbSupplier.erp_code,
+  country: dbSupplier.country,
+  logoUrl: dbSupplier.logo_url,
+  contacts: dbSupplier.contacts,
+  website: dbSupplier.website,
+  wechat: dbSupplier.wechat,
+  email: dbSupplier.email,
+  evaluation: dbSupplier.evaluation
+});
+
+export const mapTemplateToDB = (template: Partial<RDProjectTemplate>) => {
+  const dbTemplate: any = {};
+  if (template.name !== undefined) dbTemplate.name = template.name;
+  if (template.description !== undefined) dbTemplate.description = template.description;
+  if (template.icon !== undefined) dbTemplate.icon = template.icon;
+  if (template.backgroundImage !== undefined) dbTemplate.background_image = template.backgroundImage;
+  if (template.isCustom !== undefined) dbTemplate.is_custom = template.isCustom;
+  if (template.sections !== undefined) dbTemplate.sections = template.sections;
+  return dbTemplate;
+};
+
+export const mapDBToTemplate = (dbTemplate: any): RDProjectTemplate => ({
+  id: dbTemplate.id,
+  name: dbTemplate.name,
+  description: dbTemplate.description,
+  icon: dbTemplate.icon,
+  backgroundImage: dbTemplate.background_image,
+  isCustom: dbTemplate.is_custom,
+  sections: dbTemplate.sections
+});
+
+export const mapSampleToDB = (sample: Partial<SampleRecord>) => {
+  const dbSample: any = {};
+  if (sample.correlativeId !== undefined) dbSample.correlative_id = sample.correlativeId;
+  if (sample.codigoSAP !== undefined) dbSample.sap_code = sample.codigoSAP;
+  if (sample.descripcionSAP !== undefined) dbSample.sap_description = sample.descripcionSAP;
+  if (sample.marca !== undefined) dbSample.brand_id = sample.marca;
+  if (sample.proveedor !== undefined) dbSample.supplier_id = sample.proveedor;
+  if (sample.linea !== undefined) dbSample.line_id = sample.linea;
+  if (sample.categoria !== undefined) dbSample.category_id = sample.categoria;
+  if (sample.technician !== undefined) dbSample.technician_id = sample.technician;
+  if (sample.inspectionDate !== undefined) dbSample.inspection_date = sample.inspectionDate;
+  if (sample.inspectionStatus !== undefined) dbSample.inspection_status = sample.inspectionStatus;
+  if (sample.inspectionProgress !== undefined) dbSample.inspection_progress = sample.inspectionProgress;
+  if (sample.reportDate !== undefined) dbSample.report_date = sample.reportDate;
+  if (sample.reportFile !== undefined) dbSample.report_file = sample.reportFile;
+  if (sample.inspectionTimer !== undefined) dbSample.inspection_timer = sample.inspectionTimer;
+  if (sample.inspectionForm !== undefined) dbSample.inspection_form = sample.inspectionForm;
+  if (sample.workflow !== undefined) dbSample.workflow = sample.workflow;
+  if (sample.infoRequests !== undefined) dbSample.info_requests = sample.infoRequests;
+  if (sample.providerDocuments !== undefined) dbSample.provider_documents = sample.providerDocuments;
+  if (sample.receptionPhoto !== undefined) dbSample.reception_photo = sample.receptionPhoto;
+  if (sample.receivedBy !== undefined) dbSample.received_by = sample.receivedBy;
+  if (sample.warehouseEntryDate !== undefined) dbSample.warehouse_entry_date = sample.warehouseEntryDate;
+  if (sample.version !== undefined) dbSample.version = sample.version;
+  return dbSample;
+};
+
+export const mapDBToSample = (dbSample: any): SampleRecord => ({
+  id: dbSample.id,
+  correlativeId: dbSample.correlative_id,
+  createdAt: dbSample.created_at,
+  version: dbSample.version || 1,
+  codigoSAP: dbSample.sap_code,
+  descripcionSAP: dbSample.sap_description,
+  marca: dbSample.brand?.name || 'SOLE',
+  proveedor: dbSample.supplier?.legal_name || 'Desconocido',
+  linea: dbSample.line?.name || 'AGUA CALIENTE',
+  categoria: dbSample.category?.name,
+  inspectionDate: dbSample.inspection_date,
+  inspectionStatus: dbSample.inspection_status,
+  reportDate: dbSample.report_date,
+  reportFile: dbSample.report_file,
+  technician: dbSample.technician?.full_name,
+  inspectionProgress: dbSample.inspection_progress as any,
+  inspectionTimer: dbSample.inspection_timer,
+  inspectionForm: dbSample.inspection_form,
+  workflow: dbSample.workflow,
+  infoRequests: dbSample.info_requests || [],
+  providerDocuments: dbSample.provider_documents || [],
+  receptionPhoto: dbSample.reception_photo,
+  receivedBy: dbSample.received_by,
+  warehouseEntryDate: dbSample.warehouse_entry_date,
+  history: dbSample.history ? dbSample.history.map((h: any) => ({
+    date: h.created_at,
+    status: h.status,
+    user: h.user?.full_name || 'Desconocido',
+    comment: h.comment
+  })) : []
 });

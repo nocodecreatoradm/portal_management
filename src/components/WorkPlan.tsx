@@ -178,18 +178,23 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
     setExpandedProjects(newExpanded);
   };
 
-  const handleDeleteProject = (projectId: string) => {
+  const handleDeleteProject = async (projectId: string) => {
     const projectToDelete = projects.find(p => p.id === projectId);
     if (projectToDelete) {
       setConfirmation({
         isOpen: true,
         title: 'Eliminar Proyecto',
         message: `¿Está seguro de eliminar el proyecto "${projectToDelete.name}"? Esta acción quedará registrada en el historial.`,
-        onConfirm: () => {
-          addAuditLog('delete', 'PROJECT', projectId, projectToDelete.name, projectToDelete);
-          const updatedProjects = projects.filter(p => p.id !== projectId);
-          setProjects(updatedProjects);
-          localStorage.setItem('workplan_projects_data', JSON.stringify(updatedProjects));
+        onConfirm: async () => {
+          try {
+            await SupabaseService.deleteProject(projectId);
+            addAuditLog('delete', 'PROJECT', projectId, projectToDelete.name, projectToDelete);
+            setProjects(prev => prev.filter(p => p.id !== projectId));
+            toast.success('Proyecto eliminado');
+          } catch (error) {
+            console.error('Error deleting project:', error);
+            toast.error('Error al eliminar proyecto');
+          }
           setConfirmation(prev => ({ ...prev, isOpen: false }));
         }
       });
@@ -205,19 +210,24 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
         isOpen: true,
         title: 'Eliminar Actividad',
         message: `¿Está seguro de eliminar la actividad "${activityToDelete.name}"? Esta acción quedará registrada en el historial.`,
-        onConfirm: () => {
-          addAuditLog('delete', 'ACTIVITY', activityId, activityToDelete.name, activityToDelete);
-          const updatedProjects = projects.map(p => {
-            if (p.id === projectId) {
-              return {
-                ...p,
-                activities: p.activities.filter(a => a.id !== activityId)
-              };
-            }
-            return p;
-          });
-          setProjects(updatedProjects);
-          localStorage.setItem('workplan_projects_data', JSON.stringify(updatedProjects));
+        onConfirm: async () => {
+          try {
+            await SupabaseService.deleteProjectActivity(activityId);
+            addAuditLog('delete', 'ACTIVITY', activityId, activityToDelete.name, activityToDelete);
+            setProjects(prev => prev.map(p => {
+              if (p.id === projectId) {
+                return {
+                  ...p,
+                  activities: p.activities.filter(a => a.id !== activityId)
+                };
+              }
+              return p;
+            }));
+            toast.success('Actividad eliminada');
+          } catch (error) {
+            console.error('Error deleting activity:', error);
+            toast.error('Error al eliminar actividad');
+          }
           setConfirmation(prev => ({ ...prev, isOpen: false }));
         }
       });
@@ -229,32 +239,40 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
     setIsProjectModalOpen(true);
   };
 
-  const handleSaveProject = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveProject = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const name = formData.get('name') as string;
     const responsible = formData.get('responsible') as string;
     const status = formData.get('status') as Project['status'];
 
-    if (editingProject) {
-      const updatedProject = { ...editingProject, name, responsible, status };
-      addAuditLog('update', 'PROJECT', editingProject.id, name, editingProject, updatedProject);
-      setProjects(prev => prev.map(p => p.id === editingProject.id ? updatedProject : p));
-    } else {
-      const newProject: Project = {
-        id: `P-${Date.now()}`,
-        number: (projects.length + 1).toString(),
-        name,
-        responsible,
-        progress: 0,
-        status,
-        activities: []
-      };
-      addAuditLog('create', 'PROJECT', newProject.id, name, undefined, newProject);
-      setProjects(prev => [...prev, newProject]);
+    try {
+      if (editingProject) {
+        const updatedProject = { ...editingProject, name, responsible, status };
+        const result = await SupabaseService.updateProject(editingProject.id, updatedProject);
+        addAuditLog('update', 'PROJECT', editingProject.id, name, editingProject, result);
+        setProjects(prev => prev.map(p => p.id === editingProject.id ? { ...result, activities: p.activities } : p));
+        toast.success('Proyecto actualizado');
+      } else {
+        const newProjectData: Partial<Project> = {
+          number: (projects.length + 1).toString(),
+          name,
+          responsible,
+          progress: 0,
+          status
+        };
+        const result = await SupabaseService.createProject(newProjectData);
+        const newProject: Project = { ...result, activities: [] };
+        addAuditLog('create', 'PROJECT', result.id, name, undefined, newProject);
+        setProjects(prev => [...prev, newProject]);
+        toast.success('Proyecto creado');
+      }
+      setIsProjectModalOpen(false);
+      setEditingProject(null);
+    } catch (error) {
+      console.error('Error saving project:', error);
+      toast.error('Error al guardar proyecto');
     }
-    setIsProjectModalOpen(false);
-    setEditingProject(null);
   };
 
   const handleDuplicateProject = (project: Project) => {
@@ -305,7 +323,7 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
     setIsActivityModalOpen(true);
   };
 
-  const handleSaveActivity = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveActivity = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const name = formData.get('name') as string;
@@ -317,49 +335,58 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
     const actualEndDate = formData.get('actualEndDate') as string || undefined;
 
     if (editingActivity) {
-      const isNew = !projects.find(p => p.id === editingActivity.projectId)?.activities.find(a => a.id === editingActivity.activity.id);
-      
-      const updatedActivity: ProjectActivity = { 
-        ...editingActivity.activity, 
-        name, 
-        progress, 
-        status, 
-        plannedStartDate, 
-        plannedEndDate,
-        actualStartDate,
-        actualEndDate
-      };
+      try {
+        const isNew = !projects.find(p => p.id === editingActivity.projectId)?.activities.find(a => a.id === editingActivity.activity.id);
+        
+        const activityData: Partial<ProjectActivity> = { 
+          ...editingActivity.activity, 
+          name, 
+          progress, 
+          status, 
+          plannedStartDate, 
+          plannedEndDate,
+          actualStartDate,
+          actualEndDate
+        };
 
-      if (isNew) {
-        addAuditLog('create', 'ACTIVITY', updatedActivity.id, name, undefined, updatedActivity);
-      } else {
-        addAuditLog('update', 'ACTIVITY', editingActivity.activity.id, name, editingActivity.activity, updatedActivity);
-      }
-      
-      setProjects(prev => prev.map(p => {
-        if (p.id === editingActivity.projectId) {
-          let newActivities;
-          if (isNew) {
-            newActivities = [...p.activities, { ...updatedActivity, number: `${p.number}.${p.activities.length + 1}` }];
-          } else {
-            newActivities = p.activities.map(a => a.id === editingActivity.activity.id ? updatedActivity : a);
-          }
-          
-          // Recalculate project progress
-          const totalProgress = newActivities.reduce((acc, curr) => acc + curr.progress, 0);
-          const avgProgress = newActivities.length > 0 ? Math.round(totalProgress / newActivities.length) : 0;
-          
-          return {
-            ...p,
-            activities: newActivities,
-            progress: avgProgress
-          };
+        let result: ProjectActivity;
+        if (isNew) {
+          result = await SupabaseService.createProjectActivity(editingActivity.projectId, activityData);
+          addAuditLog('create', 'ACTIVITY', result.id, name, undefined, result);
+        } else {
+          result = await SupabaseService.updateProjectActivity(editingActivity.activity.id, activityData);
+          addAuditLog('update', 'ACTIVITY', editingActivity.activity.id, name, editingActivity.activity, result);
         }
-        return p;
-      }));
+        
+        setProjects(prev => prev.map(p => {
+          if (p.id === editingActivity.projectId) {
+            let newActivities;
+            if (isNew) {
+              newActivities = [...p.activities, result];
+            } else {
+              newActivities = p.activities.map(a => a.id === editingActivity.activity.id ? result : a);
+            }
+            
+            // Recalculate project progress
+            const totalProgress = newActivities.reduce((acc, curr) => acc + curr.progress, 0);
+            const avgProgress = newActivities.length > 0 ? Math.round(totalProgress / newActivities.length) : 0;
+            
+            return {
+              ...p,
+              activities: newActivities,
+              progress: avgProgress
+            };
+          }
+          return p;
+        }));
+        toast.success(isNew ? 'Actividad creada' : 'Actividad actualizada');
+        setIsActivityModalOpen(false);
+        setEditingActivity(null);
+      } catch (error) {
+        console.error('Error saving activity:', error);
+        toast.error('Error al guardar actividad');
+      }
     }
-    setIsActivityModalOpen(false);
-    setEditingActivity(null);
   };
 
   const handleLogProgress = (projectId: string, activity: ProjectActivity, date: Date) => {

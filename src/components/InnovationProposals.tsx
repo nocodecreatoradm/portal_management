@@ -93,25 +93,40 @@ export default function InnovationProposals() {
     priority: 'Media',
     tags: []
   });
+  const [editingProposal, setEditingProposal] = useState<InnovationProposal | null>(null);
 
-  const handleAddProposal = async () => {
+  const handleSaveProposal = async () => {
     try {
-      const proposal: Partial<InnovationProposal> = {
-        title: newProposal.title || 'Sin Título',
-        description: newProposal.description || '',
-        category: newProposal.category || 'Otros',
-        author: user?.email || 'Usuario Actual',
-        status: 'Borrador',
-        priority: newProposal.priority as any || 'Media',
-        images: [],
-        sketches: [],
-        blueprints: [],
-        tags: newProposal.tags || []
-      };
-
-      const result = await SupabaseService.createInnovationProposal(proposal);
-      setProposals([result, ...proposals]);
+      if (editingProposal) {
+        const updates: Partial<InnovationProposal> = {
+          title: newProposal.title,
+          description: newProposal.description,
+          category: newProposal.category,
+          priority: newProposal.priority as any,
+          tags: newProposal.tags
+        };
+        const result = await SupabaseService.updateInnovationProposal(editingProposal.id, updates);
+        setProposals(proposals.map(p => p.id === result.id ? result : p));
+        toast.success('Propuesta actualizada');
+      } else {
+        const proposal: Partial<InnovationProposal> = {
+          title: newProposal.title || 'Sin Título',
+          description: newProposal.description || '',
+          category: newProposal.category || 'Otros',
+          author: user?.email || 'Usuario Actual',
+          status: 'Borrador',
+          priority: newProposal.priority as any || 'Media',
+          images: [],
+          sketches: [],
+          blueprints: [],
+          tags: newProposal.tags || []
+        };
+        const result = await SupabaseService.createInnovationProposal(proposal);
+        setProposals([result, ...proposals]);
+        toast.success('Propuesta creada correctamente');
+      }
       setIsModalOpen(false);
+      setEditingProposal(null);
       setNewProposal({
         title: '',
         description: '',
@@ -119,10 +134,22 @@ export default function InnovationProposals() {
         priority: 'Media',
         tags: []
       });
-      toast.success('Propuesta creada correctamente');
     } catch (error) {
-      console.error('Error creating proposal:', error);
-      toast.error('Error al crear la propuesta');
+      console.error('Error saving proposal:', error);
+      toast.error('Error al guardar la propuesta');
+    }
+  };
+
+  const handleDeleteProposal = async (id: string) => {
+    if (confirm('¿Está seguro de eliminar esta propuesta?')) {
+      try {
+        await SupabaseService.deleteInnovationProposal(id);
+        setProposals(proposals.filter(p => p.id !== id));
+        toast.success('Propuesta eliminada');
+      } catch (error) {
+        console.error('Error deleting proposal:', error);
+        toast.error('Error al eliminar la propuesta');
+      }
     }
   };
 
@@ -214,9 +241,32 @@ export default function InnovationProposals() {
                   <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${STATUS_COLORS[proposal.status]}`}>
                     {proposal.status}
                   </div>
-                  <button className="text-slate-400 hover:text-slate-600 transition-colors">
-                    <MoreVertical size={20} />
-                  </button>
+                  <div className="flex gap-1">
+                    <button 
+                      onClick={() => {
+                        setEditingProposal(proposal);
+                        setNewProposal({
+                          title: proposal.title,
+                          description: proposal.description,
+                          category: proposal.category,
+                          priority: proposal.priority,
+                          tags: proposal.tags
+                        });
+                        setIsModalOpen(true);
+                      }}
+                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                      title="Editar"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteProposal(proposal.id)}
+                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                      title="Eliminar"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -300,8 +350,12 @@ export default function InnovationProposals() {
                     <Lightbulb size={24} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Capturar Nueva Idea</h2>
-                    <p className="text-slate-500 text-sm font-medium">Define el concepto y adjunta material visual de apoyo.</p>
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                      {editingProposal ? 'Editar Propuesta' : 'Capturar Nueva Idea'}
+                    </h2>
+                    <p className="text-slate-500 text-sm font-medium">
+                      {editingProposal ? 'Actualiza los detalles de tu idea innovadora.' : 'Define el concepto y adjunta material visual de apoyo.'}
+                    </p>
                   </div>
                 </div>
                 <button 
@@ -480,10 +534,10 @@ export default function InnovationProposals() {
                   Cancelar
                 </button>
                 <button 
-                  onClick={handleAddProposal}
+                  onClick={handleSaveProposal}
                   className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 active:scale-95"
                 >
-                  Guardar Idea
+                  {editingProposal ? 'Actualizar Propuesta' : 'Guardar Idea'}
                 </button>
               </div>
             </motion.div>

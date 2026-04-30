@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Eye, FileText, Upload, Image as ImageIcon, UserPlus, HelpCircle, AlertCircle, Beaker, Search, X, Clock, Send } from 'lucide-react';
+import { Eye, Edit2, FileText, Upload, Image as ImageIcon, UserPlus, HelpCircle, AlertCircle, Beaker, Search, X, Clock, Send } from 'lucide-react';
 import { ProductRecord, DocumentVersion, Supplier, SampleRecord } from '../types';
 import StatusIcon from './StatusIcon';
 
@@ -12,6 +12,7 @@ interface DataTableProps {
   onAssign?: (record: ProductRecord, type: 'artwork' | 'technical_sheet' | 'commercial_sheet') => void;
   onInfoRequest?: (record: ProductRecord, type: 'artwork' | 'technical_sheet' | 'commercial_sheet') => void;
   onStartFlow?: (record: ProductRecord, version: DocumentVersion) => void;
+  onEdit?: (record: ProductRecord) => void;
   mode?: 'artwork' | 'technical_sheet' | 'commercial_sheet';
 }
 
@@ -24,6 +25,7 @@ export default function DataTable({
   onAssign,
   onInfoRequest,
   onStartFlow,
+  onEdit,
   mode = 'artwork'
 }: DataTableProps) {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
@@ -359,6 +361,13 @@ export default function DataTable({
                         title="Ver detalle"
                       >
                         <Eye size={18} />
+                      </button>
+                      <button 
+                        onClick={() => onEdit?.(record)} 
+                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" 
+                        title="Editar"
+                      >
+                        <Edit2 size={18} />
                       </button>
                     </div>
                   </td>

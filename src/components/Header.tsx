@@ -1,5 +1,7 @@
 import { LogOut, User as UserIcon, Menu, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from './LanguageSwitcher';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -8,6 +10,7 @@ interface HeaderProps {
 
 export default function Header({ onToggleSidebar, isSidebarOpen }: HeaderProps) {
   const { profile, signOut } = useAuth();
+  const { t } = useTranslation();
 
   return (
     <header className="bg-white border-b border-gray-200 px-4 md:px-8 py-4 flex justify-between items-center sticky top-0 z-40">
@@ -20,9 +23,9 @@ export default function Header({ onToggleSidebar, isSidebarOpen }: HeaderProps) 
         </button>
         <div className="flex flex-col leading-tight">
           <h1 className="text-lg md:text-2xl font-bold text-[#52627e] tracking-tight">
-            R&D Portal Management
+            {t('common.title')}
           </h1>
-          <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">Sistema Centralizado de Aprobaciones</p>
+          <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">{t('common.subtitle')}</p>
         </div>
       </div>
       
@@ -44,6 +47,8 @@ export default function Header({ onToggleSidebar, isSidebarOpen }: HeaderProps) 
             </span>
           </div>
         </div>
+        
+        <LanguageSwitcher />
         
         <button 
           onClick={signOut}
