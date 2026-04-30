@@ -47,6 +47,32 @@ export interface DocumentVersion {
   pdfComments?: PDFComment[];
 }
 
+export interface BrandDocumentVersion {
+  id: string;
+  version: string;
+  date: string;
+  modifiedBy: string;
+  changeDescription: string;
+}
+
+export interface Brand {
+  id: string;
+  name: string;
+  image: string;
+  description: string;
+}
+
+export interface BrandDocument {
+  id: string;
+  brandId: string;
+  parentId: string | null;
+  name: string;
+  type: 'pdf' | 'docx' | 'xlsx' | 'pptx' | 'folder';
+  modified: string;
+  modifiedBy: string;
+  versions?: BrandDocumentVersion[];
+}
+
 export interface InfoRequest {
   id: string;
   requestText: string;

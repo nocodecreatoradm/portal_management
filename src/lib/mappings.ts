@@ -1,4 +1,4 @@
-import { RDInventoryItem, EnergyEfficiencyRecord, ProductManagementRecord, Project, ProjectActivity, CalendarTask, InnovationProposal, Supplier, RDProjectTemplate, RDProject, ProductRecord, AuditLog, NTPRegulation } from '../types';
+import { RDInventoryItem, EnergyEfficiencyRecord, ProductManagementRecord, Project, ProjectActivity, CalendarTask, InnovationProposal, Supplier, RDProjectTemplate, RDProject, ProductRecord, AuditLog, NTPRegulation, Brand, BrandDocument } from '../types';
 
 export const mapInventoryToDB = (item: Partial<RDInventoryItem>) => ({
   serial_number: item.serialNumber,
@@ -430,3 +430,36 @@ export const mapRDProjectToDB = (project: Partial<RDProject>) => {
   if (project.attachments !== undefined) dbProject.attachments = project.attachments;
   return dbProject;
 };
+
+export const mapBrandToDB = (brand: Partial<Brand>) => ({
+  name: brand.name,
+  image: brand.image,
+  description: brand.description
+});
+
+export const mapDBToBrand = (dbBrand: any): Brand => ({
+  id: dbBrand.id,
+  name: dbBrand.name,
+  image: dbBrand.image,
+  description: dbBrand.description
+});
+
+export const mapBrandDocumentToDB = (doc: Partial<BrandDocument>) => ({
+  brand_id: doc.brandId,
+  parent_id: doc.parentId,
+  name: doc.name,
+  type: doc.type,
+  modified_by: doc.modifiedBy,
+  versions: doc.versions
+});
+
+export const mapDBToBrandDocument = (dbDoc: any): BrandDocument => ({
+  id: dbDoc.id,
+  brandId: dbDoc.brand_id,
+  parentId: dbDoc.parent_id,
+  name: dbDoc.name,
+  type: dbDoc.type as any,
+  modified: new Date(dbDoc.modified_at).toLocaleString(),
+  modifiedBy: dbDoc.modified_by,
+  versions: dbDoc.versions || []
+});

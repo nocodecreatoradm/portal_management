@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { toast } from 'sonner';
+import { CalculationRecord } from '../types';
 
 export const saveCalculationRecord = async (
   moduleId: string, 
@@ -34,7 +35,7 @@ export const saveCalculationRecord = async (
   }
 };
 
-export const fetchCalculationRecords = async (moduleId?: string) => {
+export const fetchCalculationRecords = async (moduleId?: string): Promise<CalculationRecord[]> => {
   try {
     let query = supabase.from('calculation_records').select('*');
     if (moduleId) {
@@ -42,7 +43,18 @@ export const fetchCalculationRecords = async (moduleId?: string) => {
     }
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
-    return data;
+    
+    return (data || []).map(record => ({
+      id: record.id,
+      module_id: record.module_id,
+      action_type: record.action_type,
+      record_data: typeof record.record_data === 'string' ? record.record_data : JSON.stringify(record.record_data),
+      user_email: record.user_id, // In this app, user_id field in calculation_records table stores the email
+      project_name: record.project_name,
+      sample_id: record.sample_id,
+      description: record.description,
+      timestamp: record.created_at
+    })) as CalculationRecord[];
   } catch (error) {
     console.error('Error fetching records:', error);
     return [];

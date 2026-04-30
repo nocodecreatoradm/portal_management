@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Folder, 
   FileText, 
@@ -23,145 +23,155 @@ import { motion, AnimatePresence } from 'motion/react';
 import ModuleActions from './ModuleActions';
 import { exportToExcel, exportToPDF } from '../lib/exportUtils';
 import { toast } from 'sonner';
-
-interface Brand {
-  id: string;
-  name: string;
-  image: string;
-  description: string;
-}
-
-interface DocumentVersion {
-  id: string;
-  version: string;
-  date: string;
-  modifiedBy: string;
-  changeDescription: string;
-}
-
-interface BrandDocument {
-  id: string;
-  brandId: string;
-  parentId: string | null;
-  name: string;
-  type: 'pdf' | 'docx' | 'xlsx' | 'pptx' | 'folder';
-  modified: string;
-  modifiedBy: string;
-  versions?: DocumentVersion[];
-}
-
-const BRANDS: Brand[] = [
-  { 
-    id: 'sole', 
-    name: 'Sole', 
-    image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1000',
-    description: 'Nuestra marca principal de termas y electrodomésticos.'
-  },
-  { 
-    id: 's-collection', 
-    name: 'S-Collection', 
-    image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=1000',
-    description: 'Línea premium de diseño y alta tecnología.'
-  },
-  { 
-    id: 'rinnai', 
-    name: 'Rinnai', 
-    image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=1000',
-    description: 'Tecnología japonesa líder en calentamiento.'
-  },
-  { 
-    id: 'metusa', 
-    name: 'Metusa', 
-    image: 'https://images.unsplash.com/photo-1585133000555-0e02bd1a82f2?auto=format&fit=crop&q=80&w=1000',
-    description: 'Soluciones en grifería y conexiones.'
-  },
-  { 
-    id: 'brikkel', 
-    name: 'Brikkel', 
-    image: 'https://images.unsplash.com/photo-1584622781564-1d987f7333c1?auto=format&fit=crop&q=80&w=1000',
-    description: 'Diseño vanguardista para el hogar moderno.'
-  }
-];
-
-const INITIAL_DOCUMENTS: BrandDocument[] = [
-  { id: '1', brandId: 'sole', parentId: null, name: '00. Brandbook', type: 'folder', modified: 'El miércoles a las 2:15 PM', modifiedBy: 'TAMIA BELEN ROMERO SANTA CRUZ' },
-  { id: '2', brandId: 'sole', parentId: null, name: '01. Logos', type: 'folder', modified: 'El miércoles a las 2:20 PM', modifiedBy: 'TAMIA BELEN ROMERO SANTA CRUZ' },
-  { id: '3', brandId: 'sole', parentId: null, name: '02. Tipografía', type: 'folder', modified: 'El miércoles a las 2:25 PM', modifiedBy: 'TAMIA BELEN ROMERO SANTA CRUZ' },
-  { id: '4', brandId: 'sole', parentId: null, name: '03. Template PPT', type: 'folder', modified: 'El miércoles a las 2:30 PM', modifiedBy: 'TAMIA BELEN ROMERO SANTA CRUZ' },
-  { id: '5', brandId: 'sole', parentId: null, name: '04. Papeleria', type: 'folder', modified: 'El miércoles a las 2:35 PM', modifiedBy: 'TAMIA BELEN ROMERO SANTA CRUZ' },
-  { id: '6', brandId: 'sole', parentId: null, name: 'Manual de Identidad Visual.pdf', type: 'pdf', modified: 'Hace 2 horas', modifiedBy: 'Carlos Hoyos', versions: [
-    { id: 'v2', version: '2.0', date: '2024-03-20', modifiedBy: 'Carlos Hoyos', changeDescription: 'Actualización de paleta de colores secundarios.' },
-    { id: 'v1', version: '1.0', date: '2024-01-15', modifiedBy: 'Tamia Romero', changeDescription: 'Versión inicial.' }
-  ]},
-  { id: '7', brandId: 'sole', parentId: null, name: 'Logotipo Principal.ai', type: 'docx', modified: 'Ayer a las 10:00 AM', modifiedBy: 'Diseñadora Gráfica' }
-];
+import { SupabaseService } from '../lib/SupabaseService';
+import { Brand, BrandDocument } from '../types';
 
 export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void }) {
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<BrandDocument | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'pdf' | 'docx' | 'xlsx' | 'pptx'>('all');
-  const [documents, setDocuments] = useState<BrandDocument[]>(INITIAL_DOCUMENTS);
+  const [documents, setDocuments] = useState<BrandDocument[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [heroImage, setHeroImage] = useState('https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=2000');
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingTarget, setUploadingTarget] = useState<{ type: 'hero' | 'brand', id?: string } | null>(null);
 
-  const handleDelete = (id: string) => {
-    setDocuments(prev => prev.filter(doc => doc.id !== id));
-    toast.success('Elemento eliminado correctamente');
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  const loadInitialData = async () => {
+    try {
+      setLoading(true);
+      const [settingsData, brandsData, docsData] = await Promise.all([
+        SupabaseService.getBrandbookSettings(),
+        SupabaseService.getBrandbookBrands(),
+        SupabaseService.getBrandbookDocuments()
+      ]);
+      
+      if (settingsData?.hero_image) setHeroImage(settingsData.hero_image);
+      setBrands(brandsData);
+      setDocuments(docsData);
+    } catch (error) {
+      console.error('Error loading brandbook data:', error);
+      toast.error('Error al cargar datos del Brandbook');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCreateFolder = () => {
+  const handleDelete = async (id: string) => {
+    try {
+      await SupabaseService.deleteBrandbookDocument(id);
+      setDocuments(prev => prev.filter(doc => doc.id !== id));
+      toast.success('Elemento eliminado correctamente');
+    } catch (error) {
+      toast.error('Error al eliminar elemento');
+    }
+  };
+
+  const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
     
-    const newFolder: BrandDocument = {
-      id: Math.random().toString(36).substr(2, 9),
-      brandId: selectedBrand?.id || '',
-      parentId: currentFolderId,
-      name: newFolderName,
-      type: 'folder',
-      modified: 'Recién ahora',
-      modifiedBy: 'Usuario Actual'
-    };
+    try {
+      const newFolder: Partial<BrandDocument> = {
+        brandId: selectedBrand?.id || '',
+        parentId: currentFolderId,
+        name: newFolderName,
+        type: 'folder',
+        modifiedBy: 'Usuario Actual' // Should get from auth context
+      };
 
-    setDocuments(prev => [...prev, newFolder]);
-    setNewFolderName('');
-    setIsCreateFolderModalOpen(false);
-    toast.success('Carpeta creada');
+      const createdFolder = await SupabaseService.createBrandbookDocument(newFolder);
+      setDocuments(prev => [...prev, createdFolder]);
+      setNewFolderName('');
+      setIsCreateFolderModalOpen(false);
+      toast.success('Carpeta creada');
+    } catch (error) {
+      toast.error('Error al crear carpeta');
+    }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const getFileType = (fileName: string): BrandDocument['type'] => {
-      const ext = fileName.split('.').pop()?.toLowerCase();
-      if (ext === 'pdf') return 'pdf';
-      if (['doc', 'docx'].includes(ext || '')) return 'docx';
-      if (['xls', 'xlsx'].includes(ext || '')) return 'xlsx';
-      if (['ppt', 'pptx'].includes(ext || '')) return 'pptx';
-      return 'pdf';
-    };
+    try {
+      const toastId = toast.loading('Subiendo archivo...');
+      
+      // Upload to storage
+      const uploadedFile = await SupabaseService.uploadFile('brandbook', `docs/${Date.now()}_${file.name}`, file);
 
-    const newFile: BrandDocument = {
-      id: Math.random().toString(36).substr(2, 9),
-      brandId: selectedBrand?.id || '',
-      parentId: currentFolderId,
-      name: file.name,
-      type: getFileType(file.name),
-      modified: 'Recién ahora',
-      modifiedBy: 'Usuario Actual'
-    };
+      const getFileType = (fileName: string): BrandDocument['type'] => {
+        const ext = fileName.split('.').pop()?.toLowerCase();
+        if (ext === 'pdf') return 'pdf';
+        if (['doc', 'docx'].includes(ext || '')) return 'docx';
+        if (['xls', 'xlsx'].includes(ext || '')) return 'xlsx';
+        if (['ppt', 'pptx'].includes(ext || '')) return 'pptx';
+        return 'pdf';
+      };
 
-    setDocuments(prev => [...prev, newFile]);
-    toast.success(`Archivo "${file.name}" subido correctamente`);
-    
-    if (fileInputRef.current) fileInputRef.current.value = '';
+      const newFile: Partial<BrandDocument> = {
+        brandId: selectedBrand?.id || '',
+        parentId: currentFolderId,
+        name: file.name,
+        type: getFileType(file.name),
+        modifiedBy: 'Usuario Actual', // Should get from auth context
+        versions: [{
+          id: Math.random().toString(36).substr(2, 9),
+          version: '1.0',
+          date: new Date().toISOString().split('T')[0],
+          modifiedBy: 'Usuario Actual',
+          changeDescription: 'Versión inicial'
+        }]
+      };
+
+      const createdDoc = await SupabaseService.createBrandbookDocument(newFile);
+      setDocuments(prev => [...prev, createdDoc]);
+      toast.success(`Archivo "${file.name}" subido correctamente`, { id: toastId });
+      
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (error) {
+      toast.error('Error al subir archivo');
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadingTarget) return;
+
+    try {
+      const toastId = toast.loading('Actualizando imagen...');
+      const uploadedFile = await SupabaseService.uploadFile('brandbook', `images/${Date.now()}_${file.name}`, file);
+      
+      if (uploadingTarget.type === 'hero') {
+        await SupabaseService.updateBrandbookSettings(uploadedFile.url);
+        setHeroImage(uploadedFile.url);
+        toast.success('Imagen de portada actualizada', { id: toastId });
+      } else if (uploadingTarget.type === 'brand' && uploadingTarget.id) {
+        const updatedBrand = await SupabaseService.updateBrand(uploadingTarget.id, { image: uploadedFile.url } as any);
+        setBrands(prev => prev.map(b => b.id === uploadingTarget.id ? updatedBrand : b));
+        toast.success('Imagen de marca actualizada', { id: toastId });
+      }
+      setUploadingTarget(null);
+    } catch (error) {
+      toast.error('Error al actualizar imagen');
+    }
   };
 
   const handleUploadFile = () => {
     fileInputRef.current?.click();
+  };
+
+  const triggerImageUpload = (type: 'hero' | 'brand', id?: string) => {
+    setUploadingTarget({ type, id });
+    imageInputRef.current?.click();
   };
 
   const handleShare = async () => {
@@ -183,11 +193,6 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
     }
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast.success('Vínculo copiado');
-  };
-
   const handleExportPDF = () => {
     exportToPDF('brandbook-library', `Brandbook_${selectedBrand?.name || 'General'}`, 'Brandbook - Repositorio de Marca');
   };
@@ -204,34 +209,13 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
     exportToExcel(exportData, `Brandbook_${selectedBrand?.name || 'General'}`, 'Documentos');
   };
 
-  const [brands, setBrands] = useState<Brand[]>(BRANDS);
-  const [heroImage, setHeroImage] = useState('/artifact/initial_image_6.png');
-  const [uploadingTarget, setUploadingTarget] = useState<{ type: 'hero' | 'brand', id?: string } | null>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !uploadingTarget) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const url = reader.result as string;
-      if (uploadingTarget.type === 'hero') {
-        setHeroImage(url);
-        toast.success('Imagen de portada actualizada');
-      } else if (uploadingTarget.type === 'brand' && uploadingTarget.id) {
-        setBrands(prev => prev.map(b => b.id === uploadingTarget.id ? { ...b, image: url } : b));
-        toast.success('Imagen de marca actualizada');
-      }
-      setUploadingTarget(null);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const triggerImageUpload = (type: 'hero' | 'brand', id?: string) => {
-    setUploadingTarget({ type, id });
-    imageInputRef.current?.click();
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   const renderLanding = () => (
     <div className="space-y-8">
@@ -295,14 +279,14 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
               onClick={() => setSelectedBrand(brand)}
             >
               <img 
-                src={brand.image} 
+                src={brand.image || 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1000'} 
                 alt={brand.name}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/30 to-transparent flex flex-col justify-end p-6">
                 <h3 className="text-2xl font-black text-white mb-1 tracking-tight">{brand.name}</h3>
                 <p className="text-slate-300 text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0">
-                  {brand.description}
+                  {brand.description || 'Recursos de marca oficiales'}
                 </p>
               </div>
             </div>
@@ -416,7 +400,7 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
               </button>
               <div className="w-px h-8 bg-slate-200 mx-2" />
               <ModuleActions 
-                onSave={() => toast.success('Estado del Brandbook guardado')} 
+                onSave={() => toast.success('Datos actualizados en tiempo real')} 
                 onExportPDF={handleExportPDF} 
                 onExportExcel={handleExportExcel}
                 onExportPPT={onExportPPT}
@@ -538,6 +522,16 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
+                          handleDelete(doc.id);
+                        }}
+                        className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-red-600 shadow-sm transition-all"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
                           toast.success(`Iniciando descarga de: ${doc.name}`);
                         }}
                         className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-blue-600 shadow-sm transition-all"
@@ -626,8 +620,8 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
                           <span className="text-xs font-bold text-slate-500">{version.modifiedBy}</span>
                         </div>
                         <button className="flex items-center gap-2 text-xs font-black text-blue-600 hover:text-blue-700 transition-colors">
-                          <Download size={14} />
-                          Descargar esta versión
+                           <Download size={14} />
+                           Descargar esta versión
                         </button>
                       </div>
                     </div>

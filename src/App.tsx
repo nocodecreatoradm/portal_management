@@ -80,7 +80,6 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [data, setData] = useState<ProductRecord[]>([]);
-  const [rdInventory, setRdInventory] = useState<RDInventoryItem[]>([]);
   const [energyEfficiency, setEnergyEfficiency] = useState<EnergyEfficiencyRecord[]>([]);
   const [productManagement, setProductManagement] = useState<ProductManagementRecord[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -167,7 +166,6 @@ export default function App() {
         const [
           productsData,
           pmData,
-          inventoryData,
           projectsData,
           eeData,
           calendarData,
@@ -181,7 +179,6 @@ export default function App() {
         ] = await Promise.all([
           SupabaseService.getProducts(),
           SupabaseService.getPMRecords(),
-          SupabaseService.getInventory(),
           SupabaseService.getProjects(),
           SupabaseService.getEnergyEfficiencyRecords(),
           SupabaseService.getCalendarTasks(),
@@ -196,7 +193,6 @@ export default function App() {
 
         setData(productsData);
         setProductManagement(pmData);
-        setRdInventory(inventoryData as unknown as RDInventoryItem[]);
         setProjects(projectsData as unknown as Project[]);
         setEnergyEfficiency(eeData as unknown as EnergyEfficiencyRecord[]);
         setCalendarTasks(calendarData as unknown as CalendarTask[]);
@@ -526,6 +522,7 @@ export default function App() {
 
   const handleUpdateRecord = async (id: string, updates: Partial<ProductRecord>) => {
     try {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
       const resolvedUpdates = { ...updates };
       
       if (updates.marca) {
@@ -543,7 +540,19 @@ export default function App() {
         if (line) (resolvedUpdates as any).linea = line.id;
       }
 
-      const result = await SupabaseService.updateProduct(id, resolvedUpdates);
+      let result;
+      if (isUUID) {
+        result = await SupabaseService.updateProduct(id, resolvedUpdates);
+      } else {
+        // If not UUID, it's a mock record being updated for the first time
+        // We merge the current record with updates and create it in Supabase
+        const currentRecord = data.find(r => r.id === id);
+        if (!currentRecord) throw new Error('Record not found');
+        
+        const { id: _, createdAt: __, ...recordToCreate } = { ...currentRecord, ...resolvedUpdates };
+        result = await SupabaseService.createProduct(recordToCreate as any);
+      }
+
       setData(prev => prev.map(r => r.id === id ? result : r));
       setProductManagement(prev => prev.map(r => r.codigoSAP === result.codigoSAP ? result as any : r));
       toast.success('Datos actualizados correctamente');
@@ -553,45 +562,6 @@ export default function App() {
     }
   };
 
-  const handleAddRDItem = async (item: Omit<RDInventoryItem, 'id'>) => {
-    try {
-      const newItem = await SupabaseService.createInventoryItem(item);
-      setRdInventory(prev => [newItem, ...prev]);
-      toast.success('Equipo añadido al inventario');
-    } catch (error) {
-      console.error('Error adding inventory item:', error);
-      toast.error('Error al añadir equipo');
-    }
-  };
-
-  const handleUpdateRDItem = async (updatedItem: RDInventoryItem) => {
-    try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updatedItem.id);
-      let result;
-      if (isUUID) {
-        result = await SupabaseService.updateInventoryItem(updatedItem.id, updatedItem);
-      } else {
-        const { id, ...itemWithoutId } = updatedItem;
-        result = await SupabaseService.createInventoryItem(itemWithoutId);
-      }
-      setRdInventory(prev => prev.map(item => item.id === (isUUID ? result.id : updatedItem.id) ? result : item));
-      toast.success('Inventario actualizado');
-    } catch (error) {
-      console.error('Error updating inventory item:', error);
-      toast.error('Error al actualizar inventario');
-    }
-  };
-
-  const handleDeleteRDItem = async (id: string) => {
-    try {
-      await SupabaseService.deleteInventoryItem(id);
-      setRdInventory(prev => prev.filter(item => item.id !== id));
-      toast.success('Equipo eliminado');
-    } catch (error) {
-      console.error('Error deleting inventory item:', error);
-      toast.error('Error al eliminar equipo');
-    }
-  };
 
   const handleAddSupplier = async (supplier: Partial<Supplier>) => {
     try {
@@ -1182,15 +1152,7 @@ export default function App() {
     }
 
     if (activeModule === 'rd_inventory') {
-      return (
-        <RDInventory 
-          items={rdInventory}
-          onAddItem={handleAddRDItem}
-          onUpdateItem={handleUpdateRDItem}
-          onDeleteItem={handleDeleteRDItem}
-          onExportPPT={handleExportPPT}
-        />
-      );
+      return <RDInventory onExportPPT={handleExportPPT} />;
     }
 
     if (activeModule === 'ntp_regulations') {
@@ -1321,7 +1283,8 @@ export default function App() {
 
     // Update specific states for other modules
     if (moduleId === 'rd_inventory' && Array.isArray(data)) {
-      setRdInventory(data);
+      // RDInventory manages its own state from Supabase, but we can set initial data if needed
+      setModuleInitialData(prev => ({ ...prev, [moduleId]: data }));
     } else if (moduleId === 'supplier_master' && Array.isArray(data)) {
       setSuppliers(data);
     } else if (moduleId === 'samples' && Array.isArray(data)) {

@@ -10,7 +10,9 @@ import {
   ModuleId,
   EnergyEfficiencyRecord,
   NTPRegulation,
-  AuditLog
+  AuditLog,
+  Brand,
+  BrandDocument
 } from '../types';
 import {
   mapInventoryToDB,
@@ -35,9 +37,12 @@ import {
   mapDBToTemplate,
   mapSampleToDB,
   mapDBToSample,
-  mapDBToPMRecord,
   mapDBToRDProject,
-  mapRDProjectToDB
+  mapRDProjectToDB,
+  mapBrandToDB,
+  mapDBToBrand,
+  mapBrandDocumentToDB,
+  mapDBToBrandDocument
 } from './mappings';
 
 
@@ -86,6 +91,7 @@ export const SupabaseService = {
   },
 
   async updateSample(id: string, updates: Partial<SampleRecord>) {
+    if (!isUUID(id)) return null;
     const dbUpdates = mapSampleToDB(updates);
     const { data, error } = await supabase
       .from('samples')
@@ -129,6 +135,7 @@ export const SupabaseService = {
   },
 
   async updateProduct(id: string, updates: Partial<ProductRecord>) {
+    if (!isUUID(id)) return null;
     const dbUpdates = mapProductToDB(updates);
     const { data, error } = await supabase
       .from('products')
@@ -184,6 +191,7 @@ export const SupabaseService = {
   },
 
   async updateProductManagementRecord(id: string, updates: Partial<ProductManagementRecord>) {
+    if (!isUUID(id)) return null;
     const dbUpdates = mapProductToDB(updates);
     const { data, error } = await supabase
       .from('product_management')
@@ -227,6 +235,7 @@ export const SupabaseService = {
   },
 
   async updateInventoryItem(id: string, updates: Partial<RDInventoryItem>) {
+    if (!isUUID(id)) return null;
     const dbUpdates = mapInventoryToDB(updates);
     const { data, error } = await supabase
       .from('rd_inventory')
@@ -273,6 +282,7 @@ export const SupabaseService = {
   },
 
   async updateProject(id: string, updates: Partial<Project>) {
+    if (!isUUID(id)) return null;
     const dbUpdates = mapProjectToDB(updates);
     const { data, error } = await supabase
       .from('projects')
@@ -307,6 +317,7 @@ export const SupabaseService = {
   },
 
   async updateProjectActivity(id: string, updates: Partial<ProjectActivity>) {
+    if (!isUUID(id)) return null;
     const dbUpdates = mapActivityToDB(updates);
     const { data, error } = await supabase
       .from('project_activities')
@@ -350,6 +361,7 @@ export const SupabaseService = {
   },
 
   async updateEERecord(id: string, updates: Partial<EnergyEfficiencyRecord>) {
+    if (!isUUID(id)) return null;
     const dbUpdates = mapEEToDB(updates);
     const { data, error } = await supabase
       .from('energy_efficiency_records')
@@ -393,6 +405,7 @@ export const SupabaseService = {
   },
 
   async updateInnovationProposal(id: string, updates: Partial<InnovationProposal>) {
+    if (!isUUID(id)) return null;
     const dbUpdates = mapProposalToDB(updates);
     const { data, error } = await supabase
       .from('innovation_proposals')
@@ -436,6 +449,7 @@ export const SupabaseService = {
   },
 
   async updateCalendarTask(id: string, updates: Partial<CalendarTask>) {
+    if (!isUUID(id)) return null;
     const dbUpdates = mapTaskToDB(updates);
     const { data, error } = await supabase
       .from('calendar_tasks')
@@ -479,6 +493,7 @@ export const SupabaseService = {
   },
 
   async updateNTPRegulation(id: string, updates: Partial<NTPRegulation>) {
+    if (!isUUID(id)) return null;
     const dbUpdates = mapNTPToDB(updates);
     const { data, error } = await supabase
       .from('ntp_regulations')
@@ -522,6 +537,7 @@ export const SupabaseService = {
   },
 
   async updateSupplier(id: string, updates: Partial<Supplier>) {
+    if (!isUUID(id)) return null;
     const dbUpdates = mapSupplierToDB(updates);
     const { data, error } = await supabase
       .from('suppliers')
@@ -565,6 +581,7 @@ export const SupabaseService = {
   },
 
   async updateRDProjectTemplate(id: string, updates: Partial<RDProjectTemplate>) {
+    if (!isUUID(id)) return null;
     const dbUpdates = mapTemplateToDB(updates);
     const { data, error } = await supabase
       .from('rd_project_templates')
@@ -608,6 +625,7 @@ export const SupabaseService = {
   },
 
   async updateRDProject(id: string, updates: Partial<RDProject>) {
+    if (!isUUID(id)) return null;
     const dbUpdates = mapRDProjectToDB(updates);
     const { data, error } = await supabase
       .from('rd_custom_projects')
@@ -761,6 +779,91 @@ export const SupabaseService = {
   async deleteApprover(id: string) {
     const { error } = await supabase
       .from('approver_configs')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
+  // BRANDBOOK
+  async getBrandbookSettings() {
+    const { data, error } = await supabase
+      .from('brandbook_settings')
+      .select('*')
+      .limit(1)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || { hero_image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=2000' };
+  },
+
+  async updateBrandbookSettings(heroImage: string) {
+    const { data, error } = await supabase
+      .from('brandbook_settings')
+      .upsert({ hero_image: heroImage, id: (await this.getBrandbookSettings()).id })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getBrandbookBrands() {
+    const { data, error } = await supabase
+      .from('brands')
+      .select('*')
+      .order('name');
+    if (error) throw error;
+    return data.map(mapDBToBrand);
+  },
+
+  async updateBrand(id: string, updates: Partial<Brand>) {
+    const dbUpdates = mapBrandToDB(updates);
+    const { data, error } = await supabase
+      .from('brands')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToBrand(data);
+  },
+
+  async getBrandbookDocuments(brandId?: string) {
+    let query = supabase.from('brand_documents').select('*').order('name');
+    if (brandId) {
+      query = query.eq('brand_id', brandId);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return data.map(mapDBToBrandDocument);
+  },
+
+  async createBrandbookDocument(doc: Partial<BrandDocument>) {
+    const dbDoc = mapBrandDocumentToDB(doc);
+    const { data, error } = await supabase
+      .from('brand_documents')
+      .insert(dbDoc)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToBrandDocument(data);
+  },
+
+  async updateBrandbookDocument(id: string, updates: Partial<BrandDocument>) {
+    const dbDoc = mapBrandDocumentToDB(updates);
+    const { data, error } = await supabase
+      .from('brand_documents')
+      .update(dbDoc)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToBrandDocument(data);
+  },
+
+  async deleteBrandbookDocument(id: string) {
+    if (!isUUID(id)) return true;
+    const { error } = await supabase
+      .from('brand_documents')
       .delete()
       .eq('id', id);
     if (error) throw error;
