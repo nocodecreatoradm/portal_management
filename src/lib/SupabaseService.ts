@@ -41,14 +41,6 @@ import {
 
 export const SupabaseService = {
   // MASTER DATA
-  async getSuppliers() {
-    const { data, error } = await supabase
-      .from('suppliers')
-      .select('*')
-      .order('legal_name');
-    if (error) throw error;
-    return data;
-  },
 
   async getBrands() {
     const { data, error } = await supabase.from('brands').select('*').order('name');
@@ -668,7 +660,7 @@ export const SupabaseService = {
       .eq('id', id);
     if (error) throw error;
     return true;
-  }
+  },
 
   // AUDIT LOGS
   async getAuditLogs() {
