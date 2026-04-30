@@ -570,6 +570,17 @@ export default function App() {
     }
   };
 
+  const handleDeleteRDItem = async (id: string) => {
+    try {
+      await SupabaseService.deleteInventoryItem(id);
+      setRdInventory(prev => prev.filter(item => item.id !== id));
+      toast.success('Equipo eliminado');
+    } catch (error) {
+      console.error('Error deleting inventory item:', error);
+      toast.error('Error al eliminar equipo');
+    }
+  };
+
   const handleAddSupplier = async (supplier: Partial<Supplier>) => {
     try {
       const result = await SupabaseService.createSupplier(supplier);
@@ -688,39 +699,6 @@ export default function App() {
     } catch (error) {
       console.error('Error updating template:', error);
       toast.error('Error al actualizar plantilla');
-    }
-  };
-
-  const handleAddRDItem = async (item: Omit<RDInventoryItem, 'id'>) => {
-    try {
-      const newItem = await SupabaseService.createInventoryItem(item);
-      setRdInventory(prev => [newItem, ...prev]);
-      toast.success('Equipo añadido al inventario');
-    } catch (error) {
-      console.error('Error adding inventory item:', error);
-      toast.error('Error al añadir equipo');
-    }
-  };
-
-  const handleUpdateRDItem = async (item: RDInventoryItem) => {
-    try {
-      const result = await SupabaseService.updateInventoryItem(item.id, item);
-      setRdInventory(prev => prev.map(i => i.id === result.id ? result : i));
-      toast.success('Equipo actualizado');
-    } catch (error) {
-      console.error('Error updating inventory item:', error);
-      toast.error('Error al actualizar equipo');
-    }
-  };
-
-  const handleDeleteRDItem = async (id: string) => {
-    try {
-      await SupabaseService.deleteInventoryItem(id);
-      setRdInventory(prev => prev.filter(item => item.id !== id));
-      toast.success('Equipo eliminado');
-    } catch (error) {
-      console.error('Error deleting inventory item:', error);
-      toast.error('Error al eliminar equipo');
     }
   };
 
@@ -859,83 +837,6 @@ export default function App() {
     }
   };
 
-  const handleDeletePMRecord = async (id: string) => {
-    try {
-      await SupabaseService.deleteProductManagementRecord(id);
-      setProductManagement(prev => prev.filter(r => r.id !== id));
-      toast.success('Producto eliminado del catálogo');
-    } catch (error) {
-      console.error('Error deleting PM record:', error);
-      toast.error('Error al eliminar producto');
-    }
-  };
-
-  const handleAddCalendarTask = async (taskData: Omit<CalendarTask, 'id' | 'createdAt' | 'changeLog'>) => {
-    try {
-      const newTask = await SupabaseService.createCalendarTask(taskData);
-      setCalendarTasks(prev => [newTask, ...prev]);
-      toast.success('Tarea añadida al calendario');
-    } catch (error) {
-      console.error('Error adding calendar task:', error);
-      toast.error('Error al añadir tarea');
-    }
-  };
-
-  const handleUpdateCalendarTask = async (updatedTask: CalendarTask) => {
-    try {
-      const result = await SupabaseService.updateCalendarTask(updatedTask.id, updatedTask);
-      setCalendarTasks(prev => prev.map(t => t.id === result.id ? result : t));
-      toast.success('Tarea actualizada');
-    } catch (error) {
-      console.error('Error updating calendar task:', error);
-      toast.error('Error al actualizar tarea');
-    }
-  };
-
-  const handleDeleteCalendarTask = async (id: string) => {
-    try {
-      await SupabaseService.deleteCalendarTask(id);
-      setCalendarTasks(prev => prev.filter(t => t.id !== id));
-      toast.success('Tarea eliminada');
-    } catch (error) {
-      console.error('Error deleting calendar task:', error);
-      toast.error('Error al eliminar tarea');
-    }
-  };
-
-  const handleAddRDProject = async (project: RDProject) => {
-    try {
-      const newProject = await SupabaseService.createProject(project as any);
-      setRdProjects(prev => [newProject as any, ...prev]);
-      toast.success('Proyecto de I+D creado');
-    } catch (error) {
-      console.error('Error adding RD project:', error);
-      toast.error('Error al crear proyecto');
-    }
-  };
-
-  const handleUpdateRDProject = async (project: RDProject) => {
-    try {
-      const result = await SupabaseService.updateProject(project.id, project as any);
-      setRdProjects(prev => prev.map(p => p.id === result.id ? result as any : p));
-      toast.success('Proyecto actualizado');
-    } catch (error) {
-      console.error('Error updating RD project:', error);
-      toast.error('Error al actualizar proyecto');
-    }
-  };
-
-  const handleDeleteRDProject = async (id: string) => {
-    try {
-      await SupabaseService.deleteProject(id);
-      setRdProjects(prev => prev.filter(p => p.id !== id));
-      toast.success('Proyecto eliminado');
-    } catch (error) {
-      console.error('Error deleting RD project:', error);
-      toast.error('Error al eliminar proyecto');
-    }
-  };
-
   const renderModuleContent = () => {
     const moduleLabels: Record<ModuleId, string> = {
       rd_inventory: t('menu.rd_inventory'),
@@ -1022,10 +923,7 @@ export default function App() {
       );
     }
 
-    if (activeModule === 'innovation_proposals') {
-      return <InnovationProposals />;
-    }
-        
+
     if (activeModule === 'calculations_dashboard') {
       return (
         <CalculationsDashboard 
@@ -1131,10 +1029,6 @@ export default function App() {
 
     if (activeModule === 'records') {
       return <RecordsModule onLoadRecord={handleLoadRecord} />;
-    }
-
-    if (activeModule === 'user_management') {
-      return <UserManagement />;
     }
 
     if (activeModule === 'supplier_master') {
