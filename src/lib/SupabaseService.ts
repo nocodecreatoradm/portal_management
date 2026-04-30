@@ -64,13 +64,7 @@ export const SupabaseService = {
   async getSamples() {
     const { data, error } = await supabase
       .from('samples')
-      .select(`
-        *,
-        history:sample_history(
-          *,
-          user_id
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data.map(mapDBToSample);
@@ -112,10 +106,7 @@ export const SupabaseService = {
   async getProducts() {
     const { data, error } = await supabase
       .from('products')
-      .select(`
-        *,
-        documents:product_documents(*)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data.map(mapDBToProduct);
@@ -126,10 +117,7 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('products')
       .insert([dbProduct])
-      .select(`
-        *,
-        documents:product_documents(*)
-      `)
+      .select('*')
       .single();
     if (error) throw error;
     return mapDBToProduct(data);
@@ -141,10 +129,7 @@ export const SupabaseService = {
       .from('products')
       .update(dbUpdates)
       .eq('id', id)
-      .select(`
-        *,
-        documents:product_documents(*)
-      `)
+      .select('*')
       .single();
     if (error) throw error;
     return mapDBToProduct(data);
@@ -156,10 +141,7 @@ export const SupabaseService = {
       .from('products')
       .update(dbUpdates)
       .eq('sap_code', codigoSAP)
-      .select(`
-        *,
-        documents:product_documents(*)
-      `)
+      .select('*')
       .single();
     if (error) throw error;
     return mapDBToProduct(data);
@@ -220,10 +202,7 @@ export const SupabaseService = {
   async getInventory() {
     const { data, error } = await supabase
       .from('rd_inventory')
-      .select(`
-        *,
-        certificates:inventory_certificates(*)
-      `)
+      .select('*')
       .order('description');
     if (error) throw error;
     return data.map(mapDBToInventory);
@@ -234,10 +213,7 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('rd_inventory')
       .insert(dbItem)
-      .select(`
-        *,
-        certificates:inventory_certificates(*)
-      `)
+      .select('*')
       .single();
     if (error) throw error;
     return mapDBToInventory(data);
@@ -249,10 +225,7 @@ export const SupabaseService = {
       .from('rd_inventory')
       .update(dbUpdates)
       .eq('id', id)
-      .select(`
-        *,
-        certificates:inventory_certificates(*)
-      `)
+      .select('*')
       .single();
     if (error) throw error;
     return mapDBToInventory(data);
@@ -349,11 +322,7 @@ export const SupabaseService = {
   async getEnergyEfficiencyRecords() {
     const { data, error } = await supabase
       .from('energy_efficiency_records')
-      .select(`
-        *,
-        supplier:suppliers(legal_name),
-        sample:samples(sap_description)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data.map(mapDBToEE);
@@ -364,11 +333,7 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('energy_efficiency_records')
       .insert(dbRecord)
-      .select(`
-        *,
-        supplier:suppliers(legal_name),
-        sample:samples(correlative_id)
-      `)
+      .select('*')
       .single();
     if (error) throw error;
     return mapDBToEE(data);
@@ -380,11 +345,7 @@ export const SupabaseService = {
       .from('energy_efficiency_records')
       .update(dbUpdates)
       .eq('id', id)
-      .select(`
-        *,
-        supplier:suppliers(legal_name),
-        sample:samples(correlative_id)
-      `)
+      .select('*')
       .single();
     if (error) throw error;
     return mapDBToEE(data);
@@ -403,10 +364,7 @@ export const SupabaseService = {
   async getInnovationProposals() {
     const { data, error } = await supabase
       .from('innovation_proposals')
-      .select(`
-        *,
-        comments:innovation_comments(*)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data.map(mapDBToProposal);
@@ -417,10 +375,7 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('innovation_proposals')
       .insert(dbProposal)
-      .select(`
-        *,
-        comments:innovation_comments(*)
-      `)
+      .select('*')
       .single();
     if (error) throw error;
     return mapDBToProposal(data);
@@ -432,10 +387,7 @@ export const SupabaseService = {
       .from('innovation_proposals')
       .update(dbUpdates)
       .eq('id', id)
-      .select(`
-        *,
-        comments:innovation_comments(*)
-      `)
+      .select('*')
       .single();
     if (error) throw error;
     return mapDBToProposal(data);
@@ -697,6 +649,63 @@ export const SupabaseService = {
       .single();
     if (error) throw error;
     return data;
+  },
+
+  // APPROVER CONFIGURATION
+  async getApprovers() {
+    const { data, error } = await supabase
+      .from('approver_configs')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    
+    if (!data) return {
+      'I+D': 'Orlando Nuñez',
+      'MKT': 'Raquel Veliz',
+      'PLAN': 'Carlos Andrés Hoyos',
+      'PROV': 'Jonathan Soriano'
+    };
+
+    return {
+      'I+D': data.id_approver,
+      'MKT': data.mkt_approver,
+      'PLAN': data.plan_approver,
+      'PROV': data.prov_approver
+    };
+  },
+
+  async updateApprover(id: string, updates: any) {
+    const { data, error } = await supabase
+      .from('approver_configs')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async createApprover(approver: any) {
+    const { data, error } = await supabase
+      .from('approver_configs')
+      .insert([approver])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteApprover(id: string) {
+    const { error } = await supabase
+      .from('approver_configs')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
   }
 };
 

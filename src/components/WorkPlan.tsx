@@ -97,7 +97,7 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
       'work_plan', 
       'save', 
       { projects, auditLogs }, 
-      currentUser.email,
+      user?.email || 'unknown',
       details.projectName,
       details.sampleId,
       details.description

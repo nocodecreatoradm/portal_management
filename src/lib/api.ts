@@ -73,12 +73,14 @@ export const generateModuleCorrelative = async (moduleId: string, projectName: s
 
 export const fetchCantonFairSuppliers = async (year?: number) => {
   try {
-    let query = supabase.from('canton_fair_suppliers').select('*, featured_products:canton_fair_products(*)');
+    let query = supabase.from('canton_fair_suppliers').select('*');
     if (year) {
       query = query.eq('year', year);
     }
     const { data, error } = await query.order('name');
     if (error) throw error;
+    
+    // Fetch products separately if needed or handle locally
     return data;
   } catch (error) {
     console.error('Error fetching suppliers:', error);

@@ -174,7 +174,8 @@ export default function App() {
           suppliersData,
           samplesData,
           brandsData,
-          linesData
+          linesData,
+          approversData
         ] = await Promise.all([
           SupabaseService.getProducts(),
           SupabaseService.getPMRecords(),
@@ -185,7 +186,8 @@ export default function App() {
           SupabaseService.getSuppliers(),
           SupabaseService.getSamples(),
           SupabaseService.getBrands(),
-          SupabaseService.getProductLines()
+          SupabaseService.getProductLines(),
+          SupabaseService.getApprovers()
         ]);
 
         setData(productsData);
@@ -199,6 +201,7 @@ export default function App() {
         setSamples(samplesData as any);
         setBrands(brandsData);
         setProductLines(linesData);
+        setApprovers(approversData);
         
         // Load calculations
         const calcRecords = await fetchCalculationRecords();
@@ -600,6 +603,83 @@ export default function App() {
     }
   };
 
+  const handleAddRDProject = async (project: Omit<RDProject, 'id'>) => {
+    try {
+      const newProject = await SupabaseService.createRDProject(project);
+      setRdProjects(prev => [newProject, ...prev]);
+      toast.success('Proyecto creado');
+    } catch (error) {
+      console.error('Error adding RD project:', error);
+      toast.error('Error al crear proyecto');
+    }
+  };
+
+  const handleUpdateRDProject = async (project: RDProject) => {
+    try {
+      const result = await SupabaseService.updateRDProject(project.id, project);
+      setRdProjects(prev => prev.map(p => p.id === result.id ? result : p));
+      toast.success('Proyecto actualizado');
+    } catch (error) {
+      console.error('Error updating RD project:', error);
+      toast.error('Error al actualizar proyecto');
+    }
+  };
+
+  const handleDeleteRDProject = async (id: string) => {
+    try {
+      await SupabaseService.deleteRDProject(id);
+      setRdProjects(prev => prev.filter(p => p.id !== id));
+      toast.success('Proyecto eliminado');
+    } catch (error) {
+      console.error('Error deleting RD project:', error);
+      toast.error('Error al eliminar proyecto');
+    }
+  };
+
+  const handleAddCalendarTask = async (task: Omit<CalendarTask, 'id'>) => {
+    try {
+      const newTask = await SupabaseService.createCalendarTask(task);
+      setCalendarTasks(prev => [newTask, ...prev]);
+      toast.success('Tarea añadida');
+    } catch (error) {
+      console.error('Error adding calendar task:', error);
+      toast.error('Error al añadir tarea');
+    }
+  };
+
+  const handleUpdateCalendarTask = async (task: CalendarTask) => {
+    try {
+      const result = await SupabaseService.updateCalendarTask(task.id, task);
+      setCalendarTasks(prev => prev.map(t => t.id === result.id ? result : t));
+      toast.success('Tarea actualizada');
+    } catch (error) {
+      console.error('Error updating calendar task:', error);
+      toast.error('Error al actualizar tarea');
+    }
+  };
+
+  const handleDeleteCalendarTask = async (id: string) => {
+    try {
+      await SupabaseService.deleteCalendarTask(id);
+      setCalendarTasks(prev => prev.filter(t => t.id !== id));
+      toast.success('Tarea eliminada');
+    } catch (error) {
+      console.error('Error deleting calendar task:', error);
+      toast.error('Error al eliminar tarea');
+    }
+  };
+
+  const handleDeletePMRecord = async (id: string) => {
+    try {
+      await SupabaseService.deleteProductManagementRecord(id);
+      setProductManagement(prev => prev.filter(r => r.id !== id));
+      toast.success('Registro de producto eliminado');
+    } catch (error) {
+      console.error('Error deleting product management record:', error);
+      toast.error('Error al eliminar registro');
+    }
+  };
+
   const handleUpdateRDTemplate = async (template: RDProjectTemplate) => {
     try {
       const result = await SupabaseService.updateRDProjectTemplate(template.id, template);
@@ -608,6 +688,28 @@ export default function App() {
     } catch (error) {
       console.error('Error updating template:', error);
       toast.error('Error al actualizar plantilla');
+    }
+  };
+
+  const handleAddRDItem = async (item: Omit<RDInventoryItem, 'id'>) => {
+    try {
+      const newItem = await SupabaseService.createInventoryItem(item);
+      setRdInventory(prev => [newItem, ...prev]);
+      toast.success('Equipo añadido al inventario');
+    } catch (error) {
+      console.error('Error adding inventory item:', error);
+      toast.error('Error al añadir equipo');
+    }
+  };
+
+  const handleUpdateRDItem = async (item: RDInventoryItem) => {
+    try {
+      const result = await SupabaseService.updateInventoryItem(item.id, item);
+      setRdInventory(prev => prev.map(i => i.id === result.id ? result : i));
+      toast.success('Equipo actualizado');
+    } catch (error) {
+      console.error('Error updating inventory item:', error);
+      toast.error('Error al actualizar equipo');
     }
   };
 
@@ -919,7 +1021,11 @@ export default function App() {
         />
       );
     }
-    
+
+    if (activeModule === 'innovation_proposals') {
+      return <InnovationProposals />;
+    }
+        
     if (activeModule === 'calculations_dashboard') {
       return (
         <CalculationsDashboard 
@@ -1025,6 +1131,10 @@ export default function App() {
 
     if (activeModule === 'records') {
       return <RecordsModule onLoadRecord={handleLoadRecord} />;
+    }
+
+    if (activeModule === 'user_management') {
+      return <UserManagement />;
     }
 
     if (activeModule === 'supplier_master') {
@@ -1353,10 +1463,24 @@ export default function App() {
             isOpen={isApproverModalOpen}
             onClose={() => setIsApproverModalOpen(false)}
             currentApprovers={approvers}
-            onSave={(newApprovers, reason) => {
-              console.log('Nuevos aprobadores:', newApprovers, 'Motivo:', reason);
-              setApprovers(newApprovers);
-              // En una app real, aquí se guardaría en BD con el motivo
+            onSave={async (newApprovers, reason) => {
+              try {
+                const dbApprover = {
+                  id_approver: newApprovers['I+D'],
+                  mkt_approver: newApprovers['MKT'],
+                  plan_approver: newApprovers['PLAN'],
+                  prov_approver: newApprovers['PROV'],
+                  reason: reason,
+                  is_active: true
+                };
+                
+                await SupabaseService.createApprover(dbApprover);
+                setApprovers(newApprovers);
+                toast.success('Configuración de aprobadores actualizada');
+              } catch (error) {
+                console.error('Error saving approvers:', error);
+                toast.error('Error al guardar aprobadores');
+              }
             }}
           />
 
