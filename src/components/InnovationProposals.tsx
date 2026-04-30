@@ -19,13 +19,18 @@ import {
   AlertCircle,
   X,
   Upload,
-  Layers
+  Layers,
+  Beaker,
+  Settings
 } from 'lucide-react';
 import { InnovationProposal, FileInfo } from '../types';
+
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { SupabaseService } from '../lib/SupabaseService';
+import { toast } from 'sonner';
 
 const INITIAL_CATEGORIES = [
   'Eficiencia Energética',
@@ -55,38 +60,25 @@ const PRIORITY_COLORS = {
 
 export default function InnovationProposals() {
   const { user } = useAuth();
-  const [proposals, setProposals] = useState<InnovationProposal[]>([
-    {
-      id: '1',
-      title: 'Sistema de Recuperación de Calor en Campanas',
-      description: 'Implementar un intercambiador de calor en el ducto de salida para precalentar el agua del calentador a gas.',
-      category: 'Eficiencia Energética',
-      author: user?.email || 'Carlos Hoyos',
-      date: new Date().toISOString(),
-      status: 'En Evaluación',
-      priority: 'Alta',
-      images: [],
-      sketches: [],
-      blueprints: [],
-      tags: ['Sostenibilidad', 'Ahorro'],
-      comments: []
-    },
-    {
-      id: '2',
-      title: 'Nuevo Recubrimiento Cerámico para Quemadores',
-      description: 'Uso de nanotecnología para mejorar la durabilidad y reducir la adherencia de residuos en quemadores de alta potencia.',
-      category: 'Nuevos Materiales',
-      author: 'Ana Martínez',
-      date: new Date().toISOString(),
-      status: 'Borrador',
-      priority: 'Media',
-      images: [],
-      sketches: [],
-      blueprints: [],
-      tags: ['I+D', 'Materiales'],
-      comments: []
+  const [proposals, setProposals] = React.useState<InnovationProposal[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    loadProposals();
+  }, []);
+
+  const loadProposals = async () => {
+    try {
+      setLoading(true);
+      const data = await SupabaseService.getInnovationProposals();
+      setProposals(data);
+    } catch (error) {
+      console.error('Error loading proposals:', error);
+      toast.error('Error al cargar propuestas');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const [categories, setCategories] = useState<string[]>(INITIAL_CATEGORIES);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -102,33 +94,38 @@ export default function InnovationProposals() {
     tags: []
   });
 
-  const handleAddProposal = () => {
-    const proposal: InnovationProposal = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: newProposal.title || 'Sin Título',
-      description: newProposal.description || '',
-      category: newProposal.category || 'Otros',
-      author: 'Usuario Actual',
-      date: new Date().toISOString(),
-      status: 'Borrador',
-      priority: newProposal.priority as any || 'Media',
-      images: [],
-      sketches: [],
-      blueprints: [],
-      tags: newProposal.tags || [],
-      comments: []
-    };
+  const handleAddProposal = async () => {
+    try {
+      const proposal: Partial<InnovationProposal> = {
+        title: newProposal.title || 'Sin Título',
+        description: newProposal.description || '',
+        category: newProposal.category || 'Otros',
+        author: user?.email || 'Usuario Actual',
+        status: 'Borrador',
+        priority: newProposal.priority as any || 'Media',
+        images: [],
+        sketches: [],
+        blueprints: [],
+        tags: newProposal.tags || []
+      };
 
-    setProposals([proposal, ...proposals]);
-    setIsModalOpen(false);
-    setNewProposal({
-      title: '',
-      description: '',
-      category: 'Eficiencia Energética',
-      priority: 'Media',
-      tags: []
-    });
+      const result = await SupabaseService.createInnovationProposal(proposal);
+      setProposals([result, ...proposals]);
+      setIsModalOpen(false);
+      setNewProposal({
+        title: '',
+        description: '',
+        category: 'Eficiencia Energética',
+        priority: 'Media',
+        tags: []
+      });
+      toast.success('Propuesta creada correctamente');
+    } catch (error) {
+      console.error('Error creating proposal:', error);
+      toast.error('Error al crear la propuesta');
+    }
   };
+
 
   const filteredProposals = proposals.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 

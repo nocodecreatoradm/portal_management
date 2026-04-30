@@ -39,60 +39,56 @@ import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterv
 import { es } from 'date-fns/locale';
 import { Project, ProjectActivity, AuditLog } from '../types';
 import { initialProjects, initialAuditLogs } from '../data/mockData';
-import ModuleActions from './ModuleActions';
+import { SupabaseService } from '../lib/SupabaseService';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
 import { exportToExcel, generateReportPDF } from '../lib/exportUtils';
 import { saveCalculationRecord } from '../lib/api';
-import { currentUser } from '../data/mockData';
-import { toast } from 'sonner';
+
 
 interface WorkPlanProps {
   initialData?: any;
   onExportPPT?: () => void;
 }
 
-const WorkPlan: React.FC<WorkPlanProps> = ({ initialData, onExportPPT }) => {
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(initialAuditLogs);
-  const [viewDate, setViewDate] = useState(new Date());
-  const [searchTerm, setSearchTerm] = useState('');
-  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set(['P1']));
+export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
   const [showAuditTrail, setShowAuditTrail] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [isLogProgressModalOpen, setIsLogProgressModalOpen] = useState(false);
-  const [copiedProgress, setCopiedProgress] = useState<{ progress: number, comments: string } | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editingActivity, setEditingActivity] = useState<{ projectId: string, activity: ProjectActivity } | null>(null);
   const [loggingProgress, setLoggingProgress] = useState<{ projectId: string, activity: ProjectActivity, date: Date } | null>(null);
 
-  // Load initial data if provided
+  const { user } = useAuth();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewDate, setViewDate] = useState(new Date());
+  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  
   useEffect(() => {
-    if (initialData) {
-      if (initialData.projects) setProjects(initialData.projects);
-      if (initialData.auditLogs) setAuditLogs(initialData.auditLogs);
-    }
-  }, [initialData]);
-
-  // Load saved data
-  useEffect(() => {
-    const savedProjects = localStorage.getItem('workplan_projects_data');
-    const savedLogs = localStorage.getItem('workplan_audit_logs');
-    if (savedProjects) {
-      try {
-        setProjects(JSON.parse(savedProjects));
-      } catch (e) {
-        console.error('Error loading workplan projects', e);
-      }
-    }
-    if (savedLogs) {
-      try {
-        setAuditLogs(JSON.parse(savedLogs));
-      } catch (e) {
-        console.error('Error loading workplan audit logs', e);
-      }
-    }
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [projectsData, logsData] = await Promise.all([
+        SupabaseService.getProjects(),
+        SupabaseService.getAuditLogs()
+      ]);
+      setProjects(projectsData as any);
+      setAuditLogs(logsData);
+    } catch (error) {
+      console.error('Error loading workplan data:', error);
+      toast.error('Error al cargar datos del plan de trabajo');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSaveData = (details: { projectName: string; sampleId: string; description: string }) => {
     localStorage.setItem('workplan_projects_data', JSON.stringify(projects));
@@ -154,23 +150,22 @@ const WorkPlan: React.FC<WorkPlanProps> = ({ initialData, onExportPPT }) => {
   });
 
   // Audit logging helper
-  const addAuditLog = (action: AuditLog['action'], entityType: AuditLog['entityType'], entityId: string, entityName: string, previousData?: any, newData?: any) => {
-    const newLog: AuditLog = {
-      id: `LOG-${Date.now()}`,
-      date: new Date().toISOString(),
-      user: 'Carlos Andrés Hoyos Fiorentini', // Mock current user
-      action,
-      entityType,
-      entityId,
-      entityName,
-      previousData,
-      newData
-    };
-    setAuditLogs(prev => {
-      const updated = [newLog, ...prev];
-      localStorage.setItem('workplan_audit_logs', JSON.stringify(updated));
-      return updated;
-    });
+  const addAuditLog = async (action: AuditLog['action'], entityType: AuditLog['entityType'], entityId: string, entityName: string, previousData?: any, newData?: any) => {
+    try {
+      const newLog = await SupabaseService.createAuditLog({
+        user: user?.name || 'Usuario',
+        userEmail: user?.email || '',
+        action,
+        entityType,
+        entityId,
+        entityName,
+        previousData,
+        newData
+      });
+      setAuditLogs(prev => [newLog, ...prev]);
+    } catch (error) {
+      console.error('Error creating audit log:', error);
+    }
   };
 
   const toggleProject = (projectId: string) => {

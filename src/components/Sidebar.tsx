@@ -50,11 +50,11 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
   
   // State for collapsible groups
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    'seguimiento': true,
+    'seguimiento': false,
     'aprobados': false,
     'gestion': false,
     'productos': false,
-    'recursos': false,
+    'recursos': true,
     'config': false
   });
 

@@ -18,6 +18,8 @@ import { exportToExcel, generateReportPDF } from '../lib/exportUtils';
 import { saveCalculationRecord } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { SupabaseService } from '../lib/SupabaseService';
+
 
 const INITIAL_NTP: NTPRegulation[] = [
   {
@@ -99,41 +101,44 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // Load initial data if provided
-  useEffect(() => {
-    if (initialData) {
-      if (Array.isArray(initialData)) {
-        setRegulations(initialData);
-      } else if (initialData.regulations) {
-        setRegulations(initialData.regulations);
-      }
-    }
-  }, [initialData]);
+  const [loading, setLoading] = useState(true);
 
-  // Load saved regulations
+  // Load regulations from Supabase
   useEffect(() => {
-    const savedRegs = localStorage.getItem('ntp_regulations_data');
-    if (savedRegs) {
-      try {
-        setRegulations(JSON.parse(savedRegs));
-      } catch (e) {
-        console.error('Error loading NTP regulations', e);
-      }
-    }
+    loadRegulations();
   }, []);
 
-  const handleSave = (details: { projectName: string; sampleId: string; description: string }) => {
-    localStorage.setItem('ntp_regulations_data', JSON.stringify(regulations));
-    saveCalculationRecord(
-      'ntp_regulations', 
-      'save', 
-      regulations, 
-      user?.email || 'unknown',
-      details.projectName,
-      details.sampleId,
-      details.description
-    );
-    toast.success('Listado de normativas guardado localmente y en la base de datos');
+  const loadRegulations = async () => {
+    try {
+      setLoading(true);
+      const data = await SupabaseService.getNTPRegulations();
+      if (data.length > 0) {
+        setRegulations(data);
+      }
+    } catch (error) {
+      console.error('Error loading NTP regulations:', error);
+      toast.error('Error al cargar normativas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async (details: { projectName: string; sampleId: string; description: string }) => {
+    try {
+      await saveCalculationRecord(
+        'ntp_regulations', 
+        'save', 
+        regulations, 
+        user?.email || 'unknown',
+        details.projectName,
+        details.sampleId,
+        details.description
+      );
+      toast.success('Registro de consulta guardado');
+    } catch (error) {
+      console.error('Error saving calculation record:', error);
+      toast.error('Error al guardar registro');
+    }
   };
 
   const handleExportExcel = () => {
@@ -165,11 +170,10 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
     reg.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const newReg: NTPRegulation = {
-      id: Math.random().toString(36).substr(2, 9),
+    const newReg: Partial<NTPRegulation> = {
       code: formData.get('code') as string,
       title: formData.get('title') as string,
       category: formData.get('category') as string,
@@ -181,14 +185,28 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
       },
       description: formData.get('description') as string
     };
-    setRegulations([newReg, ...regulations]);
-    setShowAddModal(false);
+    
+    try {
+      const result = await SupabaseService.createNTPRegulation(newReg);
+      setRegulations([result, ...regulations]);
+      setShowAddModal(false);
+      toast.success('Normativa añadida correctamente');
+    } catch (error) {
+      console.error('Error adding regulation:', error);
+      toast.error('Error al añadir normativa');
+    }
   };
 
-  const handleDelete = (id: string) => {
-    const updatedRegs = regulations.filter(r => r.id !== id);
-    setRegulations(updatedRegs);
-    localStorage.setItem('ntp_regulations_data', JSON.stringify(updatedRegs));
+  const handleDelete = async (id: string) => {
+    try {
+      await SupabaseService.deleteNTPRegulation(id);
+      const updatedRegs = regulations.filter(r => r.id !== id);
+      setRegulations(updatedRegs);
+      toast.success('Normativa eliminada');
+    } catch (error) {
+      console.error('Error deleting regulation:', error);
+      toast.error('Error al eliminar normativa');
+    }
   };
 
   const handleDownload = (reg: NTPRegulation) => {

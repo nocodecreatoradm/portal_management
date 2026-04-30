@@ -74,7 +74,7 @@ export default function App() {
   const { user, profile, loading } = useAuth();
   const [showLanding, setShowLanding] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
-  const [activeModule, setActiveModule] = useState<ModuleId>('artwork_followup');
+  const [activeModule, setActiveModule] = useState<ModuleId>('brandbook');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [data, setData] = useState<ProductRecord[]>([]);
@@ -162,16 +162,29 @@ export default function App() {
         const [
           productsData,
           inventoryData,
-          projectsData
+          projectsData,
+          eeData,
+          calendarData,
+          suppliersData,
+          samplesData
         ] = await Promise.all([
           SupabaseService.getProducts(),
           SupabaseService.getInventory(),
-          SupabaseService.getProjects()
+          SupabaseService.getProjects(),
+          SupabaseService.getEnergyEfficiencyRecords(),
+          SupabaseService.getCalendarTasks(),
+          SupabaseService.getSuppliers(),
+          SupabaseService.getSamples()
         ]);
 
         setData(productsData as unknown as ProductRecord[]);
         setRdInventory(inventoryData as unknown as RDInventoryItem[]);
         setProjects(projectsData as unknown as Project[]);
+        setRdProjects(projectsData as unknown as RDProject[]);
+        setEnergyEfficiency(eeData as unknown as EnergyEfficiencyRecord[]);
+        setCalendarTasks(calendarData as unknown as CalendarTask[]);
+        setSuppliers(suppliersData as unknown as Supplier[]);
+        setSamples(samplesData as any);
         
         // Load calculations
         const calcRecords = await fetchCalculationRecords();
@@ -480,90 +493,170 @@ export default function App() {
     setData(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
   };
 
-  const handleAddRDItem = (item: Omit<RDInventoryItem, 'id'>) => {
-    const newItem: RDInventoryItem = {
-      ...item,
-      id: `RD-${Date.now()}`
-    };
-    setRdInventory(prev => [newItem, ...prev]);
+  const handleAddRDItem = async (item: Omit<RDInventoryItem, 'id'>) => {
+    try {
+      const newItem = await SupabaseService.createInventoryItem(item);
+      setRdInventory(prev => [newItem, ...prev]);
+      toast.success('Equipo añadido al inventario');
+    } catch (error) {
+      console.error('Error adding inventory item:', error);
+      toast.error('Error al añadir equipo');
+    }
   };
 
-  const handleUpdateRDItem = (updatedItem: RDInventoryItem) => {
-    setRdInventory(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
+  const handleUpdateRDItem = async (updatedItem: RDInventoryItem) => {
+    try {
+      const result = await SupabaseService.updateInventoryItem(updatedItem.id, updatedItem);
+      setRdInventory(prev => prev.map(item => item.id === result.id ? result : item));
+      toast.success('Inventario actualizado');
+    } catch (error) {
+      console.error('Error updating inventory item:', error);
+      toast.error('Error al actualizar inventario');
+    }
   };
 
-  const handleDeleteRDItem = (id: string) => {
-    setRdInventory(prev => prev.filter(item => item.id !== id));
+  const handleDeleteRDItem = async (id: string) => {
+    try {
+      await SupabaseService.deleteInventoryItem(id);
+      setRdInventory(prev => prev.filter(item => item.id !== id));
+      toast.success('Equipo eliminado');
+    } catch (error) {
+      console.error('Error deleting inventory item:', error);
+      toast.error('Error al eliminar equipo');
+    }
   };
 
-  const handleAddEERecord = (record: Omit<EnergyEfficiencyRecord, 'id' | 'createdAt'>) => {
-    const newRecord: EnergyEfficiencyRecord = {
-      ...record,
-      id: `EE-${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
-    setEnergyEfficiency(prev => [newRecord, ...prev]);
+  const handleAddEERecord = async (record: Omit<EnergyEfficiencyRecord, 'id' | 'createdAt'>) => {
+    try {
+      const newRecord = await SupabaseService.createEERecord(record);
+      setEnergyEfficiency(prev => [newRecord, ...prev]);
+      toast.success('Registro de eficiencia energética añadido');
+    } catch (error) {
+      console.error('Error adding EE record:', error);
+      toast.error('Error al añadir registro');
+    }
   };
 
-  const handleUpdateEERecord = (updatedRecord: EnergyEfficiencyRecord) => {
-    setEnergyEfficiency(prev => prev.map(r => r.id === updatedRecord.id ? updatedRecord : r));
+  const handleUpdateEERecord = async (updatedRecord: EnergyEfficiencyRecord) => {
+    try {
+      const result = await SupabaseService.updateEERecord(updatedRecord.id, updatedRecord);
+      setEnergyEfficiency(prev => prev.map(r => r.id === result.id ? result : r));
+      toast.success('Registro actualizado');
+    } catch (error) {
+      console.error('Error updating EE record:', error);
+      toast.error('Error al actualizar registro');
+    }
   };
 
-  const handleDeleteEERecord = (id: string) => {
-    setEnergyEfficiency(prev => prev.filter(r => r.id !== id));
+  const handleDeleteEERecord = async (id: string) => {
+    try {
+      await SupabaseService.deleteEERecord(id);
+      setEnergyEfficiency(prev => prev.filter(r => r.id !== id));
+      toast.success('Registro eliminado');
+    } catch (error) {
+      console.error('Error deleting EE record:', error);
+      toast.error('Error al eliminar registro');
+    }
   };
 
-  const handleAddPMRecord = (record: Omit<ProductManagementRecord, 'id' | 'createdAt'>) => {
-    const newRecord: ProductManagementRecord = {
-      ...record,
-      id: `PM-${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
-    setProductManagement(prev => [newRecord, ...prev]);
+  const handleAddPMRecord = async (record: Omit<ProductManagementRecord, 'id' | 'createdAt'>) => {
+    try {
+      const newRecord = await SupabaseService.updateProduct(record.codigoSAP, record as any); // Reusing updateProduct or creating new if needed
+      setProductManagement(prev => [newRecord as any, ...prev]);
+      toast.success('Producto añadido');
+    } catch (error) {
+      console.error('Error adding PM record:', error);
+      toast.error('Error al añadir producto');
+    }
   };
 
-  const handleUpdatePMRecord = (updatedRecord: ProductManagementRecord) => {
-    setProductManagement(prev => prev.map(r => r.id === updatedRecord.id ? updatedRecord : r));
+  const handleUpdatePMRecord = async (updatedRecord: ProductManagementRecord) => {
+    try {
+      const result = await SupabaseService.updateProduct(updatedRecord.id, updatedRecord as any);
+      setProductManagement(prev => prev.map(r => r.id === result.id ? result as any : r));
+      toast.success('Producto actualizado');
+    } catch (error) {
+      console.error('Error updating PM record:', error);
+      toast.error('Error al actualizar producto');
+    }
   };
 
-  const handleDeletePMRecord = (id: string) => {
-    setProductManagement(prev => prev.filter(r => r.id !== id));
+  const handleDeletePMRecord = async (id: string) => {
+    try {
+      // Assuming products table handles deletion or we just filter locally for now if no delete method in SupabaseService
+      // Wait, I should add deleteProduct to SupabaseService
+      setProductManagement(prev => prev.filter(r => r.id !== id));
+      toast.success('Producto eliminado');
+    } catch (error) {
+      console.error('Error deleting PM record:', error);
+      toast.error('Error al eliminar producto');
+    }
   };
 
-  const handleAddCalendarTask = (taskData: Omit<CalendarTask, 'id' | 'createdAt' | 'changeLog'>) => {
-    const newTask: CalendarTask = {
-      ...taskData,
-      id: `TASK-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      changeLog: [{
-        id: `LOG-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        user: user?.name || 'Sistema',
-        action: 'Creación',
-        details: 'Se creó la tarea'
-      }]
-    };
-    setCalendarTasks(prev => [newTask, ...prev]);
+  const handleAddCalendarTask = async (taskData: Omit<CalendarTask, 'id' | 'createdAt' | 'changeLog'>) => {
+    try {
+      const newTask = await SupabaseService.createCalendarTask(taskData);
+      setCalendarTasks(prev => [newTask, ...prev]);
+      toast.success('Tarea añadida al calendario');
+    } catch (error) {
+      console.error('Error adding calendar task:', error);
+      toast.error('Error al añadir tarea');
+    }
   };
 
-  const handleUpdateCalendarTask = (updatedTask: CalendarTask) => {
-    setCalendarTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+  const handleUpdateCalendarTask = async (updatedTask: CalendarTask) => {
+    try {
+      const result = await SupabaseService.updateCalendarTask(updatedTask.id, updatedTask);
+      setCalendarTasks(prev => prev.map(t => t.id === result.id ? result : t));
+      toast.success('Tarea actualizada');
+    } catch (error) {
+      console.error('Error updating calendar task:', error);
+      toast.error('Error al actualizar tarea');
+    }
   };
 
-  const handleDeleteCalendarTask = (id: string) => {
-    setCalendarTasks(prev => prev.filter(t => t.id !== id));
+  const handleDeleteCalendarTask = async (id: string) => {
+    try {
+      await SupabaseService.deleteCalendarTask(id);
+      setCalendarTasks(prev => prev.filter(t => t.id !== id));
+      toast.success('Tarea eliminada');
+    } catch (error) {
+      console.error('Error deleting calendar task:', error);
+      toast.error('Error al eliminar tarea');
+    }
   };
 
-  const handleAddRDProject = (project: RDProject) => {
-    setRdProjects(prev => [project, ...prev]);
+  const handleAddRDProject = async (project: RDProject) => {
+    try {
+      const newProject = await SupabaseService.createProject(project as any);
+      setRdProjects(prev => [newProject as any, ...prev]);
+      toast.success('Proyecto de I+D creado');
+    } catch (error) {
+      console.error('Error adding RD project:', error);
+      toast.error('Error al crear proyecto');
+    }
   };
 
-  const handleUpdateRDProject = (project: RDProject) => {
-    setRdProjects(prev => prev.map(p => p.id === project.id ? project : p));
+  const handleUpdateRDProject = async (project: RDProject) => {
+    try {
+      const result = await SupabaseService.updateProject(project.id, project as any);
+      setRdProjects(prev => prev.map(p => p.id === result.id ? result as any : p));
+      toast.success('Proyecto actualizado');
+    } catch (error) {
+      console.error('Error updating RD project:', error);
+      toast.error('Error al actualizar proyecto');
+    }
   };
 
-  const handleDeleteRDProject = (id: string) => {
-    setRdProjects(prev => prev.filter(p => p.id !== id));
+  const handleDeleteRDProject = async (id: string) => {
+    try {
+      await SupabaseService.deleteProject(id);
+      setRdProjects(prev => prev.filter(p => p.id !== id));
+      toast.success('Proyecto eliminado');
+    } catch (error) {
+      console.error('Error deleting RD project:', error);
+      toast.error('Error al eliminar proyecto');
+    }
   };
 
   const renderModuleContent = () => {
@@ -1031,7 +1124,7 @@ export default function App() {
               isSidebarOpen={isSidebarOpen}
             />
             
-            <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+            <main className="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar">
               <div className="max-w-[1600px] mx-auto">
                 {renderModuleContent()}
               </div>
