@@ -353,8 +353,6 @@ export default function ProductsModule({
 
       handleUpdateRecord(updatedRecord);
       setSelectedRecord(updatedRecord);
-      toast.success('Fotos añadidas a la galería');
-    }
     }
 
     setIsGalleryUploadModalOpen(false);
