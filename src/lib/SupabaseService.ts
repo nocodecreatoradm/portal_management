@@ -66,10 +66,6 @@ export const SupabaseService = {
       .from('samples')
       .select(`
         *,
-        brand:brands(name),
-        supplier:suppliers(legal_name),
-        line:product_lines(name),
-        category:categories(name),
         history:sample_history(
           *,
           user_id
@@ -118,9 +114,6 @@ export const SupabaseService = {
       .from('products')
       .select(`
         *,
-        brand:brands(name),
-        supplier:suppliers(legal_name),
-        line:product_lines(name),
         documents:product_documents(*)
       `)
       .order('created_at', { ascending: false });
@@ -135,9 +128,6 @@ export const SupabaseService = {
       .insert([dbProduct])
       .select(`
         *,
-        brand:brands(name),
-        supplier:suppliers(legal_name),
-        line:product_lines(name),
         documents:product_documents(*)
       `)
       .single();
@@ -153,9 +143,6 @@ export const SupabaseService = {
       .eq('id', id)
       .select(`
         *,
-        brand:brands(name),
-        supplier:suppliers(legal_name),
-        line:product_lines(name),
         documents:product_documents(*)
       `)
       .single();
@@ -171,9 +158,6 @@ export const SupabaseService = {
       .eq('sap_code', codigoSAP)
       .select(`
         *,
-        brand:brands(name),
-        supplier:suppliers(legal_name),
-        line:product_lines(name),
         documents:product_documents(*)
       `)
       .single();
@@ -194,12 +178,7 @@ export const SupabaseService = {
   async getPMRecords() {
     const { data, error } = await supabase
       .from('product_management')
-      .select(`
-        *,
-        brand:brands(name),
-        supplier:suppliers(legal_name),
-        line:product_lines(name)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data.map(mapDBToPMRecord);
@@ -210,12 +189,7 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('product_management')
       .insert([dbRecord])
-      .select(`
-        *,
-        brand:brands(name),
-        supplier:suppliers(legal_name),
-        line:product_lines(name)
-      `)
+      .select('*')
       .single();
     if (error) throw error;
     return mapDBToPMRecord(data);
@@ -227,12 +201,7 @@ export const SupabaseService = {
       .from('product_management')
       .update(dbUpdates)
       .eq('id', id)
-      .select(`
-        *,
-        brand:brands(name),
-        supplier:suppliers(legal_name),
-        line:product_lines(name)
-      `)
+      .select('*')
       .single();
     if (error) throw error;
     return mapDBToPMRecord(data);
