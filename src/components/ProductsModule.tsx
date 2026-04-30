@@ -12,27 +12,21 @@ import ModuleActions from './ModuleActions';
 import { exportToExcel, generateReportPDF, exportToPPT } from '../lib/exportUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { SupabaseService } from '../lib/SupabaseService';
+import { Loader2 } from 'lucide-react';
 
 interface ProductsModuleProps {
-  records: ProductManagementRecord[];
-  samples: SampleRecord[];
-  allProducts: ProductRecord[]; // From artwork followup/commercial
-  onAddRecord: (record: Omit<ProductManagementRecord, 'id' | 'createdAt'>) => void;
-  onUpdateRecord: (record: ProductManagementRecord) => void;
-  onDeleteRecord: (id: string) => void;
   onExportPPT?: () => void;
 }
 
 export default function ProductsModule({ 
-  records, 
-  samples, 
-  allProducts,
-  onAddRecord, 
-  onUpdateRecord, 
-  onDeleteRecord,
   onExportPPT 
 }: ProductsModuleProps) {
   const { user } = useAuth();
+  const [records, setRecords] = useState<ProductManagementRecord[]>([]);
+  const [samples, setSamples] = useState<SampleRecord[]>([]);
+  const [allProducts, setAllProducts] = useState<ProductRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -61,6 +55,73 @@ export default function ProductsModule({
     fobPrice: undefined,
     fobPriceHistory: []
   });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [recordsData, samplesData, productsData] = await Promise.all([
+        SupabaseService.getPMRecords(),
+        SupabaseService.getSamples(),
+        SupabaseService.getProducts()
+      ]);
+      setRecords(recordsData);
+      setSamples(samplesData);
+      setAllProducts(productsData);
+    } catch (error) {
+      console.error('Error loading PM data:', error);
+      toast.error('Error al cargar datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddRecord = async (record: Omit<ProductManagementRecord, 'id' | 'createdAt'>) => {
+    try {
+      const result = await SupabaseService.createProductManagementRecord(record);
+      setRecords(prev => [result, ...prev]);
+      toast.success('Producto registrado');
+    } catch (error) {
+      console.error('Error adding PM record:', error);
+      toast.error('Error al registrar producto');
+    }
+  };
+
+  const handleUpdateRecord = async (updatedRecord: ProductManagementRecord) => {
+    try {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updatedRecord.id);
+      let result;
+      if (isUUID) {
+        result = await SupabaseService.updateProductManagementRecord(updatedRecord.id, updatedRecord);
+      } else {
+        const { id, createdAt, ...recordWithoutId } = updatedRecord;
+        result = await SupabaseService.createProductManagementRecord(recordWithoutId);
+      }
+      if (result) {
+        setRecords(prev => prev.map(r => r.id === updatedRecord.id ? result! : r));
+        toast.success('Producto actualizado');
+      }
+    } catch (error) {
+      console.error('Error updating PM record:', error);
+      toast.error('Error al actualizar producto');
+    }
+  };
+
+  const handleDeleteRecord = async (id: string) => {
+    try {
+      await SupabaseService.deleteProductManagementRecord(id);
+      setRecords(prev => prev.filter(r => r.id !== id));
+      toast.success('Producto eliminado');
+    } catch (error) {
+      console.error('Error deleting PM record:', error);
+      toast.error('Error al eliminar producto');
+    }
+  };
+
+  // Form state
 
   const filteredRecords = useMemo(() => {
     return records.filter(record => 
@@ -111,11 +172,9 @@ export default function ProductsModule({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingRecord) {
-      onUpdateRecord({ ...editingRecord, ...formData });
-      toast.success('Producto actualizado correctamente');
+      handleUpdateRecord({ ...editingRecord, ...formData });
     } else {
-      onAddRecord(formData);
-      toast.success('Producto registrado correctamente');
+      handleAddRecord(formData);
     }
     setIsModalOpen(false);
   };
@@ -292,8 +351,10 @@ export default function ProductsModule({
         };
       }
 
-      onUpdateRecord(updatedRecord);
+      handleUpdateRecord(updatedRecord);
       setSelectedRecord(updatedRecord);
+      toast.success('Fotos añadidas a la galería');
+    }
     }
 
     setIsGalleryUploadModalOpen(false);
@@ -379,7 +440,7 @@ export default function ProductsModule({
       fobPriceHistory: [historyEntry, ...(fobEditingRecord.fobPriceHistory || [])]
     };
 
-    onUpdateRecord(updatedRecord);
+    handleUpdateRecord(updatedRecord);
     if (selectedRecord?.id === updatedRecord.id) {
       setSelectedRecord(updatedRecord);
     }
@@ -456,7 +517,12 @@ export default function ProductsModule({
         </div>
       </div>
 
-      {viewMode === 'table' ? (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-32 space-y-4">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+          <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Cargando productos...</p>
+        </div>
+      ) : viewMode === 'table' ? (
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -551,8 +617,7 @@ export default function ProductsModule({
                         <button 
                           onClick={() => {
                             if (window.confirm('¿Está seguro de eliminar este producto?')) {
-                              onDeleteRecord(record.id);
-                              toast.success('Producto eliminado');
+                              handleDeleteRecord(record.id);
                             }
                           }}
                           className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"

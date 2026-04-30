@@ -12,15 +12,10 @@ import { es } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 
-interface CalendarModuleProps {
-  tasks: CalendarTask[];
-  onAddTask: (task: Omit<CalendarTask, 'id' | 'createdAt' | 'changeLog'>) => void;
-  onUpdateTask: (task: CalendarTask) => void;
-  onDeleteTask: (id: string) => void;
-}
-
-export default function CalendarModule({ tasks, onAddTask, onUpdateTask, onDeleteTask }: CalendarModuleProps) {
+export default function CalendarModule() {
   const { user } = useAuth();
+  const [tasks, setTasks] = useState<CalendarTask[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,6 +23,23 @@ export default function CalendarModule({ tasks, onAddTask, onUpdateTask, onDelet
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [showHistory, setShowHistory] = useState<CalendarTask | null>(null);
   const [entryType, setEntryType] = useState<CalendarTask['type']>('work');
+
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  const loadTasks = async () => {
+    try {
+      setLoading(true);
+      const data = await SupabaseService.getCalendarTasks();
+      setTasks(data);
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+      toast.error('Error al cargar tareas del calendario');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(monthStart);
@@ -42,7 +54,8 @@ export default function CalendarModule({ tasks, onAddTask, onUpdateTask, onDelet
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => 
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.requester.toLowerCase().includes(searchTerm.toLowerCase())
+      task.requester?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      task.assignee?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [tasks, searchTerm]);
 
@@ -101,7 +114,7 @@ export default function CalendarModule({ tasks, onAddTask, onUpdateTask, onDelet
   const handleSaveTask = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const taskData = {
+    const taskData: Partial<CalendarTask> = {
       title: formData.get('title') as string,
       description: formData.get('description') as string,
       deadline: formData.get('deadline') as string || undefined,
@@ -116,6 +129,7 @@ export default function CalendarModule({ tasks, onAddTask, onUpdateTask, onDelet
 
     try {
       if (editingTask) {
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(editingTask.id);
         const change: ChangeLog = {
           id: `LOG-${Date.now()}`,
           timestamp: new Date().toISOString(),
@@ -123,23 +137,57 @@ export default function CalendarModule({ tasks, onAddTask, onUpdateTask, onDelet
           action: 'Actualización',
           details: `Se actualizó la tarea: ${taskData.title}`
         };
-        await onUpdateTask({ 
-          ...editingTask, 
-          ...taskData,
-          changeLog: [change, ...editingTask.changeLog]
-        });
+        
+        let result;
+        if (isUUID) {
+          result = await SupabaseService.updateCalendarTask(editingTask.id, {
+            ...taskData,
+            changeLog: [change, ...(editingTask.changeLog || [])]
+          });
+        } else {
+          result = await SupabaseService.createCalendarTask({
+            ...taskData,
+            changeLog: [change]
+          });
+        }
+        
+        setTasks(prev => prev.map(t => t.id === editingTask.id ? result : t));
         toast.success('Tarea actualizada');
       } else {
-        await onAddTask(taskData);
+        const result = await SupabaseService.createCalendarTask(taskData);
+        setTasks(prev => [result, ...prev]);
         toast.success('Tarea creada');
       }
       setIsModalOpen(false);
       setEditingTask(null);
     } catch (error) {
       console.error('Error saving task:', error);
-      // App.tsx already shows error toast, but we can catch here if needed
+      toast.error('Error al guardar la tarea');
     }
   };
+
+  const handleDeleteTask = async (id: string) => {
+    if (!window.confirm('¿Está seguro de eliminar esta tarea?')) return;
+    try {
+      await SupabaseService.deleteCalendarTask(id);
+      setTasks(prev => prev.filter(t => t.id !== id));
+      toast.success('Tarea eliminada');
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast.error('Error al eliminar la tarea');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-slate-500 font-bold animate-pulse uppercase tracking-widest text-xs">Cargando calendario...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-slate-50 p-6 gap-6">
@@ -311,7 +359,7 @@ export default function CalendarModule({ tasks, onAddTask, onUpdateTask, onDelet
                       <Edit2 size={14} />
                     </button>
                     <button 
-                      onClick={() => onDeleteTask(task.id)}
+                      onClick={() => handleDeleteTask(task.id)}
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition-all"
                     >
                       <Trash2 size={14} />

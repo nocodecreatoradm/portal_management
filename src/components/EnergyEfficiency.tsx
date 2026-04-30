@@ -13,25 +13,20 @@ import { exportToExcel, generateReportPDF, exportToPPT } from '../lib/exportUtil
 import { useAuth } from '../contexts/AuthContext';
 import { saveCalculationRecord, generateModuleCorrelative } from '../lib/api';
 import { toast } from 'sonner';
+import { SupabaseService } from '../lib/SupabaseService';
+import { Loader2 } from 'lucide-react';
 
 interface EnergyEfficiencyProps {
-  records: EnergyEfficiencyRecord[];
-  samples: SampleRecord[];
-  onAddRecord: (record: Omit<EnergyEfficiencyRecord, 'id' | 'createdAt'>) => void;
-  onUpdateRecord: (record: EnergyEfficiencyRecord) => void;
-  onDeleteRecord: (id: string) => void;
   onExportPPT?: () => void;
 }
 
 export default function EnergyEfficiency({ 
-  records, 
-  samples, 
-  onAddRecord, 
-  onUpdateRecord, 
-  onDeleteRecord, 
   onExportPPT 
 }: EnergyEfficiencyProps) {
   const { user } = useAuth();
+  const [records, setRecords] = useState<EnergyEfficiencyRecord[]>([]);
+  const [samples, setSamples] = useState<SampleRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<EnergyEfficiencyRecord | null>(null);
@@ -49,6 +44,69 @@ export default function EnergyEfficiency({
     title: string;
     onConfirm: () => void;
   } | null>(null);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [recordsData, samplesData] = await Promise.all([
+        SupabaseService.getEnergyEfficiencyRecords(),
+        SupabaseService.getSamples()
+      ]);
+      setRecords(recordsData);
+      setSamples(samplesData);
+    } catch (error) {
+      console.error('Error loading EE data:', error);
+      toast.error('Error al cargar datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddRecord = async (record: Omit<EnergyEfficiencyRecord, 'id' | 'createdAt'>) => {
+    try {
+      const result = await SupabaseService.createEERecord(record);
+      setRecords(prev => [result, ...prev]);
+      toast.success('Registro creado');
+    } catch (error) {
+      console.error('Error adding EE record:', error);
+      toast.error('Error al crear registro');
+    }
+  };
+
+  const handleUpdateRecord = async (updatedRecord: EnergyEfficiencyRecord) => {
+    try {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updatedRecord.id);
+      let result;
+      if (isUUID) {
+        result = await SupabaseService.updateEERecord(updatedRecord.id, updatedRecord);
+      } else {
+        const { id, createdAt, ...recordWithoutId } = updatedRecord;
+        result = await SupabaseService.createEERecord(recordWithoutId);
+      }
+      if (result) {
+        setRecords(prev => prev.map(r => r.id === updatedRecord.id ? result! : r));
+        toast.success('Registro actualizado');
+      }
+    } catch (error) {
+      console.error('Error updating EE record:', error);
+      toast.error('Error al actualizar registro');
+    }
+  };
+
+  const handleDeleteRecord = async (id: string) => {
+    try {
+      await SupabaseService.deleteEERecord(id);
+      setRecords(prev => prev.filter(r => r.id !== id));
+      toast.success('Registro eliminado');
+    } catch (error) {
+      console.error('Error deleting EE record:', error);
+      toast.error('Error al eliminar registro');
+    }
+  };
 
   const handleGalleryPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -97,7 +155,7 @@ export default function EnergyEfficiency({
         };
       }
 
-      onUpdateRecord(updatedRecord);
+      handleUpdateRecord(updatedRecord);
       setViewingRecord(updatedRecord);
       toast.success('Fotos añadidas a la galería');
     }
@@ -964,9 +1022,8 @@ export default function EnergyEfficiency({
                             type: 'record',
                             title: record.codigoMT,
                             onConfirm: () => {
-                              onDeleteRecord(record.id);
+                              handleDeleteRecord(record.id);
                               setDeleteConfirm(null);
-                              toast.success('Registro eliminado');
                             }
                           });
                         }}
@@ -993,24 +1050,24 @@ export default function EnergyEfficiency({
 
       {showAddModal && (
         <RecordForm 
-          title="Nuevo Registro de Eficiencia"
-          onCancel={() => setShowAddModal(false)}
+          title="Añadir Registro"
           onSubmit={(data) => {
-            onAddRecord(data);
+            handleAddRecord(data);
             setShowAddModal(false);
           }}
+          onCancel={() => setShowAddModal(false)}
         />
       )}
 
       {editingRecord && (
         <RecordForm 
-          title="Editar Registro de Eficiencia"
+          title="Editar Registro"
           record={editingRecord}
-          onCancel={() => setEditingRecord(null)}
           onSubmit={(data) => {
-            onUpdateRecord({ ...editingRecord, ...data });
+            handleUpdateRecord({ ...editingRecord, ...data });
             setEditingRecord(null);
           }}
+          onCancel={() => setEditingRecord(null)}
         />
       )}
 

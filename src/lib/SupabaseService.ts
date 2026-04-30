@@ -117,7 +117,12 @@ export const SupabaseService = {
   async getProducts() {
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select(`
+        *,
+        brand:brands(name),
+        supplier:suppliers(legal_name),
+        line:product_lines(name)
+      `)
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data.map(mapDBToProduct);
@@ -173,7 +178,12 @@ export const SupabaseService = {
   async getPMRecords() {
     const { data, error } = await supabase
       .from('product_management')
-      .select('*')
+      .select(`
+        *,
+        brand:brands(name),
+        supplier:suppliers(legal_name),
+        line:product_lines(name)
+      `)
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data.map(mapDBToPMRecord);

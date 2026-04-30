@@ -8,27 +8,21 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import ProductDetailModal from './ProductDetailModal';
+import { SupabaseService } from '../lib/SupabaseService';
+import { Loader2 } from 'lucide-react';
 
 interface CommercialArtworksProps {
-  data: ProductRecord[];
-  onUpdateRecord: (id: string, updates: Partial<ProductRecord>) => void;
   mode?: 'artwork' | 'technical_sheet' | 'commercial_sheet';
-  suppliers: any[];
-  samples: any[];
-  calculationRecords?: CalculationRecord[];
-  onLoadRecord?: (moduleId: ModuleId, data: any) => void;
 }
 
 export default function CommercialArtworks({ 
-  data, 
-  onUpdateRecord, 
-  mode = 'artwork', 
-  suppliers, 
-  samples,
-  calculationRecords = [],
-  onLoadRecord
+  mode = 'artwork'
 }: CommercialArtworksProps) {
   const { user } = useAuth();
+  const [data, setData] = useState<ProductRecord[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [samples, setSamples] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [selectedProduct, setSelectedProduct] = useState<ProductRecord | null>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -103,6 +97,47 @@ export default function CommercialArtworks({
       topScroll.removeEventListener('scroll', handleTopScroll);
     };
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [productsData, suppliersData, samplesData] = await Promise.all([
+        SupabaseService.getProducts(),
+        SupabaseService.getSuppliers(),
+        SupabaseService.getSamples()
+      ]);
+      setData(productsData);
+      setSuppliers(suppliersData);
+      setSamples(samplesData);
+    } catch (error) {
+      console.error('Error loading commercial artworks data:', error);
+      toast.error('Error al cargar datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateRecord = async (id: string, updates: Partial<ProductRecord>) => {
+    try {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      if (isUUID) {
+        const result = await SupabaseService.updateProduct(id, updates);
+        if (result) {
+          setData(prev => prev.map(p => p.id === id ? result : p));
+          toast.success('Estado actualizado');
+        }
+      } else {
+        toast.error('No se puede actualizar un registro local. Sincronice primero.');
+      }
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast.error('Error al actualizar registro');
+    }
+  };
 
   // Filter products that have at least one approved version
   const approvedProducts = useMemo(() => {
@@ -286,7 +321,7 @@ export default function CommercialArtworks({
                       <td className="px-6 py-4 bg-blue-50/20">
                         <select 
                           value={record.commercialStatus || 'No a la venta'}
-                          onChange={(e) => onUpdateRecord(record.id, { commercialStatus: e.target.value as any })}
+                          onChange={(e) => handleUpdateRecord(record.id, { commercialStatus: e.target.value as any })}
                           className={`w-full border rounded-lg px-3 py-1.5 text-xs font-bold outline-none transition-all ${
                             record.commercialStatus === 'A la venta'
                               ? 'bg-emerald-50 border-emerald-200 text-emerald-700 focus:ring-2 focus:ring-emerald-500'
@@ -320,10 +355,8 @@ export default function CommercialArtworks({
           record={selectedProduct}
           suppliers={suppliers}
           samples={samples}
-          calculationRecords={calculationRecords}
-          onLoadRecord={onLoadRecord}
           onClose={() => setSelectedProduct(null)}
-          onUpdateRecord={onUpdateRecord}
+          onUpdateRecord={handleUpdateRecord}
         />
       )}
     </div>

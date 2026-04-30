@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, 
   Plus, 
@@ -23,7 +23,6 @@ import {
   ClipboardList
 } from 'lucide-react';
 import { Supplier, SupplierEvaluation } from '../types';
-import { initialSuppliers } from '../data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
 import ModuleActions from './ModuleActions';
 import { exportToExcel, generateReportPDF } from '../lib/exportUtils';
@@ -31,24 +30,22 @@ import { saveCalculationRecord } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { SupabaseService } from '../lib/SupabaseService';
 
 interface SupplierMasterProps {
-  suppliers: Supplier[];
-  onAddSupplier?: (supplier: Partial<Supplier>) => void;
-  onUpdateSupplier?: (id: string, supplier: Partial<Supplier>) => void;
-  onDeleteSupplier?: (id: string) => void;
   onExportPPT?: () => void;
 }
 
-const SupplierMaster: React.FC<SupplierMasterProps> = ({ suppliers, onAddSupplier, onUpdateSupplier, onDeleteSupplier, onExportPPT }) => {
+const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
   const { user } = useAuth();
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ 
     id: string; 
     title: string;
-    onConfirm: () => void;
   } | null>(null);
   
   // Form state
@@ -71,11 +68,28 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ suppliers, onAddSupplie
     }
   });
 
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
+
+  const fetchSuppliers = async () => {
+    try {
+      setIsLoading(true);
+      const data = await SupabaseService.getSuppliers();
+      setSuppliers(data);
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+      toast.error('Error al cargar proveedores');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleEvaluationChange = (field: keyof SupplierEvaluation, value: number) => {
     setFormData(prev => ({
       ...prev,
       evaluation: {
-        ...(prev.evaluation || {}),
+        ...(prev.evaluation || { innovation: 0, responseTime: 0, quality: 0, failureIndex: 0, price: 0 }),
         [field]: value,
         lastUpdated: new Date().toISOString()
       }
@@ -83,7 +97,6 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ suppliers, onAddSupplie
   };
 
   const handleSaveData = (details: { projectName: string; sampleId: string; description: string }) => {
-    localStorage.setItem('supplier_master_backup', JSON.stringify(suppliers));
     saveCalculationRecord(
       'supplier_master', 
       'save', 
@@ -93,7 +106,7 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ suppliers, onAddSupplie
       details.sampleId,
       details.description
     );
-    toast.success('Copia de seguridad de proveedores guardada localmente y en la base de datos');
+    toast.success('Copia de seguridad de proveedores guardada en la base de datos');
   };
 
   const handleExportExcel = () => {
@@ -171,27 +184,47 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ suppliers, onAddSupplie
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
-    if (editingSupplier) {
-      onUpdateSupplier?.(editingSupplier.id, formData);
-      toast.success('Socio actualizado');
-    } else {
-      onAddSupplier?.(formData);
-      toast.success('Socio registrado');
+  const handleSave = async () => {
+    try {
+      const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      
+      let result;
+      if (editingSupplier && isUUID(editingSupplier.id)) {
+        result = await SupabaseService.updateSupplier(editingSupplier.id, formData);
+        setSuppliers(prev => prev.map(s => s.id === result.id ? result : s));
+        toast.success('Proveedor actualizado');
+      } else {
+        // If editing but not UUID (mock), or creating new
+        result = await SupabaseService.createSupplier(formData);
+        if (editingSupplier) {
+          // Replace mock with real record
+          setSuppliers(prev => prev.map(s => s.id === editingSupplier.id ? result : s));
+          toast.success('Proveedor migrado y actualizado');
+        } else {
+          setSuppliers(prev => [result, ...prev]);
+          toast.success('Nuevo proveedor registrado');
+        }
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Error saving supplier:', error);
+      toast.error('Error al guardar proveedor');
     }
-    setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string, title: string) => {
-    setDeleteConfirm({
-      id,
-      title,
-      onConfirm: () => {
-        onDeleteSupplier?.(id);
-        setDeleteConfirm(null);
-        toast.success('Proveedor eliminado');
+  const handleDelete = async (id: string) => {
+    try {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      if (isUUID) {
+        await SupabaseService.deleteSupplier(id);
       }
-    });
+      setSuppliers(prev => prev.filter(s => s.id !== id));
+      setDeleteConfirm(null);
+      toast.success('Proveedor eliminado');
+    } catch (error) {
+      console.error('Error deleting supplier:', error);
+      toast.error('Error al eliminar proveedor');
+    }
   };
 
   const RatingStars = ({ value, label, onChange, icon: Icon }: { value: number, label: string, onChange?: (val: number) => void, icon: any }) => (
@@ -223,7 +256,7 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ suppliers, onAddSupplie
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-6">
+    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-6 pb-20">
       {/* Header Section */}
       <div className="bg-[#0038a8] rounded-2xl md:rounded-3xl p-6 md:p-8 mb-6 md:mb-8 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl" />
@@ -272,119 +305,126 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ suppliers, onAddSupplie
         </div>
       </div>
 
-      {/* Grid Section */}
-      <div id="supplier-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-        <AnimatePresence mode="popLayout">
-          {filteredSuppliers.map((supplier) => (
-            <motion.div
-              layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              key={supplier.id}
-              className="group bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 transition-all duration-300 overflow-hidden flex flex-col"
-            >
-              {/* Card Header with Logo */}
-              <div className="p-8 flex items-start justify-between">
-                <div className="w-24 h-24 bg-slate-50 rounded-3xl flex items-center justify-center p-4 border border-slate-100 group-hover:border-blue-100 transition-colors">
-                  {supplier.logoUrl ? (
-                    <img 
-                      src={supplier.logoUrl} 
-                      alt={supplier.commercialAlias}
-                      className="max-w-full max-h-full object-contain"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <ImageIcon className="w-10 h-10 text-slate-300" />
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        /* Grid Section */
+        <div id="supplier-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+          <AnimatePresence mode="popLayout">
+            {filteredSuppliers.map((supplier) => (
+              <motion.div
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                key={supplier.id}
+                className="group bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 transition-all duration-300 overflow-hidden flex flex-col"
+              >
+                {/* Card Header with Logo */}
+                <div className="p-8 flex items-start justify-between">
+                  <div className="w-24 h-24 bg-slate-50 rounded-3xl flex items-center justify-center p-4 border border-slate-100 group-hover:border-blue-100 transition-colors">
+                    {supplier.logoUrl ? (
+                      <img 
+                        src={supplier.logoUrl} 
+                        alt={supplier.commercialAlias}
+                        className="max-w-full max-h-full object-contain"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <ImageIcon className="w-10 h-10 text-slate-300" />
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={() => handleOpenModal(supplier)}
+                        className="p-2 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => setDeleteConfirm({ id: supplier.id, title: supplier.commercialAlias })}
+                        className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Body */}
+                <div className="px-8 pb-4 flex-1">
+                  <h3 className="text-xl font-black text-slate-900 truncate uppercase tracking-tight">
+                    {supplier.commercialAlias}
+                  </h3>
+                  <p className="text-red-600 font-bold text-xs tracking-widest mt-1">
+                    {supplier.erpCode}
+                  </p>
+                </div>
+
+                {/* Card Footer */}
+                <div className="mt-auto px-8 py-6 bg-slate-50/50 border-t border-slate-100 flex flex-col gap-4">
+                  {/* Evaluation Metrics Display */}
+                  {supplier.evaluation && (
+                    <div className="grid grid-cols-5 gap-1 pb-2 border-b border-slate-200/50">
+                      {[
+                        { icon: Zap, value: supplier.evaluation.innovation, color: 'text-amber-500', label: 'Innovación' },
+                        { icon: ClipboardList, value: supplier.evaluation.responseTime, color: 'text-blue-500', label: 'Respuesta' },
+                        { icon: Award, value: supplier.evaluation.quality, color: 'text-emerald-500', label: 'Calidad' },
+                        { icon: AlertTriangle, value: supplier.evaluation.failureIndex, color: 'text-red-500', label: 'Fallas' },
+                        { icon: DollarSign, value: supplier.evaluation.price, color: 'text-slate-600', label: 'Precio' }
+                      ].map((m, i) => (
+                        <div key={i} className="flex flex-col items-center gap-1 group/metric relative" title={`${m.label}: ${m.value || 0}/5`}>
+                          <m.icon size={14} className={m.color} />
+                          <span className="text-[10px] font-black text-slate-400">{m.value || 0}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <div className="flex items-center gap-1">
-                    <button 
-                      onClick={() => handleOpenModal(supplier)}
-                      className="p-2 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-xl transition-colors"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(supplier.id, supplier.commercialAlias)}
-                      className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-xl transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-200">
+                      <Globe className="w-4 h-4 text-slate-400" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                      {supplier.country}
+                    </span>
                   </div>
-                </div>
-              </div>
 
-              {/* Card Body */}
-              <div className="px-8 pb-4 flex-1">
-                <h3 className="text-xl font-black text-slate-900 truncate uppercase tracking-tight">
-                  {supplier.commercialAlias}
-                </h3>
-                <p className="text-red-600 font-bold text-xs tracking-widest mt-1">
-                  {supplier.erpCode}
-                </p>
-              </div>
-
-              {/* Card Footer */}
-              <div className="mt-auto px-8 py-6 bg-slate-50/50 border-t border-slate-100 flex flex-col gap-4">
-                {/* Evaluation Metrics Display */}
-                {supplier.evaluation && (
-                  <div className="grid grid-cols-5 gap-1 pb-2 border-b border-slate-200/50">
-                    {[
-                      { icon: Zap, value: supplier.evaluation.innovation, color: 'text-amber-500', label: 'Innovación' },
-                      { icon: ClipboardList, value: supplier.evaluation.responseTime, color: 'text-blue-500', label: 'Respuesta' },
-                      { icon: Award, value: supplier.evaluation.quality, color: 'text-emerald-500', label: 'Calidad' },
-                      { icon: AlertTriangle, value: supplier.evaluation.failureIndex, color: 'text-red-500', label: 'Fallas' },
-                      { icon: DollarSign, value: supplier.evaluation.price, color: 'text-slate-600', label: 'Precio' }
-                    ].map((m, i) => (
-                      <div key={i} className="flex flex-col items-center gap-1 group/metric relative" title={`${m.label}: ${m.value || 0}/5`}>
-                        <m.icon size={14} className={m.color} />
-                        <span className="text-[10px] font-black text-slate-400">{m.value || 0}</span>
+                  {supplier.email && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-200">
+                        <Mail className="w-4 h-4 text-blue-400" />
                       </div>
-                    ))}
-                  </div>
-                )}
+                      <span className="text-[10px] font-bold text-slate-500 truncate">
+                        {supplier.email}
+                      </span>
+                    </div>
+                  )}
 
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-200">
-                    <Globe className="w-4 h-4 text-slate-400" />
-                  </div>
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                    {supplier.country}
-                  </span>
+                  {supplier.website && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-200">
+                        <LinkIcon className="w-4 h-4 text-emerald-400" />
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-500 truncate">
+                        {supplier.website}
+                      </span>
+                    </div>
+                  )}
+
+                  <p className="text-[10px] font-medium text-slate-400 italic leading-relaxed line-clamp-1">
+                    "{supplier.legalName}"
+                  </p>
                 </div>
-
-                {supplier.email && (
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-200">
-                      <Mail className="w-4 h-4 text-blue-400" />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-500 truncate">
-                      {supplier.email}
-                    </span>
-                  </div>
-                )}
-
-                {supplier.website && (
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-200">
-                      <LinkIcon className="w-4 h-4 text-emerald-400" />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-500 truncate">
-                      {supplier.website}
-                    </span>
-                  </div>
-                )}
-
-                <p className="text-[10px] font-medium text-slate-400 italic leading-relaxed line-clamp-1">
-                  "{supplier.legalName}"
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
 
       {/* Footer Stats */}
       <div className="mt-12 flex items-center justify-between px-4">
@@ -429,7 +469,7 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ suppliers, onAddSupplie
                     Cancelar
                   </button>
                   <button 
-                    onClick={deleteConfirm.onConfirm}
+                    onClick={() => handleDelete(deleteConfirm.id)}
                     className="flex-1 px-8 py-5 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-200"
                   >
                     Eliminar
@@ -477,7 +517,7 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ suppliers, onAddSupplie
                 </button>
               </div>
 
-              <div className="p-10 space-y-8">
+              <div className="p-10 space-y-8 overflow-y-auto max-h-[70vh] custom-scrollbar">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Basic Info Section */}
                   <div className="space-y-6">

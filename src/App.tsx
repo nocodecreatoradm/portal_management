@@ -46,7 +46,7 @@ import ModuleActions from './components/ModuleActions';
 import { exportToExcel, generateReportPDF, exportToPPT } from './lib/exportUtils';
 import { saveCalculationRecord, fetchCalculationRecords } from './lib/api';
 import { outlookService } from './services/outlookService';
-import { initialApprovers, initialSuppliers, initialEnergyEfficiency, initialProductManagement, initialCalendarTasks, initialRDProjectTemplates } from './data/mockData';
+import { initialData, technicians, designers, initialProjects, initialSamples, initialRDInventory, initialApprovers, initialSuppliers, initialEnergyEfficiency, initialProductManagement, initialCalendarTasks, initialRDProjectTemplates } from './data/mockData';
 import { LandingPage } from './components/LandingPage';
 import { 
   ProductRecord, 
@@ -80,14 +80,8 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [data, setData] = useState<ProductRecord[]>([]);
-  const [energyEfficiency, setEnergyEfficiency] = useState<EnergyEfficiencyRecord[]>([]);
-  const [productManagement, setProductManagement] = useState<ProductManagementRecord[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-  const [rdProjects, setRdProjects] = useState<RDProject[]>([]);
-  const [rdTemplates, setRdTemplates] = useState<RDProjectTemplate[]>(initialRDProjectTemplates);
   const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
-  const [calendarTasks, setCalendarTasks] = useState<CalendarTask[]>(initialCalendarTasks);
   const [calculationRecords, setCalculationRecords] = useState<CalculationRecord[]>([]);
   const [approvers, setApprovers] = useState(initialApprovers);
   const [brands, setBrands] = useState<any[]>([]);
@@ -163,46 +157,41 @@ export default function App() {
       
       setLoadingData(true);
       try {
-        const [
-          productsData,
-          pmData,
-          projectsData,
-          eeData,
-          calendarData,
-          suppliersData,
-          samplesData,
           brandsData,
           linesData,
-          approversData,
-          rdProjectsData,
-          rdTemplatesData
+          approversData
         ] = await Promise.all([
           SupabaseService.getProducts(),
-          SupabaseService.getPMRecords(),
-          SupabaseService.getProjects(),
-          SupabaseService.getEnergyEfficiencyRecords(),
-          SupabaseService.getCalendarTasks(),
           SupabaseService.getSuppliers(),
           SupabaseService.getSamples(),
           SupabaseService.getBrands(),
           SupabaseService.getProductLines(),
-          SupabaseService.getApprovers(),
-          SupabaseService.getRDProjects(),
-          SupabaseService.getRDProjectTemplates()
+          SupabaseService.getApprovers()
         ]);
 
+        // Merge logic: prefer Supabase data, but keep mock data for items not in Supabase
+        const mergeWithMock = (mockItems: any[], remoteItems: any[]) => {
+          const remoteIds = new Set(remoteItems.map(item => item.id));
+          const remoteSerialNumbers = new Set(remoteItems.map(item => item.serialNumber).filter(Boolean));
+          const remoteSAPCodes = new Set(remoteItems.map(item => item.codigoSAP).filter(Boolean));
+          const remoteCorrelatives = new Set(remoteItems.map(item => item.correlativeId).filter(Boolean));
+
+          const uniqueMockItems = mockItems.filter(mock => {
+            const exists = remoteIds.has(mock.id) || 
+                           (mock.serialNumber && remoteSerialNumbers.has(mock.serialNumber)) ||
+                           (mock.codigoSAP && remoteSAPCodes.has(mock.codigoSAP)) ||
+                           (mock.correlativeId && remoteCorrelatives.has(mock.correlativeId));
+            return !exists;
+          });
+          return [...remoteItems, ...uniqueMockItems];
+        };
+
         setData(productsData);
-        setProductManagement(pmData);
-        setProjects(projectsData as unknown as Project[]);
-        setEnergyEfficiency(eeData as unknown as EnergyEfficiencyRecord[]);
-        setCalendarTasks(calendarData as unknown as CalendarTask[]);
         setSuppliers(suppliersData as unknown as Supplier[]);
         setSamples(samplesData as any);
         setBrands(brandsData);
         setProductLines(linesData);
         setApprovers(approversData);
-        setRdProjects(rdProjectsData as unknown as RDProject[]);
-        setRdTemplates(rdTemplatesData as unknown as RDProjectTemplate[]);
         
         // Load calculations
         const calcRecords = await fetchCalculationRecords();
@@ -488,7 +477,7 @@ export default function App() {
       if (existingIndex > -1) {
         // Update existing record metadata
         const existingRecord = data[existingIndex];
-        const updates = {
+        const updates: Partial<ProductRecord> = {
           codigoEAN: newRecord.codigoEAN,
           descripcionSAP: newRecord.descripcionSAP,
           proveedor: newRecord.proveedor,
@@ -498,7 +487,39 @@ export default function App() {
           linea: newRecord.linea,
         };
         
-        const result = await SupabaseService.updateProduct(existingRecord.id, updates);
+        // Resolve names to IDs
+        const resolvedUpdates = { ...updates };
+        
+        if (updates.marca) {
+          const brand = brands.find(b => b.name === updates.marca);
+          if (brand) (resolvedUpdates as any).marca = brand.id;
+        }
+
+        if (updates.linea) {
+          const line = productLines.find(l => l.name === updates.linea);
+          if (line) (resolvedUpdates as any).linea = line.id;
+        }
+
+        if (updates.proveedor) {
+          let supplier = suppliers.find(s => s.legalName === updates.proveedor);
+          if (supplier) {
+            (resolvedUpdates as any).proveedor = supplier.id;
+          } else {
+            // Create new supplier if it's a name and not found
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.proveedor);
+            if (!isUUID) {
+              const newSupplier = await SupabaseService.createSupplier({
+                legalName: updates.proveedor,
+                commercialAlias: updates.proveedor,
+                erpCode: updates.codProv || 'NEW'
+              });
+              (resolvedUpdates as any).proveedor = newSupplier.id;
+              setSuppliers(prev => [...prev, newSupplier]);
+            }
+          }
+        }
+        
+        const result = await SupabaseService.updateProduct(existingRecord.id, resolvedUpdates);
         
         setData(prev => {
           const newData = [...prev];
@@ -506,12 +527,42 @@ export default function App() {
           newData.unshift(result);
           return newData;
         });
-        setProductManagement(prev => prev.map(r => r.id === result.id ? result as any : r));
         toast.success('Producto existente actualizado y movido al inicio');
       } else {
-        const result = await SupabaseService.createProduct(newRecord as any);
+        // Resolve names to IDs for new record
+        const resolvedNewRecord = { ...newRecord };
+        
+        if (newRecord.marca) {
+          const brand = brands.find(b => b.name === newRecord.marca);
+          if (brand) (resolvedNewRecord as any).marca = brand.id;
+        }
+
+        if (newRecord.linea) {
+          const line = productLines.find(l => l.name === newRecord.linea);
+          if (line) (resolvedNewRecord as any).linea = line.id;
+        }
+
+        if (newRecord.proveedor) {
+          let supplier = suppliers.find(s => s.legalName === newRecord.proveedor);
+          if (supplier) {
+            (resolvedNewRecord as any).proveedor = supplier.id;
+          } else {
+            // Create new supplier if it's a name and not found
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(newRecord.proveedor);
+            if (!isUUID) {
+              const newSupplier = await SupabaseService.createSupplier({
+                legalName: newRecord.proveedor,
+                commercialAlias: newRecord.proveedor,
+                erpCode: newRecord.codProv || 'NEW'
+              });
+              (resolvedNewRecord as any).proveedor = newSupplier.id;
+              setSuppliers(prev => [...prev, newSupplier]);
+            }
+          }
+        }
+
+        const result = await SupabaseService.createProduct(resolvedNewRecord as any);
         setData(prev => [result, ...prev]);
-        setProductManagement(prev => [result as any, ...prev]);
         toast.success('Nueva solicitud registrada');
       }
     } catch (error) {
@@ -529,15 +580,29 @@ export default function App() {
         const brand = brands.find(b => b.name === updates.marca);
         if (brand) (resolvedUpdates as any).marca = brand.id;
       }
-      
-      if (updates.proveedor) {
-        const supplier = suppliers.find(s => s.legalName === updates.proveedor);
-        if (supplier) (resolvedUpdates as any).proveedor = supplier.id;
-      }
-      
+
       if (updates.linea) {
         const line = productLines.find(l => l.name === updates.linea);
         if (line) (resolvedUpdates as any).linea = line.id;
+      }
+
+      if (updates.proveedor) {
+        let supplier = suppliers.find(s => s.legalName === updates.proveedor);
+        if (supplier) {
+          (resolvedUpdates as any).proveedor = supplier.id;
+        } else {
+          // Create new supplier if it's a name and not found
+          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.proveedor);
+          if (!isUUID) {
+            const newSupplier = await SupabaseService.createSupplier({
+              legalName: updates.proveedor,
+              commercialAlias: updates.proveedor,
+              erpCode: (updates as any).codProv || 'UPD'
+            });
+            (resolvedUpdates as any).proveedor = newSupplier.id;
+            setSuppliers(prev => [...prev, newSupplier]);
+          }
+        }
       }
 
       let result;
@@ -554,7 +619,6 @@ export default function App() {
       }
 
       setData(prev => prev.map(r => r.id === id ? result : r));
-      setProductManagement(prev => prev.map(r => r.codigoSAP === result.codigoSAP ? result as any : r));
       toast.success('Datos actualizados correctamente');
     } catch (error) {
       console.error('Error updating record:', error);
@@ -563,335 +627,7 @@ export default function App() {
   };
 
 
-  const handleAddSupplier = async (supplier: Partial<Supplier>) => {
-    try {
-      const result = await SupabaseService.createSupplier(supplier);
-      setSuppliers(prev => [...prev, result]);
-      toast.success('Socio registrado');
-    } catch (error) {
-      console.error('Error adding supplier:', error);
-      toast.error('Error al registrar socio');
-    }
-  };
 
-  const handleUpdateSupplier = async (id: string, updates: Partial<Supplier>) => {
-    try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-      let result;
-      if (isUUID) {
-        result = await SupabaseService.updateSupplier(id, updates);
-      } else {
-        result = await SupabaseService.createSupplier(updates);
-      }
-      setSuppliers(prev => prev.map(s => s.id === (isUUID ? id : id) ? result : s)); // id is old id
-      toast.success('Socio actualizado');
-    } catch (error) {
-      console.error('Error updating supplier:', error);
-      toast.error('Error al actualizar socio');
-    }
-  };
-
-  const handleDeleteSupplier = async (id: string) => {
-    try {
-      await SupabaseService.deleteSupplier(id);
-      setSuppliers(prev => prev.filter(s => s.id !== id));
-      toast.success('Socio eliminado');
-    } catch (error) {
-      console.error('Error deleting supplier:', error);
-      toast.error('Error al eliminar socio');
-    }
-  };
-
-  const handleAddRDProject = async (project: Omit<RDProject, 'id'>) => {
-    try {
-      const newProject = await SupabaseService.createRDProject(project);
-      setRdProjects(prev => [newProject, ...prev]);
-      toast.success('Proyecto creado');
-    } catch (error) {
-      console.error('Error adding RD project:', error);
-      toast.error('Error al crear proyecto');
-    }
-  };
-
-  const handleUpdateRDProject = async (project: RDProject) => {
-    try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(project.id);
-      let result;
-      if (isUUID) {
-        result = await SupabaseService.updateRDProject(project.id, project);
-      } else {
-        const { id, ...projectWithoutId } = project;
-        result = await SupabaseService.createRDProject(projectWithoutId);
-      }
-      setRdProjects(prev => prev.map(p => p.id === (isUUID ? result.id : project.id) ? result : p));
-      toast.success('Proyecto actualizado');
-    } catch (error) {
-      console.error('Error updating RD project:', error);
-      toast.error('Error al actualizar proyecto');
-    }
-  };
-
-  const handleDeleteRDProject = async (id: string) => {
-    try {
-      await SupabaseService.deleteRDProject(id);
-      setRdProjects(prev => prev.filter(p => p.id !== id));
-      toast.success('Proyecto eliminado');
-    } catch (error) {
-      console.error('Error deleting RD project:', error);
-      toast.error('Error al eliminar proyecto');
-    }
-  };
-
-  const handleAddCalendarTask = async (task: Omit<CalendarTask, 'id'>) => {
-    try {
-      const newTask = await SupabaseService.createCalendarTask(task);
-      setCalendarTasks(prev => [newTask, ...prev]);
-      toast.success('Tarea añadida');
-    } catch (error) {
-      console.error('Error adding calendar task:', error);
-      toast.error('Error al añadir tarea');
-    }
-  };
-
-  const handleUpdateCalendarTask = async (task: CalendarTask) => {
-    try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(task.id);
-      let result;
-      if (isUUID) {
-        result = await SupabaseService.updateCalendarTask(task.id, task);
-      } else {
-        const { id, ...taskWithoutId } = task;
-        result = await SupabaseService.createCalendarTask(taskWithoutId);
-      }
-      setCalendarTasks(prev => prev.map(t => t.id === (isUUID ? result.id : task.id) ? result : t));
-      toast.success('Tarea actualizada');
-    } catch (error) {
-      console.error('Error updating calendar task:', error);
-      toast.error('Error al actualizar tarea');
-    }
-  };
-
-  const handleDeleteCalendarTask = async (id: string) => {
-    try {
-      await SupabaseService.deleteCalendarTask(id);
-      setCalendarTasks(prev => prev.filter(t => t.id !== id));
-      toast.success('Tarea eliminada');
-    } catch (error) {
-      console.error('Error deleting calendar task:', error);
-      toast.error('Error al eliminar tarea');
-    }
-  };
-
-  const handleDeletePMRecord = async (id: string) => {
-    try {
-      await SupabaseService.deleteProductManagementRecord(id);
-      setProductManagement(prev => prev.filter(r => r.id !== id));
-      toast.success('Registro de producto eliminado');
-    } catch (error) {
-      console.error('Error deleting product management record:', error);
-      toast.error('Error al eliminar registro');
-    }
-  };
-
-  const handleUpdateRDTemplate = async (template: RDProjectTemplate) => {
-    try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(template.id);
-      let result;
-      if (isUUID) {
-        result = await SupabaseService.updateRDProjectTemplate(template.id, template);
-      } else {
-        const { id, ...templateWithoutId } = template;
-        result = await SupabaseService.createRDProjectTemplate(templateWithoutId);
-      }
-      setRdTemplates(prev => prev.map(t => t.id === (isUUID ? result.id : template.id) ? result : t));
-      toast.success('Plantilla actualizada');
-    } catch (error) {
-      console.error('Error updating template:', error);
-      toast.error('Error al actualizar plantilla');
-    }
-  };
-
-  const handleAddRDTemplate = async (template: RDProjectTemplate) => {
-    try {
-      const result = await SupabaseService.createRDProjectTemplate(template);
-      setRdTemplates(prev => [...prev, result]);
-      toast.success('Plantilla creada');
-    } catch (error) {
-      console.error('Error adding template:', error);
-      toast.error('Error al crear plantilla');
-    }
-  };
-
-  const handleDeleteRDTemplate = async (id: string) => {
-    try {
-      await SupabaseService.deleteRDProjectTemplate(id);
-      setRdTemplates(prev => prev.filter(t => t.id !== id));
-      toast.success('Plantilla eliminada');
-    } catch (error) {
-      console.error('Error deleting template:', error);
-      toast.error('Error al eliminar plantilla');
-    }
-  };
-
-  const handleAddEERecord = async (record: Omit<EnergyEfficiencyRecord, 'id' | 'createdAt'>) => {
-    try {
-      const newRecord = await SupabaseService.createEERecord(record);
-      setEnergyEfficiency(prev => [newRecord, ...prev]);
-      toast.success('Registro de eficiencia energética añadido');
-    } catch (error) {
-      console.error('Error adding EE record:', error);
-      toast.error('Error al añadir registro');
-    }
-  };
-
-  const handleUpdateEERecord = async (updatedRecord: EnergyEfficiencyRecord) => {
-    try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updatedRecord.id);
-      let result;
-      if (isUUID) {
-        result = await SupabaseService.updateEERecord(updatedRecord.id, updatedRecord);
-      } else {
-        const { id, ...recordWithoutId } = updatedRecord;
-        result = await SupabaseService.createEERecord(recordWithoutId);
-      }
-      setEnergyEfficiency(prev => prev.map(r => r.id === (isUUID ? result.id : updatedRecord.id) ? result : r));
-      toast.success('Registro actualizado');
-    } catch (error) {
-      console.error('Error updating EE record:', error);
-      toast.error('Error al actualizar registro');
-    }
-  };
-
-  const handleDeleteEERecord = async (id: string) => {
-    try {
-      await SupabaseService.deleteEERecord(id);
-      setEnergyEfficiency(prev => prev.filter(r => r.id !== id));
-      toast.success('Registro eliminado');
-    } catch (error) {
-      console.error('Error deleting EE record:', error);
-      toast.error('Error al eliminar registro');
-    }
-  };
-
-  const handleAddPMRecord = async (record: Omit<ProductManagementRecord, 'id' | 'createdAt'>) => {
-    try {
-      // Find if product already exists by SAP code
-      const existing = data.find(p => p.codigoSAP === record.codigoSAP);
-      
-      if (existing) {
-        const result = await SupabaseService.updateProduct(existing.id, record as any);
-        setProductManagement(prev => [result as any, ...prev.filter(r => r.id !== result.id)]);
-        setData(prev => prev.map(p => p.id === result.id ? result : p));
-        toast.success('Producto vinculado y actualizado en el catálogo');
-      } else {
-        const result = await SupabaseService.createProduct(record as any);
-        setProductManagement(prev => [result as any, ...prev]);
-        setData(prev => [result, ...prev]);
-        toast.success('Nuevo producto registrado en el catálogo');
-      }
-    } catch (error) {
-      console.error('Error adding product to management:', error);
-      toast.error('Error al registrar producto en el catálogo');
-    }
-  };
-
-  const handleUpdateProduct = async (updatedProduct: ProductRecord) => {
-    try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updatedProduct.id);
-      
-      // Resolve IDs for Brand, Supplier and Line if names are passed
-      const resolvedRecord = { ...updatedProduct };
-      
-      const brand = brands.find(b => b.name === updatedProduct.marca);
-      if (brand) (resolvedRecord as any).marca = brand.id;
-      
-      const supplier = suppliers.find(s => s.legalName === updatedProduct.proveedor);
-      if (supplier) (resolvedRecord as any).proveedor = supplier.id;
-      
-      const line = productLines.find(l => l.name === updatedProduct.linea);
-      if (line) (resolvedRecord as any).linea = line.id;
-
-      let result;
-      if (isUUID) {
-        result = await SupabaseService.updateProduct(updatedProduct.id, resolvedRecord);
-      } else {
-        const { id, ...productWithoutId } = resolvedRecord;
-        result = await SupabaseService.createProduct(productWithoutId as any);
-      }
-      
-      setData(prev => prev.map(p => p.id === (isUUID ? result.id : updatedProduct.id) ? result : p));
-      setProductManagement(prev => prev.map(p => p.codigoSAP === result.codigoSAP ? result as any : p));
-      toast.success('Producto actualizado');
-    } catch (error) {
-      console.error('Error updating product:', error);
-      toast.error('Error al actualizar producto');
-    }
-  };
-
-  const handleAddProduct = async (newProduct: Omit<ProductRecord, 'id' | 'createdAt'>) => {
-    try {
-      const resolvedRecord = { ...newProduct };
-      
-      const brand = brands.find(b => b.name === newProduct.marca);
-      if (brand) (resolvedRecord as any).marca = brand.id;
-      
-      const supplier = suppliers.find(s => s.legalName === newProduct.proveedor);
-      if (supplier) (resolvedRecord as any).proveedor = supplier.id;
-      
-      const line = productLines.find(l => l.name === newProduct.linea);
-      if (line) (resolvedRecord as any).linea = line.id;
-
-      const result = await SupabaseService.createProduct(resolvedRecord as any);
-      setData(prev => [result, ...prev]);
-      toast.success('Producto creado');
-    } catch (error) {
-      console.error('Error creating product:', error);
-      toast.error('Error al crear producto');
-    }
-  };
-
-  const handleDeleteProduct = async (id: string) => {
-    try {
-      await SupabaseService.deleteProduct(id);
-      setData(prev => prev.filter(p => p.id !== id));
-      toast.success('Producto eliminado');
-    } catch (error) {
-      console.error('Error deleting product:', error);
-      toast.error('Error al eliminar producto');
-    }
-  };
-
-  const handleUpdatePMRecord = async (updatedRecord: ProductManagementRecord) => {
-    try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updatedRecord.id);
-      
-      const resolvedRecord = { ...updatedRecord };
-      
-      const brand = brands.find(b => b.name === updatedRecord.marca);
-      if (brand) (resolvedRecord as any).marca = brand.id;
-      
-      const supplier = suppliers.find(s => s.legalName === updatedRecord.proveedor);
-      if (supplier) (resolvedRecord as any).proveedor = supplier.id;
-      
-      const line = productLines.find(l => l.name === updatedRecord.linea);
-      if (line) (resolvedRecord as any).linea = line.id;
-
-      let result;
-      if (isUUID) {
-        result = await SupabaseService.updateProductManagementRecord(updatedRecord.id, resolvedRecord);
-      } else {
-        const { id, ...recordWithoutId } = resolvedRecord;
-        result = await SupabaseService.createProductManagementRecord(recordWithoutId);
-      }
-      
-      setProductManagement(prev => prev.map(r => r.id === (isUUID ? result.id : updatedRecord.id) ? result : r));
-      setData(prev => prev.map(p => p.codigoSAP === result.codigoSAP ? result : p));
-      toast.success('Producto actualizado correctamente');
-    } catch (error) {
-      console.error('Error updating PM record:', error);
-      toast.error('Error al actualizar registro');
-    }
-  };
 
   const renderModuleContent = () => {
     const moduleLabels: Record<ModuleId, string> = {
@@ -938,45 +674,15 @@ export default function App() {
     }
 
     if (activeModule === 'energy_efficiency') {
-      return (
-        <EnergyEfficiency 
-          records={energyEfficiency}
-          samples={samples}
-          onAddRecord={handleAddEERecord}
-          onUpdateRecord={handleUpdateEERecord}
-          onDeleteRecord={handleDeleteEERecord}
-          onExportPPT={handleExportPPT}
-        />
-      );
+      return <EnergyEfficiency onExportPPT={handleExportPPT} />;
     }
 
     if (activeModule === 'product_management') {
-      return (
-        <ProductsModule 
-          records={productManagement}
-          samples={samples}
-          allProducts={data}
-          onAddRecord={handleAddPMRecord}
-          onUpdateRecord={handleUpdatePMRecord}
-          onDeleteRecord={handleDeletePMRecord}
-          onExportPPT={handleExportPPT}
-        />
-      );
+      return <ProductsModule onExportPPT={handleExportPPT} />;
     }
 
     if (activeModule === 'rd_projects') {
-      return (
-        <ProjectsModule 
-          projects={rdProjects}
-          templates={rdTemplates}
-          onAddProject={handleAddRDProject}
-          onUpdateProject={handleUpdateRDProject}
-          onDeleteProject={handleDeleteRDProject}
-          onAddTemplate={handleAddRDTemplate}
-          onUpdateTemplate={handleUpdateRDTemplate}
-          onDeleteTemplate={handleDeleteRDTemplate}
-        />
-      );
+      return <RDProjectsModule />;
     }
 
 
@@ -1088,57 +794,19 @@ export default function App() {
     }
 
     if (activeModule === 'supplier_master') {
-      return (
-        <SupplierMaster 
-          suppliers={suppliers} 
-          onAddSupplier={handleAddSupplier}
-          onUpdateSupplier={handleUpdateSupplier}
-          onDeleteSupplier={handleDeleteSupplier}
-          onExportPPT={handleExportPPT} 
-        />
-      );
+      return <SupplierMaster onExportPPT={handleExportPPT} />;
     }
 
     if (activeModule === 'commercial_artworks') {
-      return (
-        <CommercialArtworks 
-          data={filteredData} 
-          onUpdateRecord={handleUpdateRecord} 
-          mode="artwork"
-          suppliers={suppliers}
-          samples={samples}
-          calculationRecords={calculationRecords}
-          onLoadRecord={handleLoadRecord}
-        />
-      );
+      return <CommercialArtworks mode="artwork" />;
     }
 
     if (activeModule === 'approved_technical_sheets') {
-      return (
-        <CommercialArtworks 
-          data={filteredData} 
-          onUpdateRecord={handleUpdateRecord} 
-          mode="technical_sheet"
-          suppliers={suppliers}
-          samples={samples}
-          calculationRecords={calculationRecords}
-          onLoadRecord={handleLoadRecord}
-        />
-      );
+      return <CommercialArtworks mode="technical_sheet" />;
     }
 
     if (activeModule === 'approved_commercial_sheets') {
-      return (
-        <CommercialArtworks 
-          data={filteredData} 
-          onUpdateRecord={handleUpdateRecord} 
-          mode="commercial_sheet"
-          suppliers={suppliers}
-          samples={samples}
-          calculationRecords={calculationRecords}
-          onLoadRecord={handleLoadRecord}
-        />
-      );
+      return <CommercialArtworks mode="commercial_sheet" />;
     }
 
     if (activeModule === 'samples') {
@@ -1156,11 +824,11 @@ export default function App() {
     }
 
     if (activeModule === 'ntp_regulations') {
-      return <NTPRegulations initialData={moduleInitialData.ntp_regulations} onExportPPT={handleExportPPT} />;
+      return <NTPRegulations onExportPPT={handleExportPPT} />;
     }
 
     if (activeModule === 'work_plan') {
-      return <WorkPlan initialData={moduleInitialData.work_plan} onExportPPT={handleExportPPT} />;
+      return <WorkPlan onExportPPT={handleExportPPT} />;
     }
 
     if (activeModule === 'applications') {
@@ -1168,14 +836,7 @@ export default function App() {
     }
 
     if (activeModule === 'calendar') {
-      return (
-        <CalendarModule 
-          tasks={calendarTasks}
-          onAddTask={handleAddCalendarTask}
-          onUpdateTask={handleUpdateCalendarTask}
-          onDeleteTask={handleDeleteCalendarTask}
-        />
-      );
+      return <CalendarModule />;
     }
 
     if (showReport && activeModule === 'artwork_followup') {
@@ -1294,10 +955,7 @@ export default function App() {
     } else if (moduleId === 'product_management' && Array.isArray(data)) {
       setProductManagement(data);
     } else if ((moduleId === 'artwork_followup' || moduleId === 'commercial_artworks') && Array.isArray(data)) {
-      // This might be tricky since 'data' in App.tsx is imported from mockData
-      // and used to derive filteredData. We might need a state for 'data'.
-      // For now, let's assume we can't easily update the global 'data' without refactoring.
-      // But we can at least try to update the relevant states if they exist.
+      setData(data);
     }
 
     setActiveModule(moduleId);

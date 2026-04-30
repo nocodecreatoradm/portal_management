@@ -15,28 +15,14 @@ import { RDProject, RDProjectTemplate, RDProjectField, FileInfo } from '../types
 import { exportToExcel } from '../lib/exportUtils';
 
 
-interface ProjectsModuleProps {
-  projects: RDProject[];
-  templates: RDProjectTemplate[];
-  onAddProject: (project: RDProject) => void;
-  onUpdateProject: (project: RDProject) => void;
-  onDeleteProject: (id: string) => void;
-  onAddTemplate: (template: RDProjectTemplate) => void;
-  onUpdateTemplate: (template: RDProjectTemplate) => void;
-  onDeleteTemplate: (id: string) => void;
-}
+import { SupabaseService } from '../lib/SupabaseService';
+import { initialRDProjectTemplates } from '../data/mockData';
 
-export default function ProjectsModule({
-  projects,
-  templates,
-  onAddProject,
-  onUpdateProject,
-  onDeleteProject,
-  onAddTemplate,
-  onUpdateTemplate,
-  onDeleteTemplate
-}: ProjectsModuleProps) {
+export default function ProjectsModule() {
   const { user } = useAuth();
+  const [projects, setProjects] = useState<RDProject[]>([]);
+  const [templates, setTemplates] = useState<RDProjectTemplate[]>(initialRDProjectTemplates);
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
@@ -69,6 +55,29 @@ export default function ProjectsModule({
     startDate: format(new Date(), 'yyyy-MM-dd'),
     sections: []
   });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [projectsData, templatesData] = await Promise.all([
+        SupabaseService.getRDProjects(),
+        SupabaseService.getRDProjectTemplates()
+      ]);
+      setProjects(projectsData as unknown as RDProject[]);
+      if (templatesData && templatesData.length > 0) {
+        setTemplates(templatesData as unknown as RDProjectTemplate[]);
+      }
+    } catch (error) {
+      console.error('Error loading RD projects:', error);
+      toast.error('Error al cargar proyectos');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredProjects = useMemo(() => {
     return projects.filter(p => 
@@ -121,7 +130,7 @@ export default function ProjectsModule({
     }));
   };
 
-  const handleSubmitProject = () => {
+  const handleSubmitProject = async () => {
     if (!formData.name || !formData.responsible) {
       toast.error('Por favor complete los campos obligatorios');
       return;
@@ -139,8 +148,7 @@ export default function ProjectsModule({
       }
     }
 
-    const newProject: RDProject = {
-      id: selectedProject ? selectedProject.id : `PROJ-${Date.now()}`,
+    const projectData: Partial<RDProject> = {
       templateId: selectedTemplate?.id || 'generic',
       name: formData.name || '',
       description: formData.description || '',
@@ -151,20 +159,81 @@ export default function ProjectsModule({
       endDate: formData.endDate,
       sections: formData.sections || [],
       attachments: formData.attachments || [],
-      createdAt: selectedProject ? selectedProject.createdAt : new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
-    if (selectedProject) {
-      onUpdateProject(newProject);
-      toast.success('Proyecto actualizado con éxito');
-    } else {
-      onAddProject(newProject);
-      toast.success('Proyecto creado con éxito');
+    try {
+      if (selectedProject) {
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedProject.id);
+        let result;
+        if (isUUID) {
+          result = await SupabaseService.updateRDProject(selectedProject.id, projectData);
+        } else {
+          result = await SupabaseService.createRDProject({ ...projectData, createdAt: selectedProject.createdAt } as RDProject);
+        }
+        setProjects(prev => prev.map(p => p.id === selectedProject.id ? result : p));
+        toast.success('Proyecto actualizado con éxito');
+      } else {
+        const result = await SupabaseService.createRDProject({ ...projectData, createdAt: new Date().toISOString() } as RDProject);
+        setProjects(prev => [result, ...prev]);
+        toast.success('Proyecto creado con éxito');
+      }
+      setIsNewProjectModalOpen(false);
+      setSelectedProject(null);
+    } catch (error) {
+      console.error('Error saving project:', error);
+      toast.error('Error al guardar el proyecto');
     }
+  };
 
-    setIsNewProjectModalOpen(false);
-    setSelectedProject(null);
+  const handleDeleteProject = async (id: string) => {
+    try {
+      await SupabaseService.deleteRDProject(id);
+      setProjects(prev => prev.filter(p => p.id !== id));
+      toast.success('Proyecto eliminado');
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast.error('Error al eliminar el proyecto');
+    }
+  };
+
+  const handleUpdateTemplate = async (template: RDProjectTemplate) => {
+    try {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(template.id);
+      let result;
+      if (isUUID) {
+        result = await SupabaseService.updateRDProjectTemplate(template.id, template);
+      } else {
+        result = await SupabaseService.createRDProjectTemplate(template);
+      }
+      setTemplates(prev => prev.map(t => t.id === template.id ? result : t));
+      toast.success('Plantilla actualizada');
+    } catch (error) {
+      console.error('Error updating template:', error);
+      toast.error('Error al actualizar plantilla');
+    }
+  };
+
+  const handleAddTemplate = async (template: RDProjectTemplate) => {
+    try {
+      const result = await SupabaseService.createRDProjectTemplate(template);
+      setTemplates(prev => [...prev, result]);
+      toast.success('Plantilla creada');
+    } catch (error) {
+      console.error('Error adding template:', error);
+      toast.error('Error al crear plantilla');
+    }
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    try {
+      await SupabaseService.deleteRDProjectTemplate(id);
+      setTemplates(prev => prev.filter(t => t.id !== id));
+      toast.success('Plantilla eliminada');
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast.error('Error al eliminar plantilla');
+    }
   };
 
   const handleEditProject = (project: RDProject) => {
@@ -393,9 +462,8 @@ export default function ProjectsModule({
                           id: project.id,
                           user: user?.name || 'Sistema',
                           onConfirm: () => {
-                            onDeleteProject(project.id);
+                            handleDeleteProject(project.id);
                             setDeleteConfirm(null);
-                            toast.success('Proyecto eliminado');
                           }
                         });
                       }}
@@ -996,9 +1064,8 @@ export default function ProjectsModule({
                                   title: template.name,
                                   type: 'template',
                                   onConfirm: () => {
-                                    onDeleteTemplate(template.id);
+                                    handleDeleteTemplate(template.id);
                                     setDeleteConfirm(null);
-                                    toast.success('Plantilla eliminada');
                                   }
                                 });
                               }}
@@ -1280,11 +1347,9 @@ export default function ProjectsModule({
                         return;
                       }
                       if (templates.find(t => t.id === templateFormData.id)) {
-                        onUpdateTemplate(templateFormData as RDProjectTemplate);
-                        toast.success('Plantilla actualizada');
+                        handleUpdateTemplate(templateFormData as RDProjectTemplate);
                       } else {
-                        onAddTemplate(templateFormData as RDProjectTemplate);
-                        toast.success('Plantilla creada');
+                        handleAddTemplate(templateFormData as RDProjectTemplate);
                       }
                       setEditingTemplate(null);
                     }}

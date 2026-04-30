@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { SampleRecord } from '../types';
 import { SupabaseService } from '../lib/SupabaseService';
 import { toast } from 'sonner';
+import { initialSamples } from '../data/mockData';
+
+const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 
 interface SamplesContextType {
   samples: SampleRecord[];
@@ -54,8 +57,17 @@ export const SamplesProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const refreshSamples = async () => {
     try {
       setLoading(true);
-      const data = await SupabaseService.getSamples();
-      setSamples(data);
+      const remoteItems = await SupabaseService.getSamples();
+      
+      // Merge with initialSamples (on-demand migration support)
+      const remoteIds = new Set(remoteItems.map(i => i.id));
+      const remoteCorrelatives = new Set(remoteItems.map(i => i.correlativeId).filter(Boolean));
+      
+      const uniqueMockItems = initialSamples.filter(mock => 
+        !remoteIds.has(mock.id) && (!mock.correlativeId || !remoteCorrelatives.has(mock.correlativeId))
+      );
+      
+      setSamples([...remoteItems, ...uniqueMockItems]);
     } catch (error) {
       console.error('Error fetching samples:', error);
       toast.error('Error al cargar muestras desde el servidor');
@@ -79,7 +91,17 @@ export const SamplesProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateSample = async (id: string, updates: Partial<SampleRecord>) => {
     try {
       const resolved = resolveIds(updates);
-      const updated = await SupabaseService.updateSample(id, resolved);
+      const validUUID = isUUID(id);
+      let updated;
+      
+      if (validUUID) {
+        updated = await SupabaseService.updateSample(id, resolved);
+      } else {
+        // On-demand migration for samples
+        const { id: _, ...sampleData } = { ...samples.find(s => s.id === id), ...resolved };
+        updated = await SupabaseService.createSample(sampleData as SampleRecord);
+      }
+      
       setSamples(prev => prev.map(s => s.id === id ? updated : s));
       toast.success('Muestra actualizada');
     } catch (error) {

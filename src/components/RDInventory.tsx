@@ -18,6 +18,9 @@ import { saveCalculationRecord, generateModuleCorrelative } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { SupabaseService } from '../lib/SupabaseService';
+import { initialRDInventory } from '../data/mockData';
+
+const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 
 interface RDInventoryProps {
   initialItems?: RDInventoryItem[];
@@ -47,7 +50,17 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
       try {
         setLoading(true);
         const data = await SupabaseService.getInventory();
-        setItems(data as unknown as RDInventoryItem[]);
+        const remoteItems = data as unknown as RDInventoryItem[];
+        
+        // Merge with initialRDInventory (on-demand migration support)
+        const remoteIds = new Set(remoteItems.map(i => i.id));
+        const remoteSerials = new Set(remoteItems.map(i => i.serialNumber).filter(Boolean));
+        
+        const uniqueMockItems = initialRDInventory.filter(mock => 
+          !remoteIds.has(mock.id) && (!mock.serialNumber || !remoteSerials.has(mock.serialNumber))
+        );
+        
+        setItems([...remoteItems, ...uniqueMockItems]);
       } catch (error) {
         console.error('Error loading inventory:', error);
         toast.error('Error al cargar el inventario de Supabase');
