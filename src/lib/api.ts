@@ -77,11 +77,52 @@ export const fetchCantonFairSuppliers = async (year?: number) => {
     if (year) {
       query = query.eq('year', year);
     }
-    const { data, error } = await query.order('name');
-    if (error) throw error;
+    const { data: suppliersData, error: suppliersError } = await query.order('name');
+    if (suppliersError) throw suppliersError;
+
+    const { data: productsData, error: productsError } = await supabase
+      .from('canton_fair_products')
+      .select('*');
+    if (productsError) throw productsError;
     
-    // Fetch products separately if needed or handle locally
-    return data;
+    // Map snake_case to camelCase and link products
+    return (suppliersData || []).map(s => ({
+      id: s.id,
+      year: s.year,
+      name: s.name,
+      factoryLocation: s.factory_location,
+      contactName: s.contact_name,
+      website: s.website,
+      innovationRating: s.innovation_rating,
+      priceRating: s.price_rating,
+      manufacturingRating: s.manufacturing_rating,
+      catalogues: s.catalogues,
+      fobPrices: s.fob_prices,
+      comments: s.comments,
+      images: s.images,
+      logo: s.logo,
+      phone: s.phone,
+      email: s.email,
+      wechatQr: s.wechat_qr,
+      factoryVisited: s.factory_visited,
+      visitDate: s.visit_date,
+      visitTime: s.visit_time,
+      locationLabel: s.location_label,
+      lat: s.latitude ? parseFloat(s.latitude) : undefined,
+      lng: s.longitude ? parseFloat(s.longitude) : undefined,
+      createdAt: s.created_at,
+      featuredProducts: (productsData || [])
+        .filter(p => p.supplier_id === s.id)
+        .map(p => ({
+          id: p.id,
+          category: p.category,
+          name: p.name,
+          fobPrice: p.fob_price,
+          targetBrand: p.target_brand,
+          comments: p.comments,
+          images: p.images
+        }))
+    }));
   } catch (error) {
     console.error('Error fetching suppliers:', error);
     return [];
@@ -90,18 +131,57 @@ export const fetchCantonFairSuppliers = async (year?: number) => {
 
 export const saveCantonFairSupplier = async (supplier: any) => {
   try {
-    const { products, ...supplierData } = supplier;
+    const { featuredProducts, ...supplierData } = supplier;
+    
+    // Map camelCase to snake_case for the database
+    const dbData: any = {
+      year: supplierData.year,
+      name: supplierData.name,
+      factory_location: supplierData.factoryLocation,
+      contact_name: supplierData.contactName,
+      website: supplierData.website,
+      innovation_rating: supplierData.innovationRating,
+      price_rating: supplierData.priceRating,
+      manufacturing_rating: supplierData.manufacturingRating,
+      catalogues: supplierData.catalogues,
+      fob_prices: supplierData.fobPrices,
+      comments: supplierData.comments,
+      images: supplierData.images,
+      logo: supplierData.logo,
+      phone: supplierData.phone,
+      email: supplierData.email,
+      wechat_qr: supplierData.wechatQr,
+      factory_visited: supplierData.factoryVisited,
+      visit_date: supplierData.visitDate || null,
+      visit_time: supplierData.visitTime || null,
+      location_label: supplierData.locationLabel,
+      latitude: supplierData.lat,
+      longitude: supplierData.lng
+    };
+
+    // Remove undefined fields and ID if it's not a UUID
+    Object.keys(dbData).forEach(key => dbData[key] === undefined && delete dbData[key]);
+    if (supplierData.id && (typeof supplierData.id !== 'string' || supplierData.id.length < 20)) delete dbData.id;
+
     const { data, error } = await supabase
       .from('canton_fair_suppliers')
-      .insert(supplierData)
+      .insert(dbData)
       .select()
       .single();
     
     if (error) throw error;
 
-    if (products && products.length > 0) {
-      const productsWithId = products.map((p: any) => ({ ...p, supplier_id: data.id }));
-      await supabase.from('canton_fair_products').insert(productsWithId);
+    if (featuredProducts && featuredProducts.length > 0) {
+      const productsToInsert = featuredProducts.map((p: any) => ({
+        supplier_id: data.id,
+        category: p.category,
+        name: p.name,
+        fob_price: p.fobPrice,
+        target_brand: p.targetBrand,
+        comments: p.comments,
+        images: p.images
+      }));
+      await supabase.from('canton_fair_products').insert(productsToInsert);
     }
 
     return { success: true, data };
@@ -114,19 +194,60 @@ export const saveCantonFairSupplier = async (supplier: any) => {
 
 export const updateCantonFairSupplier = async (id: string, supplier: any) => {
   try {
-    const { products, ...supplierData } = supplier;
+    const { featuredProducts, ...supplierData } = supplier;
+    
+    // Map camelCase to snake_case for the database
+    const dbData: any = {
+      year: supplierData.year,
+      name: supplierData.name,
+      factory_location: supplierData.factoryLocation,
+      contact_name: supplierData.contactName,
+      website: supplierData.website,
+      innovation_rating: supplierData.innovationRating,
+      price_rating: supplierData.priceRating,
+      manufacturing_rating: supplierData.manufacturingRating,
+      catalogues: supplierData.catalogues,
+      fob_prices: supplierData.fobPrices,
+      comments: supplierData.comments,
+      images: supplierData.images,
+      logo: supplierData.logo,
+      phone: supplierData.phone,
+      email: supplierData.email,
+      wechat_qr: supplierData.wechatQr,
+      factory_visited: supplierData.factoryVisited,
+      visit_date: supplierData.visitDate || null,
+      visit_time: supplierData.visitTime || null,
+      location_label: supplierData.locationLabel,
+      latitude: supplierData.lat,
+      longitude: supplierData.lng
+    };
+
+    // Remove undefined fields
+    Object.keys(dbData).forEach(key => dbData[key] === undefined && delete dbData[key]);
+
     const { error } = await supabase
       .from('canton_fair_suppliers')
-      .update(supplierData)
+      .update(dbData)
       .eq('id', id);
     
     if (error) throw error;
 
-    // Simplistic product update: delete and re-insert
-    if (products) {
+    if (featuredProducts) {
+      // First delete existing products
       await supabase.from('canton_fair_products').delete().eq('supplier_id', id);
-      const productsWithId = products.map((p: any) => ({ ...p, supplier_id: id }));
-      await supabase.from('canton_fair_products').insert(productsWithId);
+      
+      if (featuredProducts.length > 0) {
+        const productsToInsert = featuredProducts.map((p: any) => ({
+          supplier_id: id,
+          category: p.category,
+          name: p.name,
+          fob_price: p.fobPrice,
+          target_brand: p.targetBrand,
+          comments: p.comments,
+          images: p.images
+        }));
+        await supabase.from('canton_fair_products').insert(productsToInsert);
+      }
     }
 
     return { success: true };
@@ -157,8 +278,15 @@ export const fetchCantonFairSettings = async (year: number) => {
       .eq('year', year)
       .single();
     
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows found"
-    return data || { year, attendees: [] };
+    if (error && error.code !== 'PGRST116') throw error;
+    
+    if (!data) return { year, attendees: [] };
+
+    return {
+      year: data.year,
+      bannerImage: data.banner_image,
+      attendees: data.attendees
+    };
   } catch (error) {
     console.error('Error fetching settings:', error);
     return { year, attendees: [] };
@@ -167,9 +295,15 @@ export const fetchCantonFairSettings = async (year: number) => {
 
 export const saveCantonFairSettings = async (settings: any) => {
   try {
+    const dbSettings = {
+      year: settings.year,
+      banner_image: settings.bannerImage,
+      attendees: settings.attendees
+    };
+
     const { data, error } = await supabase
       .from('canton_fair_settings')
-      .upsert(settings, { onConflict: 'year' })
+      .upsert(dbSettings, { onConflict: 'year' })
       .select()
       .single();
     

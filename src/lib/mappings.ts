@@ -1,4 +1,4 @@
-import { RDInventoryItem, EnergyEfficiencyRecord, ProductManagementRecord, Project, ProjectActivity, CalendarTask, InnovationProposal, Supplier, RDProjectTemplate, ProductRecord, AuditLog, NTPRegulation } from '../types';
+import { RDInventoryItem, EnergyEfficiencyRecord, ProductManagementRecord, Project, ProjectActivity, CalendarTask, InnovationProposal, Supplier, RDProjectTemplate, RDProject, ProductRecord, AuditLog, NTPRegulation } from '../types';
 
 export const mapInventoryToDB = (item: Partial<RDInventoryItem>) => ({
   serial_number: item.serialNumber,
@@ -400,3 +400,33 @@ export const mapDBToSample = (dbSample: any): SampleRecord => ({
     comment: h.comment
   })) : []
 });
+export const mapDBToRDProject = (dbProject: any): RDProject => ({
+  id: dbProject.id,
+  templateId: dbProject.template_id,
+  name: dbProject.name,
+  description: dbProject.description,
+  status: dbProject.status,
+  priority: dbProject.priority,
+  responsible: dbProject.responsible_id,
+  startDate: dbProject.start_date,
+  endDate: dbProject.end_date,
+  sections: dbProject.sections,
+  attachments: dbProject.attachments || [],
+  createdAt: dbProject.created_at,
+  updatedAt: dbProject.updated_at
+});
+
+export const mapRDProjectToDB = (project: Partial<RDProject>) => {
+  const dbProject: any = {};
+  if (project.templateId !== undefined) dbProject.template_id = project.templateId;
+  if (project.name !== undefined) dbProject.name = project.name;
+  if (project.description !== undefined) dbProject.description = project.description;
+  if (project.status !== undefined) dbProject.status = project.status;
+  if (project.priority !== undefined) dbProject.priority = project.priority;
+  if (project.responsible !== undefined) dbProject.responsible_id = project.responsible;
+  if (project.startDate !== undefined) dbProject.start_date = project.startDate;
+  if (project.endDate !== undefined) dbProject.end_date = project.endDate;
+  if (project.sections !== undefined) dbProject.sections = project.sections;
+  if (project.attachments !== undefined) dbProject.attachments = project.attachments;
+  return dbProject;
+};

@@ -175,7 +175,9 @@ export default function App() {
           samplesData,
           brandsData,
           linesData,
-          approversData
+          approversData,
+          rdProjectsData,
+          rdTemplatesData
         ] = await Promise.all([
           SupabaseService.getProducts(),
           SupabaseService.getPMRecords(),
@@ -187,14 +189,15 @@ export default function App() {
           SupabaseService.getSamples(),
           SupabaseService.getBrands(),
           SupabaseService.getProductLines(),
-          SupabaseService.getApprovers()
+          SupabaseService.getApprovers(),
+          SupabaseService.getRDProjects(),
+          SupabaseService.getRDProjectTemplates()
         ]);
 
         setData(productsData);
         setProductManagement(pmData);
         setRdInventory(inventoryData as unknown as RDInventoryItem[]);
         setProjects(projectsData as unknown as Project[]);
-        setRdProjects(projectsData as unknown as RDProject[]);
         setEnergyEfficiency(eeData as unknown as EnergyEfficiencyRecord[]);
         setCalendarTasks(calendarData as unknown as CalendarTask[]);
         setSuppliers(suppliersData as unknown as Supplier[]);
@@ -202,6 +205,8 @@ export default function App() {
         setBrands(brandsData);
         setProductLines(linesData);
         setApprovers(approversData);
+        setRdProjects(rdProjectsData as unknown as RDProject[]);
+        setRdTemplates(rdTemplatesData as unknown as RDProjectTemplate[]);
         
         // Load calculations
         const calcRecords = await fetchCalculationRecords();
@@ -561,8 +566,15 @@ export default function App() {
 
   const handleUpdateRDItem = async (updatedItem: RDInventoryItem) => {
     try {
-      const result = await SupabaseService.updateInventoryItem(updatedItem.id, updatedItem);
-      setRdInventory(prev => prev.map(item => item.id === result.id ? result : item));
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updatedItem.id);
+      let result;
+      if (isUUID) {
+        result = await SupabaseService.updateInventoryItem(updatedItem.id, updatedItem);
+      } else {
+        const { id, ...itemWithoutId } = updatedItem;
+        result = await SupabaseService.createInventoryItem(itemWithoutId);
+      }
+      setRdInventory(prev => prev.map(item => item.id === (isUUID ? result.id : updatedItem.id) ? result : item));
       toast.success('Inventario actualizado');
     } catch (error) {
       console.error('Error updating inventory item:', error);
@@ -594,8 +606,14 @@ export default function App() {
 
   const handleUpdateSupplier = async (id: string, updates: Partial<Supplier>) => {
     try {
-      const result = await SupabaseService.updateSupplier(id, updates);
-      setSuppliers(prev => prev.map(s => s.id === id ? result : s));
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      let result;
+      if (isUUID) {
+        result = await SupabaseService.updateSupplier(id, updates);
+      } else {
+        result = await SupabaseService.createSupplier(updates);
+      }
+      setSuppliers(prev => prev.map(s => s.id === (isUUID ? id : id) ? result : s)); // id is old id
       toast.success('Socio actualizado');
     } catch (error) {
       console.error('Error updating supplier:', error);
@@ -627,8 +645,15 @@ export default function App() {
 
   const handleUpdateRDProject = async (project: RDProject) => {
     try {
-      const result = await SupabaseService.updateRDProject(project.id, project);
-      setRdProjects(prev => prev.map(p => p.id === result.id ? result : p));
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(project.id);
+      let result;
+      if (isUUID) {
+        result = await SupabaseService.updateRDProject(project.id, project);
+      } else {
+        const { id, ...projectWithoutId } = project;
+        result = await SupabaseService.createRDProject(projectWithoutId);
+      }
+      setRdProjects(prev => prev.map(p => p.id === (isUUID ? result.id : project.id) ? result : p));
       toast.success('Proyecto actualizado');
     } catch (error) {
       console.error('Error updating RD project:', error);
@@ -660,8 +685,15 @@ export default function App() {
 
   const handleUpdateCalendarTask = async (task: CalendarTask) => {
     try {
-      const result = await SupabaseService.updateCalendarTask(task.id, task);
-      setCalendarTasks(prev => prev.map(t => t.id === result.id ? result : t));
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(task.id);
+      let result;
+      if (isUUID) {
+        result = await SupabaseService.updateCalendarTask(task.id, task);
+      } else {
+        const { id, ...taskWithoutId } = task;
+        result = await SupabaseService.createCalendarTask(taskWithoutId);
+      }
+      setCalendarTasks(prev => prev.map(t => t.id === (isUUID ? result.id : task.id) ? result : t));
       toast.success('Tarea actualizada');
     } catch (error) {
       console.error('Error updating calendar task:', error);
@@ -693,12 +725,41 @@ export default function App() {
 
   const handleUpdateRDTemplate = async (template: RDProjectTemplate) => {
     try {
-      const result = await SupabaseService.updateRDProjectTemplate(template.id, template);
-      setRdTemplates(prev => prev.map(t => t.id === template.id ? result : t));
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(template.id);
+      let result;
+      if (isUUID) {
+        result = await SupabaseService.updateRDProjectTemplate(template.id, template);
+      } else {
+        const { id, ...templateWithoutId } = template;
+        result = await SupabaseService.createRDProjectTemplate(templateWithoutId);
+      }
+      setRdTemplates(prev => prev.map(t => t.id === (isUUID ? result.id : template.id) ? result : t));
       toast.success('Plantilla actualizada');
     } catch (error) {
       console.error('Error updating template:', error);
       toast.error('Error al actualizar plantilla');
+    }
+  };
+
+  const handleAddRDTemplate = async (template: RDProjectTemplate) => {
+    try {
+      const result = await SupabaseService.createRDProjectTemplate(template);
+      setRdTemplates(prev => [...prev, result]);
+      toast.success('Plantilla creada');
+    } catch (error) {
+      console.error('Error adding template:', error);
+      toast.error('Error al crear plantilla');
+    }
+  };
+
+  const handleDeleteRDTemplate = async (id: string) => {
+    try {
+      await SupabaseService.deleteRDProjectTemplate(id);
+      setRdTemplates(prev => prev.filter(t => t.id !== id));
+      toast.success('Plantilla eliminada');
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast.error('Error al eliminar plantilla');
     }
   };
 
@@ -715,8 +776,15 @@ export default function App() {
 
   const handleUpdateEERecord = async (updatedRecord: EnergyEfficiencyRecord) => {
     try {
-      const result = await SupabaseService.updateEERecord(updatedRecord.id, updatedRecord);
-      setEnergyEfficiency(prev => prev.map(r => r.id === result.id ? result : r));
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updatedRecord.id);
+      let result;
+      if (isUUID) {
+        result = await SupabaseService.updateEERecord(updatedRecord.id, updatedRecord);
+      } else {
+        const { id, ...recordWithoutId } = updatedRecord;
+        result = await SupabaseService.createEERecord(recordWithoutId);
+      }
+      setEnergyEfficiency(prev => prev.map(r => r.id === (isUUID ? result.id : updatedRecord.id) ? result : r));
       toast.success('Registro actualizado');
     } catch (error) {
       console.error('Error updating EE record:', error);
@@ -759,6 +827,8 @@ export default function App() {
 
   const handleUpdateProduct = async (updatedProduct: ProductRecord) => {
     try {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updatedProduct.id);
+      
       // Resolve IDs for Brand, Supplier and Line if names are passed
       const resolvedRecord = { ...updatedProduct };
       
@@ -771,8 +841,15 @@ export default function App() {
       const line = productLines.find(l => l.name === updatedProduct.linea);
       if (line) (resolvedRecord as any).linea = line.id;
 
-      const result = await SupabaseService.updateProduct(updatedProduct.id, resolvedRecord);
-      setData(prev => prev.map(p => p.id === result.id ? result : p));
+      let result;
+      if (isUUID) {
+        result = await SupabaseService.updateProduct(updatedProduct.id, resolvedRecord);
+      } else {
+        const { id, ...productWithoutId } = resolvedRecord;
+        result = await SupabaseService.createProduct(productWithoutId as any);
+      }
+      
+      setData(prev => prev.map(p => p.id === (isUUID ? result.id : updatedProduct.id) ? result : p));
       setProductManagement(prev => prev.map(p => p.codigoSAP === result.codigoSAP ? result as any : p));
       toast.success('Producto actualizado');
     } catch (error) {
@@ -816,6 +893,8 @@ export default function App() {
 
   const handleUpdatePMRecord = async (updatedRecord: ProductManagementRecord) => {
     try {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updatedRecord.id);
+      
       const resolvedRecord = { ...updatedRecord };
       
       const brand = brands.find(b => b.name === updatedRecord.marca);
@@ -827,8 +906,15 @@ export default function App() {
       const line = productLines.find(l => l.name === updatedRecord.linea);
       if (line) (resolvedRecord as any).linea = line.id;
 
-      const result = await SupabaseService.updateProductManagementRecord(updatedRecord.id, resolvedRecord);
-      setProductManagement(prev => prev.map(r => r.id === result.id ? result : r));
+      let result;
+      if (isUUID) {
+        result = await SupabaseService.updateProductManagementRecord(updatedRecord.id, resolvedRecord);
+      } else {
+        const { id, ...recordWithoutId } = resolvedRecord;
+        result = await SupabaseService.createProductManagementRecord(recordWithoutId);
+      }
+      
+      setProductManagement(prev => prev.map(r => r.id === (isUUID ? result.id : updatedRecord.id) ? result : r));
       setData(prev => prev.map(p => p.codigoSAP === result.codigoSAP ? result : p));
       toast.success('Producto actualizado correctamente');
     } catch (error) {
@@ -916,9 +1002,9 @@ export default function App() {
           onAddProject={handleAddRDProject}
           onUpdateProject={handleUpdateRDProject}
           onDeleteProject={handleDeleteRDProject}
-          onAddTemplate={(t) => setRdTemplates(prev => [...prev, t])}
+          onAddTemplate={handleAddRDTemplate}
           onUpdateTemplate={handleUpdateRDTemplate}
-          onDeleteTemplate={(id) => setRdTemplates(prev => prev.filter(item => item.id !== id))}
+          onDeleteTemplate={handleDeleteRDTemplate}
         />
       );
     }

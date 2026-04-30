@@ -183,23 +183,31 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
     };
     
     try {
-      if (editingReg) {
+      const isUUID = editingReg && /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(editingReg.id);
+
+      if (editingReg && isUUID) {
         const result = await SupabaseService.updateNTPRegulation(editingReg.id, regData);
         setRegulations(regulations.map(r => r.id === result.id ? result : r));
         toast.success('Normativa actualizada');
       } else {
         const newReg: Partial<NTPRegulation> = {
           ...regData,
-          uploadDate: new Date().toISOString(),
-          file: { 
-            name: (formData.get('file') as File).name || 'documento.pdf', 
+          uploadDate: editingReg?.uploadDate || new Date().toISOString(),
+          file: editingReg?.file || { 
+            name: (formData.get('file') as File)?.name || 'documento.pdf', 
             url: '#', 
             type: 'application/pdf' 
           }
         };
         const result = await SupabaseService.createNTPRegulation(newReg);
-        setRegulations([result, ...regulations]);
-        toast.success('Normativa añadida correctamente');
+        
+        if (editingReg && !isUUID) {
+          // If we were "editing" a mock item, replace it with the new DB record
+          setRegulations(regulations.map(r => r.id === editingReg.id ? result : r));
+        } else {
+          setRegulations([result, ...regulations]);
+        }
+        toast.success('Normativa guardada correctamente');
       }
       setShowAddModal(false);
       setEditingReg(null);
@@ -211,7 +219,13 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
 
   const handleDelete = async (id: string) => {
     try {
-      await SupabaseService.deleteNTPRegulation(id);
+      // Check if id is a valid UUID before attempting to delete from Supabase
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      
+      if (isUUID) {
+        await SupabaseService.deleteNTPRegulation(id);
+      }
+      
       const updatedRegs = regulations.filter(r => r.id !== id);
       setRegulations(updatedRegs);
       toast.success('Normativa eliminada');

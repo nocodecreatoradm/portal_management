@@ -321,7 +321,6 @@ const CantonFair: React.FC = () => {
       if (editingId) {
         result = await updateCantonFairSupplier(editingId, supplierData);
       } else {
-        supplierData.id = Math.random().toString(36).substr(2, 9);
         supplierData.createdAt = new Date().toISOString();
         result = await saveCantonFairSupplier(supplierData);
       }

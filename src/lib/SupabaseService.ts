@@ -35,9 +35,13 @@ import {
   mapDBToTemplate,
   mapSampleToDB,
   mapDBToSample,
-  mapDBToPMRecord
+  mapDBToPMRecord,
+  mapDBToRDProject,
+  mapRDProjectToDB
 } from './mappings';
 
+
+const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 
 export const SupabaseService = {
   // MASTER DATA
@@ -94,6 +98,7 @@ export const SupabaseService = {
   },
 
   async deleteSample(id: string) {
+    if (!isUUID(id)) return true;
     const { error } = await supabase
       .from('samples')
       .delete()
@@ -148,6 +153,7 @@ export const SupabaseService = {
   },
 
   async deleteProduct(id: string) {
+    if (!isUUID(id)) return true;
     const { error } = await supabase
       .from('products')
       .delete()
@@ -190,6 +196,7 @@ export const SupabaseService = {
   },
 
   async deleteProductManagementRecord(id: string) {
+    if (!isUUID(id)) return true;
     const { error } = await supabase
       .from('product_management')
       .delete()
@@ -232,6 +239,7 @@ export const SupabaseService = {
   },
 
   async deleteInventoryItem(id: string) {
+    if (!isUUID(id)) return true;
     const { error } = await supabase
       .from('rd_inventory')
       .delete()
@@ -277,6 +285,7 @@ export const SupabaseService = {
   },
 
   async deleteProject(id: string) {
+    if (!isUUID(id)) return true;
     const { error } = await supabase
       .from('projects')
       .delete()
@@ -310,6 +319,7 @@ export const SupabaseService = {
   },
 
   async deleteProjectActivity(id: string) {
+    if (!isUUID(id)) return true;
     const { error } = await supabase
       .from('project_activities')
       .delete()
@@ -352,6 +362,7 @@ export const SupabaseService = {
   },
 
   async deleteEERecord(id: string) {
+    if (!isUUID(id)) return true;
     const { error } = await supabase
       .from('energy_efficiency_records')
       .delete()
@@ -394,6 +405,7 @@ export const SupabaseService = {
   },
 
   async deleteInnovationProposal(id: string) {
+    if (!isUUID(id)) return true;
     const { error } = await supabase
       .from('innovation_proposals')
       .delete()
@@ -436,6 +448,7 @@ export const SupabaseService = {
   },
 
   async deleteCalendarTask(id: string) {
+    if (!isUUID(id)) return true;
     const { error } = await supabase
       .from('calendar_tasks')
       .delete()
@@ -478,6 +491,7 @@ export const SupabaseService = {
   },
 
   async deleteNTPRegulation(id: string) {
+    if (!isUUID(id)) return true;
     const { error } = await supabase
       .from('ntp_regulations')
       .delete()
@@ -520,6 +534,7 @@ export const SupabaseService = {
   },
 
   async deleteSupplier(id: string) {
+    if (!isUUID(id)) return true;
     const { error } = await supabase
       .from('suppliers')
       .delete()
@@ -562,8 +577,52 @@ export const SupabaseService = {
   },
 
   async deleteRDProjectTemplate(id: string) {
+    if (!isUUID(id)) return true;
     const { error } = await supabase
       .from('rd_project_templates')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
+  // RD PROJECTS (Custom)
+  async getRDProjects() {
+    const { data, error } = await supabase
+      .from('rd_custom_projects')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data.map(mapDBToRDProject);
+  },
+
+  async createRDProject(project: Partial<RDProject>) {
+    const dbProject = mapRDProjectToDB(project);
+    const { data, error } = await supabase
+      .from('rd_custom_projects')
+      .insert([dbProject])
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToRDProject(data);
+  },
+
+  async updateRDProject(id: string, updates: Partial<RDProject>) {
+    const dbUpdates = mapRDProjectToDB(updates);
+    const { data, error } = await supabase
+      .from('rd_custom_projects')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToRDProject(data);
+  },
+
+  async deleteRDProject(id: string) {
+    if (!isUUID(id)) return true;
+    const { error } = await supabase
+      .from('rd_custom_projects')
       .delete()
       .eq('id', id);
     if (error) throw error;
