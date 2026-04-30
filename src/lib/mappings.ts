@@ -185,7 +185,10 @@ export const mapDBToProposal = (dbProposal: any): InnovationProposal => ({
   sketches: dbProposal.sketches || [],
   blueprints: dbProposal.blueprints || [],
   tags: dbProposal.tags || [],
-  comments: dbProposal.comments || []
+  comments: dbProposal.comments ? dbProposal.comments.map((c: any) => ({
+    ...c,
+    user: c.user_id
+  })) : []
 });
 
 export const mapNTPToDB = (reg: Partial<NTPRegulation>) => ({
@@ -254,9 +257,9 @@ export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
   codigoSAP: dbProduct.sap_code || '',
   codigoEAN: dbProduct.ean_code || '',
   descripcionSAP: dbProduct.sap_description || '',
-  marca: dbProduct.brand?.name || 'SOLE',
-  proveedor: dbProduct.supplier?.legal_name || 'Desconocido',
-  linea: dbProduct.line?.name || 'AGUA CALIENTE',
+  marca: dbProduct.brand?.name || dbProduct.brand_id || 'SOLE',
+  proveedor: dbProduct.supplier?.legal_name || dbProduct.supplier_id || 'Desconocido',
+  linea: dbProduct.line?.name || dbProduct.line_id || 'AGUA CALIENTE',
   codProv: '', // Not in DB yet
   correoProveedor: [], // Not in DB yet
   artworks: dbProduct.documents ? dbProduct.documents.filter((d: any) => d.category === 'Artwork') : [],
@@ -276,9 +279,9 @@ export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
   id: dbRecord.id,
   codigoSAP: dbRecord.sap_code || '',
   descripcionSAP: dbRecord.sap_description || '',
-  marca: dbRecord.brand?.name || 'SOLE',
-  proveedor: dbRecord.supplier?.legal_name || 'Desconocido',
-  linea: dbRecord.line?.name || 'AGUA CALIENTE',
+  marca: dbRecord.brand?.name || dbRecord.brand_id || 'SOLE',
+  proveedor: dbRecord.supplier?.legal_name || dbRecord.supplier_id || 'Desconocido',
+  linea: dbRecord.line?.name || dbRecord.line_id || 'AGUA CALIENTE',
   sampleId: dbRecord.sample_id,
   fobPrice: dbRecord.fob_price || 0,
   fobPriceHistory: dbRecord.fob_price_history || [],
@@ -372,15 +375,15 @@ export const mapDBToSample = (dbSample: any): SampleRecord => ({
   version: dbSample.version || 1,
   codigoSAP: dbSample.sap_code,
   descripcionSAP: dbSample.sap_description,
-  marca: dbSample.brand?.name || 'SOLE',
-  proveedor: dbSample.supplier?.legal_name || 'Desconocido',
-  linea: dbSample.line?.name || 'AGUA CALIENTE',
-  categoria: dbSample.category?.name,
+  marca: dbSample.brand?.name || dbSample.brand_id || 'SOLE',
+  proveedor: dbSample.supplier?.legal_name || dbSample.supplier_id || 'Desconocido',
+  linea: dbSample.line?.name || dbSample.line_id || 'AGUA CALIENTE',
+  categoria: dbSample.category?.name || dbSample.category_id,
   inspectionDate: dbSample.inspection_date,
   inspectionStatus: dbSample.inspection_status,
   reportDate: dbSample.report_date,
   reportFile: dbSample.report_file,
-  technician: dbSample.technician?.full_name,
+  technician: dbSample.technician_id,
   inspectionProgress: dbSample.inspection_progress as any,
   inspectionTimer: dbSample.inspection_timer,
   inspectionForm: dbSample.inspection_form,
@@ -393,7 +396,7 @@ export const mapDBToSample = (dbSample: any): SampleRecord => ({
   history: dbSample.history ? dbSample.history.map((h: any) => ({
     date: h.created_at,
     status: h.status,
-    user: h.user?.full_name || 'Desconocido',
+    user: h.user_id || 'Desconocido',
     comment: h.comment
   })) : []
 });

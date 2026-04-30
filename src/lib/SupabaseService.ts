@@ -70,11 +70,9 @@ export const SupabaseService = {
         supplier:suppliers(legal_name),
         line:product_lines(name),
         category:categories(name),
-        technician:profiles!samples_technician_id_fkey(full_name),
-        receiver:profiles!samples_received_by_fkey(full_name),
         history:sample_history(
           *,
-          user:profiles(full_name)
+          user_id
         )
       `)
       .order('created_at', { ascending: false });
@@ -255,7 +253,6 @@ export const SupabaseService = {
       .from('rd_inventory')
       .select(`
         *,
-        responsible:profiles!responsible_id(full_name),
         certificates:inventory_certificates(*)
       `)
       .order('description');
@@ -270,7 +267,6 @@ export const SupabaseService = {
       .insert(dbItem)
       .select(`
         *,
-        responsible:profiles!responsible_id(full_name),
         certificates:inventory_certificates(*)
       `)
       .single();
@@ -286,7 +282,6 @@ export const SupabaseService = {
       .eq('id', id)
       .select(`
         *,
-        responsible:profiles!responsible_id(full_name),
         certificates:inventory_certificates(*)
       `)
       .single();
@@ -309,7 +304,6 @@ export const SupabaseService = {
       .from('projects')
       .select(`
         *,
-        responsible:profiles!responsible_id(full_name),
         activities:project_activities(*)
       `)
       .order('project_number');
@@ -442,8 +436,7 @@ export const SupabaseService = {
       .from('innovation_proposals')
       .select(`
         *,
-        author:profiles!author_id(full_name),
-        comments:innovation_comments(*, user:profiles!user_id(full_name))
+        comments:innovation_comments(*)
       `)
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -457,8 +450,7 @@ export const SupabaseService = {
       .insert(dbProposal)
       .select(`
         *,
-        author:profiles!author_id(full_name),
-        comments:innovation_comments(*, user:profiles!user_id(full_name))
+        comments:innovation_comments(*)
       `)
       .single();
     if (error) throw error;
@@ -473,8 +465,7 @@ export const SupabaseService = {
       .eq('id', id)
       .select(`
         *,
-        author:profiles!author_id(full_name),
-        comments:innovation_comments(*, user:profiles!user_id(full_name))
+        comments:innovation_comments(*)
       `)
       .single();
     if (error) throw error;

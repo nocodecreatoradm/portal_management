@@ -759,10 +759,9 @@ export default function App() {
 
   const handleDeletePMRecord = async (id: string) => {
     try {
-      // Assuming products table handles deletion or we just filter locally for now if no delete method in SupabaseService
-      // Wait, I should add deleteProduct to SupabaseService
+      await SupabaseService.deleteProductManagementRecord(id);
       setProductManagement(prev => prev.filter(r => r.id !== id));
-      toast.success('Producto eliminado');
+      toast.success('Producto eliminado del catálogo');
     } catch (error) {
       console.error('Error deleting PM record:', error);
       toast.error('Error al eliminar producto');
