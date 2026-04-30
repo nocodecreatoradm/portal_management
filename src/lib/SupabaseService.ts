@@ -124,7 +124,7 @@ export const SupabaseService = {
       .from('rd_inventory')
       .select(`
         *,
-        responsible:profiles(full_name),
+        responsible:profiles!responsible_id(full_name),
         certificates:inventory_certificates(*)
       `)
       .order('description');
@@ -170,7 +170,7 @@ export const SupabaseService = {
       .from('projects')
       .select(`
         *,
-        responsible:profiles(full_name),
+        responsible:profiles!responsible_id(full_name),
         activities:project_activities(*)
       `)
       .order('project_number');
@@ -262,8 +262,8 @@ export const SupabaseService = {
       .from('innovation_proposals')
       .select(`
         *,
-        author:profiles(full_name),
-        comments:innovation_comments(*, user:profiles(full_name))
+        author:profiles!author_id(full_name),
+        comments:innovation_comments(*, user:profiles!user_id(full_name))
       `)
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -308,8 +308,8 @@ export const SupabaseService = {
       .from('calendar_tasks')
       .select(`
         *,
-        requester:profiles(full_name),
-        assignee:profiles(full_name)
+        requester:profiles!requester_id(full_name),
+        assignee:profiles!assignee_id(full_name)
       `)
       .order('deadline', { ascending: true });
     if (error) throw error;
