@@ -114,7 +114,19 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
     try {
       setLoading(true);
       const data = await SupabaseService.getNTPRegulations();
-      if (data.length > 0) {
+      
+      if (data.length === 0) {
+        // Auto-migrate INITIAL_NTP to Supabase if empty
+        // This ensures deletions and edits persist from the first interaction
+        console.log('NTP database empty, migrating initial records...');
+        const migratedData = await Promise.all(
+          INITIAL_NTP.map(async (reg) => {
+            const { id: _, ...regData } = reg;
+            return await SupabaseService.createNTPRegulation(regData);
+          })
+        );
+        setRegulations(migratedData);
+      } else {
         setRegulations(data);
       }
     } catch (error) {
@@ -219,15 +231,8 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
 
   const handleDelete = async (id: string) => {
     try {
-      // Check if id is a valid UUID before attempting to delete from Supabase
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-      
-      if (isUUID) {
-        await SupabaseService.deleteNTPRegulation(id);
-      }
-      
-      const updatedRegs = regulations.filter(r => r.id !== id);
-      setRegulations(updatedRegs);
+      await SupabaseService.deleteNTPRegulation(id);
+      setRegulations(prev => prev.filter(r => r.id !== id));
       toast.success('Normativa eliminada');
     } catch (error) {
       console.error('Error deleting regulation:', error);

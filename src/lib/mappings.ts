@@ -1,4 +1,21 @@
-import { RDInventoryItem, EnergyEfficiencyRecord, ProductManagementRecord, Project, ProjectActivity, CalendarTask, InnovationProposal, Supplier, RDProjectTemplate, RDProject, ProductRecord, AuditLog, NTPRegulation, Brand, BrandDocument } from '../types';
+import { 
+  RDInventoryItem, 
+  EnergyEfficiencyRecord, 
+  ProductManagementRecord, 
+  Project, 
+  ProjectActivity, 
+  CalendarTask, 
+  InnovationProposal, 
+  Supplier, 
+  RDProjectTemplate, 
+  RDProject, 
+  ProductRecord, 
+  AuditLog, 
+  NTPRegulation, 
+  Brand, 
+  BrandDocument, 
+  SampleRecord 
+} from '../types';
 
 export const mapInventoryToDB = (item: Partial<RDInventoryItem>) => ({
   serial_number: item.serialNumber,
@@ -129,34 +146,35 @@ export const mapDBToActivity = (dbActivity: any): ProjectActivity => ({
   responsible: dbActivity.responsibles
 });
 
-export const mapTaskToDB = (task: Partial<CalendarTask>) => ({
-  title: task.title,
-  description: task.description,
-  start_date: task.startDate,
-  end_date: task.endDate,
-  deadline: task.deadline,
-  task_type: task.type,
-  requester_id: task.requester,
-  assignee_id: task.assignee,
-  status: task.status,
-  delivery_status: task.deliveryStatus,
-  change_log: task.changeLog
-});
+export const mapTaskToDB = (task: Partial<CalendarTask>) => {
+  const dbTask: any = {};
+  if (task.title !== undefined) dbTask.title = task.title;
+  if (task.description !== undefined) dbTask.description = task.description;
+  if (task.deadline !== undefined) dbTask.deadline = task.deadline;
+  if (task.startDate !== undefined) dbTask.start_date = task.startDate;
+  if (task.endDate !== undefined) dbTask.end_date = task.endDate;
+  if (task.type !== undefined) dbTask.task_type = task.type;
+  if (task.requester !== undefined) dbTask.requester_id = task.requester;
+  if (task.assignee !== undefined) dbTask.assignee_id = task.assignee;
+  if (task.status !== undefined) dbTask.status = task.status;
+  if (task.deliveryStatus !== undefined) dbTask.delivery_status = task.deliveryStatus;
+  if (task.changeLog !== undefined) dbTask.change_log = task.changeLog;
+  return dbTask;
+};
 
 export const mapDBToTask = (dbTask: any): CalendarTask => ({
   id: dbTask.id,
   title: dbTask.title,
   description: dbTask.description,
+  deadline: dbTask.deadline,
   startDate: dbTask.start_date,
   endDate: dbTask.end_date,
-  deadline: dbTask.deadline,
   type: dbTask.task_type,
   requester: dbTask.requester_id,
   assignee: dbTask.assignee_id,
   status: dbTask.status,
   deliveryStatus: dbTask.delivery_status,
-  createdAt: dbTask.created_at,
-  changeLog: dbTask.change_log
+  changeLog: dbTask.change_log || []
 });
 
 export const mapProposalToDB = (proposal: Partial<InnovationProposal>) => ({
@@ -233,17 +251,17 @@ export const mapDBToLog = (dbLog: any): AuditLog => ({
   previousData: dbLog.previous_data,
   newData: dbLog.new_data
 });
-export const mapProductToDB = (product: Partial<ProductRecord | ProductManagementRecord>) => {
+export const mapProductToDB = (product: Partial<ProductRecord & ProductManagementRecord>) => {
   const dbProduct: any = {};
   if (product.codigoSAP !== undefined) dbProduct.sap_code = product.codigoSAP;
-  if ((product as ProductRecord).codigoEAN !== undefined) dbProduct.ean_code = (product as ProductRecord).codigoEAN;
+  if (product.codigoEAN !== undefined) dbProduct.ean_code = product.codigoEAN;
   if (product.descripcionSAP !== undefined) dbProduct.sap_description = product.descripcionSAP;
-  if ((product as ProductManagementRecord).marca !== undefined) dbProduct.brand_id = (product as ProductManagementRecord).marca;
+  if (product.marca !== undefined) dbProduct.brand_id = product.marca;
   if (product.proveedor !== undefined) dbProduct.supplier_id = product.proveedor;
   if (product.linea !== undefined) dbProduct.line_id = product.linea;
   if (product.sampleId !== undefined) dbProduct.sample_id = product.sampleId;
-  if ((product as ProductRecord).commercialStatus !== undefined) dbProduct.commercial_status = (product as ProductRecord).commercialStatus;
-  if ((product as ProductRecord).qualityInspectionDate !== undefined) dbProduct.quality_inspection_date = (product as ProductRecord).qualityInspectionDate;
+  if (product.commercialStatus !== undefined) dbProduct.commercial_status = product.commercialStatus;
+  if (product.qualityInspectionDate !== undefined) dbProduct.quality_inspection_date = product.qualityInspectionDate;
   if (product.fobPrice !== undefined) dbProduct.fob_price = product.fobPrice;
   if (product.fobPriceHistory !== undefined) dbProduct.fob_price_history = product.fobPriceHistory;
   if (product.explodeFiles !== undefined) dbProduct.explode_files = product.explodeFiles;
@@ -267,12 +285,7 @@ export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
   commercialSheets: dbProduct.documents ? dbProduct.documents.filter((d: any) => d.category === 'Commercial Sheet') : [],
   commercialStatus: dbProduct.commercial_status,
   qualityInspectionDate: dbProduct.quality_inspection_date,
-  fobPrice: dbProduct.fob_price,
-  fobPriceHistory: dbProduct.fob_price_history || [],
-  explodeFiles: dbProduct.explode_files || [],
-  additionalProviderDocuments: dbProduct.additional_provider_documents || [],
-  gallery: dbProduct.gallery || [],
-  createdAt: dbProduct.created_at,
+  createdAt: dbProduct.created_at || new Date().toISOString(),
 });
 
 export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
@@ -288,7 +301,8 @@ export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
   explodeFiles: dbRecord.explode_files || [],
   additionalProviderDocuments: dbRecord.additional_provider_documents || [],
   gallery: dbRecord.gallery || [],
-  approvedDocuments: [] // To be synced from products table if needed
+  approvedDocuments: [],
+  createdAt: dbRecord.created_at || new Date().toISOString()
 });
 
 export const mapSupplierToDB = (supplier: Partial<Supplier>) => {
@@ -400,6 +414,7 @@ export const mapDBToSample = (dbSample: any): SampleRecord => ({
     comment: h.comment
   })) : []
 });
+
 export const mapDBToRDProject = (dbProject: any): RDProject => ({
   id: dbProject.id,
   templateId: dbProject.template_id,
@@ -431,11 +446,13 @@ export const mapRDProjectToDB = (project: Partial<RDProject>) => {
   return dbProject;
 };
 
-export const mapBrandToDB = (brand: Partial<Brand>) => ({
-  name: brand.name,
-  image: brand.image,
-  description: brand.description
-});
+export const mapBrandToDB = (brand: Partial<Brand>) => {
+  const dbBrand: any = {};
+  if (brand.name !== undefined) dbBrand.name = brand.name;
+  if (brand.image !== undefined) dbBrand.image = brand.image;
+  if (brand.description !== undefined) dbBrand.description = brand.description;
+  return dbBrand;
+};
 
 export const mapDBToBrand = (dbBrand: any): Brand => ({
   id: dbBrand.id,
@@ -444,14 +461,16 @@ export const mapDBToBrand = (dbBrand: any): Brand => ({
   description: dbBrand.description
 });
 
-export const mapBrandDocumentToDB = (doc: Partial<BrandDocument>) => ({
-  brand_id: doc.brandId,
-  parent_id: doc.parentId,
-  name: doc.name,
-  type: doc.type,
-  modified_by: doc.modifiedBy,
-  versions: doc.versions
-});
+export const mapBrandDocumentToDB = (doc: Partial<BrandDocument>) => {
+  const dbDoc: any = {};
+  if (doc.brandId !== undefined) dbDoc.brand_id = doc.brandId;
+  if (doc.parentId !== undefined) dbDoc.parent_id = doc.parentId;
+  if (doc.name !== undefined) dbDoc.name = doc.name;
+  if (doc.type !== undefined) dbDoc.type = doc.type;
+  if (doc.modifiedBy !== undefined) dbDoc.modified_by = doc.modifiedBy;
+  if (doc.versions !== undefined) dbDoc.versions = doc.versions;
+  return dbDoc;
+};
 
 export const mapDBToBrandDocument = (dbDoc: any): BrandDocument => ({
   id: dbDoc.id,

@@ -16,7 +16,7 @@ import { exportToExcel } from '../lib/exportUtils';
 
 
 import { SupabaseService } from '../lib/SupabaseService';
-import { initialRDProjectTemplates } from '../data/mockData';
+import { initialRDProjectTemplates, initialRDProjects } from '../data/mockData';
 
 export default function ProjectsModule() {
   const { user } = useAuth();
@@ -67,10 +67,35 @@ export default function ProjectsModule() {
         SupabaseService.getRDProjects(),
         SupabaseService.getRDProjectTemplates()
       ]);
-      setProjects(projectsData as unknown as RDProject[]);
-      if (templatesData && templatesData.length > 0) {
+
+      // Migrate templates if empty
+      if (templatesData && templatesData.length === 0) {
+        console.log('RD Templates database empty, migrating initial templates...');
+        const migratedTemplates = await Promise.all(
+          initialRDProjectTemplates.map(async (template) => {
+            const { id: _, ...templateData } = template;
+            return await SupabaseService.createRDProjectTemplate(templateData as any);
+          })
+        );
+        setTemplates(migratedTemplates as unknown as RDProjectTemplate[]);
+      } else {
         setTemplates(templatesData as unknown as RDProjectTemplate[]);
       }
+
+      // Migrate projects if empty
+      if (projectsData && projectsData.length === 0) {
+        console.log('RD Projects database empty, migrating initial projects...');
+        const migratedProjects = await Promise.all(
+          initialRDProjects.map(async (project) => {
+            const { id: _, ...projectData } = project;
+            return await SupabaseService.createRDProject(projectData as any);
+          })
+        );
+        setProjects(migratedProjects as unknown as RDProject[]);
+      } else {
+        setProjects(projectsData as unknown as RDProject[]);
+      }
+
     } catch (error) {
       console.error('Error loading RD projects:', error);
       toast.error('Error al cargar proyectos');

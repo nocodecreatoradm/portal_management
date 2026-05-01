@@ -12,7 +12,11 @@ import {
   NTPRegulation,
   AuditLog,
   Brand,
-  BrandDocument
+  BrandDocument,
+  ProductManagementRecord,
+  ProjectActivity,
+  RDProjectTemplate,
+  RDProject
 } from '../types';
 import {
   mapInventoryToDB,
@@ -21,6 +25,8 @@ import {
   mapDBToEE,
   mapProjectToDB,
   mapDBToProject,
+  mapActivityToDB,
+  mapDBToActivity,
   mapTaskToDB,
   mapDBToTask,
   mapProposalToDB, 
@@ -31,6 +37,7 @@ import {
   mapDBToLog, 
   mapProductToDB, 
   mapDBToProduct,
+  mapDBToPMRecord,
   mapSupplierToDB,
   mapDBToSupplier,
   mapTemplateToDB,
@@ -57,14 +64,32 @@ export const SupabaseService = {
     return data;
   },
 
+  async createBrand(brand: { name: string }) {
+    const { data, error } = await supabase.from('brands').insert([brand]).select('*').single();
+    if (error) throw error;
+    return data;
+  },
+
   async getProductLines() {
     const { data, error } = await supabase.from('product_lines').select('*').order('name');
     if (error) throw error;
     return data;
   },
 
+  async createProductLine(line: { name: string }) {
+    const { data, error } = await supabase.from('product_lines').insert([line]).select('*').single();
+    if (error) throw error;
+    return data;
+  },
+
   async getCategories() {
     const { data, error } = await supabase.from('categories').select('*').order('name');
+    if (error) throw error;
+    return data;
+  },
+
+  async createCategory(category: { name: string }) {
+    const { data, error } = await supabase.from('categories').insert([category]).select('*').single();
     if (error) throw error;
     return data;
   },
@@ -190,7 +215,7 @@ export const SupabaseService = {
   },
 
   async createProductManagementRecord(record: Partial<ProductManagementRecord>) {
-    const dbRecord = mapProductToDB(record);
+    const dbRecord = mapProductToDB(record as any);
     const { data, error } = await supabase
       .from('product_management')
       .insert([dbRecord])
@@ -202,7 +227,7 @@ export const SupabaseService = {
 
   async updateProductManagementRecord(id: string, updates: Partial<ProductManagementRecord>) {
     if (!isUUID(id)) return null;
-    const dbUpdates = mapProductToDB(updates);
+    const dbUpdates = mapProductToDB(updates as any);
     const { data, error } = await supabase
       .from('product_management')
       .update(dbUpdates)
@@ -680,19 +705,60 @@ export const SupabaseService = {
 
   // STORAGE HELPERS
   async uploadFile(bucket: string, path: string, file: File) {
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(path, file, {
-        cacheControl: '3600',
-        upsert: true
-      });
-    if (error) throw error;
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(data.path);
-      
-    return { name: file.name, url: publicUrl, type: file.type };
+    try {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(path, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (error) {
+        if (error.message && (error.message.includes('bucket') || error.message.includes('not found') || error.message.includes('does not exist'))) {
+          try {
+            await supabase.storage.createBucket(bucket, { public: true });
+          } catch (createError) {
+            console.warn('Bucket creation failed/already exists:', createError);
+          }
+          const { data: retryData, error: retryError } = await supabase.storage
+            .from(bucket)
+            .upload(path, file, {
+              cacheControl: '3600',
+              upsert: true
+            });
+          if (retryError) throw retryError;
+          const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(retryData.path);
+          return { name: file.name, url: publicUrl, type: file.type };
+        }
+        throw error;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(data.path);
+        
+      return { name: file.name, url: publicUrl, type: file.type };
+    } catch (err: any) {
+      try {
+        try {
+          await supabase.storage.createBucket(bucket, { public: true });
+        } catch (createError) {
+          console.warn('Bucket creation failed in catch/already exists:', createError);
+        }
+        const { data: retryData, error: retryError } = await supabase.storage
+          .from(bucket)
+          .upload(path, file, {
+            cacheControl: '3600',
+            upsert: true
+          });
+        if (retryError) throw retryError;
+        const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(retryData.path);
+        return { name: file.name, url: publicUrl, type: file.type };
+      } catch (finalError) {
+        console.error('Error uploading file to storage:', finalError);
+        throw err;
+      }
+    }
   },
 
   // USER MANAGEMENT
@@ -807,9 +873,14 @@ export const SupabaseService = {
   },
 
   async updateBrandbookSettings(heroImage: string) {
+    const current = await this.getBrandbookSettings();
+    const payload: any = { hero_image: heroImage };
+    if (current && 'id' in current && current.id) {
+      payload.id = current.id;
+    }
     const { data, error } = await supabase
       .from('brandbook_settings')
-      .upsert({ hero_image: heroImage, id: (await this.getBrandbookSettings()).id })
+      .upsert(payload)
       .select()
       .single();
     if (error) throw error;

@@ -104,7 +104,7 @@ export interface ProductRecord {
   codProv: string;
   proveedor: string;
   correoProveedor: string[];
-  marca: 'SOLE' | 'S-Collection';
+  marca: string;
   linea: 'LÍNEA BLANCA' | 'AGUA CALIENTE' | 'CLIMATIZACIÓN' | 'PURIFICACIÓN';
   artworks: DocumentVersion[];
   technicalSheets?: DocumentVersion[];
@@ -437,6 +437,7 @@ export interface AuditLog {
   id: string;
   date: string;
   user: string;
+  userEmail?: string;
   action: 'create' | 'update' | 'delete';
   entityType: 'PROJECT' | 'ACTIVITY';
   entityId: string;

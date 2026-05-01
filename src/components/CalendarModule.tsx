@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { SupabaseService } from '../lib/SupabaseService';
 import { CalendarTask, ChangeLog } from '../types';
 import { 
   Plus, Search, Filter, Calendar as CalendarIcon, 

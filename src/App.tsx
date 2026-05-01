@@ -88,6 +88,8 @@ export default function App() {
   const [productLines, setProductLines] = useState<any[]>([]);
   const [isApproverModalOpen, setIsApproverModalOpen] = useState(false);
   const [moduleInitialData, setModuleInitialData] = useState<Record<ModuleId, any>>({} as any);
+  const [energyEfficiency, setEnergyEfficiency] = useState<any[]>([]);
+  const [productManagement, setProductManagement] = useState<any[]>([]);
   const [filters, setFilters] = useState({
     marca: '',
     linea: '',
@@ -157,14 +159,7 @@ export default function App() {
       
       setLoadingData(true);
       try {
-        const [
-          productsData,
-          suppliersData,
-          samplesData,
-          brandsData,
-          linesData,
-          approversData
-        ] = await Promise.all([
+        const results = await Promise.allSettled([
           SupabaseService.getProducts(),
           SupabaseService.getSuppliers(),
           SupabaseService.getSamples(),
@@ -173,37 +168,49 @@ export default function App() {
           SupabaseService.getApprovers()
         ]);
 
-        // Merge logic: prefer Supabase data, but keep mock data for items not in Supabase
-        const mergeWithMock = (mockItems: any[], remoteItems: any[]) => {
-          const remoteIds = new Set(remoteItems.map(item => item.id));
-          const remoteSerialNumbers = new Set(remoteItems.map(item => item.serialNumber).filter(Boolean));
-          const remoteSAPCodes = new Set(remoteItems.map(item => item.codigoSAP).filter(Boolean));
-          const remoteCorrelatives = new Set(remoteItems.map(item => item.correlativeId).filter(Boolean));
+        const [
+          productsRes,
+          suppliersRes,
+          samplesRes,
+          brandsRes,
+          linesRes,
+          approversRes
+        ] = results;
 
-          const uniqueMockItems = mockItems.filter(mock => {
-            const exists = remoteIds.has(mock.id) || 
-                           (mock.serialNumber && remoteSerialNumbers.has(mock.serialNumber)) ||
-                           (mock.codigoSAP && remoteSAPCodes.has(mock.codigoSAP)) ||
-                           (mock.correlativeId && remoteCorrelatives.has(mock.correlativeId));
-            return !exists;
-          });
-          return [...remoteItems, ...uniqueMockItems];
-        };
+        if (productsRes.status === 'fulfilled') setData(productsRes.value);
+        else console.error('Error loading products:', productsRes.reason);
 
-        setData(productsData);
-        setSuppliers(suppliersData as unknown as Supplier[]);
-        setSamples(samplesData as any);
-        setBrands(brandsData);
-        setProductLines(linesData);
-        setApprovers(approversData);
-        
+        if (suppliersRes.status === 'fulfilled') setSuppliers(suppliersRes.value as unknown as Supplier[]);
+        else console.error('Error loading suppliers:', suppliersRes.reason);
+
+        if (samplesRes.status === 'fulfilled') setSamples(samplesRes.value as any);
+        else console.error('Error loading samples:', samplesRes.reason);
+
+        if (brandsRes.status === 'fulfilled') setBrands(brandsRes.value);
+        else console.error('Error loading brands:', brandsRes.reason);
+
+        if (linesRes.status === 'fulfilled') setProductLines(linesRes.value);
+        else console.error('Error loading product lines:', linesRes.reason);
+
+        if (approversRes.status === 'fulfilled') setApprovers(approversRes.value);
+        else console.error('Error loading approvers:', approversRes.reason);
+
         // Load calculations
-        const calcRecords = await fetchCalculationRecords();
-        setCalculationRecords(calcRecords);
+        try {
+          const calcRecords = await fetchCalculationRecords();
+          setCalculationRecords(calcRecords);
+        } catch (error) {
+          console.error('Error loading calculations:', error);
+        }
+
+        // Only show error toast if critical data failed (like products or samples)
+        if (productsRes.status === 'rejected' || samplesRes.status === 'rejected') {
+          toast.error('Error al sincronizar datos principales con la nube');
+        }
 
       } catch (error) {
-        console.error('Error loading data from Supabase:', error);
-        toast.error('Error al sincronizar datos con la nube');
+        console.error('Unexpected error in loadAllData:', error);
+        toast.error('Error crítico al sincronizar datos');
       } finally {
         setLoadingData(false);
       }
@@ -496,12 +503,30 @@ export default function App() {
         
         if (updates.marca) {
           const brand = brands.find(b => b.name === updates.marca);
-          if (brand) (resolvedUpdates as any).marca = brand.id;
+          if (brand) {
+            (resolvedUpdates as any).marca = brand.id;
+          } else {
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.marca);
+            if (!isUUID) {
+              const newBrand = await SupabaseService.createBrand({ name: updates.marca });
+              (resolvedUpdates as any).marca = newBrand.id;
+              setBrands(prev => [...prev, newBrand]);
+            }
+          }
         }
 
         if (updates.linea) {
           const line = productLines.find(l => l.name === updates.linea);
-          if (line) (resolvedUpdates as any).linea = line.id;
+          if (line) {
+            (resolvedUpdates as any).linea = line.id;
+          } else {
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.linea);
+            if (!isUUID) {
+              const newProductLine = await SupabaseService.createProductLine({ name: updates.linea });
+              (resolvedUpdates as any).linea = newProductLine.id;
+              setProductLines(prev => [...prev, newProductLine]);
+            }
+          }
         }
 
         if (updates.proveedor) {
@@ -538,12 +563,30 @@ export default function App() {
         
         if (newRecord.marca) {
           const brand = brands.find(b => b.name === newRecord.marca);
-          if (brand) (resolvedNewRecord as any).marca = brand.id;
+          if (brand) {
+            (resolvedNewRecord as any).marca = brand.id;
+          } else {
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(newRecord.marca);
+            if (!isUUID) {
+              const newBrand = await SupabaseService.createBrand({ name: newRecord.marca });
+              (resolvedNewRecord as any).marca = newBrand.id;
+              setBrands(prev => [...prev, newBrand]);
+            }
+          }
         }
 
         if (newRecord.linea) {
           const line = productLines.find(l => l.name === newRecord.linea);
-          if (line) (resolvedNewRecord as any).linea = line.id;
+          if (line) {
+            (resolvedNewRecord as any).linea = line.id;
+          } else {
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(newRecord.linea);
+            if (!isUUID) {
+              const newProductLine = await SupabaseService.createProductLine({ name: newRecord.linea });
+              (resolvedNewRecord as any).linea = newProductLine.id;
+              setProductLines(prev => [...prev, newProductLine]);
+            }
+          }
         }
 
         if (newRecord.proveedor) {
@@ -582,12 +625,30 @@ export default function App() {
       
       if (updates.marca) {
         const brand = brands.find(b => b.name === updates.marca);
-        if (brand) (resolvedUpdates as any).marca = brand.id;
+        if (brand) {
+          (resolvedUpdates as any).marca = brand.id;
+        } else {
+          const isBrandUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.marca);
+          if (!isBrandUUID) {
+            const newBrand = await SupabaseService.createBrand({ name: updates.marca });
+            (resolvedUpdates as any).marca = newBrand.id;
+            setBrands(prev => [...prev, newBrand]);
+          }
+        }
       }
 
       if (updates.linea) {
         const line = productLines.find(l => l.name === updates.linea);
-        if (line) (resolvedUpdates as any).linea = line.id;
+        if (line) {
+          (resolvedUpdates as any).linea = line.id;
+        } else {
+          const isLineUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.linea);
+          if (!isLineUUID) {
+            const newProductLine = await SupabaseService.createProductLine({ name: updates.linea });
+            (resolvedUpdates as any).linea = newProductLine.id;
+            setProductLines(prev => [...prev, newProductLine]);
+          }
+        }
       }
 
       if (updates.proveedor) {
@@ -841,6 +902,17 @@ export default function App() {
 
     if (activeModule === 'calendar') {
       return <CalendarModule />;
+    }
+    if (activeModule === 'energy_efficiency') {
+      return <EnergyEfficiency onExportPPT={handleExportPPT} />;
+    }
+
+    if (activeModule === 'product_management') {
+      return <ProductsModule onExportPPT={handleExportPPT} />;
+    }
+
+    if (activeModule === 'rd_projects') {
+      return <RDProjects onExportPPT={handleExportPPT} />;
     }
 
     if (showReport && activeModule === 'artwork_followup') {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ProductManagementRecord, SampleRecord, FileInfo, ProductRecord, DocumentVersion } from '../types';
 import { 
   Search, Plus, Filter, Download, Calendar, 

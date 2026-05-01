@@ -51,15 +51,19 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
         const data = await SupabaseService.getInventory();
         const remoteItems = data as unknown as RDInventoryItem[];
         
-        // Merge with initialRDInventory (on-demand migration support)
-        const remoteIds = new Set(remoteItems.map(i => i.id));
-        const remoteSerials = new Set(remoteItems.map(i => i.serialNumber).filter(Boolean));
-        
-        const uniqueMockItems = initialRDInventory.filter(mock => 
-          !remoteIds.has(mock.id) && (!mock.serialNumber || !remoteSerials.has(mock.serialNumber))
-        );
-        
-        setItems([...remoteItems, ...uniqueMockItems]);
+        if (remoteItems.length === 0) {
+          // Auto-migrate initialRDInventory to Supabase if empty
+          console.log('RD Inventory database empty, migrating initial records...');
+          const migratedData = await Promise.all(
+            initialRDInventory.map(async (item) => {
+              const { id: _, ...itemData } = item;
+              return await SupabaseService.createInventoryItem(itemData as any);
+            })
+          );
+          setItems(migratedData as unknown as RDInventoryItem[]);
+        } else {
+          setItems(remoteItems);
+        }
       } catch (error) {
         console.error('Error loading inventory:', error);
         toast.error('Error al cargar el inventario de Supabase');
@@ -132,10 +136,7 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
 
   const handleDeleteItem = async (id: string) => {
     try {
-      const validUUID = isUUID(id);
-      if (validUUID) {
-        await SupabaseService.deleteInventoryItem(id);
-      }
+      await SupabaseService.deleteInventoryItem(id);
       setItems(prev => prev.filter(item => item.id !== id));
       toast.success('Equipo eliminado');
     } catch (error) {
@@ -143,6 +144,7 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
       toast.error('Error al eliminar equipo');
     }
   };
+
 
   const filteredItems = useMemo(() => {
     let result = [...items];

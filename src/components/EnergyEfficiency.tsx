@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { EnergyEfficiencyRecord, SampleRecord, FileInfo, EnergyEfficiencyDocument } from '../types';
 import { 
   Search, Plus, Filter, Download, Calendar, 
