@@ -236,13 +236,13 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
         fileInfo = { 
           name: `Certificado_${item.serialNumber}_${calDate}.pdf`, 
           url: '#', 
-          type: 'application/pdf',
-          uploadDate: new Date().toISOString()
+          type: 'application/pdf'
         };
       }
       
       const newCert = {
         ...fileInfo,
+        uploadDate: (fileInfo as any).uploadDate || new Date().toISOString(),
         calibrationDate: calDate,
         expiryDate: expDate,
         version: (item.certificateHistory?.length || 0) + 1

@@ -57,23 +57,27 @@ export const mapDBToInventory = (dbItem: any): RDInventoryItem => ({
   certificateHistory: dbItem.certificates
 });
 
-export const mapEEToDB = (record: Partial<EnergyEfficiencyRecord>) => ({
-  mt_code: record.codigoMT,
-  description: record.descripcion,
-  letra: record.letra,
-  ee_percentage: record.porcentajeEE,
-  ocp: record.ocp,
-  supplier_id: record.proveedor, // Assuming 'proveedor' is an ID
-  emission_date: record.fechaEmision,
-  vigilance_date: record.fechaVigilancia,
-  product_type: record.tipoProducto,
-  sample_id: record.sampleId,
-  certificado_file: record.certificadoFile,
-  certificado_history: record.certificadoHistory,
-  etiqueta_file: record.etiquetaFile,
-  etiqueta_history: record.etiquetaHistory,
-  gallery: record.gallery
-});
+export const mapEEToDB = (record: Partial<EnergyEfficiencyRecord>) => {
+  const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  const dbRecord: any = {
+    mt_code: record.codigoMT,
+    description: record.descripcion,
+    letra: record.letra,
+    ee_percentage: record.porcentajeEE,
+    ocp: record.ocp,
+    supplier_id: record.proveedor && isUUID(record.proveedor) ? record.proveedor : null,
+    emission_date: record.fechaEmision,
+    vigilance_date: record.fechaVigilancia,
+    product_type: record.tipoProducto,
+    sample_id: record.sampleId && isUUID(record.sampleId) ? record.sampleId : null,
+    certificado_file: record.certificadoFile,
+    certificado_history: record.certificadoHistory,
+    etiqueta_file: record.etiquetaFile,
+    etiqueta_history: record.etiquetaHistory,
+    gallery: record.gallery
+  };
+  return dbRecord;
+};
 
 export const mapDBToEE = (dbRecord: any): EnergyEfficiencyRecord => ({
   id: dbRecord.id,
@@ -95,13 +99,16 @@ export const mapDBToEE = (dbRecord: any): EnergyEfficiencyRecord => ({
   createdAt: dbRecord.created_at
 });
 
-export const mapProjectToDB = (project: Partial<Project>) => ({
-  project_number: project.number,
-  name: project.name,
-  responsible_id: project.responsible,
-  progress: project.progress,
-  status: project.status
-});
+export const mapProjectToDB = (project: Partial<Project>) => {
+  const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  return {
+    project_number: project.number,
+    name: project.name,
+    responsible_id: project.responsible && isUUID(project.responsible) ? project.responsible : null,
+    progress: project.progress,
+    status: project.status
+  };
+};
 
 export const mapDBToProject = (dbProject: any): Project => ({
   id: dbProject.id,
@@ -174,7 +181,8 @@ export const mapDBToTask = (dbTask: any): CalendarTask => ({
   assignee: dbTask.assignee_id,
   status: dbTask.status,
   deliveryStatus: dbTask.delivery_status,
-  changeLog: dbTask.change_log || []
+  changeLog: dbTask.change_log || [],
+  createdAt: dbTask.created_at || new Date().toISOString()
 });
 
 export const mapProposalToDB = (proposal: Partial<InnovationProposal>) => ({
@@ -253,13 +261,15 @@ export const mapDBToLog = (dbLog: any): AuditLog => ({
 });
 export const mapProductToDB = (product: Partial<ProductRecord & ProductManagementRecord>) => {
   const dbProduct: any = {};
+  const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+
   if (product.codigoSAP !== undefined) dbProduct.sap_code = product.codigoSAP;
   if (product.codigoEAN !== undefined) dbProduct.ean_code = product.codigoEAN;
   if (product.descripcionSAP !== undefined) dbProduct.sap_description = product.descripcionSAP;
-  if (product.marca !== undefined) dbProduct.brand_id = product.marca;
-  if (product.proveedor !== undefined) dbProduct.supplier_id = product.proveedor;
-  if (product.linea !== undefined) dbProduct.line_id = product.linea;
-  if (product.sampleId !== undefined) dbProduct.sample_id = product.sampleId;
+  if (product.marca !== undefined) dbProduct.brand_id = isUUID(product.marca) ? product.marca : null;
+  if (product.proveedor !== undefined) dbProduct.supplier_id = isUUID(product.proveedor) ? product.proveedor : null;
+  if (product.linea !== undefined) dbProduct.line_id = isUUID(product.linea) ? product.linea : null;
+  if (product.sampleId !== undefined) dbProduct.sample_id = isUUID(product.sampleId) ? product.sampleId : null;
   if (product.commercialStatus !== undefined) dbProduct.commercial_status = product.commercialStatus;
   if (product.qualityInspectionDate !== undefined) dbProduct.quality_inspection_date = product.qualityInspectionDate;
   if (product.fobPrice !== undefined) dbProduct.fob_price = product.fobPrice;
@@ -269,6 +279,7 @@ export const mapProductToDB = (product: Partial<ProductRecord & ProductManagemen
   if (product.gallery !== undefined) dbProduct.gallery = product.gallery;
   return dbProduct;
 };
+
 
 export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
   id: dbProduct.id,
@@ -357,14 +368,16 @@ export const mapDBToTemplate = (dbTemplate: any): RDProjectTemplate => ({
 
 export const mapSampleToDB = (sample: Partial<SampleRecord>) => {
   const dbSample: any = {};
+  const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+
   if (sample.correlativeId !== undefined) dbSample.correlative_id = sample.correlativeId;
   if (sample.codigoSAP !== undefined) dbSample.sap_code = sample.codigoSAP;
   if (sample.descripcionSAP !== undefined) dbSample.sap_description = sample.descripcionSAP;
-  if (sample.marca !== undefined) dbSample.brand_id = sample.marca;
-  if (sample.proveedor !== undefined) dbSample.supplier_id = sample.proveedor;
-  if (sample.linea !== undefined) dbSample.line_id = sample.linea;
-  if (sample.categoria !== undefined) dbSample.category_id = sample.categoria;
-  if (sample.technician !== undefined) dbSample.technician_id = sample.technician;
+  if (sample.marca !== undefined) dbSample.brand_id = isUUID(sample.marca) ? sample.marca : null;
+  if (sample.proveedor !== undefined) dbSample.supplier_id = isUUID(sample.proveedor) ? sample.proveedor : null;
+  if (sample.linea !== undefined) dbSample.line_id = isUUID(sample.linea) ? sample.linea : null;
+  if (sample.categoria !== undefined) dbSample.category_id = isUUID(sample.categoria) ? sample.categoria : null;
+  if (sample.technician !== undefined) dbSample.technician_id = isUUID(sample.technician) ? sample.technician : null;
   if (sample.inspectionDate !== undefined) dbSample.inspection_date = sample.inspectionDate;
   if (sample.inspectionStatus !== undefined) dbSample.inspection_status = sample.inspectionStatus;
   if (sample.inspectionProgress !== undefined) dbSample.inspection_progress = sample.inspectionProgress;
@@ -381,6 +394,7 @@ export const mapSampleToDB = (sample: Partial<SampleRecord>) => {
   if (sample.version !== undefined) dbSample.version = sample.version;
   return dbSample;
 };
+
 
 export const mapDBToSample = (dbSample: any): SampleRecord => ({
   id: dbSample.id,

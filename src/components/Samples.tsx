@@ -33,6 +33,7 @@ interface SamplesProps {
 export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<SamplesProps, 'samples' | 'onUpdateSample' | 'onAddSample'>) {
   const { user } = useAuth();
   const { samples, addSample, updateSample, deleteSample } = useSamples();
+  const onUpdateSample = updateSample;
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedSample, setSelectedSample] = useState<SampleRecord | null>(null);

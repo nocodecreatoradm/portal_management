@@ -508,9 +508,13 @@ export default function App() {
           } else {
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.marca);
             if (!isUUID) {
-              const newBrand = await SupabaseService.createBrand({ name: updates.marca });
-              (resolvedUpdates as any).marca = newBrand.id;
-              setBrands(prev => [...prev, newBrand]);
+              try {
+                const newBrand = await SupabaseService.createBrand({ name: updates.marca });
+                (resolvedUpdates as any).marca = newBrand.id;
+                setBrands(prev => [...prev, newBrand]);
+              } catch (err) {
+                console.warn('Error creating brand, ignoring:', err);
+              }
             }
           }
         }
@@ -522,9 +526,13 @@ export default function App() {
           } else {
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.linea);
             if (!isUUID) {
-              const newProductLine = await SupabaseService.createProductLine({ name: updates.linea });
-              (resolvedUpdates as any).linea = newProductLine.id;
-              setProductLines(prev => [...prev, newProductLine]);
+              try {
+                const newProductLine = await SupabaseService.createProductLine({ name: updates.linea });
+                (resolvedUpdates as any).linea = newProductLine.id;
+                setProductLines(prev => [...prev, newProductLine]);
+              } catch (err) {
+                console.warn('Error creating line, ignoring:', err);
+              }
             }
           }
         }
@@ -537,13 +545,17 @@ export default function App() {
             // Create new supplier if it's a name and not found
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.proveedor);
             if (!isUUID) {
-              const newSupplier = await SupabaseService.createSupplier({
-                legalName: updates.proveedor,
-                commercialAlias: updates.proveedor,
-                erpCode: updates.codProv || 'NEW'
-              });
-              (resolvedUpdates as any).proveedor = newSupplier.id;
-              setSuppliers(prev => [...prev, newSupplier]);
+              try {
+                const newSupplier = await SupabaseService.createSupplier({
+                  legalName: updates.proveedor,
+                  commercialAlias: updates.proveedor,
+                  erpCode: updates.codProv || 'NEW'
+                });
+                (resolvedUpdates as any).proveedor = newSupplier.id;
+                setSuppliers(prev => [...prev, newSupplier]);
+              } catch (err) {
+                console.warn('Error creating supplier, ignoring:', err);
+              }
             }
           }
         }
@@ -556,7 +568,7 @@ export default function App() {
           newData.unshift(result);
           return newData;
         });
-        toast.success('Producto existente actualizado y movido al inicio');
+        toast.success('Producto existente actualizado and movido al inicio');
       } else {
         // Resolve names to IDs for new record
         const resolvedNewRecord = { ...newRecord };
@@ -568,9 +580,13 @@ export default function App() {
           } else {
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(newRecord.marca);
             if (!isUUID) {
-              const newBrand = await SupabaseService.createBrand({ name: newRecord.marca });
-              (resolvedNewRecord as any).marca = newBrand.id;
-              setBrands(prev => [...prev, newBrand]);
+              try {
+                const newBrand = await SupabaseService.createBrand({ name: newRecord.marca });
+                (resolvedNewRecord as any).marca = newBrand.id;
+                setBrands(prev => [...prev, newBrand]);
+              } catch (err) {
+                console.warn('Error creating brand, ignoring:', err);
+              }
             }
           }
         }
@@ -582,9 +598,13 @@ export default function App() {
           } else {
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(newRecord.linea);
             if (!isUUID) {
-              const newProductLine = await SupabaseService.createProductLine({ name: newRecord.linea });
-              (resolvedNewRecord as any).linea = newProductLine.id;
-              setProductLines(prev => [...prev, newProductLine]);
+              try {
+                const newProductLine = await SupabaseService.createProductLine({ name: newRecord.linea });
+                (resolvedNewRecord as any).linea = newProductLine.id;
+                setProductLines(prev => [...prev, newProductLine]);
+              } catch (err) {
+                console.warn('Error creating line, ignoring:', err);
+              }
             }
           }
         }
@@ -597,13 +617,17 @@ export default function App() {
             // Create new supplier if it's a name and not found
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(newRecord.proveedor);
             if (!isUUID) {
-              const newSupplier = await SupabaseService.createSupplier({
-                legalName: newRecord.proveedor,
-                commercialAlias: newRecord.proveedor,
-                erpCode: newRecord.codProv || 'NEW'
-              });
-              (resolvedNewRecord as any).proveedor = newSupplier.id;
-              setSuppliers(prev => [...prev, newSupplier]);
+              try {
+                const newSupplier = await SupabaseService.createSupplier({
+                  legalName: newRecord.proveedor,
+                  commercialAlias: newRecord.proveedor,
+                  erpCode: newRecord.codProv || 'NEW'
+                });
+                (resolvedNewRecord as any).proveedor = newSupplier.id;
+                setSuppliers(prev => [...prev, newSupplier]);
+              } catch (err) {
+                console.warn('Error creating supplier, ignoring:', err);
+              }
             }
           }
         }
@@ -630,9 +654,13 @@ export default function App() {
         } else {
           const isBrandUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.marca);
           if (!isBrandUUID) {
-            const newBrand = await SupabaseService.createBrand({ name: updates.marca });
-            (resolvedUpdates as any).marca = newBrand.id;
-            setBrands(prev => [...prev, newBrand]);
+            try {
+              const newBrand = await SupabaseService.createBrand({ name: updates.marca });
+              (resolvedUpdates as any).marca = newBrand.id;
+              setBrands(prev => [...prev, newBrand]);
+            } catch (err) {
+              console.warn('Error creating brand, ignoring:', err);
+            }
           }
         }
       }
@@ -644,9 +672,13 @@ export default function App() {
         } else {
           const isLineUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.linea);
           if (!isLineUUID) {
-            const newProductLine = await SupabaseService.createProductLine({ name: updates.linea });
-            (resolvedUpdates as any).linea = newProductLine.id;
-            setProductLines(prev => [...prev, newProductLine]);
+            try {
+              const newProductLine = await SupabaseService.createProductLine({ name: updates.linea });
+              (resolvedUpdates as any).linea = newProductLine.id;
+              setProductLines(prev => [...prev, newProductLine]);
+            } catch (err) {
+              console.warn('Error creating line, ignoring:', err);
+            }
           }
         }
       }
@@ -659,13 +691,17 @@ export default function App() {
           // Create new supplier if it's a name and not found
           const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.proveedor);
           if (!isUUID) {
-            const newSupplier = await SupabaseService.createSupplier({
-              legalName: updates.proveedor,
-              commercialAlias: updates.proveedor,
-              erpCode: (updates as any).codProv || 'UPD'
-            });
-            (resolvedUpdates as any).proveedor = newSupplier.id;
-            setSuppliers(prev => [...prev, newSupplier]);
+            try {
+              const newSupplier = await SupabaseService.createSupplier({
+                legalName: updates.proveedor,
+                commercialAlias: updates.proveedor,
+                erpCode: (updates as any).codProv || 'UPD'
+              });
+              (resolvedUpdates as any).proveedor = newSupplier.id;
+              setSuppliers(prev => [...prev, newSupplier]);
+            } catch (err) {
+              console.warn('Error creating supplier, ignoring:', err);
+            }
           }
         }
       }
@@ -912,7 +948,7 @@ export default function App() {
     }
 
     if (activeModule === 'rd_projects') {
-      return <RDProjects onExportPPT={handleExportPPT} />;
+      return <ProjectsModule onExportPPT={handleExportPPT} />;
     }
 
     if (showReport && activeModule === 'artwork_followup') {

@@ -60,6 +60,7 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editingActivity, setEditingActivity] = useState<{ projectId: string, activity: ProjectActivity } | null>(null);
   const [loggingProgress, setLoggingProgress] = useState<{ projectId: string, activity: ProjectActivity, date: Date } | null>(null);
+  const [copiedProgress, setCopiedProgress] = useState<{ progress: number, comments: string } | null>(null);
 
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -123,7 +124,7 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
     });
 
     exportToExcel(exportData, `Plan_Trabajo_RD_${format(new Date(), 'yyyyMMdd')}`);
-    saveCalculationRecord('work_plan', 'export_excel', exportData, currentUser.email);
+    saveCalculationRecord('work_plan', 'export_excel', exportData, user?.email || 'unknown');
   };
 
   const handleExportPDF = async () => {
@@ -134,7 +135,7 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
     ];
 
     await generateReportPDF(sections, `Informe_Plan_Trabajo_${format(new Date(), 'yyyyMMdd')}`, 'Informe de Plan de Trabajo R&D');
-    saveCalculationRecord('work_plan', 'export_pdf', { sections }, currentUser.email);
+    saveCalculationRecord('work_plan', 'export_pdf', { sections }, user?.email || 'unknown');
   };
 
   const [confirmation, setConfirmation] = useState<{
