@@ -78,14 +78,20 @@ export default function ProjectsModule() {
         console.error('Error fetching RD templates from Supabase:', err);
       }
 
+      const templateIdMap: Record<string, string> = {};
+
       // Migrate templates if empty
       if (templatesData && templatesData.length === 0) {
         console.log('RD Templates database empty or failed, migrating initial templates...');
         try {
           const migratedTemplates = await Promise.all(
             initialRDProjectTemplates.map(async (template) => {
-              const { id: _, ...templateData } = template;
-              return await SupabaseService.createRDProjectTemplate(templateData as any);
+              const { id: originalId, ...templateData } = template;
+              const created = await SupabaseService.createRDProjectTemplate(templateData as any);
+              if (created && created.id) {
+                templateIdMap[originalId] = created.id;
+              }
+              return created;
             })
           );
           setTemplates(migratedTemplates as unknown as RDProjectTemplate[]);
@@ -95,7 +101,16 @@ export default function ProjectsModule() {
         }
       } else {
         setTemplates(templatesData as unknown as RDProjectTemplate[]);
+        // Build templateIdMap by matching template names
+        initialRDProjectTemplates.forEach(t => {
+          const matched = templatesData.find(dbT => dbT.name === t.name);
+          if (matched && matched.id) {
+            templateIdMap[t.id] = matched.id;
+          }
+        });
       }
+
+      const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
 
       // Migrate projects if empty
       if (projectsData && projectsData.length === 0) {
@@ -104,6 +119,9 @@ export default function ProjectsModule() {
           const migratedProjects = await Promise.all(
             initialRDProjects.map(async (project) => {
               const { id: _, ...projectData } = project;
+              if (projectData.templateId && !isUUID(projectData.templateId)) {
+                projectData.templateId = templateIdMap[projectData.templateId] || null;
+              }
               return await SupabaseService.createRDProject(projectData as any);
             })
           );

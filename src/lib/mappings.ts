@@ -447,7 +447,11 @@ export const mapDBToRDProject = (dbProject: any): RDProject => ({
 
 export const mapRDProjectToDB = (project: Partial<RDProject>) => {
   const dbProject: any = {};
-  if (project.templateId !== undefined) dbProject.template_id = project.templateId;
+  const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+
+  if (project.templateId !== undefined) {
+    dbProject.template_id = isUUID(project.templateId) ? project.templateId : null;
+  }
   if (project.name !== undefined) dbProject.name = project.name;
   if (project.description !== undefined) dbProject.description = project.description;
   if (project.status !== undefined) dbProject.status = project.status;
