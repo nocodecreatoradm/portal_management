@@ -13,10 +13,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { RDProject, RDProjectTemplate, RDProjectField, FileInfo } from '../types';
 import { exportToExcel } from '../lib/exportUtils';
-
-
 import { SupabaseService } from '../lib/SupabaseService';
 import { initialRDProjectTemplates, initialRDProjects } from '../data/mockData';
+import HeaderFilterPopover from './HeaderFilterPopover';
 
 export default function ProjectsModule() {
   const { user } = useAuth();
@@ -25,6 +24,25 @@ export default function ProjectsModule() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({
+    name: '',
+    status: '',
+    priority: '',
+    responsible: '',
+    startDate: ''
+  });
+  const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({
+    column: '',
+    direction: null
+  });
+
+  const handleFilterChange = (column: string, value: string) => {
+    setColumnFilters(prev => ({ ...prev, [column]: value }));
+  };
+
+  const handleSortChange = (column: string, direction: 'asc' | 'desc' | null) => {
+    setSortConfig({ column, direction });
+  };
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
@@ -145,12 +163,64 @@ export default function ProjectsModule() {
   };
 
   const filteredProjects = useMemo(() => {
-    return projects.filter(p => 
+    let result = projects.filter(p => 
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.responsible.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [projects, searchTerm]);
+
+    Object.keys(columnFilters).forEach(col => {
+      const filterVal = columnFilters[col]?.toLowerCase();
+      if (filterVal) {
+        result = result.filter(r => {
+          if (col === 'name') {
+            return r.name?.toLowerCase().includes(filterVal) || r.description?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'status') {
+            return r.status?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'priority') {
+            return r.priority?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'responsible') {
+            return r.responsible?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'startDate') {
+            return r.startDate?.toLowerCase().includes(filterVal);
+          }
+          return false;
+        });
+      }
+    });
+
+    if (sortConfig.column && sortConfig.direction) {
+      result.sort((a: any, b: any) => {
+        let valA = '';
+        let valB = '';
+        if (sortConfig.column === 'name') {
+          valA = a.name || '';
+          valB = b.name || '';
+        } else if (sortConfig.column === 'status') {
+          valA = a.status || '';
+          valB = b.status || '';
+        } else if (sortConfig.column === 'priority') {
+          valA = a.priority || '';
+          valB = b.priority || '';
+        } else if (sortConfig.column === 'responsible') {
+          valA = a.responsible || '';
+          valB = b.responsible || '';
+        } else if (sortConfig.column === 'startDate') {
+          valA = a.startDate || '';
+          valB = b.startDate || '';
+        }
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [projects, searchTerm, columnFilters, sortConfig]);
 
   const handleOpenNewProject = () => {
     setStep(1);
@@ -555,18 +625,79 @@ export default function ProjectsModule() {
         </div>
       ) : (
         <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-bottom border-slate-200">
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Proyecto</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Prioridad</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Responsable</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Inicio</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+          <div className="overflow-x-auto min-h-[420px]">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-bottom border-slate-200">
+                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <div className="flex items-center justify-between">
+                      <span>Proyecto</span>
+                      <HeaderFilterPopover 
+                        column="name" 
+                        label="Proyecto" 
+                        currentFilter={columnFilters.name || ''}
+                        onFilterChange={handleFilterChange}
+                        currentSort={sortConfig}
+                        onSortChange={handleSortChange}
+                      />
+                    </div>
+                  </th>
+                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <div className="flex items-center justify-between">
+                      <span>Estado</span>
+                      <HeaderFilterPopover 
+                        column="status" 
+                        label="Estado" 
+                        currentFilter={columnFilters.status || ''}
+                        onFilterChange={handleFilterChange}
+                        currentSort={sortConfig}
+                        onSortChange={handleSortChange}
+                      />
+                    </div>
+                  </th>
+                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <div className="flex items-center justify-between">
+                      <span>Prioridad</span>
+                      <HeaderFilterPopover 
+                        column="priority" 
+                        label="Prioridad" 
+                        currentFilter={columnFilters.priority || ''}
+                        onFilterChange={handleFilterChange}
+                        currentSort={sortConfig}
+                        onSortChange={handleSortChange}
+                      />
+                    </div>
+                  </th>
+                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <div className="flex items-center justify-between">
+                      <span>Responsable</span>
+                      <HeaderFilterPopover 
+                        column="responsible" 
+                        label="Responsable" 
+                        currentFilter={columnFilters.responsible || ''}
+                        onFilterChange={handleFilterChange}
+                        currentSort={sortConfig}
+                        onSortChange={handleSortChange}
+                      />
+                    </div>
+                  </th>
+                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <div className="flex items-center justify-between">
+                      <span>Inicio</span>
+                      <HeaderFilterPopover 
+                        column="startDate" 
+                        label="Inicio" 
+                        currentFilter={columnFilters.startDate || ''}
+                        onFilterChange={handleFilterChange}
+                        currentSort={sortConfig}
+                        onSortChange={handleSortChange}
+                      />
+                    </div>
+                  </th>
+                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
               {filteredProjects.map((project) => (
                 <tr key={project.id} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="px-8 py-5">
@@ -626,6 +757,7 @@ export default function ProjectsModule() {
             </tbody>
           </table>
         </div>
+      </div>
       )}
 
       {/* New Project / Edit Modal */}

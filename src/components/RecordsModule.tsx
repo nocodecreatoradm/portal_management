@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import HeaderFilterPopover from './HeaderFilterPopover';
 import { 
   Database, 
   Search, 
@@ -49,6 +50,25 @@ export default function RecordsModule({ onLoadRecord }: RecordsModuleProps) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterModule, setFilterModule] = useState<string>('all');
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({
+    module_id: '',
+    project_name: '',
+    action_type: '',
+    user_email: '',
+    timestamp: ''
+  });
+  const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({
+    column: '',
+    direction: null
+  });
+
+  const handleFilterChange = (column: string, value: string) => {
+    setColumnFilters(prev => ({ ...prev, [column]: value }));
+  };
+
+  const handleSortChange = (column: string, direction: 'asc' | 'desc' | null) => {
+    setSortConfig({ column, direction });
+  };
 
   const loadRecords = async () => {
     setLoading(true);
@@ -61,19 +81,73 @@ export default function RecordsModule({ onLoadRecord }: RecordsModuleProps) {
     loadRecords();
   }, []);
 
-  const filteredRecords = records.filter(record => {
-    const matchesSearch = 
-      record.user_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.module_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.action_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (record.project_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (record.sample_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (record.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesModule = filterModule === 'all' || record.module_id === filterModule;
-    
-    return matchesSearch && matchesModule;
-  });
+  const filteredRecords = useMemo(() => {
+    let result = records.filter(record => {
+      const matchesSearch = 
+        record.user_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.module_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.action_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (record.project_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (record.sample_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (record.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesModule = filterModule === 'all' || record.module_id === filterModule;
+      
+      return matchesSearch && matchesModule;
+    });
+
+    Object.keys(columnFilters).forEach(col => {
+      const filterVal = columnFilters[col]?.toLowerCase();
+      if (filterVal) {
+        result = result.filter(r => {
+          if (col === 'module_id') {
+            return r.module_id?.toLowerCase().includes(filterVal) || MODULE_LABELS[r.module_id]?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'project_name') {
+            return r.project_name?.toLowerCase().includes(filterVal) || r.sample_id?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'action_type') {
+            return r.action_type?.toLowerCase().includes(filterVal) || ACTION_LABELS[r.action_type]?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'user_email') {
+            return r.user_email?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'timestamp') {
+            return r.timestamp?.toLowerCase().includes(filterVal);
+          }
+          return false;
+        });
+      }
+    });
+
+    if (sortConfig.column && sortConfig.direction) {
+      result.sort((a: any, b: any) => {
+        let valA = '';
+        let valB = '';
+        if (sortConfig.column === 'module_id') {
+          valA = MODULE_LABELS[a.module_id] || a.module_id;
+          valB = MODULE_LABELS[b.module_id] || b.module_id;
+        } else if (sortConfig.column === 'project_name') {
+          valA = a.project_name || '';
+          valB = b.project_name || '';
+        } else if (sortConfig.column === 'action_type') {
+          valA = ACTION_LABELS[a.action_type] || a.action_type;
+          valB = ACTION_LABELS[b.action_type] || b.action_type;
+        } else if (sortConfig.column === 'user_email') {
+          valA = a.user_email || '';
+          valB = b.user_email || '';
+        } else if (sortConfig.column === 'timestamp') {
+          valA = a.timestamp || '';
+          valB = b.timestamp || '';
+        }
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [records, searchTerm, filterModule, columnFilters, sortConfig]);
 
   const handleLoad = (record: CalculationRecord) => {
     try {
@@ -124,15 +198,75 @@ export default function RecordsModule({ onLoadRecord }: RecordsModuleProps) {
           </select>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-h-[420px]">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Módulo</th>
-                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Proyecto / Muestra</th>
-                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Acción</th>
-                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Usuario</th>
-                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha y Hora</th>
+                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  <div className="flex items-center justify-between">
+                    <span>Módulo</span>
+                    <HeaderFilterPopover 
+                      column="module_id" 
+                      label="Módulo" 
+                      currentFilter={columnFilters.module_id || ''}
+                      onFilterChange={handleFilterChange}
+                      currentSort={sortConfig}
+                      onSortChange={handleSortChange}
+                    />
+                  </div>
+                </th>
+                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  <div className="flex items-center justify-between">
+                    <span>Proyecto / Muestra</span>
+                    <HeaderFilterPopover 
+                      column="project_name" 
+                      label="Proyecto / Muestra" 
+                      currentFilter={columnFilters.project_name || ''}
+                      onFilterChange={handleFilterChange}
+                      currentSort={sortConfig}
+                      onSortChange={handleSortChange}
+                    />
+                  </div>
+                </th>
+                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  <div className="flex items-center justify-between">
+                    <span>Acción</span>
+                    <HeaderFilterPopover 
+                      column="action_type" 
+                      label="Acción" 
+                      currentFilter={columnFilters.action_type || ''}
+                      onFilterChange={handleFilterChange}
+                      currentSort={sortConfig}
+                      onSortChange={handleSortChange}
+                    />
+                  </div>
+                </th>
+                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  <div className="flex items-center justify-between">
+                    <span>Usuario</span>
+                    <HeaderFilterPopover 
+                      column="user_email" 
+                      label="Usuario" 
+                      currentFilter={columnFilters.user_email || ''}
+                      onFilterChange={handleFilterChange}
+                      currentSort={sortConfig}
+                      onSortChange={handleSortChange}
+                    />
+                  </div>
+                </th>
+                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  <div className="flex items-center justify-between">
+                    <span>Fecha y Hora</span>
+                    <HeaderFilterPopover 
+                      column="timestamp" 
+                      label="Fecha y Hora" 
+                      currentFilter={columnFilters.timestamp || ''}
+                      onFilterChange={handleFilterChange}
+                      currentSort={sortConfig}
+                      onSortChange={handleSortChange}
+                    />
+                  </div>
+                </th>
                 <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Acciones</th>
               </tr>
             </thead>

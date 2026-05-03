@@ -14,6 +14,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { SupabaseService } from '../lib/SupabaseService';
 import { Loader2 } from 'lucide-react';
+import HeaderFilterPopover from './HeaderFilterPopover';
 
 interface ProductsModuleProps {
   onExportPPT?: () => void;
@@ -28,6 +29,25 @@ export default function ProductsModule({
   const [allProducts, setAllProducts] = useState<ProductRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({
+    codigoSAP: '',
+    descripcionSAP: '',
+    marca: '',
+    sampleId: '',
+    fobPrice: ''
+  });
+  const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({
+    column: '',
+    direction: null
+  });
+
+  const handleFilterChange = (column: string, value: string) => {
+    setColumnFilters(prev => ({ ...prev, [column]: value }));
+  };
+
+  const handleSortChange = (column: string, direction: 'asc' | 'desc' | null) => {
+    setSortConfig({ column, direction });
+  };
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ProductManagementRecord | null>(null);
@@ -124,12 +144,65 @@ export default function ProductsModule({
   // Form state
 
   const filteredRecords = useMemo(() => {
-    return records.filter(record => 
+    let result = records.filter(record => 
       record.descripcionSAP.toLowerCase().includes(searchTerm.toLowerCase()) ||
       record.codigoSAP.includes(searchTerm) ||
       record.proveedor.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [records, searchTerm]);
+
+    Object.keys(columnFilters).forEach(col => {
+      const filterVal = columnFilters[col]?.toLowerCase();
+      if (filterVal) {
+        result = result.filter(r => {
+          if (col === 'codigoSAP') {
+            return r.codigoSAP?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'descripcionSAP') {
+            return r.descripcionSAP?.toLowerCase().includes(filterVal) || r.proveedor?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'marca') {
+            return r.marca?.toLowerCase().includes(filterVal) || r.linea?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'sampleId') {
+            const linkedSample = samples.find(s => s.id === r.sampleId);
+            return linkedSample?.correlativeId?.toLowerCase().includes(filterVal) || r.sampleId?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'fobPrice') {
+            return r.fobPrice?.toString().toLowerCase().includes(filterVal);
+          }
+          return false;
+        });
+      }
+    });
+
+    if (sortConfig.column && sortConfig.direction) {
+      result.sort((a: any, b: any) => {
+        let valA = '';
+        let valB = '';
+        if (sortConfig.column === 'codigoSAP') {
+          valA = a.codigoSAP || '';
+          valB = b.codigoSAP || '';
+        } else if (sortConfig.column === 'descripcionSAP') {
+          valA = a.descripcionSAP || '';
+          valB = b.descripcionSAP || '';
+        } else if (sortConfig.column === 'marca') {
+          valA = a.marca || '';
+          valB = b.marca || '';
+        } else if (sortConfig.column === 'sampleId') {
+          valA = a.sampleId || '';
+          valB = b.sampleId || '';
+        } else if (sortConfig.column === 'fobPrice') {
+          valA = (a.fobPrice || 0).toString();
+          valB = (b.fobPrice || 0).toString();
+        }
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [records, searchTerm, columnFilters, sortConfig, samples]);
 
   const handleOpenAddModal = () => {
     setEditingRecord(null);
@@ -522,20 +595,81 @@ export default function ProductsModule({
         </div>
       ) : viewMode === 'table' ? (
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/60 overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-200">
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider">Código SAP</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider">Descripción</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider">Marca / Línea</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider">Muestra</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider text-center">Docs Aprob.</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider text-center">Precio FOB</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider text-center">Fotos</th>
-                <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+          <div className="overflow-x-auto min-h-[420px]">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-200">
+                  <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                    <div className="flex items-center justify-between">
+                      <span>Código SAP</span>
+                      <HeaderFilterPopover 
+                        column="codigoSAP" 
+                        label="Código SAP" 
+                        currentFilter={columnFilters.codigoSAP || ''}
+                        onFilterChange={handleFilterChange}
+                        currentSort={sortConfig}
+                        onSortChange={handleSortChange}
+                      />
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                    <div className="flex items-center justify-between">
+                      <span>Descripción</span>
+                      <HeaderFilterPopover 
+                        column="descripcionSAP" 
+                        label="Descripción / Proveedor" 
+                        currentFilter={columnFilters.descripcionSAP || ''}
+                        onFilterChange={handleFilterChange}
+                        currentSort={sortConfig}
+                        onSortChange={handleSortChange}
+                      />
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                    <div className="flex items-center justify-between">
+                      <span>Marca / Línea</span>
+                      <HeaderFilterPopover 
+                        column="marca" 
+                        label="Marca / Línea" 
+                        currentFilter={columnFilters.marca || ''}
+                        onFilterChange={handleFilterChange}
+                        currentSort={sortConfig}
+                        onSortChange={handleSortChange}
+                      />
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                    <div className="flex items-center justify-between">
+                      <span>Muestra</span>
+                      <HeaderFilterPopover 
+                        column="sampleId" 
+                        label="Muestra" 
+                        currentFilter={columnFilters.sampleId || ''}
+                        onFilterChange={handleFilterChange}
+                        currentSort={sortConfig}
+                        onSortChange={handleSortChange}
+                      />
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider text-center">Docs Aprob.</th>
+                  <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider text-center">
+                    <div className="flex items-center justify-center">
+                      <span>Precio FOB</span>
+                      <HeaderFilterPopover 
+                        column="fobPrice" 
+                        label="Precio FOB" 
+                        currentFilter={columnFilters.fobPrice || ''}
+                        onFilterChange={handleFilterChange}
+                        currentSort={sortConfig}
+                        onSortChange={handleSortChange}
+                      />
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider text-center">Fotos</th>
+                  <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
               {filteredRecords.map((record) => {
                 const linkedSample = samples.find(s => s.id === record.sampleId);
                 return (
@@ -631,6 +765,7 @@ export default function ProductsModule({
             </tbody>
           </table>
         </div>
+      </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRecords.map(record => (

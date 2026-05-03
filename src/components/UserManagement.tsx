@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, 
   Search, 
@@ -27,6 +27,7 @@ import { RolesService, Role, Permission } from '../services/RolesService';
 import { toast } from 'sonner';
 import UserEditModal from './UserEditModal';
 import UserActivityModal from './UserActivityModal';
+import HeaderFilterPopover from './HeaderFilterPopover';
 
 export default function UserManagement() {
   const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users');
@@ -35,6 +36,24 @@ export default function UserManagement() {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({
+    full_name: '',
+    email: '',
+    role: '',
+    is_active: ''
+  });
+  const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({
+    column: '',
+    direction: null
+  });
+
+  const handleFilterChange = (column: string, value: string) => {
+    setColumnFilters(prev => ({ ...prev, [column]: value }));
+  };
+
+  const handleSortChange = (column: string, direction: 'asc' | 'desc' | null) => {
+    setSortConfig({ column, direction });
+  };
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [updatingId, setUpdatingId] = useState<string | number | null>(null);
@@ -142,15 +161,64 @@ export default function UserManagement() {
     setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = 
-      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.department?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? user.is_active : !user.is_active);
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  const filteredUsers = useMemo(() => {
+    let result = users.filter(user => {
+      const matchesSearch = 
+        user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.department?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+      const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? user.is_active : !user.is_active);
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+
+    Object.keys(columnFilters).forEach(col => {
+      const filterVal = columnFilters[col]?.toLowerCase();
+      if (filterVal) {
+        result = result.filter(r => {
+          if (col === 'full_name') {
+            return r.full_name?.toLowerCase().includes(filterVal) || r.department?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'email') {
+            return r.email?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'role') {
+            return r.role?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'is_active') {
+            const statusStr = r.is_active ? 'activo' : 'inactivo';
+            return statusStr.includes(filterVal);
+          }
+          return false;
+        });
+      }
+    });
+
+    if (sortConfig.column && sortConfig.direction) {
+      result.sort((a: any, b: any) => {
+        let valA = '';
+        let valB = '';
+        if (sortConfig.column === 'full_name') {
+          valA = a.full_name || '';
+          valB = b.full_name || '';
+        } else if (sortConfig.column === 'email') {
+          valA = a.email || '';
+          valB = b.email || '';
+        } else if (sortConfig.column === 'role') {
+          valA = a.role || '';
+          valB = b.role || '';
+        } else if (sortConfig.column === 'is_active') {
+          valA = a.is_active ? 'a' : 'b';
+          valB = b.is_active ? 'a' : 'b';
+        }
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [users, searchTerm, roleFilter, statusFilter, columnFilters, sortConfig]);
 
   if (loading) {
     return (
@@ -301,14 +369,62 @@ export default function UserManagement() {
 
           {/* Users Table */}
           <div className="bg-white border border-slate-200 rounded-[32px] shadow-xl shadow-slate-200/50 relative">
-            <div className="overflow-visible min-h-[400px]">
+            <div className="overflow-x-auto min-h-[420px]">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/50 border-b border-slate-100">
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Usuario & Contacto</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Departamento</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Nivel de Acceso</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Estado</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                      <div className="flex items-center justify-between">
+                        <span>Usuario & Contacto</span>
+                        <HeaderFilterPopover 
+                          column="full_name" 
+                          label="Usuario & Contacto" 
+                          currentFilter={columnFilters.full_name || ''}
+                          onFilterChange={handleFilterChange}
+                          currentSort={sortConfig}
+                          onSortChange={handleSortChange}
+                        />
+                      </div>
+                    </th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                      <div className="flex items-center justify-between">
+                        <span>Departamento / Email</span>
+                        <HeaderFilterPopover 
+                          column="email" 
+                          label="Departamento / Email" 
+                          currentFilter={columnFilters.email || ''}
+                          onFilterChange={handleFilterChange}
+                          currentSort={sortConfig}
+                          onSortChange={handleSortChange}
+                        />
+                      </div>
+                    </th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">
+                      <div className="flex items-center justify-center">
+                        <span>Nivel de Acceso</span>
+                        <HeaderFilterPopover 
+                          column="role" 
+                          label="Nivel de Acceso" 
+                          currentFilter={columnFilters.role || ''}
+                          onFilterChange={handleFilterChange}
+                          currentSort={sortConfig}
+                          onSortChange={handleSortChange}
+                        />
+                      </div>
+                    </th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">
+                      <div className="flex items-center justify-center">
+                        <span>Estado</span>
+                        <HeaderFilterPopover 
+                          column="is_active" 
+                          label="Estado" 
+                          currentFilter={columnFilters.is_active || ''}
+                          onFilterChange={handleFilterChange}
+                          currentSort={sortConfig}
+                          onSortChange={handleSortChange}
+                        />
+                      </div>
+                    </th>
                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Acciones</th>
                   </tr>
                 </thead>

@@ -15,6 +15,7 @@ import { saveCalculationRecord, generateModuleCorrelative } from '../lib/api';
 import { toast } from 'sonner';
 import { SupabaseService } from '../lib/SupabaseService';
 import { Loader2 } from 'lucide-react';
+import HeaderFilterPopover from './HeaderFilterPopover';
 
 interface EnergyEfficiencyProps {
   onExportPPT?: () => void;
@@ -28,6 +29,27 @@ export default function EnergyEfficiency({
   const [samples, setSamples] = useState<SampleRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({
+    codigoMT: '',
+    descripcion: '',
+    letra: '',
+    porcentajeEE: '',
+    proveedor: '',
+    ocp: '',
+    fechaVigilancia: ''
+  });
+  const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({
+    column: '',
+    direction: null
+  });
+
+  const handleFilterChange = (column: string, value: string) => {
+    setColumnFilters(prev => ({ ...prev, [column]: value }));
+  };
+
+  const handleSortChange = (column: string, direction: 'asc' | 'desc' | null) => {
+    setSortConfig({ column, direction });
+  };
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<EnergyEfficiencyRecord | null>(null);
   const [viewingRecord, setViewingRecord] = useState<EnergyEfficiencyRecord | null>(null);
@@ -234,7 +256,6 @@ export default function EnergyEfficiency({
 
   const filteredRecords = useMemo(() => {
     let result = [...records];
-    result.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
@@ -244,8 +265,55 @@ export default function EnergyEfficiency({
         r.proveedor.toLowerCase().includes(lowerSearch)
       );
     }
+
+    Object.keys(columnFilters).forEach(col => {
+      const filterVal = columnFilters[col]?.toLowerCase();
+      if (filterVal) {
+        result = result.filter(r => {
+          if (col === 'codigoMT') {
+            return r.codigoMT?.toLowerCase().includes(filterVal) || r.descripcion?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'letra') {
+            return r.letra?.toLowerCase().includes(filterVal) || r.porcentajeEE?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'proveedor') {
+            return r.proveedor?.toLowerCase().includes(filterVal) || r.ocp?.toLowerCase().includes(filterVal);
+          }
+          if (col === 'fechaVigilancia') {
+            return r.fechaVigilancia?.toLowerCase().includes(filterVal);
+          }
+          return false;
+        });
+      }
+    });
+
+    if (sortConfig.column && sortConfig.direction) {
+      result.sort((a: any, b: any) => {
+        let valA = '';
+        let valB = '';
+        if (sortConfig.column === 'codigoMT') {
+          valA = a.codigoMT || '';
+          valB = b.codigoMT || '';
+        } else if (sortConfig.column === 'letra') {
+          valA = a.letra || '';
+          valB = b.letra || '';
+        } else if (sortConfig.column === 'proveedor') {
+          valA = a.proveedor || '';
+          valB = b.proveedor || '';
+        } else if (sortConfig.column === 'fechaVigilancia') {
+          valA = a.fechaVigilancia || '';
+          valB = b.fechaVigilancia || '';
+        }
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      result.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }
+
     return result;
-  }, [records, searchTerm]);
+  }, [records, searchTerm, columnFilters, sortConfig]);
 
   const RecordForm = ({ 
     record, 
@@ -962,14 +1030,62 @@ export default function EnergyEfficiency({
       </div>
 
       <div id="ee-table" className="bg-white rounded-2xl md:rounded-[40px] border border-slate-200/60 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-h-[420px]">
           <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Código MT / Descripción</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Letra / % EE</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Proveedor / OCP</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Vigencia</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <div className="flex items-center justify-between">
+                    <span>Código MT / Descripción</span>
+                    <HeaderFilterPopover 
+                      column="codigoMT" 
+                      label="Código MT / Descripción" 
+                      currentFilter={columnFilters.codigoMT || ''}
+                      onFilterChange={handleFilterChange}
+                      currentSort={sortConfig}
+                      onSortChange={handleSortChange}
+                    />
+                  </div>
+                </th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
+                  <div className="flex items-center justify-center">
+                    <span>Letra / % EE</span>
+                    <HeaderFilterPopover 
+                      column="letra" 
+                      label="Letra / % EE" 
+                      currentFilter={columnFilters.letra || ''}
+                      onFilterChange={handleFilterChange}
+                      currentSort={sortConfig}
+                      onSortChange={handleSortChange}
+                    />
+                  </div>
+                </th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <div className="flex items-center justify-between">
+                    <span>Proveedor / OCP</span>
+                    <HeaderFilterPopover 
+                      column="proveedor" 
+                      label="Proveedor / OCP" 
+                      currentFilter={columnFilters.proveedor || ''}
+                      onFilterChange={handleFilterChange}
+                      currentSort={sortConfig}
+                      onSortChange={handleSortChange}
+                    />
+                  </div>
+                </th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <div className="flex items-center justify-between">
+                    <span>Vigencia</span>
+                    <HeaderFilterPopover 
+                      column="fechaVigilancia" 
+                      label="Vigencia" 
+                      currentFilter={columnFilters.fechaVigilancia || ''}
+                      onFilterChange={handleFilterChange}
+                      currentSort={sortConfig}
+                      onSortChange={handleSortChange}
+                    />
+                  </div>
+                </th>
                 <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Docs</th>
                 <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Acciones</th>
               </tr>
