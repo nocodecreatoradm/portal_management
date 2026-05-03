@@ -714,23 +714,14 @@ export const SupabaseService = {
         });
 
       if (error) {
-        if (error.message && (error.message.includes('bucket') || error.message.includes('not found') || error.message.includes('does not exist'))) {
-          try {
-            await supabase.storage.createBucket(bucket, { public: true });
-          } catch (createError) {
-            console.warn('Bucket creation failed/already exists:', createError);
-          }
-          const { data: retryData, error: retryError } = await supabase.storage
-            .from(bucket)
-            .upload(path, file, {
-              cacheControl: '3600',
-              upsert: true
-            });
-          if (retryError) throw retryError;
-          const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(retryData.path);
-          return { name: file.name, url: publicUrl, type: file.type };
-        }
-        throw error;
+        console.warn('Supabase storage upload error:', error);
+        const base64Url = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = err => reject(err);
+        });
+        return { name: file.name, url: base64Url, type: file.type };
       }
 
       const { data: { publicUrl } } = supabase.storage
@@ -739,23 +730,17 @@ export const SupabaseService = {
         
       return { name: file.name, url: publicUrl, type: file.type };
     } catch (err: any) {
+      console.warn('Error in uploadFile, converting to base64 fallback:', err);
       try {
-        try {
-          await supabase.storage.createBucket(bucket, { public: true });
-        } catch (createError) {
-          console.warn('Bucket creation failed in catch/already exists:', createError);
-        }
-        const { data: retryData, error: retryError } = await supabase.storage
-          .from(bucket)
-          .upload(path, file, {
-            cacheControl: '3600',
-            upsert: true
-          });
-        if (retryError) throw retryError;
-        const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(retryData.path);
-        return { name: file.name, url: publicUrl, type: file.type };
+        const base64Url = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = error => reject(error);
+        });
+        return { name: file.name, url: base64Url, type: file.type };
       } catch (finalError) {
-        console.error('Error uploading file to storage:', finalError);
+        console.error('Error converting file to base64:', finalError);
         throw err;
       }
     }
