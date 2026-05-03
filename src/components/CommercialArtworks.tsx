@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import ProductDetailModal from './ProductDetailModal';
 import { SupabaseService } from '../lib/SupabaseService';
 import { Loader2 } from 'lucide-react';
+import HeaderFilterPopover from './HeaderFilterPopover';
 
 interface CommercialArtworksProps {
   mode?: 'artwork' | 'technical_sheet' | 'commercial_sheet';
@@ -24,6 +25,7 @@ export default function CommercialArtworks({
   const [samples, setSamples] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
   const [selectedProduct, setSelectedProduct] = useState<ProductRecord | null>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
@@ -159,9 +161,6 @@ export default function CommercialArtworks({
       });
     });
 
-    // Sort by createdAt descending
-    result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
     // Apply column filters
     (Object.entries(columnFilters) as [string, string][]).forEach(([key, value]) => {
       if (!value) return;
@@ -172,33 +171,30 @@ export default function CommercialArtworks({
       });
     });
 
+    // Sort by sortConfig or fallback to createdAt descending
+    if (sortConfig.column && sortConfig.direction) {
+      result.sort((a, b) => {
+        const aVal = String((a as any)[sortConfig.column] || '').toLowerCase();
+        const bVal = String((b as any)[sortConfig.column] || '').toLowerCase();
+        
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
     return result;
-  }, [data, columnFilters, mode]);
+  }, [data, columnFilters, sortConfig, mode]);
 
   const handleFilterChange = (column: string, value: string) => {
     setColumnFilters(prev => ({ ...prev, [column]: value }));
   };
 
-  const renderFilterInput = (column: string, placeholder: string) => (
-    <div className="relative mt-1 px-1">
-      <input
-        type="text"
-        value={columnFilters[column] || ''}
-        onChange={(e) => handleFilterChange(column, e.target.value)}
-        placeholder={placeholder}
-        className="w-full pl-6 pr-2 py-1 text-[9px] font-normal border border-slate-200 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white normal-case"
-      />
-      <Search size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
-      {columnFilters[column] && (
-        <button 
-          onClick={() => handleFilterChange(column, '')}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-        >
-          <X size={10} />
-        </button>
-      )}
-    </div>
-  );
+  const handleSortChange = (column: string, direction: 'asc' | 'desc' | null) => {
+    setSortConfig({ column, direction });
+  };
 
   return (
     <div className="space-y-8">
@@ -224,27 +220,62 @@ export default function CommercialArtworks({
 
         <div ref={tableContainerRef} className="overflow-x-auto">
           <table className="w-full text-sm text-left border-collapse min-w-[1350px]">
-            <thead className="bg-[#f8fafc] text-slate-500 uppercase text-[10px] font-bold border-b border-gray-200">
+            <thead className="bg-[#f8fafc] text-slate-500 uppercase text-[10px] font-bold border-b border-gray-200 sticky top-0 z-20">
               <tr>
                 <th className="px-6 py-4 border-r border-gray-100">
                   Código SAP
-                  {renderFilterInput('codigoSAP', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="codigoSAP" 
+                    label="Código SAP" 
+                    currentFilter={columnFilters.codigoSAP || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
                 <th className="px-6 py-4 border-r border-gray-100">
                   Descripción SAP
-                  {renderFilterInput('descripcionSAP', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="descripcionSAP" 
+                    label="Descripción SAP" 
+                    currentFilter={columnFilters.descripcionSAP || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
                 <th className="px-4 py-4 border-r border-gray-100">
                   Código EAN
-                  {renderFilterInput('codigoEAN', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="codigoEAN" 
+                    label="Código EAN" 
+                    currentFilter={columnFilters.codigoEAN || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
                 <th className="px-4 py-4 border-r border-gray-100">
                   Marca
-                  {renderFilterInput('marca', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="marca" 
+                    label="Marca" 
+                    currentFilter={columnFilters.marca || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
                 <th className="px-4 py-4 border-r border-gray-100">
                   Línea
-                  {renderFilterInput('linea', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="linea" 
+                    label="Línea" 
+                    currentFilter={columnFilters.linea || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
                 <th className="px-4 py-4 border-r border-gray-100">Archivos</th>
                 <th className="px-4 py-4 border-r border-gray-100 text-center">Ver.</th>

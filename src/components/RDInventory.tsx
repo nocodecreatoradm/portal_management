@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { SupabaseService } from '../lib/SupabaseService';
 import { initialRDInventory } from '../data/mockData';
+import HeaderFilterPopover from './HeaderFilterPopover';
 
 
 interface RDInventoryProps {
@@ -40,6 +41,7 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
   const [selectedDetailItem, setSelectedDetailItem] = useState<RDInventoryItem | null>(null);
   const [showCertificateModal, setShowCertificateModal] = useState<RDInventoryItem | null>(null);
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
 
@@ -149,9 +151,6 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
   const filteredItems = useMemo(() => {
     let result = [...items];
 
-    // Sort by ID descending (last created first)
-    result.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
-
     // Apply global search
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
@@ -172,33 +171,30 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
       });
     });
 
+    // Sort by sortConfig or fallback to ID descending
+    if (sortConfig.column && sortConfig.direction) {
+      result.sort((a, b) => {
+        const aVal = String((a as any)[sortConfig.column] || '').toLowerCase();
+        const bVal = String((b as any)[sortConfig.column] || '').toLowerCase();
+        
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      result.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
+    }
+
     return result;
-  }, [items, searchTerm, columnFilters]);
+  }, [items, searchTerm, columnFilters, sortConfig]);
 
   const handleFilterChange = (column: string, value: string) => {
     setColumnFilters(prev => ({ ...prev, [column]: value }));
   };
 
-  const renderFilterInput = (column: string, placeholder: string) => (
-    <div className="relative mt-1 px-1">
-      <input
-        type="text"
-        value={columnFilters[column] || ''}
-        onChange={(e) => handleFilterChange(column, e.target.value)}
-        placeholder={placeholder}
-        className="w-full pl-6 pr-2 py-1 text-[9px] font-normal border border-slate-200 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white normal-case"
-      />
-      <Search size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
-      {columnFilters[column] && (
-        <button 
-          onClick={() => handleFilterChange(column, '')}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-        >
-          <X size={10} />
-        </button>
-      )}
-    </div>
-  );
+  const handleSortChange = (column: string, direction: 'asc' | 'desc' | null) => {
+    setSortConfig({ column, direction });
+  };
 
   const getCalibrationStatusColor = (status: string) => {
     switch (status) {
@@ -863,25 +859,53 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
           <table className="w-full text-left border-collapse min-w-[1500px]">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center sticky top-0 z-20">
                   Equipo / Serie
-                  {renderFilterInput('description', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="description" 
+                    label="Equipo" 
+                    currentFilter={columnFilters.description || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center sticky top-0 z-20">
                   Responsable
-                  {renderFilterInput('responsible', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="responsible" 
+                    label="Responsable" 
+                    currentFilter={columnFilters.responsible || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center sticky top-0 z-20">
                   Estado
-                  {renderFilterInput('calibrationStatus', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="calibrationStatus" 
+                    label="Estado" 
+                    currentFilter={columnFilters.calibrationStatus || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center sticky top-0 z-20">
                   Marca / Modelo
-                  {renderFilterInput('brand', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="brand" 
+                    label="Marca" 
+                    currentFilter={columnFilters.brand || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Cronograma de Calibración</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Certificado</th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Acciones</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center sticky top-0 z-20">Cronograma de Calibración</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center sticky top-0 z-20">Certificado</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center sticky top-0 z-20">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">

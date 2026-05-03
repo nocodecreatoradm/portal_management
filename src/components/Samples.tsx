@@ -8,6 +8,7 @@ import { Search, Filter, Plus, FileText, Upload, CheckCircle2, XCircle,
 import { SampleRecord, SampleStatus, InitialTechnicalDatasheet, FileInfo, InspectionTimer, InfoRequest, Supplier, InspectionSection, CalculationRecord, ModuleId } from '../types';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import HeaderFilterPopover from './HeaderFilterPopover';
 import * as XLSX from 'xlsx';
 import { technicians } from '../data/mockData';
 import InspectionModal from './InspectionModal';
@@ -55,6 +56,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
   const [comparisonIds, setComparisonIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'specs' | 'summary' | 'comparison'>('specs');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
   const [allCalculationRecords, setAllCalculationRecords] = useState<CalculationRecord[]>([]);
   const [isAddCalculationModalOpen, setIsAddCalculationModalOpen] = useState(false);
 
@@ -174,9 +176,6 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
   const filteredSamples = useMemo(() => {
     let result = [...samples];
 
-    // Sort by createdAt descending (last created first)
-    result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
     // Apply global search
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
@@ -202,33 +201,30 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
       });
     });
 
+    // Sort by sortConfig or fallback to createdAt descending
+    if (sortConfig.column && sortConfig.direction) {
+      result.sort((a, b) => {
+        const aVal = String((a as any)[sortConfig.column] || '').toLowerCase();
+        const bVal = String((b as any)[sortConfig.column] || '').toLowerCase();
+        
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
     return result;
-  }, [samples, searchTerm, statusFilter, columnFilters]);
+  }, [samples, searchTerm, statusFilter, columnFilters, sortConfig]);
 
   const handleFilterChange = (column: string, value: string) => {
     setColumnFilters(prev => ({ ...prev, [column]: value }));
   };
 
-  const renderFilterInput = (column: string, placeholder: string) => (
-    <div className="relative mt-1 px-1">
-      <input
-        type="text"
-        value={columnFilters[column] || ''}
-        onChange={(e) => handleFilterChange(column, e.target.value)}
-        placeholder={placeholder}
-        className="w-full pl-6 pr-2 py-1 text-[9px] font-normal border border-slate-200 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white normal-case"
-      />
-      <Search size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
-      {columnFilters[column] && (
-        <button 
-          onClick={() => handleFilterChange(column, '')}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-        >
-          <X size={10} />
-        </button>
-      )}
-    </div>
-  );
+  const handleSortChange = (column: string, direction: 'asc' | 'desc' | null) => {
+    setSortConfig({ column, direction });
+  };
 
   const getStatusIcon = (status: SampleStatus | string) => {
     switch (status) {
@@ -686,45 +682,101 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 {isComparisonMode && (
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center w-12">
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center w-12 sticky top-0 z-20">
                     Sel.
                   </th>
                 )}
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
                   ID
-                  {renderFilterInput('correlativeId', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="correlativeId" 
+                    label="ID" 
+                    currentFilter={columnFilters.correlativeId || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
                   Proveedor
-                  {renderFilterInput('proveedor', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="proveedor" 
+                    label="Proveedor" 
+                    currentFilter={columnFilters.proveedor || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
                   Descripción / Categoría / Versión
-                  {renderFilterInput('descripcionSAP', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="descripcionSAP" 
+                    label="Descripción" 
+                    currentFilter={columnFilters.descripcionSAP || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
                   Línea
-                  {renderFilterInput('linea', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="linea" 
+                    label="Línea" 
+                    currentFilter={columnFilters.linea || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
                   Marca
-                  {renderFilterInput('marca', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="marca" 
+                    label="Marca" 
+                    currentFilter={columnFilters.marca || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
                   Técnico Asignado
-                  {renderFilterInput('technician', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="technician" 
+                    label="Técnico" 
+                    currentFilter={columnFilters.technician || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
                   Progreso
-                  {renderFilterInput('inspectionProgress', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="inspectionProgress" 
+                    label="Progreso" 
+                    currentFilter={columnFilters.inspectionProgress || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
                   Estado
-                  {renderFilterInput('inspectionStatus', 'Filtrar...')}
+                  <HeaderFilterPopover 
+                    column="inspectionStatus" 
+                    label="Estado" 
+                    currentFilter={columnFilters.inspectionStatus || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                  />
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Informe</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Timeline</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Acciones</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">Informe</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">Timeline</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

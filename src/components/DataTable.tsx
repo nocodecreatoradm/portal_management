@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Eye, Edit2, FileText, Upload, Image as ImageIcon, UserPlus, HelpCircle, AlertCircle, Beaker, Search, X, Clock, Send } from 'lucide-react';
 import { ProductRecord, DocumentVersion, Supplier, SampleRecord } from '../types';
 import StatusIcon from './StatusIcon';
+import HeaderFilterPopover from './HeaderFilterPopover';
 
 interface DataTableProps {
   data: ProductRecord[];
@@ -29,6 +30,7 @@ export default function DataTable({
   mode = 'artwork'
 }: DataTableProps) {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
 
@@ -74,9 +76,6 @@ export default function DataTable({
   const filteredAndSortedData = useMemo(() => {
     let result = [...data];
 
-    // Sort by ID descending (last created first)
-    result.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
-
     // Apply column filters
     (Object.entries(columnFilters) as [string, string][]).forEach(([key, value]) => {
       if (!value) return;
@@ -87,11 +86,29 @@ export default function DataTable({
       });
     });
 
+    // Sort by sortConfig or fallback to ID descending
+    if (sortConfig.column && sortConfig.direction) {
+      result.sort((a, b) => {
+        const aVal = String((a as any)[sortConfig.column] || '').toLowerCase();
+        const bVal = String((b as any)[sortConfig.column] || '').toLowerCase();
+        
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      result.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
+    }
+
     return result;
-  }, [data, columnFilters]);
+  }, [data, columnFilters, sortConfig]);
 
   const handleFilterChange = (column: string, value: string) => {
     setColumnFilters(prev => ({ ...prev, [column]: value }));
+  };
+
+  const handleSortChange = (column: string, direction: 'asc' | 'desc' | null) => {
+    setSortConfig({ column, direction });
   };
 
   const renderApprovalCell = (record: ProductRecord, type: 'artwork' | 'technical_sheet' | 'commercial_sheet', versions: DocumentVersion[], stage: string) => {
@@ -120,26 +137,6 @@ export default function DataTable({
     );
   };
 
-  const renderFilterInput = (column: string, placeholder: string) => (
-    <div className="relative mt-1 px-1">
-      <input
-        type="text"
-        value={columnFilters[column] || ''}
-        onChange={(e) => handleFilterChange(column, e.target.value)}
-        placeholder={placeholder}
-        className="w-full pl-6 pr-2 py-1 text-[9px] font-normal border border-slate-200 rounded focus:ring-1 focus:ring-blue-500 outline-none bg-white normal-case"
-      />
-      <Search size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
-      {columnFilters[column] && (
-        <button 
-          onClick={() => handleFilterChange(column, '')}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-        >
-          <X size={10} />
-        </button>
-      )}
-    </div>
-  );
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
@@ -278,31 +275,80 @@ export default function DataTable({
               <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100 w-20">Acciones</th>
               <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100 whitespace-nowrap">
                 ID
-                {renderFilterInput('correlativeId', 'Filtrar...')}
+                <HeaderFilterPopover 
+                  column="correlativeId" 
+                  label="ID" 
+                  currentFilter={columnFilters.correlativeId || ''} 
+                  onFilterChange={handleFilterChange} 
+                  currentSort={sortConfig} 
+                  onSortChange={handleSortChange} 
+                />
               </th>
               <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100">
                 Proveedor
-                {renderFilterInput('proveedor', 'Filtrar...')}
+                <HeaderFilterPopover 
+                  column="proveedor" 
+                  label="Proveedor" 
+                  currentFilter={columnFilters.proveedor || ''} 
+                  onFilterChange={handleFilterChange} 
+                  currentSort={sortConfig} 
+                  onSortChange={handleSortChange} 
+                />
               </th>
               <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100 whitespace-nowrap">
                 Código EAN
-                {renderFilterInput('codigoEAN', 'Filtrar...')}
+                <HeaderFilterPopover 
+                  column="codigoEAN" 
+                  label="Código EAN" 
+                  currentFilter={columnFilters.codigoEAN || ''} 
+                  onFilterChange={handleFilterChange} 
+                  currentSort={sortConfig} 
+                  onSortChange={handleSortChange} 
+                />
               </th>
               <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100 whitespace-nowrap">
                 Código SAP
-                {renderFilterInput('codigoSAP', 'Filtrar...')}
+                <HeaderFilterPopover 
+                  column="codigoSAP" 
+                  label="Código SAP" 
+                  currentFilter={columnFilters.codigoSAP || ''} 
+                  onFilterChange={handleFilterChange} 
+                  currentSort={sortConfig} 
+                  onSortChange={handleSortChange} 
+                />
               </th>
               <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100">
                 Descripción SAP
-                {renderFilterInput('descripcionSAP', 'Filtrar...')}
+                <HeaderFilterPopover 
+                  column="descripcionSAP" 
+                  label="Descripción SAP" 
+                  currentFilter={columnFilters.descripcionSAP || ''} 
+                  onFilterChange={handleFilterChange} 
+                  currentSort={sortConfig} 
+                  onSortChange={handleSortChange} 
+                />
               </th>
               <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100">
                 Línea
-                {renderFilterInput('linea', 'Filtrar...')}
+                <HeaderFilterPopover 
+                  column="linea" 
+                  label="Línea" 
+                  currentFilter={columnFilters.linea || ''} 
+                  onFilterChange={handleFilterChange} 
+                  currentSort={sortConfig} 
+                  onSortChange={handleSortChange} 
+                />
               </th>
               <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100">
                 Marca
-                {renderFilterInput('marca', 'Filtrar...')}
+                <HeaderFilterPopover 
+                  column="marca" 
+                  label="Marca" 
+                  currentFilter={columnFilters.marca || ''} 
+                  onFilterChange={handleFilterChange} 
+                  currentSort={sortConfig} 
+                  onSortChange={handleSortChange} 
+                />
               </th>
               <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100 min-w-[120px]">Asignación</th>
               <th colSpan={mode === 'artwork' ? 6 : 3} className={`px-4 py-2 text-center ${
@@ -316,7 +362,14 @@ export default function DataTable({
               </th>
               <th rowSpan={2} className="px-4 py-4 text-center border-l border-gray-100">
                 Muestra
-                {renderFilterInput('sampleId', 'Filtrar...')}
+                <HeaderFilterPopover 
+                  column="sampleId" 
+                  label="Muestra" 
+                  currentFilter={columnFilters.sampleId || ''} 
+                  onFilterChange={handleFilterChange} 
+                  currentSort={sortConfig} 
+                  onSortChange={handleSortChange} 
+                />
               </th>
             </tr>
             <tr className="bg-slate-50/50">
