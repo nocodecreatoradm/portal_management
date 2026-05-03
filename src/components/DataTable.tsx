@@ -268,7 +268,7 @@ export default function DataTable({
           <div style={{ width: '1800px', height: '1px' }}></div>
         </div>
 
-        <div ref={tableContainerRef} className="overflow-x-auto">
+        <div ref={tableContainerRef} className="overflow-x-auto min-h-[420px]">
           <table className="w-full text-sm text-left border-collapse" style={{ minWidth: '1800px' }}>
           <thead className="bg-[#f8fafc] text-slate-500 uppercase text-[10px] font-bold border-b border-gray-200 sticky top-0 z-20">
             <tr>

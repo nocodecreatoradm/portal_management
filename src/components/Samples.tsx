@@ -677,7 +677,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
           <div style={{ width: '1500px', height: '1px' }}></div>
         </div>
 
-        <div ref={tableContainerRef} className="overflow-x-auto hide-scrollbar">
+        <div ref={tableContainerRef} className="overflow-x-auto min-h-[420px] hide-scrollbar">
           <table className="w-full text-left border-collapse min-w-[1500px]">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">

@@ -1010,9 +1010,7 @@ export default function App() {
         </div>
 
         <div id="artwork-table" className="bg-white rounded-3xl shadow-sm border border-slate-200/60 overflow-hidden">
-          <Filters filters={filters} onFilterChange={setFilters} />
-          
-          <div className="px-8 pb-4 flex justify-between items-center border-t border-slate-100 pt-6">
+          <div className="px-8 pb-4 flex justify-between items-center pt-6">
             <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">
               Mostrando <span className="text-slate-900">{filteredData.length}</span> registros
             </p>

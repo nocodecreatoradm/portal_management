@@ -218,7 +218,7 @@ export default function CommercialArtworks({
           <div style={{ width: '1350px', height: '1px' }}></div>
         </div>
 
-        <div ref={tableContainerRef} className="overflow-x-auto">
+        <div ref={tableContainerRef} className="overflow-x-auto min-h-[420px]">
           <table className="w-full text-sm text-left border-collapse min-w-[1350px]">
             <thead className="bg-[#f8fafc] text-slate-500 uppercase text-[10px] font-bold border-b border-gray-200 sticky top-0 z-20">
               <tr>
