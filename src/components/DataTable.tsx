@@ -369,6 +369,7 @@ export default function DataTable({
                   onFilterChange={handleFilterChange} 
                   currentSort={sortConfig} 
                   onSortChange={handleSortChange} 
+                  align="right"
                 />
               </th>
             </tr>
