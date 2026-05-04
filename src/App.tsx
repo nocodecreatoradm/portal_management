@@ -47,7 +47,7 @@ import { exportToExcel, generateReportPDF, exportToPPT } from './lib/exportUtils
 import { saveCalculationRecord, fetchCalculationRecords } from './lib/api';
 import { outlookService } from './services/outlookService';
 import { initialApprovers } from './data/mockData';
-import { MigrationRunner } from './components/MigrationRunner';
+
 import { LandingPage } from './components/LandingPage';
 import { 
   ProductRecord, 
@@ -1226,9 +1226,6 @@ export default function App() {
             }} 
           />
 
-          {/* Temporary: Migration tool to move base64 data to Storage */}
-          {/* Remove this component after running the migration */}
-          <MigrationRunner />
           <Sidebar 
             activeModule={activeModule} 
             onModuleChange={handleModuleChange}
