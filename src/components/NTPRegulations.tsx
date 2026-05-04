@@ -117,19 +117,23 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
     };
     
     try {
+      setLoading(true);
       let fileInfo = editingReg?.file || { name: 'documento.pdf', url: '#', type: 'application/pdf' };
 
       if (selectedFile) {
-        const fileUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(selectedFile);
-        });
-        fileInfo = {
-          name: selectedFile.name,
-          url: fileUrl,
-          type: selectedFile.type || 'application/pdf'
-        };
+        const toastId = toast.loading('Subiendo archivo...');
+        try {
+          fileInfo = await SupabaseService.uploadFile(
+            'ntp-regulations',
+            `docs/${Date.now()}_${selectedFile.name}`,
+            selectedFile
+          );
+          toast.success('Archivo subido correctamente', { id: toastId });
+        } catch (uploadError: any) {
+          toast.error(`Error al subir archivo: ${uploadError.message}`, { id: toastId });
+          setLoading(false);
+          return;
+        }
       }
 
       regData.file = fileInfo;
@@ -159,6 +163,8 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
     } catch (error) {
       console.error('Error saving regulation:', error);
       toast.error('Error al guardar normativa');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -188,12 +194,14 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
 
   const handleOpen = (reg: NTPRegulation) => {
     if (reg.file?.url && reg.file.url !== '#') {
+      // Support for old records with data URLs and new records with public URLs
       if (reg.file.url.startsWith('data:')) {
         const newWindow = window.open();
         if (newWindow) {
           newWindow.document.write(
-            `<iframe src="${reg.file.url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`
+            `<html><body style="margin:0"><iframe src="${reg.file.url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe></body></html>`
           );
+          newWindow.document.close();
         } else {
           handleDownload(reg);
         }

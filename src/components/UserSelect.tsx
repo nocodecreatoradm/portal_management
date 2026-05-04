@@ -34,8 +34,12 @@ export default function UserSelect({
         setLoading(true);
         const data = await SupabaseService.getProfiles();
         setUsers(data || []);
-      } catch (error) {
-        console.error('Error loading users for select:', error);
+      } catch (err: any) {
+        console.error('Error loading users for select:', {
+          message: err.message,
+          status: err.status,
+          details: err.details
+        });
       } finally {
         setLoading(false);
       }

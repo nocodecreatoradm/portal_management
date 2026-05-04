@@ -547,7 +547,15 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
           </button>
           <button 
             onClick={() => {
-              setEditingProject(null);
+              setEditingProject({
+                id: 'P-NEW',
+                number: '',
+                name: '',
+                responsible: '',
+                progress: 0,
+                status: 'NO INICIADO',
+                activities: []
+              });
               setIsProjectModalOpen(true);
             }}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
@@ -1129,7 +1137,7 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
                 label="Responsable"
                 name="responsible"
                 value={editingProject?.responsible || ''}
-                onChange={() => {}} // UserSelect handles its own state for the hidden input
+                onChange={(val) => setEditingProject(prev => prev ? { ...prev, responsible: val } : null)}
                 required
               />
               <div>

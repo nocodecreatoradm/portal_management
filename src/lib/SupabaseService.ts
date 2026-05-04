@@ -994,7 +994,7 @@ export const SupabaseService = {
   async getProfiles() {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, full_name, email, role, is_active')
       .order('full_name');
     if (error) throw error;
     // Refresh the cached profiles whenever full profiles are fetched
@@ -1031,7 +1031,10 @@ export const SupabaseService = {
       .eq('id', id)
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      console.error('Detailed Supabase Update Error:', error);
+      throw error;
+    }
     return data;
   },
 
