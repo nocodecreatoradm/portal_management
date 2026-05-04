@@ -452,8 +452,8 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
   };
 
   const filteredProjects = projects.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.responsible.toLowerCase().includes(searchTerm.toLowerCase())
+    (p.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (p.responsible?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
   return (

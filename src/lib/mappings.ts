@@ -112,11 +112,11 @@ export const mapProjectToDB = (project: Partial<Project>) => {
 
 export const mapDBToProject = (dbProject: any): Project => ({
   id: dbProject.id,
-  number: dbProject.project_number,
-  name: dbProject.name,
-  responsible: dbProject.responsible_id,
-  progress: dbProject.progress,
-  status: dbProject.status,
+  number: dbProject.project_number || '',
+  name: dbProject.name || '',
+  responsible: dbProject.responsible_id || '',
+  progress: dbProject.progress || 0,
+  status: dbProject.status || 'NO INICIADO',
   activities: dbProject.activities ? dbProject.activities.map(mapDBToActivity) : []
 });
 
@@ -138,19 +138,19 @@ export const mapActivityToDB = (activity: Partial<ProjectActivity>) => ({
 
 export const mapDBToActivity = (dbActivity: any): ProjectActivity => ({
   id: dbActivity.id,
-  number: dbActivity.activity_number,
-  name: dbActivity.name,
-  comments: dbActivity.comments,
-  indicator: dbActivity.indicator,
-  progress: dbActivity.progress,
-  classification: dbActivity.classification,
-  plannedStartDate: dbActivity.planned_start_date,
-  plannedEndDate: dbActivity.planned_end_date,
+  number: dbActivity.activity_number || '',
+  name: dbActivity.name || '',
+  comments: dbActivity.comments || '',
+  indicator: dbActivity.indicator || '',
+  progress: dbActivity.progress || 0,
+  classification: dbActivity.classification || '',
+  plannedStartDate: dbActivity.planned_start_date || '',
+  plannedEndDate: dbActivity.planned_end_date || '',
   actualStartDate: dbActivity.actual_start_date,
   actualEndDate: dbActivity.actual_end_date,
-  status: dbActivity.status,
-  dailyProgress: dbActivity.daily_progress,
-  responsible: dbActivity.responsibles
+  status: dbActivity.status || 'NO INICIADO',
+  dailyProgress: dbActivity.daily_progress || {},
+  responsible: dbActivity.responsibles || []
 });
 
 export const mapTaskToDB = (task: Partial<CalendarTask>) => {
