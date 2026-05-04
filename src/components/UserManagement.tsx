@@ -19,7 +19,9 @@ import {
   Edit2,
   Trash2,
   Activity,
-  ArrowUpRight
+  ArrowUpRight,
+  Plus,
+  Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SupabaseService } from '../lib/SupabaseService';
@@ -27,6 +29,7 @@ import { RolesService, Role, Permission } from '../services/RolesService';
 import { toast } from 'sonner';
 import UserEditModal from './UserEditModal';
 import UserActivityModal from './UserActivityModal';
+import RoleModal from './RoleModal';
 import HeaderFilterPopover from './HeaderFilterPopover';
 
 export default function UserManagement() {
@@ -63,6 +66,7 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   
   // Roles Tab State
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [savingPermissions, setSavingPermissions] = useState(false);
 
@@ -154,6 +158,24 @@ export default function UserManagement() {
       toast.error('Error al guardar permisos');
     } finally {
       setSavingPermissions(false);
+    }
+  };
+
+  const handleDeleteRole = async (roleId: number) => {
+    if (users.some(u => u.role === roles.find(r => r.id === roleId)?.name)) {
+      toast.error('No se puede eliminar un rol que tiene usuarios asignados');
+      return;
+    }
+
+    if (!confirm('¿Estás seguro de eliminar este rol?')) return;
+
+    try {
+      await RolesService.deleteRole(roleId);
+      toast.success('Rol eliminado correctamente');
+      loadInitialData();
+    } catch (error) {
+      console.error('Error deleting role:', error);
+      toast.error('Error al eliminar el rol');
     }
   };
 
@@ -591,7 +613,19 @@ export default function UserManagement() {
         >
           {/* Roles List */}
           <div className="lg:col-span-1 space-y-3">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-4">Directorio de Roles</h3>
+            <div className="flex items-center justify-between px-4">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Directorio de Roles</h3>
+              <button 
+                onClick={() => {
+                  setSelectedRole(null);
+                  setIsRoleModalOpen(true);
+                }}
+                className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"
+                title="Nuevo Rol"
+              >
+                <Plus size={14} strokeWidth={3} />
+              </button>
+            </div>
             <div className="space-y-2 p-1">
               {roles.map((role) => (
                 <button
@@ -606,7 +640,31 @@ export default function UserManagement() {
                   <div className="relative z-10">
                     <div className="flex items-center justify-between">
                       <span className="font-black text-sm tracking-tight">{role.display_name}</span>
-                      <ChevronDown className={`transition-transform duration-300 ${selectedRole?.id === role.id ? '-rotate-90' : 'opacity-30'}`} size={16} />
+                      <div className="flex items-center gap-2">
+                        {selectedRole?.id === role.id && (
+                          <div className="flex items-center gap-1">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsRoleModalOpen(true);
+                              }}
+                              className="p-1 hover:bg-white/20 rounded-md transition-colors"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteRole(role.id);
+                              }}
+                              className="p-1 hover:bg-red-500/20 rounded-md transition-colors"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        )}
+                        <ChevronDown className={`transition-transform duration-300 ${selectedRole?.id === role.id ? '-rotate-90' : 'opacity-30'}`} size={16} />
+                      </div>
                     </div>
                     <p className={`text-[10px] mt-1.5 font-bold tracking-tight line-clamp-1 ${selectedRole?.id === role.id ? 'text-blue-100' : 'text-slate-400'}`}>
                       {role.description}
@@ -735,6 +793,14 @@ export default function UserManagement() {
             isOpen={isActivityModalOpen}
             onClose={() => setIsActivityModalOpen(false)}
             user={selectedUser}
+          />
+        )}
+        {isRoleModalOpen && (
+          <RoleModal
+            isOpen={isRoleModalOpen}
+            onClose={() => setIsRoleModalOpen(false)}
+            role={selectedRole}
+            onUpdate={loadInitialData}
           />
         )}
       </AnimatePresence>

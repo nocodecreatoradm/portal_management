@@ -77,5 +77,37 @@ export const RolesService = {
       ...data,
       permissions: data.permissions?.map((p: any) => p.permissions) || []
     };
+  },
+
+  async createRole(role: Omit<Role, 'id' | 'permissions'>) {
+    const { data, error } = await supabase
+      .from('roles')
+      .insert([role])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async updateRole(id: number, role: Partial<Omit<Role, 'id' | 'permissions'>>) {
+    const { data, error } = await supabase
+      .from('roles')
+      .update(role)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteRole(id: number) {
+    const { error } = await supabase
+      .from('roles')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
   }
 };
