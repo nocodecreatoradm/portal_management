@@ -3,6 +3,7 @@ import { Eye, Edit2, Trash2, FileText, Upload, Image as ImageIcon, UserPlus, Hel
 import { ProductRecord, DocumentVersion, Supplier, SampleRecord } from '../types';
 import StatusIcon from './StatusIcon';
 import HeaderFilterPopover from './HeaderFilterPopover';
+import { useAuth } from '../contexts/AuthContext';
 
 interface DataTableProps {
   data: ProductRecord[];
@@ -34,6 +35,19 @@ export default function DataTable({
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const { profile } = useAuth();
+
+  const hasScope = (record: ProductRecord) => {
+    if (!profile) return false;
+    if (profile.role === 'admin') return true;
+    if (!profile.scopes || profile.scopes.length === 0) return false;
+    
+    return profile.scopes.some(scope => {
+      const matchBrand = !scope.brand || scope.brand === record.marca;
+      const matchLine = !scope.line || scope.line === record.linea;
+      return matchBrand && matchLine;
+    });
+  };
 
   const getSupplierLogo = (codProv: string) => {
     const supplier = suppliers.find(s => s.erpCode === codProv);
@@ -94,14 +108,21 @@ export default function DataTable({
             const approval = stage === 'I+D' ? v.idApproval : 
                              stage === 'MKT' ? v.mktApproval : 
                              stage === 'PLAN' ? v.planApproval : v.provApproval;
+            const canApprove = hasScope(record);
             return (
               <div key={idx} className="h-8 flex items-center justify-center">
-                <button 
-                  onClick={() => onActionClick(record, type, 'approve', v, stage)}
-                  className="inline-flex items-center justify-center transition-transform hover:scale-110"
-                >
-                  <StatusIcon status={approval?.status} label={stage} />
-                </button>
+                {canApprove ? (
+                  <button 
+                    onClick={() => onActionClick(record, type, 'approve', v, stage)}
+                    className="inline-flex items-center justify-center transition-transform hover:scale-110"
+                  >
+                    <StatusIcon status={approval?.status} label={stage} />
+                  </button>
+                ) : (
+                  <div className="inline-flex items-center justify-center opacity-80 cursor-not-allowed" title="No tienes permisos para aprobar esta marca/línea">
+                    <StatusIcon status={approval?.status} label={stage} />
+                  </div>
+                )}
               </div>
             );
           })}
