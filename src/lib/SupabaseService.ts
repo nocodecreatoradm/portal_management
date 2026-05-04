@@ -98,7 +98,13 @@ export const SupabaseService = {
   async getSamples() {
     const { data, error } = await supabase
       .from('samples')
-      .select('*')
+      .select(`
+        *,
+        brand:brands(name),
+        supplier:suppliers(legal_name),
+        line:product_lines(name),
+        category:categories(name)
+      `)
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data.map(mapDBToSample);
@@ -427,7 +433,10 @@ export const SupabaseService = {
   async getEnergyEfficiencyRecords() {
     const { data, error } = await supabase
       .from('energy_efficiency_records')
-      .select('*')
+      .select(`
+        *,
+        supplier:suppliers(legal_name)
+      `)
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data.map(mapDBToEE);
