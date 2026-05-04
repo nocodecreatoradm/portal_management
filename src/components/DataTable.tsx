@@ -34,35 +34,6 @@ export default function DataTable({
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  const topScrollRef = useRef<HTMLDivElement>(null);
-
-  // Sync scrollbars
-  useEffect(() => {
-    const tableContainer = tableContainerRef.current;
-    const topScroll = topScrollRef.current;
-
-    if (!tableContainer || !topScroll) return;
-
-    const handleTableScroll = () => {
-      if (topScroll.scrollLeft !== tableContainer.scrollLeft) {
-        topScroll.scrollLeft = tableContainer.scrollLeft;
-      }
-    };
-
-    const handleTopScroll = () => {
-      if (tableContainer.scrollLeft !== topScroll.scrollLeft) {
-        tableContainer.scrollLeft = topScroll.scrollLeft;
-      }
-    };
-
-    tableContainer.addEventListener('scroll', handleTableScroll);
-    topScroll.addEventListener('scroll', handleTopScroll);
-
-    return () => {
-      tableContainer.removeEventListener('scroll', handleTableScroll);
-      topScroll.removeEventListener('scroll', handleTopScroll);
-    };
-  }, []);
 
   const getSupplierLogo = (codProv: string) => {
     const supplier = suppliers.find(s => s.erpCode === codProv);
@@ -269,14 +240,6 @@ export default function DataTable({
 
       {/* Table for Desktop (hidden lg:block) */}
       <div className="hidden lg:flex lg:flex-col">
-        {/* Top Scrollbar */}
-        <div 
-          ref={topScrollRef}
-          className="overflow-x-auto h-3 bg-slate-50 border-b border-slate-100"
-        >
-          <div style={{ width: '1800px', height: '1px' }}></div>
-        </div>
-
         <div ref={tableContainerRef} className="overflow-x-auto min-h-[420px]">
           <table className="w-full text-sm text-left border-collapse" style={{ minWidth: '1800px' }}>
           <thead className="bg-[#f8fafc] text-slate-500 uppercase text-[10px] font-bold border-b border-gray-200 sticky top-0 z-20">

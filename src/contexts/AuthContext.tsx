@@ -8,6 +8,7 @@ interface Profile {
   full_name: string;
   role: string;
   avatar_url?: string;
+  scopes?: { brand: string; line: string }[];
 }
 
 interface AuthContextType {

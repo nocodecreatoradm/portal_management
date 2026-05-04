@@ -1252,7 +1252,7 @@ export default function App() {
             />
             
             <main className="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar">
-              <div className="max-w-[1600px] mx-auto">
+              <div className="w-full">
                 {renderModuleContent()}
               </div>
             </main>

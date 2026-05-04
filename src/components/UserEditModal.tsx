@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SupabaseService } from '../lib/SupabaseService';
 import { Role } from '../services/RolesService';
 import { toast } from 'sonner';
+import { Brand, ProductLine } from '../types';
 
 interface UserEditModalProps {
   isOpen: boolean;
@@ -18,9 +19,28 @@ export default function UserEditModal({ isOpen, onClose, user, roles, onUpdate }
     full_name: '',
     department: '',
     role: '',
-    avatar_url: ''
+    avatar_url: '',
+    scopes: [] as { brand: string; line: string }[]
   });
   const [saving, setSaving] = useState(false);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [lines, setLines] = useState<ProductLine[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [brandsData, linesData] = await Promise.all([
+          SupabaseService.getBrands(),
+          SupabaseService.getProductLines()
+        ]);
+        setBrands(brandsData);
+        setLines(linesData);
+      } catch (error) {
+        console.error('Error fetching brands/lines:', error);
+      }
+    };
+    fetchData();
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -28,7 +48,8 @@ export default function UserEditModal({ isOpen, onClose, user, roles, onUpdate }
         full_name: user.full_name || '',
         department: user.department || '',
         role: user.role || 'viewer',
-        avatar_url: user.avatar_url || ''
+        avatar_url: user.avatar_url || '',
+        scopes: user.scopes || []
       });
     }
   }, [user, isOpen]);
@@ -141,6 +162,72 @@ export default function UserEditModal({ isOpen, onClose, user, roles, onUpdate }
                 className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent rounded-2xl focus:bg-white focus:outline-none focus:border-blue-600 transition-all text-sm font-bold text-slate-700"
                 placeholder="https://ejemplo.com/foto.jpg"
               />
+            </div>
+
+            {/* Scopes Section */}
+            <div className="space-y-3 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Permisos por Marca y Línea (Opcional)</label>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, scopes: [...formData.scopes, { brand: '', line: '' }] })}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors bg-blue-50 px-3 py-1.5 rounded-lg"
+                >
+                  + Agregar Regla
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                {formData.scopes.map((scope, index) => (
+                  <div key={index} className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                    <select
+                      value={scope.brand}
+                      onChange={(e) => {
+                        const newScopes = [...formData.scopes];
+                        newScopes[index].brand = e.target.value;
+                        setFormData({ ...formData, scopes: newScopes });
+                      }}
+                      className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 transition-all text-sm font-medium text-slate-700"
+                    >
+                      <option value="">Todas las marcas</option>
+                      {brands.map(b => (
+                        <option key={b.id} value={b.name}>{b.name}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={scope.line}
+                      onChange={(e) => {
+                        const newScopes = [...formData.scopes];
+                        newScopes[index].line = e.target.value;
+                        setFormData({ ...formData, scopes: newScopes });
+                      }}
+                      className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 transition-all text-sm font-medium text-slate-700"
+                    >
+                      <option value="">Todas las líneas</option>
+                      {lines.map(l => (
+                        <option key={l.id} value={l.name}>{l.name}</option>
+                      ))}
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newScopes = formData.scopes.filter((_, i) => i !== index);
+                        setFormData({ ...formData, scopes: newScopes });
+                      }}
+                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+                {formData.scopes.length === 0 && (
+                  <div className="text-xs text-slate-500 text-center py-4 italic bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                    Sin restricciones. El usuario tendrá acceso global según su rol.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
