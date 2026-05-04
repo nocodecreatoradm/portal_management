@@ -125,15 +125,23 @@ export default function CommercialArtworks({
 
   const handleUpdateRecord = async (id: string, updates: Partial<ProductRecord>) => {
     try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      let result;
       if (isUUID) {
-        const result = await SupabaseService.updateProduct(id, updates);
-        if (result) {
-          setData(prev => prev.map(p => p.id === id ? result : p));
-          toast.success('Estado actualizado');
-        }
+        result = await SupabaseService.updateProduct(id, updates);
       } else {
-        toast.error('No se puede actualizar un registro local. Sincronice primero.');
+        const p = data.find(item => item.id === id);
+        if (p && p.codigoSAP) {
+          result = await SupabaseService.updateProductBySAP(p.codigoSAP, updates);
+        }
+      }
+      if (result) {
+        setData(prev => prev.map(p => p.id === id ? result : p));
+        toast.success('Estado actualizado');
+      } else {
+        // If it's a mock product not in Supabase, update it locally in state
+        setData(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+        toast.success('Estado actualizado localmente');
       }
     } catch (error) {
       console.error('Error updating product:', error);

@@ -99,7 +99,8 @@ export default function ProjectsModule() {
       const templateIdMap: Record<string, string> = {};
 
       // Migrate templates if empty
-      if (templatesData && templatesData.length === 0) {
+      const templatesMigrated = localStorage.getItem('rd_templates_migrated');
+      if (templatesData && templatesData.length === 0 && !templatesMigrated) {
         console.log('RD Templates database empty or failed, migrating initial templates...');
         try {
           const migratedTemplates = await Promise.all(
@@ -112,12 +113,16 @@ export default function ProjectsModule() {
               return created;
             })
           );
+          localStorage.setItem('rd_templates_migrated', 'true');
           setTemplates(migratedTemplates as unknown as RDProjectTemplate[]);
         } catch (err) {
           console.error('Error migrating initial RD templates:', err);
           setTemplates(initialRDProjectTemplates);
         }
       } else {
+        if (templatesData && templatesData.length > 0) {
+          localStorage.setItem('rd_templates_migrated', 'true');
+        }
         setTemplates(templatesData as unknown as RDProjectTemplate[]);
         // Build templateIdMap by matching template names
         initialRDProjectTemplates.forEach(t => {
@@ -131,7 +136,8 @@ export default function ProjectsModule() {
       const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
 
       // Migrate projects if empty
-      if (projectsData && projectsData.length === 0) {
+      const projectsMigrated = localStorage.getItem('rd_projects_migrated');
+      if (projectsData && projectsData.length === 0 && !projectsMigrated) {
         console.log('RD Projects database empty or failed, migrating initial projects...');
         try {
           const migratedProjects = await Promise.all(
@@ -143,12 +149,16 @@ export default function ProjectsModule() {
               return await SupabaseService.createRDProject(projectData as any);
             })
           );
+          localStorage.setItem('rd_projects_migrated', 'true');
           setProjects(migratedProjects as unknown as RDProject[]);
         } catch (err) {
           console.error('Error migrating initial RD projects:', err);
           setProjects(initialRDProjects);
         }
       } else {
+        if (projectsData && projectsData.length > 0) {
+          localStorage.setItem('rd_projects_migrated', 'true');
+        }
         setProjects(projectsData as unknown as RDProject[]);
       }
 

@@ -62,7 +62,7 @@ export const mapEEToDB = (record: Partial<EnergyEfficiencyRecord>) => {
   const dbRecord: any = {
     mt_code: record.codigoMT,
     description: record.descripcion,
-    letra: record.letra,
+    letter: record.letra,
     ee_percentage: record.porcentajeEE,
     ocp: record.ocp,
     supplier_id: record.proveedor && isUUID(record.proveedor) ? record.proveedor : null,
@@ -70,10 +70,10 @@ export const mapEEToDB = (record: Partial<EnergyEfficiencyRecord>) => {
     vigilance_date: record.fechaVigilancia,
     product_type: record.tipoProducto,
     sample_id: record.sampleId && isUUID(record.sampleId) ? record.sampleId : null,
-    certificado_file: record.certificadoFile,
-    certificado_history: record.certificadoHistory,
-    etiqueta_file: record.etiquetaFile,
-    etiqueta_history: record.etiquetaHistory,
+    certificate_file: record.certificadoFile,
+    certificate_history: record.certificadoHistory,
+    label_file: record.etiquetaFile,
+    label_history: record.etiquetaHistory,
     gallery: record.gallery
   };
   return dbRecord;
@@ -83,7 +83,7 @@ export const mapDBToEE = (dbRecord: any): EnergyEfficiencyRecord => ({
   id: dbRecord.id,
   codigoMT: dbRecord.mt_code,
   descripcion: dbRecord.description,
-  letra: dbRecord.letra,
+  letra: dbRecord.letter,
   porcentajeEE: dbRecord.ee_percentage,
   ocp: dbRecord.ocp,
   proveedor: dbRecord.supplier_id,
@@ -91,10 +91,10 @@ export const mapDBToEE = (dbRecord: any): EnergyEfficiencyRecord => ({
   fechaVigilancia: dbRecord.vigilance_date,
   tipoProducto: dbRecord.product_type,
   sampleId: dbRecord.sample_id,
-  certificadoFile: dbRecord.certificado_file,
-  certificadoHistory: dbRecord.certificado_history,
-  etiquetaFile: dbRecord.etiqueta_file,
-  etiquetaHistory: dbRecord.etiqueta_history,
+  certificadoFile: dbRecord.certificate_file,
+  certificadoHistory: dbRecord.certificate_history,
+  etiquetaFile: dbRecord.label_file,
+  etiquetaHistory: dbRecord.label_history,
   gallery: dbRecord.gallery,
   createdAt: dbRecord.created_at
 });
@@ -291,7 +291,7 @@ export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
   linea: dbProduct.line?.name || dbProduct.line_id || 'AGUA CALIENTE',
   codProv: '', // Not in DB yet
   correoProveedor: [], // Not in DB yet
-  artworks: dbProduct.documents ? dbProduct.documents.filter((d: any) => d.category === 'Artwork') : [],
+  artworks: dbProduct.documents ? dbProduct.documents.filter((d: any) => d.category !== 'Technical Sheet' && d.category !== 'Commercial Sheet') : [],
   technicalSheets: dbProduct.documents ? dbProduct.documents.filter((d: any) => d.category === 'Technical Sheet') : [],
   commercialSheets: dbProduct.documents ? dbProduct.documents.filter((d: any) => d.category === 'Commercial Sheet') : [],
   commercialStatus: dbProduct.commercial_status,

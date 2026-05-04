@@ -334,7 +334,11 @@ export default function App() {
             newData[recordIndex] = record;
             
             // Persist to Supabase
-            await SupabaseService.updateProduct(record.id, { [docArrayKey]: record[docArrayKey] });
+            if (record.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record.id)) {
+              await SupabaseService.updateProduct(record.id, { [docArrayKey]: record[docArrayKey] });
+            } else if (record.codigoSAP) {
+              await SupabaseService.updateProductBySAP(record.codigoSAP, { [docArrayKey]: record[docArrayKey] });
+            }
             
             setData(newData);
             toast.success('Nueva versión registrada');
@@ -373,7 +377,11 @@ export default function App() {
               newData[recordIndex] = record;
               
               // Persist to Supabase
-              await SupabaseService.updateProduct(record.id, { [docArrayKey]: record[docArrayKey] });
+              if (record.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record.id)) {
+                await SupabaseService.updateProduct(record.id, { [docArrayKey]: record[docArrayKey] });
+              } else if (record.codigoSAP) {
+                await SupabaseService.updateProductBySAP(record.codigoSAP, { [docArrayKey]: record[docArrayKey] });
+              }
               
               setData(newData);
 

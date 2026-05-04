@@ -8,20 +8,48 @@ const key = process.env.VITE_SUPABASE_ANON_KEY!;
 const supabase = createClient(url, key);
 
 async function test() {
-  console.log('Testing raw insert on products with string brand_id...');
+  console.log('Testing full discovered mapping...');
+  const testObj: any = {
+    mt_code: 'TEST_' + Date.now(),
+    description: 'Test record via discovered columns',
+    letter: 'A',
+    ee_percentage: '50%',
+    ocp: 'OCP_TEST',
+    supplier_id: null,
+    emission_date: '2026-05-01',
+    vigilance_date: '2026-05-01',
+    product_type: 'Test type',
+    sample_id: null,
+    certificate_file: { name: 'cert.pdf', url: 'https://test.com' },
+    certificate_history: [],
+    label_file: { name: 'label.png', url: 'https://test.com' },
+    label_history: [],
+    gallery: []
+  };
 
   const { data, error } = await supabase
-    .from('products')
-    .insert([
-      {
-        sap_code: 'TEST_INSERT_' + Date.now(),
-        brand_id: 'SOLE',
-        line_id: 'LÍNEA BLANCA',
-      }
-    ])
+    .from('energy_efficiency_records')
+    .insert([testObj])
     .select();
 
-  console.log('Insert result:', data, error);
+  console.log('Result:', data, error);
 }
 
 test();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

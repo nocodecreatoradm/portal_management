@@ -53,7 +53,8 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
         const data = await SupabaseService.getInventory();
         const remoteItems = data as unknown as RDInventoryItem[];
         
-        if (remoteItems.length === 0) {
+        const alreadyMigrated = localStorage.getItem('rd_inventory_migrated');
+        if (remoteItems.length === 0 && !alreadyMigrated) {
           // Auto-migrate initialRDInventory to Supabase if empty
           console.log('RD Inventory database empty, migrating initial records...');
           const migratedData = await Promise.all(
@@ -62,8 +63,12 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
               return await SupabaseService.createInventoryItem(itemData as any);
             })
           );
+          localStorage.setItem('rd_inventory_migrated', 'true');
           setItems(migratedData as unknown as RDInventoryItem[]);
         } else {
+          if (remoteItems.length > 0) {
+            localStorage.setItem('rd_inventory_migrated', 'true');
+          }
           setItems(remoteItems);
         }
       } catch (error) {

@@ -53,7 +53,7 @@ import {
 } from './mappings';
 
 
-const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
 export const SupabaseService = {
   // MASTER DATA
@@ -155,6 +155,13 @@ export const SupabaseService = {
 
   async createProduct(product: Omit<ProductRecord, 'id' | 'createdAt'>) {
     const dbProduct = mapProductToDB(product);
+    const initialDocs: any[] = [];
+    if (product.artworks) initialDocs.push(...product.artworks);
+    if (product.technicalSheets) initialDocs.push(...product.technicalSheets);
+    if (product.commercialSheets) initialDocs.push(...product.commercialSheets);
+    if (initialDocs.length > 0) {
+      dbProduct.documents = initialDocs;
+    }
     const { data, error } = await supabase
       .from('products')
       .insert([dbProduct])
@@ -164,9 +171,30 @@ export const SupabaseService = {
     return mapDBToProduct(data);
   },
 
-  async updateProduct(id: string, updates: Partial<ProductRecord>) {
+  async updateProduct(id: string, updates: Partial<ProductRecord & any>) {
     if (!isUUID(id)) return null;
     const dbUpdates = mapProductToDB(updates);
+
+    if (updates.artworks !== undefined || updates.technicalSheets !== undefined || updates.commercialSheets !== undefined) {
+      const { data: existing } = await supabase.from('products').select('documents').eq('id', id).single();
+      const existingDocs = existing?.documents || [];
+      let mergedDocs = [...existingDocs];
+
+      if (updates.artworks !== undefined) {
+        mergedDocs = mergedDocs.filter((d: any) => d.category === 'Technical Sheet' || d.category === 'Commercial Sheet');
+        mergedDocs = [...mergedDocs, ...updates.artworks.map((a: any) => ({ ...a, category: a.category || 'Artwork' }))];
+      }
+      if (updates.technicalSheets !== undefined) {
+        mergedDocs = mergedDocs.filter((d: any) => d.category !== 'Technical Sheet');
+        mergedDocs = [...mergedDocs, ...updates.technicalSheets.map((t: any) => ({ ...t, category: 'Technical Sheet' }))];
+      }
+      if (updates.commercialSheets !== undefined) {
+        mergedDocs = mergedDocs.filter((d: any) => d.category !== 'Commercial Sheet');
+        mergedDocs = [...mergedDocs, ...updates.commercialSheets.map((c: any) => ({ ...c, category: 'Commercial Sheet' }))];
+      }
+      dbUpdates.documents = mergedDocs;
+    }
+
     const { data, error } = await supabase
       .from('products')
       .update(dbUpdates)
@@ -177,8 +205,29 @@ export const SupabaseService = {
     return mapDBToProduct(data);
   },
 
-  async updateProductBySAP(codigoSAP: string, updates: Partial<ProductRecord>) {
+  async updateProductBySAP(codigoSAP: string, updates: Partial<ProductRecord & any>) {
     const dbUpdates = mapProductToDB(updates);
+    
+    if (updates.artworks !== undefined || updates.technicalSheets !== undefined || updates.commercialSheets !== undefined) {
+      const { data: existing } = await supabase.from('products').select('documents').eq('sap_code', codigoSAP).single();
+      const existingDocs = existing?.documents || [];
+      let mergedDocs = [...existingDocs];
+
+      if (updates.artworks !== undefined) {
+        mergedDocs = mergedDocs.filter((d: any) => d.category === 'Technical Sheet' || d.category === 'Commercial Sheet');
+        mergedDocs = [...mergedDocs, ...updates.artworks.map((a: any) => ({ ...a, category: a.category || 'Artwork' }))];
+      }
+      if (updates.technicalSheets !== undefined) {
+        mergedDocs = mergedDocs.filter((d: any) => d.category !== 'Technical Sheet');
+        mergedDocs = [...mergedDocs, ...updates.technicalSheets.map((t: any) => ({ ...t, category: 'Technical Sheet' }))];
+      }
+      if (updates.commercialSheets !== undefined) {
+        mergedDocs = mergedDocs.filter((d: any) => d.category !== 'Commercial Sheet');
+        mergedDocs = [...mergedDocs, ...updates.commercialSheets.map((c: any) => ({ ...c, category: 'Commercial Sheet' }))];
+      }
+      dbUpdates.documents = mergedDocs;
+    }
+
     const { data, error } = await supabase
       .from('products')
       .update(dbUpdates)

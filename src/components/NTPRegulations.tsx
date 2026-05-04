@@ -115,7 +115,8 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
       setLoading(true);
       const data = await SupabaseService.getNTPRegulations();
       
-      if (data.length === 0) {
+      const alreadyMigrated = localStorage.getItem('ntp_migrated');
+      if (data.length === 0 && !alreadyMigrated) {
         // Auto-migrate INITIAL_NTP to Supabase if empty
         // This ensures deletions and edits persist from the first interaction
         console.log('NTP database empty, migrating initial records...');
@@ -125,8 +126,12 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
             return await SupabaseService.createNTPRegulation(regData);
           })
         );
+        localStorage.setItem('ntp_migrated', 'true');
         setRegulations(migratedData);
       } else {
+        if (data.length > 0) {
+          localStorage.setItem('ntp_migrated', 'true');
+        }
         setRegulations(data);
       }
     } catch (error) {

@@ -13,6 +13,14 @@ import { es } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 
+const parseLocalISO = (dateStr: string) => {
+  if (!dateStr) return new Date();
+  if (!dateStr.includes('T')) {
+    return parseISO(`${dateStr}T00:00:00`);
+  }
+  return parseISO(dateStr);
+};
+
 export default function CalendarModule() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<CalendarTask[]>([]);
@@ -66,13 +74,13 @@ export default function CalendarModule() {
       const dayStr = format(day, 'yyyy-MM-dd');
       filteredTasks.forEach(task => {
         if (task.type === 'work' && task.deadline) {
-          if (format(parseISO(task.deadline), 'yyyy-MM-dd') === dayStr) {
+          if (format(parseLocalISO(task.deadline), 'yyyy-MM-dd') === dayStr) {
             if (!map[dayStr]) map[dayStr] = [];
             map[dayStr].push(task);
           }
         } else if (task.startDate && task.endDate) {
-          const start = parseISO(task.startDate);
-          const end = parseISO(task.endDate);
+          const start = parseLocalISO(task.startDate);
+          const end = parseLocalISO(task.endDate);
           if (isWithinInterval(day, { start, end }) || isSameDay(day, start) || isSameDay(day, end)) {
             if (!map[dayStr]) map[dayStr] = [];
             map[dayStr].push(task);
@@ -377,7 +385,7 @@ export default function CalendarModule() {
                       </div>
                       <div className="flex items-center gap-2 text-[10px] font-bold text-slate-600">
                         <Clock size={12} className="text-slate-400" />
-                        <span>{task.deadline ? format(parseISO(task.deadline), 'HH:mm') : ''}</span>
+                        <span>{task.deadline ? format(parseLocalISO(task.deadline), 'HH:mm') : ''}</span>
                       </div>
                     </>
                   ) : (
@@ -392,7 +400,7 @@ export default function CalendarModule() {
                         <Clock size={12} className="text-slate-400" />
                         <span>
                           {task.startDate && task.endDate ? 
-                            `${format(parseISO(task.startDate), 'd MMM')} - ${format(parseISO(task.endDate), 'd MMM')}` : 
+                            `${format(parseLocalISO(task.startDate), 'd MMM')} - ${format(parseLocalISO(task.endDate), 'd MMM')}` : 
                             'Todo el día'}
                         </span>
                       </div>
@@ -642,7 +650,7 @@ export default function CalendarModule() {
                   <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{log.action}</span>
-                      <span className="text-[9px] font-bold text-slate-400">{format(parseISO(log.timestamp), "d MMM, HH:mm", { locale: es })}</span>
+                      <span className="text-[9px] font-bold text-slate-400">{format(parseLocalISO(log.timestamp), "d MMM, HH:mm", { locale: es })}</span>
                     </div>
                     <p className="text-xs font-bold text-slate-700 mb-1">{log.details}</p>
                     <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase">
