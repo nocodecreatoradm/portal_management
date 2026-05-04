@@ -12,6 +12,8 @@ interface NewRequestModalProps {
   samples?: SampleRecord[];
   mode?: 'artwork' | 'technical_sheet' | 'commercial_sheet';
   initialData?: ProductRecord | null;
+  brands?: { id: string; name: string }[];
+  productLines?: { id: string; name: string }[];
 }
 
 export default function NewRequestModal({ 
@@ -21,7 +23,9 @@ export default function NewRequestModal({
   existingProviders = [], 
   existingData = [],
   mode = 'artwork',
-  initialData = null
+  initialData = null,
+  brands = [],
+  productLines = []
 }: Omit<NewRequestModalProps, 'samples'>) {
   const { samples } = useSamples();
   const [step, setStep] = React.useState<1 | 2>(initialData ? 2 : 1);
@@ -35,8 +39,8 @@ export default function NewRequestModal({
     codProv: initialData?.codProv || '',
     proveedor: initialData?.proveedor || '',
     correoProveedor: initialData?.correoProveedor || [] as string[],
-    marca: (initialData?.marca as 'SOLE' | 'S-Collection') || 'SOLE',
-    linea: (initialData?.linea as any) || 'LÍNEA BLANCA',
+    marca: initialData?.marca || (brands[0]?.name || 'SOLE'),
+    linea: initialData?.linea || (productLines[0]?.name || 'LÍNEA BLANCA'),
     sampleId: initialData?.sampleId || '',
   });
 
@@ -63,14 +67,14 @@ export default function NewRequestModal({
         codProv: '',
         proveedor: '',
         correoProveedor: [],
-        marca: 'SOLE',
-        linea: 'LÍNEA BLANCA',
+        marca: brands[0]?.name || 'SOLE',
+        linea: productLines[0]?.name || 'LÍNEA BLANCA',
         sampleId: '',
       });
       setStep(1);
       setArtworkType(null);
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, brands, productLines]);
 
   const [newEmail, setNewEmail] = React.useState('');
   const [autoFilled, setAutoFilled] = React.useState(false);
@@ -279,8 +283,16 @@ export default function NewRequestModal({
                       onChange={handleChange}
                       className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                     >
-                      <option value="SOLE">SOLE</option>
-                      <option value="S-Collection">S-Collection</option>
+                      {brands.length > 0 ? (
+                        brands.map(b => (
+                          <option key={b.id} value={b.name}>{b.name}</option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="SOLE">SOLE</option>
+                          <option value="S-Collection">S-Collection</option>
+                        </>
+                      )}
                     </select>
                   </div>
                   <div>
@@ -291,10 +303,18 @@ export default function NewRequestModal({
                       onChange={handleChange}
                       className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                     >
-                      <option value="LÍNEA BLANCA">LÍNEA BLANCA</option>
-                      <option value="AGUA CALIENTE">AGUA CALIENTE</option>
-                      <option value="CLIMATIZACIÓN">CLIMATIZACIÓN</option>
-                      <option value="PURIFICACIÓN">PURIFICACIÓN</option>
+                      {productLines.length > 0 ? (
+                        productLines.map(l => (
+                          <option key={l.id} value={l.name}>{l.name}</option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="LÍNEA BLANCA">LÍNEA BLANCA</option>
+                          <option value="AGUA CALIENTE">AGUA CALIENTE</option>
+                          <option value="CLIMATIZACIÓN">CLIMATIZACIÓN</option>
+                          <option value="PURIFICACIÓN">PURIFICACIÓN</option>
+                        </>
+                      )}
                     </select>
                   </div>
 

@@ -1176,6 +1176,8 @@ export default function App() {
             mode={activeModule === 'artwork_followup' ? 'artwork' : 
                   activeModule === 'technical_datasheet' ? 'technical_sheet' : 'commercial_sheet'}
             initialData={editingProduct}
+            brands={brands}
+            productLines={productLines}
           />
 
           <ApproverConfigModal
