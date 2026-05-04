@@ -410,10 +410,33 @@ export default function ProductDetailModal({
           )}
 
           {/* Histories */}
-          <div className="space-y-10">
-            {renderVersionHistory(record.artworks, 'Historial de Artworks', 'artwork')}
-            {renderVersionHistory(record.technicalSheets || [], 'Historial de Fichas Técnicas', 'technical_sheet')}
-            {renderVersionHistory(record.commercialSheets || [], 'Historial de Fichas Comerciales', 'commercial_sheet')}
+          <div className="space-y-6">
+            {record.artworks && record.artworks.length > 0 ? (
+              renderVersionHistory(record.artworks, 'Historial de Artworks', 'artwork')
+            ) : (
+              <div className="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-4 text-center text-slate-400">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Historial de Artworks</p>
+                <p className="text-[11px] font-medium mt-0.5">No hay artworks registrados para este producto.</p>
+              </div>
+            )}
+            
+            {record.technicalSheets && record.technicalSheets.length > 0 ? (
+              renderVersionHistory(record.technicalSheets, 'Historial de Fichas Técnicas', 'technical_sheet')
+            ) : (
+              <div className="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-4 text-center text-slate-400">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Historial de Fichas Técnicas</p>
+                <p className="text-[11px] font-medium mt-0.5">No hay fichas técnicas registradas para este producto.</p>
+              </div>
+            )}
+            
+            {record.commercialSheets && record.commercialSheets.length > 0 ? (
+              renderVersionHistory(record.commercialSheets, 'Historial de Fichas Comerciales', 'commercial_sheet')
+            ) : (
+              <div className="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-4 text-center text-slate-400">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Historial de Fichas Comerciales</p>
+                <p className="text-[11px] font-medium mt-0.5">No hay fichas comerciales registradas para este producto.</p>
+              </div>
+            )}
           </div>
 
           {/* Gallery Section */}
