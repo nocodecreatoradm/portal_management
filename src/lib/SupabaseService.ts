@@ -55,6 +55,14 @@ import {
 
 const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
+let cachedProfiles: { id: string; full_name: string }[] | null = null;
+const getCachedProfiles = async () => {
+  if (cachedProfiles) return cachedProfiles;
+  const { data, error } = await supabase.from('profiles').select('id, full_name');
+  if (!error && data) cachedProfiles = data;
+  return cachedProfiles || [];
+};
+
 export const SupabaseService = {
   // MASTER DATA
 
@@ -107,10 +115,21 @@ export const SupabaseService = {
       `)
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return data.map(mapDBToSample);
+    
+    const profiles = await getCachedProfiles();
+    return data.map(mapDBToSample).map(sample => {
+      const u = profiles.find(x => x.id === sample.technician);
+      if (u) sample.technician = u.full_name;
+      return sample;
+    });
   },
 
   async createSample(sample: Partial<SampleRecord>) {
+    const profiles = await getCachedProfiles();
+    if (sample.technician) {
+      const u = profiles.find(x => x.full_name === sample.technician);
+      if (u) sample.technician = u.id;
+    }
     const dbSample = mapSampleToDB(sample);
     const { data, error } = await supabase
       .from('samples')
@@ -118,11 +137,20 @@ export const SupabaseService = {
       .select()
       .single();
     if (error) throw error;
-    return mapDBToSample(data);
+    
+    const s = mapDBToSample(data);
+    const u = profiles.find(x => x.id === s.technician);
+    if (u) s.technician = u.full_name;
+    return s;
   },
 
   async updateSample(id: string, updates: Partial<SampleRecord>) {
     if (!isUUID(id)) return null;
+    const profiles = await getCachedProfiles();
+    if (updates.technician) {
+      const u = profiles.find(x => x.full_name === updates.technician);
+      if (u) updates.technician = u.id;
+    }
     const dbUpdates = mapSampleToDB(updates);
     const { data, error } = await supabase
       .from('samples')
@@ -131,7 +159,11 @@ export const SupabaseService = {
       .select()
       .single();
     if (error) throw error;
-    return mapDBToSample(data);
+    
+    const s = mapDBToSample(data);
+    const u = profiles.find(x => x.id === s.technician);
+    if (u) s.technician = u.full_name;
+    return s;
   },
 
   async deleteSample(id: string) {
@@ -357,10 +389,21 @@ export const SupabaseService = {
       `)
       .order('project_number');
     if (error) throw error;
-    return data.map(mapDBToProject);
+    
+    const profiles = await getCachedProfiles();
+    return data.map(mapDBToProject).map(proj => {
+      const u = profiles.find(x => x.id === proj.responsible);
+      if (u) proj.responsible = u.full_name;
+      return proj;
+    });
   },
 
   async createProject(project: Partial<Project>) {
+    const profiles = await getCachedProfiles();
+    if (project.responsible) {
+      const u = profiles.find(x => x.full_name === project.responsible);
+      if (u) project.responsible = u.id;
+    }
     const dbProject = mapProjectToDB(project);
     const { data, error } = await supabase
       .from('projects')
@@ -368,11 +411,20 @@ export const SupabaseService = {
       .select()
       .single();
     if (error) throw error;
-    return mapDBToProject(data);
+    
+    const p = mapDBToProject(data);
+    const u = profiles.find(x => x.id === p.responsible);
+    if (u) p.responsible = u.full_name;
+    return p;
   },
 
   async updateProject(id: string, updates: Partial<Project>) {
     if (!isUUID(id)) return null;
+    const profiles = await getCachedProfiles();
+    if (updates.responsible) {
+      const u = profiles.find(x => x.full_name === updates.responsible);
+      if (u) updates.responsible = u.id;
+    }
     const dbUpdates = mapProjectToDB(updates);
     const { data, error } = await supabase
       .from('projects')
@@ -381,7 +433,11 @@ export const SupabaseService = {
       .select()
       .single();
     if (error) throw error;
-    return mapDBToProject(data);
+    
+    const p = mapDBToProject(data);
+    const u = profiles.find(x => x.id === p.responsible);
+    if (u) p.responsible = u.full_name;
+    return p;
   },
 
   async deleteProject(id: string) {
@@ -527,10 +583,27 @@ export const SupabaseService = {
       .select('*')
       .order('deadline', { ascending: true });
     if (error) throw error;
-    return data.map(mapDBToTask);
+    
+    const profiles = await getCachedProfiles();
+    return data.map(mapDBToTask).map(task => {
+      const req = profiles.find(x => x.id === task.requester);
+      if (req) task.requester = req.full_name;
+      const ass = profiles.find(x => x.id === task.assignee);
+      if (ass) task.assignee = ass.full_name;
+      return task;
+    });
   },
 
   async createCalendarTask(task: Partial<CalendarTask>) {
+    const profiles = await getCachedProfiles();
+    if (task.requester) {
+      const req = profiles.find(x => x.full_name === task.requester);
+      if (req) task.requester = req.id;
+    }
+    if (task.assignee) {
+      const ass = profiles.find(x => x.full_name === task.assignee);
+      if (ass) task.assignee = ass.id;
+    }
     const dbTask = mapTaskToDB(task);
     const { data, error } = await supabase
       .from('calendar_tasks')
@@ -538,11 +611,26 @@ export const SupabaseService = {
       .select()
       .single();
     if (error) throw error;
-    return mapDBToTask(data);
+    
+    const t = mapDBToTask(data);
+    const req = profiles.find(x => x.id === t.requester);
+    if (req) t.requester = req.full_name;
+    const ass = profiles.find(x => x.id === t.assignee);
+    if (ass) t.assignee = ass.full_name;
+    return t;
   },
 
   async updateCalendarTask(id: string, updates: Partial<CalendarTask>) {
     if (!isUUID(id)) return null;
+    const profiles = await getCachedProfiles();
+    if (updates.requester) {
+      const req = profiles.find(x => x.full_name === updates.requester);
+      if (req) updates.requester = req.id;
+    }
+    if (updates.assignee) {
+      const ass = profiles.find(x => x.full_name === updates.assignee);
+      if (ass) updates.assignee = ass.id;
+    }
     const dbUpdates = mapTaskToDB(updates);
     const { data, error } = await supabase
       .from('calendar_tasks')
@@ -551,7 +639,13 @@ export const SupabaseService = {
       .select()
       .single();
     if (error) throw error;
-    return mapDBToTask(data);
+    
+    const t = mapDBToTask(data);
+    const req = profiles.find(x => x.id === t.requester);
+    if (req) t.requester = req.full_name;
+    const ass = profiles.find(x => x.id === t.assignee);
+    if (ass) t.assignee = ass.full_name;
+    return t;
   },
 
   async deleteCalendarTask(id: string) {
@@ -703,10 +797,21 @@ export const SupabaseService = {
       .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return data.map(mapDBToRDProject);
+    
+    const profiles = await getCachedProfiles();
+    return data.map(mapDBToRDProject).map(proj => {
+      const u = profiles.find(x => x.id === proj.responsible);
+      if (u) proj.responsible = u.full_name;
+      return proj;
+    });
   },
 
   async createRDProject(project: Partial<RDProject>) {
+    const profiles = await getCachedProfiles();
+    if (project.responsible) {
+      const u = profiles.find(x => x.full_name === project.responsible);
+      if (u) project.responsible = u.id;
+    }
     const dbProject = mapRDProjectToDB(project);
     const { data, error } = await supabase
       .from('rd_custom_projects')
@@ -714,11 +819,20 @@ export const SupabaseService = {
       .select()
       .single();
     if (error) throw error;
-    return mapDBToRDProject(data);
+    
+    const p = mapDBToRDProject(data);
+    const u = profiles.find(x => x.id === p.responsible);
+    if (u) p.responsible = u.full_name;
+    return p;
   },
 
   async updateRDProject(id: string, updates: Partial<RDProject>) {
     if (!isUUID(id)) return null;
+    const profiles = await getCachedProfiles();
+    if (updates.responsible) {
+      const u = profiles.find(x => x.full_name === updates.responsible);
+      if (u) updates.responsible = u.id;
+    }
     const dbUpdates = mapRDProjectToDB(updates);
     const { data, error } = await supabase
       .from('rd_custom_projects')
@@ -727,7 +841,11 @@ export const SupabaseService = {
       .select()
       .single();
     if (error) throw error;
-    return mapDBToRDProject(data);
+    
+    const p = mapDBToRDProject(data);
+    const u = profiles.find(x => x.id === p.responsible);
+    if (u) p.responsible = u.full_name;
+    return p;
   },
 
   async deleteRDProject(id: string) {
