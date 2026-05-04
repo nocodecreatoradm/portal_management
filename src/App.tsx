@@ -1011,11 +1011,11 @@ export default function App() {
       return <ProjectsModule onExportPPT={handleExportPPT} />;
     }
 
-    if (showReport && activeModule === 'artwork_followup') {
-      return <ReportsDashboard data={data} onBack={() => setShowReport(false)} />;
-    }
-
     const isFollowupModule = ['artwork_followup', 'technical_datasheet', 'commercial_datasheet'].includes(activeModule);
+
+    if (showReport && isFollowupModule) {
+      return <ReportsDashboard data={data} activeModule={activeModule} onBack={() => setShowReport(false)} />;
+    }
 
     if (!isFollowupModule) {
       return (

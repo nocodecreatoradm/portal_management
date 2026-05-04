@@ -15,12 +15,13 @@ import { currentUser } from '../data/mockData';
 
 interface ReportsDashboardProps {
   data: ProductRecord[];
+  activeModule: ModuleId | string;
   onBack: () => void;
 }
 
 const COLORS = ['#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#f59e0b', '#10b981'];
 
-export default function ReportsDashboard({ data, onBack }: ReportsDashboardProps) {
+export default function ReportsDashboard({ data, activeModule, onBack }: ReportsDashboardProps) {
   const [dateRange, setDateRange] = useState({
     start: format(subMonths(new Date(), 3), 'yyyy-MM-dd'),
     end: format(new Date(), 'yyyy-MM-dd')
@@ -50,7 +51,12 @@ export default function ReportsDashboard({ data, onBack }: ReportsDashboardProps
     };
 
     data.forEach(record => {
-      record.artworks.forEach(version => {
+      const docArrayKey = activeModule === 'artwork_followup' ? 'artworks' : 
+                          activeModule === 'technical_datasheet' ? 'technicalSheets' : 'commercialSheets';
+      
+      const docs = record[docArrayKey as keyof ProductRecord] as any[] || [];
+      
+      docs.forEach(version => {
         const uploadDate = parseISO(version.uploadDate);
         
         const processApproval = (stage: string, approval: any) => {
@@ -100,6 +106,9 @@ export default function ReportsDashboard({ data, onBack }: ReportsDashboardProps
     }> = {};
 
     data.forEach(record => {
+      const assignmentKey = activeModule === 'artwork_followup' ? 'artworkAssignment' : 
+                            activeModule === 'technical_datasheet' ? 'technicalAssignment' : 'commercialAssignment';
+      
       const processAssignment = (type: 'art', assignment: any) => {
         if (!assignment || !assignment.designer) return;
         
@@ -135,12 +144,12 @@ export default function ReportsDashboard({ data, onBack }: ReportsDashboardProps
         }
       };
 
-      processAssignment('art', record.artworkAssignment);
+      processAssignment('art', record[assignmentKey as keyof ProductRecord]);
     });
 
     const workloadData = Object.values(designerStats).map(d => ({
       name: d.name,
-      Artworks: d.artworks,
+      Documentos: d.artworks,
       Total: d.total,
       AvgDays: d.avgCompletionDays.length > 0 
         ? parseFloat((d.avgCompletionDays.reduce((a, b) => a + b, 0) / d.avgCompletionDays.length).toFixed(1)) 
@@ -152,7 +161,9 @@ export default function ReportsDashboard({ data, onBack }: ReportsDashboardProps
     const monthlyPerformance: Record<string, { total: number, count: number }> = {};
     
     data.forEach(record => {
-      const assignment = record.artworkAssignment;
+      const assignmentKey = activeModule === 'artwork_followup' ? 'artworkAssignment' : 
+                            activeModule === 'technical_datasheet' ? 'technicalAssignment' : 'commercialAssignment';
+      const assignment = record[assignmentKey as keyof ProductRecord] as any;
       if (assignment?.assignmentDate && assignment?.actualCompletionDate) {
         const start = parseISO(assignment.assignmentDate);
         const end = parseISO(assignment.actualCompletionDate);
@@ -187,7 +198,7 @@ export default function ReportsDashboard({ data, onBack }: ReportsDashboardProps
         { name: 'Rechazados', value: totalRejections }
       ]
     };
-  }, [data, dateRange]);
+  }, [data, dateRange, activeModule]);
 
   const handleSave = (details: { projectName: string; sampleId: string; description: string }) => {
     localStorage.setItem('reports_dashboard_config', JSON.stringify({ dateRange }));
@@ -204,15 +215,24 @@ export default function ReportsDashboard({ data, onBack }: ReportsDashboardProps
   };
 
   const handleExportExcel = () => {
-    const dataToExport = data.map(record => ({
-      'Producto': record.descripcionSAP,
-      'Marca': record.marca,
-      'Categoría': record.linea,
-      'Estado': record.artworks.length > 0 ? record.artworks[record.artworks.length - 1].idApproval.status : 'Pendiente',
-      'Diseñador': record.artworkAssignment?.designer || 'N/A',
-      'Fecha Asignación': record.artworkAssignment?.assignmentDate || 'N/A',
-      'Fecha Fin Real': record.artworkAssignment?.actualCompletionDate || 'N/A',
-    }));
+    const dataToExport = data.map(record => {
+      const docArrayKey = activeModule === 'artwork_followup' ? 'artworks' : 
+                          activeModule === 'technical_datasheet' ? 'technicalSheets' : 'commercialSheets';
+      const docs = record[docArrayKey as keyof ProductRecord] as any[] || [];
+      const assignmentKey = activeModule === 'artwork_followup' ? 'artworkAssignment' : 
+                            activeModule === 'technical_datasheet' ? 'technicalAssignment' : 'commercialAssignment';
+      const assignment = record[assignmentKey as keyof ProductRecord] as any;
+
+      return {
+        'Producto': record.descripcionSAP,
+        'Marca': record.marca,
+        'Categoría': record.linea,
+        'Estado': docs.length > 0 ? docs[docs.length - 1].idApproval.status : 'Pendiente',
+        'Diseñador': assignment?.designer || 'N/A',
+        'Fecha Asignación': assignment?.assignmentDate || 'N/A',
+        'Fecha Fin Real': assignment?.actualCompletionDate || 'N/A',
+      };
+    });
     exportToExcel(dataToExport, 'Reporte_Performance_ID');
     toast.success('Excel exportado correctamente');
   };
@@ -364,7 +384,7 @@ export default function ReportsDashboard({ data, onBack }: ReportsDashboardProps
                   Meta Trimestral:
                 </h3>
                 <p className="text-slate-400 text-sm leading-relaxed font-medium">
-                  Meta de 5 días por Artwork.
+                  Meta de 5 días por {activeModule === 'artwork_followup' ? 'Arte' : activeModule === 'technical_datasheet' ? 'Ficha Técnica' : 'Ficha Comercial'}.
                 </p>
               </div>
 
@@ -386,7 +406,7 @@ export default function ReportsDashboard({ data, onBack }: ReportsDashboardProps
           <div className="lg:col-span-3 p-8 lg:p-10 flex flex-col">
             <div className="mb-10">
               <h2 className="text-2xl lg:text-3xl font-black text-white tracking-tight leading-tight">
-                Tiempo promedio de elaboración de Artworks de productos Sole/S-Collection
+                Tiempo promedio de elaboración de {activeModule === 'artwork_followup' ? 'Artes' : activeModule === 'technical_datasheet' ? 'Fichas Técnicas' : 'Fichas Comerciales'} de productos Sole/S-Collection
               </h2>
             </div>
 
@@ -509,7 +529,7 @@ export default function ReportsDashboard({ data, onBack }: ReportsDashboardProps
                   contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                 />
                 <Legend iconType="circle" />
-                <Bar dataKey="Artworks" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={20} />
+                <Bar dataKey="Documentos" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={20} />
               </BarChart>
             </ResponsiveContainer>
           </div>
