@@ -166,7 +166,7 @@ export const SupabaseService = {
     if (product.technicalSheets) initialDocs.push(...product.technicalSheets);
     if (product.commercialSheets) initialDocs.push(...product.commercialSheets);
     if (initialDocs.length > 0) {
-      dbProduct.documents = initialDocs;
+      dbProduct.explode_files = initialDocs;
     }
     const { data, error } = await supabase
       .from('products')
@@ -182,8 +182,8 @@ export const SupabaseService = {
     const dbUpdates = mapProductToDB(updates);
 
     if (updates.artworks !== undefined || updates.technicalSheets !== undefined || updates.commercialSheets !== undefined) {
-      const { data: existing } = await supabase.from('products').select('documents').eq('id', id).single();
-      const existingDocs = existing?.documents || [];
+      const { data: existing } = await supabase.from('products').select('explode_files').eq('id', id).single();
+      const existingDocs = existing?.explode_files || [];
       let mergedDocs = [...existingDocs];
 
       if (updates.artworks !== undefined) {
@@ -198,7 +198,7 @@ export const SupabaseService = {
         mergedDocs = mergedDocs.filter((d: any) => d.category !== 'Commercial Sheet');
         mergedDocs = [...mergedDocs, ...updates.commercialSheets.map((c: any) => ({ ...c, category: 'Commercial Sheet' }))];
       }
-      dbUpdates.documents = mergedDocs;
+      dbUpdates.explode_files = mergedDocs;
     }
 
     const { data, error } = await supabase
@@ -215,8 +215,8 @@ export const SupabaseService = {
     const dbUpdates = mapProductToDB(updates);
     
     if (updates.artworks !== undefined || updates.technicalSheets !== undefined || updates.commercialSheets !== undefined) {
-      const { data: existing } = await supabase.from('products').select('documents').eq('sap_code', codigoSAP).single();
-      const existingDocs = existing?.documents || [];
+      const { data: existing } = await supabase.from('products').select('explode_files').eq('sap_code', codigoSAP).single();
+      const existingDocs = existing?.explode_files || [];
       let mergedDocs = [...existingDocs];
 
       if (updates.artworks !== undefined) {
@@ -231,7 +231,7 @@ export const SupabaseService = {
         mergedDocs = mergedDocs.filter((d: any) => d.category !== 'Commercial Sheet');
         mergedDocs = [...mergedDocs, ...updates.commercialSheets.map((c: any) => ({ ...c, category: 'Commercial Sheet' }))];
       }
-      dbUpdates.documents = mergedDocs;
+      dbUpdates.explode_files = mergedDocs;
     }
 
     const { data, error } = await supabase
