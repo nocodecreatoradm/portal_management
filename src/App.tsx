@@ -1140,7 +1140,53 @@ export default function App() {
           animate={{ opacity: 1 }}
           className="flex min-h-screen bg-[#f1f5f9] font-sans selection:bg-blue-100 selection:text-blue-900"
         >
-          <Toaster position="top-right" richColors />
+          <Toaster 
+            position="top-right" 
+            richColors 
+            toastOptions={{
+              className: 'font-sans font-semibold rounded-2xl shadow-xl backdrop-blur-md bg-white/90 border border-slate-200/60 p-4 text-slate-800 flex items-center gap-3',
+              style: {
+                borderRadius: '16px',
+                background: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(226, 232, 240, 0.8)',
+                boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+                color: '#0f172a'
+              },
+              success: {
+                className: 'bg-emerald-50/90 border-emerald-200/60 text-emerald-900',
+                style: {
+                  background: 'rgba(236, 253, 245, 0.9)',
+                  border: '1px solid rgba(167, 243, 208, 0.8)',
+                  color: '#065f46'
+                }
+              },
+              error: {
+                className: 'bg-red-50/90 border-red-200/60 text-red-900',
+                style: {
+                  background: 'rgba(254, 242, 242, 0.9)',
+                  border: '1px solid rgba(254, 202, 202, 0.8)',
+                  color: '#991b1b'
+                }
+              },
+              warning: {
+                className: 'bg-amber-50/90 border-amber-200/60 text-amber-900',
+                style: {
+                  background: 'rgba(255, 251, 235, 0.9)',
+                  border: '1px solid rgba(253, 230, 138, 0.8)',
+                  color: '#92400e'
+                }
+              },
+              info: {
+                className: 'bg-blue-50/90 border-blue-200/60 text-blue-900',
+                style: {
+                  background: 'rgba(239, 246, 255, 0.9)',
+                  border: '1px solid rgba(191, 219, 254, 0.8)',
+                  color: '#1e40af'
+                }
+              }
+            }} 
+          />
           <Sidebar 
             activeModule={activeModule} 
             onModuleChange={handleModuleChange}
