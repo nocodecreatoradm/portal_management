@@ -328,47 +328,80 @@ export default function ProductsModule({
     onConfirm: () => void;
   } | null>(null);
 
-  const handleExplodeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleExplodeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      const newFiles: FileInfo[] = Array.from(files).map((f: File) => ({
-        name: f.name,
-        url: URL.createObjectURL(f),
-        type: f.type
-      }));
-      setFormData(prev => ({
-        ...prev,
-        explodeFiles: [...(prev.explodeFiles || []), ...newFiles]
-      }));
-      toast.success('Explode añadido');
+      toast.loading('Subiendo archivos...');
+      try {
+        const uploadedFiles: FileInfo[] = [];
+        for (const f of Array.from(files) as File[]) {
+          const fileInfo = await SupabaseService.uploadFile('products', `explode/${Date.now()}_${f.name}`, f) as any;
+          uploadedFiles.push({
+            name: f.name,
+            url: fileInfo.url,
+            type: f.type
+          });
+        }
+        setFormData(prev => ({
+          ...prev,
+          explodeFiles: [...(prev.explodeFiles || []), ...uploadedFiles]
+        }));
+        toast.dismiss();
+        toast.success('Explode añadido');
+      } catch (err) {
+        toast.dismiss();
+        toast.error('Error al subir archivos explode');
+      }
     }
   };
 
-  const handleAdditionalDocsUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAdditionalDocsUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      const newFiles: FileInfo[] = Array.from(files).map((f: File) => ({
-        name: f.name,
-        url: URL.createObjectURL(f),
-        type: f.type
-      }));
-      setFormData(prev => ({
-        ...prev,
-        additionalProviderDocuments: [...(prev.additionalProviderDocuments || []), ...newFiles]
-      }));
-      toast.success('Documentos adicionales añadidos');
+      toast.loading('Subiendo documentos...');
+      try {
+        const uploadedFiles: FileInfo[] = [];
+        for (const f of Array.from(files) as File[]) {
+          const fileInfo = await SupabaseService.uploadFile('products', `additional/${Date.now()}_${f.name}`, f) as any;
+          uploadedFiles.push({
+            name: f.name,
+            url: fileInfo.url,
+            type: f.type
+          });
+        }
+        setFormData(prev => ({
+          ...prev,
+          additionalProviderDocuments: [...(prev.additionalProviderDocuments || []), ...uploadedFiles]
+        }));
+        toast.dismiss();
+        toast.success('Documentos adicionales añadidos');
+      } catch (err) {
+        toast.dismiss();
+        toast.error('Error al subir documentos adicionales');
+      }
     }
   };
 
-  const handleGalleryPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGalleryPhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      const newPhotos: FileInfo[] = Array.from(files).map((f: File) => ({
-        name: f.name,
-        url: URL.createObjectURL(f),
-        type: f.type
-      }));
-      setTempGalleryPhotos(prev => [...prev, ...newPhotos]);
+      toast.loading('Subiendo fotos...');
+      try {
+        const uploadedPhotos: FileInfo[] = [];
+        for (const f of Array.from(files) as File[]) {
+          const fileInfo = await SupabaseService.uploadFile('products', `gallery/${Date.now()}_${f.name}`, f) as any;
+          uploadedPhotos.push({
+            name: f.name,
+            url: fileInfo.url,
+            type: f.type
+          });
+        }
+        setTempGalleryPhotos(prev => [...prev, ...uploadedPhotos]);
+        toast.dismiss();
+      } catch (err) {
+        toast.dismiss();
+        toast.error('Error al subir fotos');
+      }
     }
   };
 

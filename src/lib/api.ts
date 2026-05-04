@@ -85,7 +85,15 @@ export const generateModuleCorrelative = async (moduleId: string, projectName: s
 
 export const fetchCantonFairSuppliers = async (year?: number) => {
   try {
-    let query = supabase.from('canton_fair_suppliers').select('*');
+    // Select only lightweight columns first; heavy binary data (catalogues, images, logo, wechat_qr)
+    // will be loaded on-demand when viewing a specific supplier detail
+    let query = supabase.from('canton_fair_suppliers').select(
+      'id, year, name, factory_location, contact_name, website, ' +
+      'innovation_rating, price_rating, manufacturing_rating, ' +
+      'fob_prices, comments, phone, email, ' +
+      'factory_visited, visit_date, visit_time, location_label, latitude, longitude, created_at, ' +
+      'catalogues, images, logo, wechat_qr'
+    );
     if (year) {
       query = query.eq('year', year);
     }

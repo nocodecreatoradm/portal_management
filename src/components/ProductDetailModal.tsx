@@ -4,6 +4,7 @@ import { ProductRecord, DocumentVersion, Approval, Supplier, SampleRecord, FileI
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import PDFReviewer from './PDFReviewer';
+import { SupabaseService } from '../lib/SupabaseService';
 
 interface ProductDetailModalProps {
   record: ProductRecord | null;
@@ -49,15 +50,26 @@ export default function ProductDetailModal({
     setReviewingVersion(prev => prev ? { ...prev, version: { ...prev.version, pdfComments: newComments } } : null);
   };
 
-  const handleGalleryPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGalleryPhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      const newPhotos: FileInfo[] = Array.from(files).map((f: File) => ({
-        name: f.name,
-        url: URL.createObjectURL(f),
-        type: f.type
-      }));
-      setTempGalleryPhotos(prev => [...prev, ...newPhotos]);
+      toast.loading('Subiendo fotos...');
+      try {
+        const uploadedPhotos: FileInfo[] = [];
+        for (const f of Array.from(files) as File[]) {
+          const fileInfo = await SupabaseService.uploadFile('products', `gallery/${Date.now()}_${f.name}`, f) as any;
+          uploadedPhotos.push({
+            name: f.name,
+            url: fileInfo.url,
+            type: f.type
+          });
+        }
+        setTempGalleryPhotos(prev => [...prev, ...uploadedPhotos]);
+        toast.dismiss();
+      } catch (err) {
+        toast.dismiss();
+        toast.error('Error al subir fotos');
+      }
     }
   };
 

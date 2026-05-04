@@ -46,7 +46,8 @@ import ModuleActions from './components/ModuleActions';
 import { exportToExcel, generateReportPDF, exportToPPT } from './lib/exportUtils';
 import { saveCalculationRecord, fetchCalculationRecords } from './lib/api';
 import { outlookService } from './services/outlookService';
-import { initialData, technicians, designers, initialProjects, initialSamples, initialRDInventory, initialApprovers, initialSuppliers, initialEnergyEfficiency, initialProductManagement, initialCalendarTasks, initialRDProjectTemplates } from './data/mockData';
+import { initialApprovers } from './data/mockData';
+import { MigrationRunner } from './components/MigrationRunner';
 import { LandingPage } from './components/LandingPage';
 import { 
   ProductRecord, 
@@ -81,7 +82,7 @@ export default function App() {
   const [showReport, setShowReport] = useState(false);
   const [data, setData] = useState<ProductRecord[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-  const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [calculationRecords, setCalculationRecords] = useState<CalculationRecord[]>([]);
   const [approvers, setApprovers] = useState(initialApprovers);
   const [brands, setBrands] = useState<any[]>([]);
@@ -166,13 +167,14 @@ export default function App() {
     type: null,
   });
 
-  // Load all data from Supabase
+  // Load core data from Supabase (lightweight initial load)
   useEffect(() => {
-    const loadAllData = async () => {
+    const loadCoreData = async () => {
       if (!user) return;
       
       setLoadingData(true);
       try {
+        // Only load essential lightweight data on startup
         const results = await Promise.allSettled([
           SupabaseService.getProducts(),
           SupabaseService.getSuppliers(),
@@ -209,28 +211,25 @@ export default function App() {
         if (approversRes.status === 'fulfilled') setApprovers(approversRes.value);
         else console.error('Error loading approvers:', approversRes.reason);
 
-        // Load calculations
-        try {
-          const calcRecords = await fetchCalculationRecords();
-          setCalculationRecords(calcRecords);
-        } catch (error) {
-          console.error('Error loading calculations:', error);
-        }
+        // Load calculations lazily (non-blocking)
+        fetchCalculationRecords()
+          .then(calcRecords => setCalculationRecords(calcRecords))
+          .catch(error => console.error('Error loading calculations:', error));
 
-        // Only show error toast if critical data failed (like products or samples)
+        // Only show error toast if critical data failed
         if (productsRes.status === 'rejected' || samplesRes.status === 'rejected') {
           toast.error('Error al sincronizar datos principales con la nube');
         }
 
       } catch (error) {
-        console.error('Unexpected error in loadAllData:', error);
+        console.error('Unexpected error in loadCoreData:', error);
         toast.error('Error crítico al sincronizar datos');
       } finally {
         setLoadingData(false);
       }
     };
 
-    loadAllData();
+    loadCoreData();
   }, [user]);
 
   const handleSaveData = (details: { projectName: string; sampleId: string; description: string }) => {
@@ -418,7 +417,7 @@ export default function App() {
     setIsModalOpen(false);
   };
 
-  const handleStartFlow = (record: ProductRecord, version: DocumentVersion) => {
+  const handleStartFlow = async (record: ProductRecord, version: DocumentVersion) => {
     const newData = [...data];
     const recordIndex = newData.findIndex(r => r.id === record.id);
     
@@ -449,6 +448,18 @@ export default function App() {
         updatedRecord[docArrayKey] = docArray;
         newData[recordIndex] = updatedRecord;
         setData(newData);
+
+        // Persist to Supabase
+        try {
+          if (updatedRecord.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(updatedRecord.id)) {
+            await SupabaseService.updateProduct(updatedRecord.id, { [docArrayKey]: updatedRecord[docArrayKey] });
+          } else if (updatedRecord.codigoSAP) {
+            await SupabaseService.updateProductBySAP(updatedRecord.codigoSAP, { [docArrayKey]: updatedRecord[docArrayKey] });
+          }
+        } catch (error) {
+          console.error('Error persisting flow start:', error);
+          toast.error('Error al guardar inicio de flujo en la nube');
+        }
       }
     }
   };
@@ -463,43 +474,70 @@ export default function App() {
     setIsInfoRequestModalOpen(true);
   };
 
-  const handleSaveAssignment = (assignment: AssignmentInfo) => {
+  const handleSaveAssignment = async (assignment: AssignmentInfo) => {
     if (assignmentConfig.record && assignmentConfig.type) {
+      const assignmentKey = assignmentConfig.type === 'artwork' ? 'artworkAssignment' : 
+                            assignmentConfig.type === 'technical_sheet' ? 'technicalAssignment' : 'commercialAssignment';
+      
       const newData = data.map(r => {
         if (r.id === assignmentConfig.record?.id) {
-          const assignmentKey = assignmentConfig.type === 'artwork' ? 'artworkAssignment' : 
-                                assignmentConfig.type === 'technical_sheet' ? 'technicalAssignment' : 'commercialAssignment';
-          return {
-            ...r,
-            [assignmentKey]: assignment
-          };
+          return { ...r, [assignmentKey]: assignment };
         }
         return r;
       });
       setData(newData);
+
+      // Persist assignment to Supabase
+      try {
+        const recordId = assignmentConfig.record.id;
+        if (recordId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(recordId)) {
+          // Assignments are stored as part of the product's explode_files or as separate fields
+          // For now, persist via the product update mechanism
+          const updatedRecord = newData.find(r => r.id === recordId);
+          if (updatedRecord) {
+            await SupabaseService.updateProduct(recordId, { [assignmentKey]: assignment } as any);
+          }
+        }
+      } catch (error) {
+        console.error('Error persisting assignment:', error);
+        toast.error('Asignación guardada localmente pero falló la sincronización con la nube');
+      }
     }
   };
 
-  const handleSaveInfoRequests = (requests: InfoRequest[]) => {
+  const handleSaveInfoRequests = async (requests: InfoRequest[]) => {
     if (infoRequestConfig.record && infoRequestConfig.type) {
+      const assignmentKey = infoRequestConfig.type === 'artwork' ? 'artworkAssignment' : 
+                            infoRequestConfig.type === 'technical_sheet' ? 'technicalAssignment' : 'commercialAssignment';
+      
       const newData = data.map(r => {
         if (r.id === infoRequestConfig.record?.id) {
-          const assignmentKey = infoRequestConfig.type === 'artwork' ? 'artworkAssignment' : 
-                                infoRequestConfig.type === 'technical_sheet' ? 'technicalAssignment' : 'commercialAssignment';
           const currentAssignment = r[assignmentKey];
           if (currentAssignment) {
             return {
               ...r,
-              [assignmentKey]: {
-                ...currentAssignment,
-                infoRequests: requests
-              }
+              [assignmentKey]: { ...currentAssignment, infoRequests: requests }
             };
           }
         }
         return r;
       });
       setData(newData);
+
+      // Persist info requests to Supabase
+      try {
+        const recordId = infoRequestConfig.record.id;
+        if (recordId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(recordId)) {
+          const updatedRecord = newData.find(r => r.id === recordId);
+          if (updatedRecord) {
+            const updatedAssignment = updatedRecord[assignmentKey];
+            await SupabaseService.updateProduct(recordId, { [assignmentKey]: updatedAssignment } as any);
+          }
+        }
+      } catch (error) {
+        console.error('Error persisting info requests:', error);
+        toast.error('Solicitudes guardadas localmente pero falló la sincronización con la nube');
+      }
     }
   };
 
@@ -1187,6 +1225,10 @@ export default function App() {
               }
             }} 
           />
+
+          {/* Temporary: Migration tool to move base64 data to Storage */}
+          {/* Remove this component after running the migration */}
+          <MigrationRunner />
           <Sidebar 
             activeModule={activeModule} 
             onModuleChange={handleModuleChange}

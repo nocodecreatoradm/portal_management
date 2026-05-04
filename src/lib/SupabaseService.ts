@@ -55,12 +55,28 @@ import {
 
 const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
+// Profile cache with automatic invalidation
 let cachedProfiles: { id: string; full_name: string }[] | null = null;
+let profilesCacheTimestamp = 0;
+const PROFILES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 const getCachedProfiles = async () => {
-  if (cachedProfiles) return cachedProfiles;
+  const now = Date.now();
+  if (cachedProfiles && (now - profilesCacheTimestamp) < PROFILES_CACHE_TTL) {
+    return cachedProfiles;
+  }
   const { data, error } = await supabase.from('profiles').select('id, full_name');
-  if (!error && data) cachedProfiles = data;
+  if (!error && data) {
+    cachedProfiles = data;
+    profilesCacheTimestamp = now;
+  }
   return cachedProfiles || [];
+};
+
+// Force refresh profiles cache (call after user changes)
+const invalidateProfilesCache = () => {
+  cachedProfiles = null;
+  profilesCacheTimestamp = 0;
 };
 
 export const SupabaseService = {
@@ -880,55 +896,109 @@ export const SupabaseService = {
   },
 
   // STORAGE HELPERS
+  // Max file size: 10 MB
+  MAX_FILE_SIZE: 10 * 1024 * 1024,
+
   async uploadFile(bucket: string, path: string, file: File) {
-    try {
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(path, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
+    // Validate file size before uploading
+    if (file.size > this.MAX_FILE_SIZE) {
+      throw new Error(`El archivo "${file.name}" excede el tamaño máximo permitido (10 MB). Tamaño actual: ${(file.size / (1024 * 1024)).toFixed(1)} MB`);
+    }
 
-      if (error) {
-        console.warn('Supabase storage upload error:', error);
-        const base64Url = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = err => reject(err);
-        });
-        return { name: file.name, url: base64Url, type: file.type };
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(data.path);
-        
-      return { name: file.name, url: publicUrl, type: file.type };
-    } catch (err: any) {
-      console.warn('Error in uploadFile, converting to base64 fallback:', err);
+    // Compress images before uploading if they are larger than 500KB
+    let fileToUpload: File | Blob = file;
+    if (file.type.startsWith('image/') && file.size > 500 * 1024) {
       try {
-        const base64Url = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = error => reject(error);
-        });
-        return { name: file.name, url: base64Url, type: file.type };
-      } catch (finalError) {
-        console.error('Error converting file to base64:', finalError);
-        throw err;
+        fileToUpload = await this._compressImage(file, 0.8, 1920);
+      } catch (compressErr) {
+        console.warn('Image compression failed, uploading original:', compressErr);
+        fileToUpload = file;
       }
     }
+
+    // Retry upload up to 3 times
+    let lastError: any = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .upload(path, fileToUpload, {
+            cacheControl: '3600',
+            upsert: true
+          });
+
+        if (error) {
+          lastError = error;
+          console.warn(`Upload attempt ${attempt}/3 failed:`, error.message);
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, 1000 * attempt)); // Backoff: 1s, 2s
+            continue;
+          }
+          throw new Error(`Error al subir archivo "${file.name}" después de 3 intentos: ${error.message}`);
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from(bucket)
+          .getPublicUrl(data.path);
+
+        return { name: file.name, url: publicUrl, type: file.type };
+      } catch (err: any) {
+        lastError = err;
+        if (attempt < 3) {
+          console.warn(`Upload attempt ${attempt}/3 threw error:`, err.message);
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+          continue;
+        }
+      }
+    }
+
+    // All retries failed — throw clear error instead of falling back to base64
+    throw new Error(`No se pudo subir el archivo "${file.name}". Verifique su conexión a internet e intente nuevamente. Detalle: ${lastError?.message || 'Error desconocido'}`);
+  },
+
+  // Compress images client-side before uploading
+  async _compressImage(file: File, quality: number = 0.8, maxDimension: number = 1920): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension) {
+          const ratio = Math.min(maxDimension / width, maxDimension / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('Canvas not supported')); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error('Compression failed')),
+          file.type === 'image/png' ? 'image/png' : 'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Failed to load image')); };
+      img.src = url;
+    });
   },
 
   // USER MANAGEMENT
+  invalidateProfilesCache() {
+    invalidateProfilesCache();
+  },
+
   async getProfiles() {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .order('full_name');
     if (error) throw error;
+    // Refresh the cached profiles whenever full profiles are fetched
+    invalidateProfilesCache();
     return data;
   },
 

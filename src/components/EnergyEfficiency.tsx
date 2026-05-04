@@ -133,16 +133,27 @@ export default function EnergyEfficiency({
     }
   };
 
-  const handleGalleryPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGalleryPhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      const newPhotos: FileInfo[] = Array.from(files).map((f: File) => ({
-        name: f.name,
-        url: URL.createObjectURL(f),
-        type: f.type,
-        originalName: f.name
-      }));
-      setTempGalleryPhotos(prev => [...prev, ...newPhotos]);
+      toast.loading('Subiendo fotos...');
+      try {
+        const uploadedPhotos: FileInfo[] = [];
+        for (const f of Array.from(files) as File[]) {
+          const fileInfo = await SupabaseService.uploadFile('energy-efficiency', `gallery/${Date.now()}_${f.name}`, f) as any;
+          uploadedPhotos.push({
+            name: f.name,
+            url: fileInfo.url,
+            type: f.type,
+            originalName: f.name
+          });
+        }
+        setTempGalleryPhotos(prev => [...prev, ...uploadedPhotos]);
+        toast.dismiss();
+      } catch (err) {
+        toast.dismiss();
+        toast.error('Error al subir fotos');
+      }
     }
   };
 
@@ -335,42 +346,50 @@ export default function EnergyEfficiency({
     const [etiquetaHistory, setEtiquetaHistory] = useState<EnergyEfficiencyDocument[]>(record?.etiquetaHistory || []);
     const [gallery, setGallery] = useState<any[]>(record?.gallery || []);
 
-    const handleFileUpload = (type: 'certificado' | 'etiqueta', e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (type: 'certificado' | 'etiqueta', e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-        const mockFile: FileInfo = {
-          name: file.name,
-          url: URL.createObjectURL(file),
-          type: file.type,
-          originalName: file.name
-        };
-        
-        if (type === 'certificado') {
-          if (certificado) {
-            const historyEntry: EnergyEfficiencyDocument = {
-              ...certificado,
-              version: certificadoHistory.length + 1,
-              uploadDate: new Date().toISOString(),
-              uploadedBy: user?.name || 'Sistema',
-              changeDescription: 'Nueva versión cargada'
-            };
-            setCertificadoHistory(prev => [historyEntry, ...prev]);
+        toast.loading(`Subiendo ${type === 'certificado' ? 'Certificado' : 'Etiqueta'}...`);
+        try {
+          const fileInfo = await SupabaseService.uploadFile('energy-efficiency', `ee/${Date.now()}_${file.name}`, file);
+          const mockFile: FileInfo = {
+            name: file.name,
+            url: fileInfo.url,
+            type: file.type,
+            originalName: file.name
+          };
+          
+          if (type === 'certificado') {
+            if (certificado) {
+              const historyEntry: EnergyEfficiencyDocument = {
+                ...certificado,
+                version: certificadoHistory.length + 1,
+                uploadDate: new Date().toISOString(),
+                uploadedBy: user?.name || 'Sistema',
+                changeDescription: 'Nueva versión cargada'
+              };
+              setCertificadoHistory(prev => [historyEntry, ...prev]);
+            }
+            setCertificado(mockFile);
+          } else {
+            if (etiqueta) {
+              const historyEntry: EnergyEfficiencyDocument = {
+                ...etiqueta,
+                version: etiquetaHistory.length + 1,
+                uploadDate: new Date().toISOString(),
+                uploadedBy: user?.name || 'Sistema',
+                changeDescription: 'Nueva versión cargada'
+              };
+              setEtiquetaHistory(prev => [historyEntry, ...prev]);
+            }
+            setEtiqueta(mockFile);
           }
-          setCertificado(mockFile);
-        } else {
-          if (etiqueta) {
-            const historyEntry: EnergyEfficiencyDocument = {
-              ...etiqueta,
-              version: etiquetaHistory.length + 1,
-              uploadDate: new Date().toISOString(),
-              uploadedBy: user?.name || 'Sistema',
-              changeDescription: 'Nueva versión cargada'
-            };
-            setEtiquetaHistory(prev => [historyEntry, ...prev]);
-          }
-          setEtiqueta(mockFile);
+          toast.dismiss();
+          toast.success(`${type === 'certificado' ? 'Certificado' : 'Etiqueta'} cargado correctamente`);
+        } catch (err) {
+          toast.dismiss();
+          toast.error(`Error al subir ${type === 'certificado' ? 'Certificado' : 'Etiqueta'}`);
         }
-        toast.success(`${type === 'certificado' ? 'Certificado' : 'Etiqueta'} cargado correctamente`);
       }
     };
 
@@ -401,21 +420,32 @@ export default function EnergyEfficiency({
       }
     };
 
-    const handlePhotoUpload = (galleryId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoUpload = async (galleryId: string, e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
       if (files) {
-        const newPhotos: FileInfo[] = Array.from(files).map((f: File) => ({
-          name: f.name,
-          url: URL.createObjectURL(f),
-          type: f.type
-        }));
+        toast.loading('Subiendo fotos...');
+        try {
+          const uploadedPhotos: FileInfo[] = [];
+          for (const f of Array.from(files) as File[]) {
+            const fileInfo = await SupabaseService.uploadFile('energy-efficiency', `gallery/${Date.now()}_${f.name}`, f) as any;
+            uploadedPhotos.push({
+              name: f.name,
+              url: fileInfo.url,
+              type: f.type
+            });
+          }
 
-        setGallery(prev => prev.map(g => 
-          g.id === galleryId 
-            ? { ...g, photos: [...g.photos, ...newPhotos] }
-            : g
-        ));
-        toast.success('Fotos añadidas a la galería');
+          setGallery(prev => prev.map(g => 
+            g.id === galleryId 
+              ? { ...g, photos: [...g.photos, ...uploadedPhotos] }
+              : g
+          ));
+          toast.dismiss();
+          toast.success('Fotos añadidas a la galería');
+        } catch (err) {
+          toast.dismiss();
+          toast.error('Error al subir fotos');
+        }
       }
     };
 
