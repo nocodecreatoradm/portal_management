@@ -152,6 +152,10 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
 
   // Audit logging helper
   const addAuditLog = async (action: AuditLog['action'], entityType: AuditLog['entityType'], entityId: string, entityName: string, previousData?: any, newData?: any) => {
+    if (!entityId) {
+      console.warn('Skipping audit log creation: entityId is missing', { action, entityType, entityName });
+      return;
+    }
     try {
       const newLog = await SupabaseService.createAuditLog({
         user: user?.name || 'Usuario',
