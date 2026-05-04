@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Settings, FileText, ArrowLeft, Beaker } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { format } from 'date-fns';
@@ -109,11 +109,25 @@ export default function App() {
   const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null);
 
   // Extract unique providers for the dropdown in NewRequestModal
-  const uniqueProviders: { name: string; emails: string[]; code: string }[] = Array.from(
-    new Map<string, { name: string; emails: string[]; code: string }>(
-      data.map(item => [item.proveedor + item.codProv, { name: item.proveedor, emails: item.correoProveedor, code: item.codProv }])
-    ).values()
-  );
+  const uniqueProviders: { name: string; emails: string[]; code: string }[] = useMemo(() => {
+    const fromData = data.map(item => ({
+      name: item.proveedor,
+      emails: item.correoProveedor,
+      code: item.codProv
+    }));
+    const fromSuppliers = suppliers.map(sup => ({
+      name: sup.legalName,
+      emails: Array.isArray(sup.email) ? sup.email : (sup.email ? [sup.email] : []),
+      code: sup.erpCode || ''
+    }));
+    const map = new Map<string, { name: string; emails: string[]; code: string }>();
+    [...fromData, ...fromSuppliers].forEach(item => {
+      if (item.name && !map.has(item.name)) {
+        map.set(item.name, item);
+      }
+    });
+    return Array.from(map.values());
+  }, [data, suppliers]);
 
   // New Request Modal state
   const [isNewRequestModalOpen, setIsNewRequestModalOpen] = useState(false);

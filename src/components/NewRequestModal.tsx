@@ -410,15 +410,37 @@ export default function NewRequestModal({
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
-                        <input 
-                          type="text" 
+                        <select 
                           name="proveedor"
                           required
                           value={formData.proveedor}
-                          onChange={handleChange}
-                          className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                          placeholder="Ej. NINGBO ETDZ HUIXING TRADE CO., LTD."
-                        />
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '__custom__') {
+                              const customName = prompt('Ingrese el nombre del nuevo proveedor:');
+                              if (customName) {
+                                setFormData(prev => ({ ...prev, proveedor: customName }));
+                              }
+                            } else {
+                              handleChange(e);
+                              const matched = existingProviders.find(p => p.name === val);
+                              if (matched) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  codProv: matched.code || prev.codProv,
+                                  correoProveedor: matched.emails.length > 0 ? matched.emails : prev.correoProveedor
+                                }));
+                              }
+                            }
+                          }}
+                          className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium"
+                        >
+                          <option value="">-- Seleccionar Proveedor --</option>
+                          {existingProviders?.map(p => (
+                            <option key={p.name + p.code} value={p.name}>{p.name} ({p.code})</option>
+                          ))}
+                          <option value="__custom__">+ Añadir Nuevo Proveedor...</option>
+                        </select>
                       </div>
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Correos de Proveedor</label>

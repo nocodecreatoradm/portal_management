@@ -27,6 +27,7 @@ export default function EnergyEfficiency({
   const { user } = useAuth();
   const [records, setRecords] = useState<EnergyEfficiencyRecord[]>([]);
   const [samples, setSamples] = useState<SampleRecord[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({
@@ -74,12 +75,14 @@ export default function EnergyEfficiency({
   const loadData = async () => {
     try {
       setLoading(true);
-      const [recordsData, samplesData] = await Promise.all([
+      const [recordsData, samplesData, suppliersData] = await Promise.all([
         SupabaseService.getEnergyEfficiencyRecords(),
-        SupabaseService.getSamples()
+        SupabaseService.getSamples(),
+        SupabaseService.getSuppliers()
       ]);
       setRecords(recordsData);
       setSamples(samplesData);
+      setSuppliers(suppliersData);
     } catch (error) {
       console.error('Error loading EE data:', error);
       toast.error('Error al cargar datos');
@@ -475,7 +478,17 @@ export default function EnergyEfficiency({
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Proveedor</label>
-              <input name="proveedor" defaultValue={record?.proveedor} className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" />
+              <input 
+                name="proveedor" 
+                defaultValue={record?.proveedor} 
+                list="suppliers-list" 
+                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" 
+              />
+              <datalist id="suppliers-list">
+                {suppliers.map(s => (
+                  <option key={s.id} value={s.legalName}>{s.legalName}</option>
+                ))}
+              </datalist>
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha Emisión</label>
