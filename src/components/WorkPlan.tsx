@@ -81,6 +81,7 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
         SupabaseService.getProjects(),
         SupabaseService.getAuditLogs()
       ]);
+      console.log('Projects loaded from Supabase:', projectsData);
       setProjects(projectsData as any);
       setAuditLogs(logsData);
     } catch (error) {
@@ -251,13 +252,33 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
     const responsible = formData.get('responsible') as string;
     const status = formData.get('status') as Project['status'];
 
+    console.log('handleSaveProject starting...', { 
+      isEditing: !!editingProject, 
+      editingId: editingProject?.id,
+      formData: { name, responsible, status } 
+    });
+
     try {
       if (editingProject) {
+        if (!editingProject.id) {
+          console.error('CRITICAL: Attempted to update project without ID', editingProject);
+          toast.error('Error interno: El proyecto no tiene un ID válido');
+          return;
+        }
+
         const updatedProject = { ...editingProject, name, responsible, status };
         const result = await SupabaseService.updateProject(editingProject.id, updatedProject);
-        addAuditLog('update', 'PROJECT', editingProject.id, name, editingProject, result);
-        setProjects(prev => prev.map(p => p.id === editingProject.id ? { ...result, activities: p.activities } : p));
-        toast.success('Proyecto actualizado');
+        
+        console.log('Update result:', result);
+
+        if (result) {
+          addAuditLog('update', 'PROJECT', editingProject.id, name, editingProject, result);
+          setProjects(prev => prev.map(p => p.id === editingProject.id ? { ...result, activities: p.activities } : p));
+          toast.success('Proyecto actualizado');
+        } else {
+          console.error('Update failed: Supabase returned null');
+          toast.error('No se pudo actualizar el proyecto en la base de datos');
+        }
       } else {
         const newProjectData: Partial<Project> = {
           number: (projects.length + 1).toString(),
@@ -267,10 +288,18 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
           status
         };
         const result = await SupabaseService.createProject(newProjectData);
-        const newProject: Project = { ...result, activities: [] };
-        addAuditLog('create', 'PROJECT', result.id, name, undefined, newProject);
-        setProjects(prev => [...prev, newProject]);
-        toast.success('Proyecto creado');
+        
+        console.log('Create result:', result);
+
+        if (result && result.id) {
+          const newProject: Project = { ...result, activities: [] };
+          addAuditLog('create', 'PROJECT', result.id, name, undefined, newProject);
+          setProjects(prev => [...prev, newProject]);
+          toast.success('Proyecto creado');
+        } else {
+          console.error('Creation failed: result is missing ID', result);
+          toast.error('Error al crear el proyecto: No se recibió un ID válido');
+        }
       }
       setIsProjectModalOpen(false);
       setEditingProject(null);
