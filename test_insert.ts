@@ -8,27 +8,18 @@ const key = process.env.VITE_SUPABASE_ANON_KEY!;
 const supabase = createClient(url, key);
 
 async function test() {
-  console.log('Testing full discovered mapping...');
+  console.log('Testing NTP regulation insertion...');
   const testObj: any = {
-    mt_code: 'TEST_' + Date.now(),
-    description: 'Test record via discovered columns',
-    letter: 'A',
-    ee_percentage: '50%',
-    ocp: 'OCP_TEST',
-    supplier_id: null,
-    emission_date: '2026-05-01',
-    vigilance_date: '2026-05-01',
-    product_type: 'Test type',
-    sample_id: null,
-    certificate_file: { name: 'cert.pdf', url: 'https://test.com' },
-    certificate_history: [],
-    label_file: { name: 'label.png', url: 'https://test.com' },
-    label_history: [],
-    gallery: []
+    code: 'NTP 111.011-2014',
+    title: 'GAS NATURAL SECO. Sistema de tuberías para instalaciones internas residenciales y comerciales',
+    category: 'Gas Natural',
+    upload_date: '2018-12-07T16:25:00Z',
+    file_info: { name: 'NTP_111.011_2014.pdf', url: '#', type: 'application/pdf' },
+    description: 'Sistema de tuberías para instalaciones internas residenciales y comerciales.'
   };
 
   const { data, error } = await supabase
-    .from('energy_efficiency_records')
+    .from('ntp_regulations')
     .insert([testObj])
     .select();
 
@@ -36,20 +27,3 @@ async function test() {
 }
 
 test();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

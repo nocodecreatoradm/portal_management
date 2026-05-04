@@ -10,7 +10,8 @@ import {
   MoreVertical,
   BookOpen,
   X,
-  Edit2
+  Edit2,
+  Loader2
 } from 'lucide-react';
 import { NTPRegulation } from '../types';
 import { format, parseISO } from 'date-fns';
@@ -21,75 +22,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { SupabaseService } from '../lib/SupabaseService';
 
-
-const INITIAL_NTP: NTPRegulation[] = [
-  {
-    id: '1',
-    code: 'NTP 111.011-2014',
-    title: 'GAS NATURAL SECO. Sistema de tuberías para instalaciones internas residenciales y comerciales',
-    category: 'Gas Natural',
-    uploadDate: '2018-12-07T16:25:00Z',
-    file: { name: 'NTP_111.011_2014.pdf', url: '#', type: 'application/pdf' },
-    description: 'Sistema de tuberías para instalaciones internas residenciales y comerciales.'
-  },
-  {
-    id: '2',
-    code: 'NTP 111.022-2008',
-    title: 'GAS NATURAL SECO. Requisitos y métodos para ventilación de recintos interiores donde se instalan artefactos a gas',
-    category: 'Gas Natural',
-    uploadDate: '2018-12-07T16:25:00Z',
-    file: { name: 'NTP_111.022_2008.pdf', url: '#', type: 'application/pdf' }
-  },
-  {
-    id: '3',
-    code: 'NTP 370.053',
-    title: 'SEGURIDAD ELECTRICA',
-    category: 'Electricidad',
-    uploadDate: '2020-11-19T08:32:00Z',
-    file: { name: 'NTP_370.053.pdf', url: '#', type: 'application/pdf' }
-  },
-  {
-    id: '4',
-    code: 'NTP 370.502:2019',
-    title: 'TERMAS ELÉCTRICAS',
-    category: 'Electricidad',
-    uploadDate: '2025-05-13T12:51:00Z',
-    file: { name: 'NTP_370.502_2019.pdf', url: '#', type: 'application/pdf' }
-  },
-  {
-    id: '5',
-    code: 'NTP 113.001',
-    title: 'APARATOS DE COCCIÓN DE USO DOMÉSTICO QUE UTILIZAN COMBUSTIBLES GASEOSOS',
-    category: 'Gas',
-    uploadDate: '2025-04-23T17:18:00Z',
-    file: { name: 'NTP_113.001.pdf', url: '#', type: 'application/pdf' }
-  },
-  {
-    id: '6',
-    code: 'NTP 293.101 2014',
-    title: 'Artefactos de producción instantánea de agua caliente para uso doméstico provistos de quemadores atmosféricos',
-    category: 'Agua Caliente',
-    uploadDate: '2021-07-05T11:22:00Z',
-    file: { name: 'NTP_293.101.pdf', url: '#', type: 'application/pdf' }
-  },
-  {
-    id: '7',
-    code: 'EM.040',
-    title: 'NORMA TECNICA DE EDIFICACION INSTALACIONES DE GAS',
-    category: 'Gas',
-    uploadDate: '2018-11-15T16:16:00Z',
-    file: { name: 'EM_040.pdf', url: '#', type: 'application/pdf' }
-  },
-  {
-    id: '8',
-    code: 'NTP 370.501(2008)',
-    title: 'ARTEFACTOS A GAS. Metodología para determinar la eficiencia de calentadores de agua',
-    category: 'Gas',
-    uploadDate: '2019-10-31T14:26:00Z',
-    file: { name: 'NTP_370.501.pdf', url: '#', type: 'application/pdf' }
-  }
-];
-
 interface NTPRegulationsProps {
   initialData?: any;
   onExportPPT?: () => void;
@@ -98,7 +30,7 @@ interface NTPRegulationsProps {
 
 export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord }: NTPRegulationsProps) {
   const { user } = useAuth();
-  const [regulations, setRegulations] = useState<NTPRegulation[]>(INITIAL_NTP);
+  const [regulations, setRegulations] = useState<NTPRegulation[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingReg, setEditingReg] = useState<NTPRegulation | null>(null);
@@ -114,22 +46,10 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
     try {
       setLoading(true);
       const data = await SupabaseService.getNTPRegulations();
-      
-      const merged: NTPRegulation[] = [...INITIAL_NTP];
-      data.forEach(dbReg => {
-        const index = merged.findIndex(r => r.code === dbReg.code);
-        if (index !== -1) {
-          merged[index] = dbReg;
-        } else {
-          merged.push(dbReg);
-        }
-      });
-
-      merged.sort((a, b) => a.code.localeCompare(b.code));
-      setRegulations(merged);
+      data.sort((a, b) => a.code.localeCompare(b.code));
+      setRegulations(data);
     } catch (error) {
       console.error('Error loading NTP regulations:', error);
-      setRegulations(INITIAL_NTP);
       toast.error('Error al cargar normativas');
     } finally {
       setLoading(false);
@@ -328,6 +248,12 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
       </div>
 
       {/* Grid View */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-32 space-y-4">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+          <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Cargando normativas...</p>
+        </div>
+      ) : (
       <div id="ntp-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredRegulations.map((reg) => (
           <div key={reg.id} className="bg-white border border-slate-200 rounded-[32px] overflow-hidden hover:shadow-xl hover:shadow-slate-200/50 transition-all group border-b-4 border-b-blue-600/10 hover:border-b-blue-600">
@@ -390,6 +316,7 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
           </div>
         ))}
       </div>
+      )}
 
       {/* Add Modal */}
       {showAddModal && (
