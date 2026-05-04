@@ -218,9 +218,13 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
       setSuppliers(prev => prev.filter(s => s.id !== id));
       setDeleteConfirm(null);
       toast.success('Proveedor eliminado');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting supplier:', error);
-      toast.error('Error al eliminar proveedor');
+      if (error?.code === '23503' || error?.message?.includes('violates foreign key constraint') || error?.details?.includes('referenced from table')) {
+        toast.error('No se puede eliminar este proveedor porque tiene registros vinculados (muestras, productos, etc.).');
+      } else {
+        toast.error('Error al eliminar proveedor');
+      }
     }
   };
 
