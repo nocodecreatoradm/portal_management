@@ -115,27 +115,21 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
       setLoading(true);
       const data = await SupabaseService.getNTPRegulations();
       
-      const alreadyMigrated = localStorage.getItem('ntp_migrated');
-      if (data.length === 0 && !alreadyMigrated) {
-        // Auto-migrate INITIAL_NTP to Supabase if empty
-        // This ensures deletions and edits persist from the first interaction
-        console.log('NTP database empty, migrating initial records...');
-        const migratedData = await Promise.all(
-          INITIAL_NTP.map(async (reg) => {
-            const { id: _, ...regData } = reg;
-            return await SupabaseService.createNTPRegulation(regData);
-          })
-        );
-        localStorage.setItem('ntp_migrated', 'true');
-        setRegulations(migratedData);
-      } else {
-        if (data.length > 0) {
-          localStorage.setItem('ntp_migrated', 'true');
+      const merged: NTPRegulation[] = [...INITIAL_NTP];
+      data.forEach(dbReg => {
+        const index = merged.findIndex(r => r.code === dbReg.code);
+        if (index !== -1) {
+          merged[index] = dbReg;
+        } else {
+          merged.push(dbReg);
         }
-        setRegulations(data);
-      }
+      });
+
+      merged.sort((a, b) => a.code.localeCompare(b.code));
+      setRegulations(merged);
     } catch (error) {
       console.error('Error loading NTP regulations:', error);
+      setRegulations(INITIAL_NTP);
       toast.error('Error al cargar normativas');
     } finally {
       setLoading(false);
@@ -192,6 +186,9 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
   const handleSaveReg = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const fileInput = e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement;
+    const selectedFile = fileInput?.files?.[0];
+
     const regData: Partial<NTPRegulation> = {
       code: formData.get('code') as string,
       title: formData.get('title') as string,
@@ -200,7 +197,24 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
     };
     
     try {
-      const isUUID = editingReg && /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(editingReg.id);
+      let fileInfo = editingReg?.file || { name: 'documento.pdf', url: '#', type: 'application/pdf' };
+
+      if (selectedFile) {
+        const fileUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(selectedFile);
+        });
+        fileInfo = {
+          name: selectedFile.name,
+          url: fileUrl,
+          type: selectedFile.type || 'application/pdf'
+        };
+      }
+
+      regData.file = fileInfo;
+
+      const isUUID = editingReg && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(editingReg.id);
 
       if (editingReg && isUUID) {
         const result = await SupabaseService.updateNTPRegulation(editingReg.id, regData);
@@ -210,16 +224,10 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
         const newReg: Partial<NTPRegulation> = {
           ...regData,
           uploadDate: editingReg?.uploadDate || new Date().toISOString(),
-          file: editingReg?.file || { 
-            name: (formData.get('file') as File)?.name || 'documento.pdf', 
-            url: '#', 
-            type: 'application/pdf' 
-          }
         };
         const result = await SupabaseService.createNTPRegulation(newReg);
         
         if (editingReg && !isUUID) {
-          // If we were "editing" a mock item, replace it with the new DB record
           setRegulations(regulations.map(r => r.id === editingReg.id ? result : r));
         } else {
           setRegulations([result, ...regulations]);
@@ -246,20 +254,35 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
   };
 
   const handleDownload = (reg: NTPRegulation) => {
-    // Simular descarga de un PDF
     const link = document.createElement('a');
-    // Base64 de un PDF mínimo válido para que la descarga parezca real
-    link.href = 'data:application/pdf;base64,JVBERi0xLjcKCjEgMCBvYmogICUgZW50cnkgcG9pbnQKPDwKICAvVHlwZSAvQ2F0YWxvZwogIC9QYWdlcyAyIDAgUgo+PgplbmRvYmoKCjIgMCBvYmoKPDwKICAvVHlwZSAvUGFnZXMKICAvQ291bnQgMQogIC9LaWRzIFszIDAgUl0KPj4KZW5kb2JqCgozIDAgb2JqCjw8CiAgL1R5cGUgL1BhZ2UKICAvUGFyZW50IDIgMCBSCiAgL01lZGlhQm94IFswIDAgNjEyIDc5Ml0KICAvQ29udGVudHMgNCAwIFIKPj4KZW5kb2JqCgo0IDAgb2JqCjw8CiAgL0xlbmd0aCA0NAo+PgpzdHJlYW0KQlQKICAvRjEgMjQgVGYKICA3MiA3MjAgVGQKICAoRG9jdW1lbnRvIE5UUCkgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagoKeHJlZgowIDUKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwNjggMDAwMDAgbiAKMDAwMDAwMDEyNSAwMDAwMCBuIAowMDAwMDAwMjExIDAwMDAwIG4gCnRyYWlsZXIKPDwKICAvU2l6ZSA1CiAgL1Jvb3QgMSAwIFIKPj4Kc3RhcnR4cmVmCjI3NQolJUVPRgo=';
-    link.download = reg.file.name;
+    if (reg.file?.url && reg.file.url !== '#') {
+      link.href = reg.file.url;
+    } else {
+      link.href = 'data:application/pdf;base64,JVBERi0xLjcKCjEgMCBvYmogICUgZW50cnkgcG9pbnQKPDwKICAvVHlwZSAvQ2F0YWxvZwogIC9QYWdlcyAyIDAgUgo+PgplbmRvYmoKCjIgMCBvYmoKPDwKICAvVHlwZSAvUGFnZXMKICAvQ291bnQgMQogIC9LaWRzIFszIDAgUl0KPj4KZW5kb2JqCgozIDAgb2JqCjw8CiAgL1R5cGUgL1BhZ2UKICAvUGFyZW50IDIgMCBSCiAgL01lZGlhQm94IFswIDAgNjEyIDc5Ml0KICAvQ29udGVudHMgNCAwIFIKPj4KZW5kb2JqCgo0IDAgb2JqCjw8CiAgL0xlbmd0aCA0NAo+PgpzdHJlYW0KQlQKICAvRjEgMjQgVGYKICA3MiA3MjAgVGQKICAoRG9jdW1lbnRvIE5UUCkgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagoKeHJlZgowIDUKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwNjggMDAwMDAgbiAKMDAwMDAwMDEyNSAwMDAwMCBuIAowMDAwMDAwMjExIDAwMDAwIG4gCnRyYWlsZXIKPDwKICAvU2l6ZSA1CiAgL1Jvb3QgMSAwIFIKPj4Kc3RhcnR4cmVmCjI3NQolJUVPRgo=';
+    }
+    link.download = reg.file?.name || 'documento.pdf';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const handleOpen = (reg: NTPRegulation) => {
-    // En una aplicación real abriría reg.file.url
-    // Para el prototipo abrimos una página de referencia de Indecopi
-    window.open('https://www.indecopi.gob.pe/normas-tecnicas-peruanas', '_blank');
+    if (reg.file?.url && reg.file.url !== '#') {
+      if (reg.file.url.startsWith('data:')) {
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(
+            `<iframe src="${reg.file.url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`
+          );
+        } else {
+          handleDownload(reg);
+        }
+      } else {
+        window.open(reg.file.url, '_blank');
+      }
+    } else {
+      window.open('https://salalecturavirtual.inacal.gob.pe', '_blank');
+    }
   };
 
   return (
@@ -429,12 +452,12 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
                     <option>Otros</option>
                   </select>
                 </div>
-                {!editingReg && (
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Archivo PDF</label>
-                    <input type="file" name="file" className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    {editingReg ? 'Actualizar Archivo PDF' : 'Archivo PDF'}
+                  </label>
+                  <input type="file" name="file" className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                </div>
               </div>
               
               <div className="flex gap-4 pt-4">
