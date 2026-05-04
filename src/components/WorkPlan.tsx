@@ -252,14 +252,17 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
     const responsible = formData.get('responsible') as string;
     const status = formData.get('status') as Project['status'];
 
+    const isFakeId = editingProject?.id?.startsWith('P-');
+
     console.log('handleSaveProject starting...', { 
       isEditing: !!editingProject, 
       editingId: editingProject?.id,
+      isFakeId,
       formData: { name, responsible, status } 
     });
 
     try {
-      if (editingProject) {
+      if (editingProject && !isFakeId) {
         if (!editingProject.id) {
           console.error('CRITICAL: Attempted to update project without ID', editingProject);
           toast.error('Error interno: El proyecto no tiene un ID válido');
@@ -294,11 +297,18 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
         if (result && result.id) {
           const newProject: Project = { ...result, activities: [] };
           addAuditLog('create', 'PROJECT', result.id, name, undefined, newProject);
-          setProjects(prev => [...prev, newProject]);
-          toast.success('Proyecto creado');
+          
+          if (isFakeId) {
+            // Replace the fake project with the real one in the state
+            setProjects(prev => prev.map(p => p.id === editingProject.id ? newProject : p));
+          } else {
+            setProjects(prev => [...prev, newProject]);
+          }
+          
+          toast.success('Proyecto guardado correctamente');
         } else {
           console.error('Creation failed: result is missing ID', result);
-          toast.error('Error al crear el proyecto: No se recibió un ID válido');
+          toast.error('Error al guardar el proyecto: No se recibió un ID válido');
         }
       }
       setIsProjectModalOpen(false);
@@ -309,29 +319,48 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
     }
   };
 
-  const handleDuplicateProject = (project: Project) => {
-    const newId = `P-${Date.now()}`;
-    const newNumber = (projects.length + 1).toString();
-    
-    const duplicatedProject: Project = {
-      ...project,
-      id: newId,
-      number: newNumber,
-      name: `${project.name} (Copia)`,
-      progress: 0,
-      status: 'NO INICIADO',
-      activities: project.activities.map((activity, index) => ({
-        ...activity,
-        id: `A-${Date.now()}-${index}`,
-        number: `${newNumber}.${index + 1}`,
+  const handleDuplicateProject = async (project: Project) => {
+    setLoading(true);
+    try {
+      const newNumber = (projects.length + 1).toString();
+      
+      const newProjectData: Partial<Project> = {
+        number: newNumber,
+        name: `${project.name} (Copia)`,
+        responsible: project.responsible,
         progress: 0,
-        status: 'NO INICIADO',
-        comments: ''
-      }))
-    };
-
-    setProjects(prev => [...prev, duplicatedProject]);
-    addAuditLog('create', 'PROJECT', newId, duplicatedProject.name, undefined, duplicatedProject);
+        status: 'NO INICIADO'
+      };
+      
+      const newProject = await SupabaseService.createProject(newProjectData);
+      
+      if (project.activities && project.activities.length > 0) {
+        await Promise.all(project.activities.map((activity, index) => {
+          const activityData: Partial<ProjectActivity> = {
+            number: `${newNumber}.${index + 1}`,
+            name: activity.name,
+            comments: '',
+            indicator: activity.indicator,
+            progress: 0,
+            classification: activity.classification,
+            plannedStartDate: activity.plannedStartDate,
+            plannedEndDate: activity.plannedEndDate,
+            status: 'NO INICIADO',
+            responsible: activity.responsible
+          };
+          return SupabaseService.createProjectActivity(newProject.id, activityData);
+        }));
+      }
+      
+      addAuditLog('create', 'PROJECT', newProject.id, newProject.name, undefined, newProject);
+      toast.success('Proyecto duplicado exitosamente');
+      await loadData();
+    } catch (error) {
+      console.error('Error duplicating project:', error);
+      toast.error('Error al duplicar el proyecto');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditActivity = (projectId: string, activity: ProjectActivity) => {
