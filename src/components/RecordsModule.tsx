@@ -9,9 +9,10 @@ import {
   FileText, 
   RefreshCw,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Trash2
 } from 'lucide-react';
-import { fetchCalculationRecords } from '../lib/api';
+import { fetchCalculationRecords, deleteCalculationRecord } from '../lib/api';
 import { CalculationRecord, ModuleId } from '../types';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -155,6 +156,15 @@ export default function RecordsModule({ onLoadRecord }: RecordsModuleProps) {
       onLoadRecord(record.module_id, data);
     } catch (e) {
       console.error('Error parsing record data', e);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este registro histórico? Esta acción no se puede deshacer.')) {
+      const success = await deleteCalculationRecord(id);
+      if (success) {
+        setRecords(prev => prev.filter(r => r.id !== id));
+      }
     }
   };
 
@@ -351,13 +361,22 @@ export default function RecordsModule({ onLoadRecord }: RecordsModuleProps) {
                       </div>
                     </td>
                     <td className="px-8 py-5 text-right">
-                      <button
-                        onClick={() => handleLoad(record)}
-                        className="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 transition-all active:scale-95 shadow-lg shadow-slate-900/10"
-                      >
-                        Cargar Datos
-                        <ArrowRight size={14} />
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleLoad(record)}
+                          className="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 transition-all active:scale-95 shadow-lg shadow-slate-900/10"
+                        >
+                          Cargar
+                          <ArrowRight size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(record.id)}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                          title="Eliminar Registro"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   </motion.tr>
                 ))

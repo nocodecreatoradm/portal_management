@@ -10,7 +10,7 @@ import { ArrowLeft, Users, CheckCircle, Clock, FileText, TrendingUp, ChevronRigh
 import ModuleActions from './ModuleActions';
 import { exportToExcel, generateReportPDF } from '../lib/exportUtils';
 import { saveCalculationRecord } from '../lib/api';
-import { currentUser } from '../data/mockData';
+import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface SamplesDashboardProps {
@@ -219,6 +219,7 @@ const MetricDashboardCard = ({
 };
 
 export default function SamplesDashboard({ samples, onBack }: SamplesDashboardProps) {
+  const { user } = useAuth();
   const [showAllSuppliers, setShowAllSuppliers] = useState(false);
 
   // Date filter state
@@ -246,7 +247,7 @@ export default function SamplesDashboard({ samples, onBack }: SamplesDashboardPr
       'samples_dashboard', 
       'save', 
       config, 
-      currentUser.email,
+      user?.email || 'unknown',
       details.projectName,
       details.sampleId,
       details.description
@@ -267,7 +268,7 @@ export default function SamplesDashboard({ samples, onBack }: SamplesDashboardPr
     }));
 
     exportToExcel(exportData, `Dashboard_Samples_${format(new Date(), 'yyyyMMdd')}`);
-    saveCalculationRecord('samples_dashboard', 'export_excel', exportData, currentUser.email);
+    saveCalculationRecord('samples_dashboard', 'export_excel', exportData, user?.email || 'unknown');
   };
 
   const handleExportPDF = async () => {
@@ -280,7 +281,7 @@ export default function SamplesDashboard({ samples, onBack }: SamplesDashboardPr
     ];
 
     await generateReportPDF(sections, `Informe_Dashboard_Samples_${format(new Date(), 'yyyyMMdd')}`, 'Informe de Dashboard de Muestras R&D');
-    saveCalculationRecord('samples_dashboard', 'export_pdf', { sections }, currentUser.email);
+    saveCalculationRecord('samples_dashboard', 'export_pdf', { sections }, user?.email || 'unknown');
   };
 
   // Filtered samples based on date range

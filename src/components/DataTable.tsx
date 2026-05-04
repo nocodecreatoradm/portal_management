@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Eye, Edit2, FileText, Upload, Image as ImageIcon, UserPlus, HelpCircle, AlertCircle, Beaker, Search, X, Clock, Send } from 'lucide-react';
+import { Eye, Edit2, Trash2, FileText, Upload, Image as ImageIcon, UserPlus, HelpCircle, AlertCircle, Beaker, Search, X, Clock, Send } from 'lucide-react';
 import { ProductRecord, DocumentVersion, Supplier, SampleRecord } from '../types';
 import StatusIcon from './StatusIcon';
 import HeaderFilterPopover from './HeaderFilterPopover';
@@ -14,6 +14,7 @@ interface DataTableProps {
   onInfoRequest?: (record: ProductRecord, type: 'artwork' | 'technical_sheet' | 'commercial_sheet') => void;
   onStartFlow?: (record: ProductRecord, version: DocumentVersion) => void;
   onEdit?: (record: ProductRecord) => void;
+  onDelete?: (record: ProductRecord) => void;
   mode?: 'artwork' | 'technical_sheet' | 'commercial_sheet';
 }
 
@@ -27,6 +28,7 @@ export default function DataTable({
   onInfoRequest,
   onStartFlow,
   onEdit,
+  onDelete,
   mode = 'artwork'
 }: DataTableProps) {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
@@ -231,6 +233,13 @@ export default function DataTable({
                       V{v.version}
                     </button>
                   ))}
+                  <button 
+                    onClick={() => onDelete?.(record)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                  >
+                    <Trash2 size={14} />
+                    Borrar
+                  </button>
                   {latestByCategory.length === 0 && (
                     <button 
                       onClick={() => onActionClick(record, mode, 'upload')}
@@ -422,6 +431,13 @@ export default function DataTable({
                         title="Editar"
                       >
                         <Edit2 size={18} />
+                      </button>
+                      <button 
+                        onClick={() => onDelete?.(record)} 
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" 
+                        title="Borrar"
+                      >
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </td>

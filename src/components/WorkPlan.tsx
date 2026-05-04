@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import UserSelect from './UserSelect';
 import { 
   Calendar as CalendarIcon, 
   Plus, 
@@ -1124,15 +1125,13 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
                   className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Responsable</label>
-                <input
-                  name="responsible"
-                  defaultValue={editingProject?.responsible}
-                  required
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                />
-              </div>
+              <UserSelect
+                label="Responsable"
+                name="responsible"
+                value={editingProject?.responsible || ''}
+                onChange={() => {}} // UserSelect handles its own state for the hidden input
+                required
+              />
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Estado</label>
                 <select

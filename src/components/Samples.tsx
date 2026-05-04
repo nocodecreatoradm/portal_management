@@ -10,13 +10,12 @@ import { format, differenceInDays, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import HeaderFilterPopover from './HeaderFilterPopover';
 import * as XLSX from 'xlsx';
-import { technicians } from '../data/mockData';
+import UserSelect from './UserSelect';
 import InspectionModal from './InspectionModal';
 import SamplesDashboard from './SamplesDashboard';
 import ModuleActions from './ModuleActions';
 import { exportToExcel, generateReportPDF } from '../lib/exportUtils';
 import { saveCalculationRecord, fetchCalculationRecords } from '../lib/api';
-import { currentUser } from '../data/mockData';
 import { useSamples } from '../context/SamplesContext';
 import { SupabaseService } from '../lib/SupabaseService';
 import { useAuth } from '../contexts/AuthContext';
@@ -1168,10 +1167,13 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
                     <option value="PURIFICACIÓN">PURIFICACIÓN</option>
                   </select>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Persona que Recepcionó</label>
-                  <input name="receivedBy" required type="text" placeholder="Nombre del responsable..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
-                </div>
+                  <UserSelect
+                    label="Persona que Recepcionó"
+                    name="receivedBy"
+                    value=""
+                    onChange={() => {}}
+                    required
+                  />
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha Ingreso Almacén</label>
                   <input name="warehouseEntryDate" required type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
@@ -1243,12 +1245,13 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
               </button>
             </div>
             <form onSubmit={handleAssign} className="p-8 space-y-6">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Técnico</label>
-                <select name="technician" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all">
-                  {technicians.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
+                <UserSelect
+                  label="Técnico"
+                  name="technician"
+                  value={selectedSample?.technician || ''}
+                  onChange={() => {}}
+                  required
+                />
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha de Inicio Planeada</label>
                 <input name="startDate" required type="date" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />

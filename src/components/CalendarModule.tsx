@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import UserSelect from './UserSelect';
 import { SupabaseService } from '../lib/SupabaseService';
 import { CalendarTask, ChangeLog } from '../types';
 import { 
@@ -551,25 +552,22 @@ export default function CalendarModule() {
 
               <div className="grid grid-cols-2 gap-6">
                 {entryType === 'work' ? (
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Solicitante</label>
-                    <input 
-                      name="requester" 
-                      defaultValue={editingTask?.requester}
+                    <UserSelect
+                      label="Solicitante"
+                      name="requester"
+                      value={editingTask?.requester || ''}
+                      onChange={() => {}}
                       required={entryType === 'work'}
-                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" 
                     />
-                  </div>
                 ) : (
-                  <div className="space-y-2 col-span-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Responsable / Persona</label>
-                    <input 
-                      name="assignee" 
-                      defaultValue={editingTask?.assignee}
-                      placeholder="Nombre de la persona"
-                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" 
-                    />
-                  </div>
+                  <UserSelect
+                    label="Responsable / Persona"
+                    name="assignee"
+                    value={editingTask?.assignee || ''}
+                    onChange={() => {}}
+                    placeholder="Nombre de la persona"
+                    className="col-span-2"
+                  />
                 )}
               </div>
 

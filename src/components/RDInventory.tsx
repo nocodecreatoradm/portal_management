@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import UserSelect from './UserSelect';
 import { RDInventoryItem, FileInfo } from '../types';
 import { 
   Search, Plus, Filter, Download, Calendar, 
@@ -669,10 +670,13 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">N° Serie</label>
               <input name="serialNumber" defaultValue={item?.serialNumber} required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" />
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Responsable</label>
-              <input name="responsible" defaultValue={item?.responsible || 'I+D'} className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" />
-            </div>
+            <UserSelect
+              label="Responsable"
+              name="responsible"
+              value={item?.responsible || 'I+D'}
+              onChange={() => {}}
+              required
+            />
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Marca</label>
               <input name="brand" defaultValue={item?.brand} required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" />

@@ -1,6 +1,6 @@
 import { X, Save, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
-import { allUsers } from '../data/mockData';
+import UserSelect from './UserSelect';
 
 interface ApproverConfigModalProps {
   isOpen: boolean;
@@ -53,20 +53,13 @@ export default function ApproverConfigModal({
           <div className="space-y-4">
             {stages.map((stage) => (
               <div key={stage.id} className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  {stage.label}
-                </label>
-                <select
+                <UserSelect
+                  label={stage.label}
+                  name={stage.id}
                   value={approvers[stage.id]}
-                  onChange={(e) => setApprovers({ ...approvers, [stage.id]: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  {allUsers.map((user) => (
-                    <option key={user.name} value={user.name}>
-                      {user.name} - {user.role}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setApprovers({ ...approvers, [stage.id]: val })}
+                  required
+                />
               </div>
             ))}
           </div>

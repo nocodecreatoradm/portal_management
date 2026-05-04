@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, User } from 'lucide-react';
 import { ProductRecord, AssignmentInfo } from '../types';
-import { designers, technicians } from '../data/mockData';
+import UserSelect from './UserSelect';
 
 interface AssignmentModalProps {
   isOpen: boolean;
@@ -21,7 +21,6 @@ export default function AssignmentModal({ isOpen, onClose, record, type, onSave 
   const title = type === 'artwork' ? 'Asignar Artwork' : 
                 type === 'technical_sheet' ? 'Asignar Ficha Técnica' : 'Asignar Ficha Comercial';
 
-  const personnel = type === 'artwork' ? designers : technicians;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,22 +53,13 @@ export default function AssignmentModal({ isOpen, onClose, record, type, onSave 
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-              {type === 'artwork' ? 'Diseñador Responsable' : 'Técnico Responsable'}
-            </label>
-            <select
-              required
-              className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              value={designer}
-              onChange={(e) => setDesigner(e.target.value)}
-            >
-              <option value="">{type === 'artwork' ? 'Seleccionar diseñador...' : 'Seleccionar técnico...'}</option>
-              {personnel.map(d => (
-                <option key={d} value={d}>{d}</option>
-              ))}
-            </select>
-          </div>
+          <UserSelect
+            label={type === 'artwork' ? 'Diseñador Responsable' : 'Técnico Responsable'}
+            placeholder={type === 'artwork' ? 'Seleccionar diseñador...' : 'Seleccionar técnico...'}
+            value={designer}
+            onChange={setDesigner}
+            required
+          />
 
           <div className="grid grid-cols-2 gap-4">
             <div>

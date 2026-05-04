@@ -61,6 +61,18 @@ export const fetchCalculationRecords = async (moduleId?: string): Promise<Calcul
   }
 };
 
+export const deleteCalculationRecord = async (id: string) => {
+  try {
+    const { error } = await supabase.from('calculation_records').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting record:', error);
+    toast.error('Error al eliminar el registro');
+    return false;
+  }
+};
+
 export const generateModuleCorrelative = async (moduleId: string, projectName: string) => {
   try {
     const records = await fetchCalculationRecords(moduleId);

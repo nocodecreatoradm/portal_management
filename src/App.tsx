@@ -1089,6 +1089,18 @@ export default function App() {
               setEditingProduct(record);
               setIsNewRequestModalOpen(true);
             }}
+            onDelete={async (record) => {
+              if (window.confirm('¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.')) {
+                try {
+                  await SupabaseService.deleteProduct(record.id);
+                  setData(prev => prev.filter(r => r.id !== record.id));
+                  toast.success('Registro eliminado correctamente');
+                } catch (error) {
+                  console.error('Error deleting record:', error);
+                  toast.error('Error al eliminar el registro');
+                }
+              }
+            }}
             mode={mode}
           />
         </div>
