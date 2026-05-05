@@ -58,7 +58,7 @@ export const mapDBToInventory = (dbItem: any): RDInventoryItem => ({
 });
 
 export const mapEEToDB = (record: Partial<EnergyEfficiencyRecord>) => {
-  const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const dbRecord: any = {
     mt_code: record.codigoMT,
     description: record.descripcion,
@@ -100,11 +100,10 @@ export const mapDBToEE = (dbRecord: any): EnergyEfficiencyRecord => ({
 });
 
 export const mapProjectToDB = (project: Partial<Project>) => {
-  const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
   return {
     project_number: project.number,
     name: project.name,
-    responsible_id: project.responsible && isUUID(project.responsible) ? project.responsible : null,
+    responsible_id: project.responsible || null,
     progress: project.progress,
     status: project.status
   };
@@ -261,7 +260,7 @@ export const mapDBToLog = (dbLog: any): AuditLog => ({
 });
 export const mapProductToDB = (product: Partial<ProductRecord & ProductManagementRecord>) => {
   const dbProduct: any = {};
-  const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
   if (product.codigoSAP !== undefined) dbProduct.sap_code = product.codigoSAP;
   if (product.codigoEAN !== undefined) dbProduct.ean_code = product.codigoEAN;
@@ -277,6 +276,9 @@ export const mapProductToDB = (product: Partial<ProductRecord & ProductManagemen
   if (product.explodeFiles !== undefined) dbProduct.explode_files = product.explodeFiles;
   if (product.additionalProviderDocuments !== undefined) dbProduct.additional_provider_documents = product.additionalProviderDocuments;
   if (product.gallery !== undefined) dbProduct.gallery = product.gallery;
+  if (product.artworkAssignment !== undefined) dbProduct.artwork_assignment = product.artworkAssignment;
+  if (product.technicalAssignment !== undefined) dbProduct.technical_assignment = product.technicalAssignment;
+  if (product.commercialAssignment !== undefined) dbProduct.commercial_assignment = product.commercialAssignment;
   return dbProduct;
 };
 
@@ -297,6 +299,9 @@ export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
   commercialStatus: dbProduct.commercial_status,
   qualityInspectionDate: dbProduct.quality_inspection_date,
   createdAt: dbProduct.created_at || new Date().toISOString(),
+  artworkAssignment: dbProduct.artwork_assignment,
+  technicalAssignment: dbProduct.technical_assignment,
+  commercialAssignment: dbProduct.commercial_assignment
 });
 
 export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
@@ -313,7 +318,10 @@ export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
   additionalProviderDocuments: dbRecord.additional_provider_documents || [],
   gallery: dbRecord.gallery || [],
   approvedDocuments: [],
-  createdAt: dbRecord.created_at || new Date().toISOString()
+  createdAt: dbRecord.created_at || new Date().toISOString(),
+  artworkAssignment: dbRecord.artwork_assignment,
+  technicalAssignment: dbRecord.technical_assignment,
+  commercialAssignment: dbRecord.commercial_assignment
 });
 
 export const mapSupplierToDB = (supplier: Partial<Supplier>) => {
@@ -368,7 +376,7 @@ export const mapDBToTemplate = (dbTemplate: any): RDProjectTemplate => ({
 
 export const mapSampleToDB = (sample: Partial<SampleRecord>) => {
   const dbSample: any = {};
-  const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
   if (sample.correlativeId !== undefined) dbSample.correlative_id = sample.correlativeId;
   if (sample.codigoSAP !== undefined) dbSample.sap_code = sample.codigoSAP;

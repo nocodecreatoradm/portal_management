@@ -314,8 +314,14 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
       }
       setIsProjectModalOpen(false);
       setEditingProject(null);
-    } catch (error) {
-      console.error('Error saving project:', error);
+    } catch (error: any) {
+      console.error('Error saving project:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        editingProject
+      });
       toast.error('Error al guardar proyecto');
     }
   };
@@ -446,8 +452,14 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
         toast.success(isNew ? 'Actividad creada' : 'Actividad actualizada');
         setIsActivityModalOpen(false);
         setEditingActivity(null);
-      } catch (error) {
-        console.error('Error saving activity:', error);
+      } catch (error: any) {
+        console.error('Error saving activity:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          editingActivity
+        });
         toast.error('Error al guardar actividad');
       }
     }

@@ -83,37 +83,37 @@ export const SupabaseService = {
   // MASTER DATA
 
   async getBrands() {
-    const { data, error } = await supabase.from('brands').select('*').order('name');
+    const { data, error } = await supabase.from('brands').select().order('name');
     if (error) throw error;
     return data;
   },
 
   async createBrand(brand: { name: string }) {
-    const { data, error } = await supabase.from('brands').insert([brand]).select('*').single();
+    const { data, error } = await supabase.from('brands').insert([brand]).select().single();
     if (error) throw error;
     return data;
   },
 
   async getProductLines() {
-    const { data, error } = await supabase.from('product_lines').select('*').order('name');
+    const { data, error } = await supabase.from('product_lines').select().order('name');
     if (error) throw error;
     return data;
   },
 
   async createProductLine(line: { name: string }) {
-    const { data, error } = await supabase.from('product_lines').insert([line]).select('*').single();
+    const { data, error } = await supabase.from('product_lines').insert([line]).select().single();
     if (error) throw error;
     return data;
   },
 
   async getCategories() {
-    const { data, error } = await supabase.from('categories').select('*').order('name');
+    const { data, error } = await supabase.from('categories').select().order('name');
     if (error) throw error;
     return data;
   },
 
   async createCategory(category: { name: string }) {
-    const { data, error } = await supabase.from('categories').insert([category]).select('*').single();
+    const { data, error } = await supabase.from('categories').insert([category]).select().single();
     if (error) throw error;
     return data;
   },
@@ -197,7 +197,10 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('products')
       .select(`
-        *,
+        id, sap_code, ean_code, sap_description, brand_id, supplier_id, line_id, sample_id, 
+        commercial_status, quality_inspection_date, fob_price, fob_price_history, explode_files, 
+        additional_provider_documents, created_at, updated_at, 
+        artwork_assignment, technical_assignment, commercial_assignment,
         brand:brands(name),
         supplier:suppliers(legal_name),
         line:product_lines(name)
@@ -219,7 +222,7 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('products')
       .insert([dbProduct])
-      .select('*')
+      .select()
       .single();
     if (error) throw error;
     return mapDBToProduct(data);
@@ -253,7 +256,7 @@ export const SupabaseService = {
       .from('products')
       .update(dbUpdates)
       .eq('id', id)
-      .select('*')
+      .select()
       .single();
     if (error) throw error;
     return mapDBToProduct(data);
@@ -286,7 +289,7 @@ export const SupabaseService = {
       .from('products')
       .update(dbUpdates)
       .eq('sap_code', codigoSAP)
-      .select('*')
+      .select()
       .single();
     if (error) throw error;
     return mapDBToProduct(data);
@@ -307,7 +310,10 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('product_management')
       .select(`
-        *,
+        id, sap_code, ean_code, sap_description, brand_id, supplier_id, line_id, sample_id, 
+        fob_price, fob_price_history, explode_files, additional_provider_documents, gallery, 
+        created_at, updated_at, commercial_status, quality_inspection_date,
+        artwork_assignment, technical_assignment, commercial_assignment,
         brand:brands(name),
         supplier:suppliers(legal_name),
         line:product_lines(name)
@@ -322,7 +328,7 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('product_management')
       .insert([dbRecord])
-      .select('*')
+      .select()
       .single();
     if (error) throw error;
     return mapDBToPMRecord(data);
@@ -335,7 +341,7 @@ export const SupabaseService = {
       .from('product_management')
       .update(dbUpdates)
       .eq('id', id)
-      .select('*')
+      .select()
       .single();
     if (error) throw error;
     return mapDBToPMRecord(data);
@@ -355,7 +361,7 @@ export const SupabaseService = {
   async getInventory() {
     const { data, error } = await supabase
       .from('rd_inventory')
-      .select('*')
+      .select()
       .order('description');
     if (error) throw error;
     return data.map(mapDBToInventory);
@@ -366,7 +372,7 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('rd_inventory')
       .insert(dbItem)
-      .select('*')
+      .select()
       .single();
     if (error) throw error;
     return mapDBToInventory(data);
@@ -379,7 +385,7 @@ export const SupabaseService = {
       .from('rd_inventory')
       .update(dbUpdates)
       .eq('id', id)
-      .select('*')
+      .select()
       .single();
     if (error) throw error;
     return mapDBToInventory(data);
@@ -519,7 +525,7 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('energy_efficiency_records')
       .insert(dbRecord)
-      .select('*')
+      .select()
       .single();
     if (error) throw error;
     return mapDBToEE(data);
@@ -532,7 +538,7 @@ export const SupabaseService = {
       .from('energy_efficiency_records')
       .update(dbUpdates)
       .eq('id', id)
-      .select('*')
+      .select()
       .single();
     if (error) throw error;
     return mapDBToEE(data);
@@ -552,7 +558,7 @@ export const SupabaseService = {
   async getInnovationProposals() {
     const { data, error } = await supabase
       .from('innovation_proposals')
-      .select('*')
+      .select()
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data.map(mapDBToProposal);
@@ -563,7 +569,7 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('innovation_proposals')
       .insert(dbProposal)
-      .select('*')
+      .select()
       .single();
     if (error) throw error;
     return mapDBToProposal(data);
@@ -576,7 +582,7 @@ export const SupabaseService = {
       .from('innovation_proposals')
       .update(dbUpdates)
       .eq('id', id)
-      .select('*')
+      .select()
       .single();
     if (error) throw error;
     return mapDBToProposal(data);
@@ -596,7 +602,7 @@ export const SupabaseService = {
   async getCalendarTasks() {
     const { data, error } = await supabase
       .from('calendar_tasks')
-      .select('*')
+      .select()
       .order('deadline', { ascending: true });
     if (error) throw error;
     
@@ -678,7 +684,7 @@ export const SupabaseService = {
   async getNTPRegulations() {
     const { data, error } = await supabase
       .from('ntp_regulations')
-      .select('*')
+      .select()
       .order('code');
     if (error) throw error;
     return data.map(mapDBToNTP);
@@ -722,7 +728,7 @@ export const SupabaseService = {
   async getSuppliers() {
     const { data, error } = await supabase
       .from('suppliers')
-      .select('*')
+      .select()
       .order('legal_name');
     if (error) throw error;
     return data.map(mapDBToSupplier);
@@ -766,7 +772,7 @@ export const SupabaseService = {
   async getRDProjectTemplates() {
     const { data, error } = await supabase
       .from('rd_project_templates')
-      .select('*')
+      .select()
       .order('name');
     if (error) throw error;
     return data.map(mapDBToTemplate);
@@ -810,7 +816,7 @@ export const SupabaseService = {
   async getRDProjects() {
     const { data, error } = await supabase
       .from('rd_custom_projects')
-      .select('*')
+      .select()
       .order('created_at', { ascending: false });
     if (error) throw error;
     
@@ -878,7 +884,7 @@ export const SupabaseService = {
   async getAuditLogs() {
     const { data, error } = await supabase
       .from('audit_logs')
-      .select('*')
+      .select()
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data.map(mapDBToLog);
@@ -1042,7 +1048,7 @@ export const SupabaseService = {
   async getApprovers() {
     const { data, error } = await supabase
       .from('approver_configs')
-      .select('*')
+      .select()
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -1099,7 +1105,7 @@ export const SupabaseService = {
   async getBrandbookSettings() {
     const { data, error } = await supabase
       .from('brandbook_settings')
-      .select('*')
+      .select()
       .limit(1)
       .single();
     if (error && error.code !== 'PGRST116') throw error;
@@ -1124,7 +1130,7 @@ export const SupabaseService = {
   async getBrandbookBrands() {
     const { data, error } = await supabase
       .from('brands')
-      .select('*')
+      .select()
       .order('name');
     if (error) throw error;
     return data.map(mapDBToBrand);
@@ -1143,7 +1149,7 @@ export const SupabaseService = {
   },
 
   async getBrandbookDocuments(brandId?: string) {
-    let query = supabase.from('brand_documents').select('*').order('name');
+    let query = supabase.from('brand_documents').select().order('name');
     if (brandId) {
       query = query.eq('brand_id', brandId);
     }

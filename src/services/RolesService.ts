@@ -20,7 +20,7 @@ export const RolesService = {
   async getRoles() {
     const { data, error } = await supabase
       .from('roles')
-      .select('*, permissions:role_permissions(permissions(*))')
+      .select('id, name, display_name, description, level, permissions:role_permissions(permissions(id, name, description, module))')
       .order('level', { ascending: false });
     
     if (error) throw error;
@@ -35,7 +35,7 @@ export const RolesService = {
   async getPermissions() {
     const { data, error } = await supabase
       .from('permissions')
-      .select('*')
+      .select('id, name, description, module')
       .order('module');
     
     if (error) throw error;
@@ -67,7 +67,7 @@ export const RolesService = {
   async getRoleWithPermissions(roleId: number) {
     const { data, error } = await supabase
       .from('roles')
-      .select('*, permissions:role_permissions(permissions(*))')
+      .select('id, name, display_name, description, level, permissions:role_permissions(permissions(id, name, description, module))')
       .eq('id', roleId)
       .single();
     

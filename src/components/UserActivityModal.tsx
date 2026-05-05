@@ -26,7 +26,7 @@ export default function UserActivityModal({ isOpen, onClose, user }: UserActivit
       setLoading(true);
       const { data, error } = await supabase
         .from('calculation_records')
-        .select('*')
+        .select()
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       

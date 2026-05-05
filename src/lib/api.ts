@@ -37,7 +37,7 @@ export const saveCalculationRecord = async (
 
 export const fetchCalculationRecords = async (moduleId?: string): Promise<CalculationRecord[]> => {
   try {
-    let query = supabase.from('calculation_records').select('*');
+    let query = supabase.from('calculation_records').select();
     if (moduleId) {
       query = query.eq('module_id', moduleId);
     }
@@ -114,7 +114,7 @@ export const fetchCantonFairSuppliers = async (year?: number) => {
 
     const { data: productsData, error: productsError } = await supabase
       .from('canton_fair_products')
-      .select('*');
+      .select('id, category, name, fob_price, target_brand, comments, images, supplier_id');
     if (productsError) throw productsError;
     
     // Map snake_case to camelCase and link products
@@ -309,7 +309,7 @@ export const fetchCantonFairSettings = async (year: number) => {
   try {
     const { data, error } = await supabase
       .from('canton_fair_settings')
-      .select('*')
+      .select('year, banner_image, attendees')
       .eq('year', year)
       .single();
     

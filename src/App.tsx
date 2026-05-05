@@ -498,8 +498,14 @@ export default function App() {
             await SupabaseService.updateProduct(recordId, { [assignmentKey]: assignment } as any);
           }
         }
-      } catch (error) {
-        console.error('Error persisting assignment:', error);
+      } catch (error: any) {
+        console.error('Error persisting assignment:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          assignment: assignment
+        });
         toast.error('Asignación guardada localmente pero falló la sincronización con la nube');
       }
     }
