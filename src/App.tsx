@@ -1081,7 +1081,6 @@ export default function App() {
               Mostrando <span className="text-slate-900">{filteredData.length}</span> registros
             </p>
           </div>
-
           <DataTable 
             data={filteredData} 
             suppliers={suppliers}
@@ -1108,6 +1107,7 @@ export default function App() {
               }
             }}
             mode={mode}
+            approvers={approvers}
           />
         </div>
       </div>

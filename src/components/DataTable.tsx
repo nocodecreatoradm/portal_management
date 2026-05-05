@@ -17,6 +17,7 @@ interface DataTableProps {
   onEdit?: (record: ProductRecord) => void;
   onDelete?: (record: ProductRecord) => void;
   mode?: 'artwork' | 'technical_sheet' | 'commercial_sheet';
+  approvers?: { [key: string]: string };
 }
 
 export default function DataTable({ 
@@ -30,7 +31,8 @@ export default function DataTable({
   onStartFlow,
   onEdit,
   onDelete,
-  mode = 'artwork'
+  mode = 'artwork',
+  approvers
 }: DataTableProps) {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
@@ -108,7 +110,11 @@ export default function DataTable({
             const approval = stage === 'I+D' ? v.idApproval : 
                              stage === 'MKT' ? v.mktApproval : 
                              stage === 'PLAN' ? v.planApproval : v.provApproval;
-            const canApprove = hasScope(record);
+            
+            // Permisos basados en departamento y alcance de marca/línea
+            const isConfiguredArea = profile?.department === (approvers?.[stage] || stage);
+            const canApprove = profile?.role === 'admin' || (isConfiguredArea && hasScope(record));
+
             return (
               <div key={idx} className="h-8 flex items-center justify-center">
                 {canApprove ? (
@@ -119,7 +125,7 @@ export default function DataTable({
                     <StatusIcon status={approval?.status} label={stage} />
                   </button>
                 ) : (
-                  <div className="inline-flex items-center justify-center opacity-80 cursor-not-allowed" title="No tienes permisos para aprobar esta marca/línea">
+                  <div className="inline-flex items-center justify-center opacity-80 cursor-not-allowed" title={`No tienes permisos para aprobar el área de ${stage}`}>
                     <StatusIcon status={approval?.status} label={stage} />
                   </div>
                 )}

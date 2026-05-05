@@ -56,7 +56,7 @@ import {
 const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
 // Profile cache with automatic invalidation
-let cachedProfiles: { id: string; full_name: string }[] | null = null;
+let cachedProfiles: { id: string; full_name: string; department?: string }[] | null = null;
 let profilesCacheTimestamp = 0;
 const PROFILES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
@@ -65,7 +65,7 @@ const getCachedProfiles = async () => {
   if (cachedProfiles && (now - profilesCacheTimestamp) < PROFILES_CACHE_TTL) {
     return cachedProfiles;
   }
-  const { data, error } = await supabase.from('profiles').select('id, full_name');
+  const { data, error } = await supabase.from('profiles').select('id, full_name, department');
   if (!error && data) {
     cachedProfiles = data;
     profilesCacheTimestamp = now;
@@ -81,6 +81,11 @@ const invalidateProfilesCache = () => {
 
 export const SupabaseService = {
   // MASTER DATA
+  async getDepartments() {
+    const profiles = await getCachedProfiles();
+    const departments = Array.from(new Set(profiles.map(p => p.department).filter(Boolean))) as string[];
+    return departments.sort();
+  },
 
   async getBrands() {
     const { data, error } = await supabase.from('brands').select().order('name');
@@ -1057,10 +1062,10 @@ export const SupabaseService = {
     if (error && error.code !== 'PGRST116') throw error;
     
     if (!data) return {
-      'I+D': 'Orlando Nuñez',
-      'MKT': 'Raquel Veliz',
-      'PLAN': 'Carlos Andrés Hoyos',
-      'PROV': 'Jonathan Soriano'
+      'I+D': 'I+D',
+      'MKT': 'MKT',
+      'PLAN': 'PLAN',
+      'PROV': 'PROV'
     };
 
     return {
