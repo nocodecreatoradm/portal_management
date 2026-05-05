@@ -274,9 +274,9 @@ export default function EnergyEfficiency({
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
       result = result.filter(r => 
-        r.codigoMT.toLowerCase().includes(lowerSearch) ||
-        r.descripcion.toLowerCase().includes(lowerSearch) ||
-        r.proveedor.toLowerCase().includes(lowerSearch)
+        r.codigoMT?.toLowerCase().includes(lowerSearch) ||
+        r.descripcion?.toLowerCase().includes(lowerSearch) ||
+        r.proveedor?.toLowerCase().includes(lowerSearch)
       );
     }
 
@@ -701,8 +701,8 @@ export default function EnergyEfficiency({
 
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                       {group.photos.map((photo: FileInfo, pIdx: number) => (
-                        <div key={pIdx} className="aspect-square rounded-xl overflow-hidden border border-slate-200 relative group">
-                          <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                        <div key={pIdx} className="aspect-square rounded-xl overflow-hidden border border-slate-200 relative group bg-white">
+                          <img src={photo.url} alt="" className="w-full h-full object-contain p-1" />
                           <button 
                             type="button"
                             onClick={() => {
@@ -1361,8 +1361,8 @@ export default function EnergyEfficiency({
                   </div>
                   <div className="grid grid-cols-4 gap-3 max-h-[200px] overflow-y-auto p-1">
                     {tempGalleryPhotos.map((photo, idx) => (
-                      <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-slate-200 relative group">
-                        <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                      <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-slate-200 relative group bg-white">
+                        <img src={photo.url} alt="" className="w-full h-full object-contain p-1" />
                         <button 
                           onClick={() => setTempGalleryPhotos(prev => prev.filter((_, i) => i !== idx))}
                           className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"

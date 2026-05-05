@@ -508,8 +508,8 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
               <div className="grid grid-cols-2 gap-4">
                 {item.photos && item.photos.length > 0 ? (
                   item.photos.map((photo, idx) => (
-                    <div key={idx} className="aspect-square rounded-2xl overflow-hidden border border-slate-200 group relative">
-                      <img src={photo.url} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
+                    <div key={idx} className="aspect-square rounded-2xl overflow-hidden border border-slate-200 group relative bg-white">
+                      <img src={photo.url} alt={`Foto ${idx + 1}`} className="w-full h-full object-contain p-2 group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
                       <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <ImageIcon className="text-white" size={24} />
                       </div>

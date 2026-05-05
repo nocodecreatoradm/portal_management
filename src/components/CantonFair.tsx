@@ -674,12 +674,12 @@ const CantonFair: React.FC = () => {
                     <Edit2 size={16} />
                   </button>
 
-                  <div className="aspect-[4/3] relative overflow-hidden bg-slate-100">
+                  <div className="aspect-[4/3] relative overflow-hidden bg-white">
                     {supplier.images.length > 0 ? (
                       <img 
                         src={supplier.images[0].file.url} 
                         alt={supplier.name}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110"
                         referrerPolicy="no-referrer"
                       />
                     ) : (
@@ -1087,12 +1087,12 @@ const CantonFair: React.FC = () => {
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className="bg-white w-full max-w-6xl max-h-full overflow-y-auto rounded-[3rem] shadow-2xl relative"
             >
-              <div className="relative h-64 md:h-80 overflow-hidden">
+              <div className="relative h-64 md:h-80 overflow-hidden bg-white">
                 {selectedSupplier.images.length > 0 ? (
                   <img 
                     src={selectedSupplier.images[0].file.url} 
                     alt={selectedSupplier.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain p-8"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
@@ -1241,7 +1241,7 @@ const CantonFair: React.FC = () => {
                             {product.images.length > 0 && (
                               <div className="grid grid-cols-4 gap-2">
                                 {product.images.map((img, i) => (
-                                  <img key={i} src={img.url} alt="Product" className="aspect-square w-full object-cover rounded-xl border border-slate-200" referrerPolicy="no-referrer" />
+                                  <img key={i} src={img.url} alt="Product" className="aspect-square w-full object-contain p-2 bg-white rounded-xl border border-slate-200" referrerPolicy="no-referrer" />
                                 ))}
                               </div>
                             )}
@@ -1348,11 +1348,11 @@ const CantonFair: React.FC = () => {
                     <div className="space-y-8">
                       {selectedSupplier.images.map((img, idx) => (
                         <div key={idx} className="group bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all relative">
-                          <div className="aspect-video relative">
+                          <div className="aspect-video relative bg-white">
                             <img 
                               src={img.file.url} 
                               alt={`Gallery ${idx}`} 
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-contain p-4"
                               referrerPolicy="no-referrer"
                             />
                             <button 

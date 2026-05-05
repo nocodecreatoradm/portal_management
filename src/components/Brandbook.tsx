@@ -275,13 +275,13 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
             className="relative h-[260px] rounded-[24px] overflow-hidden cursor-pointer group shadow-lg shadow-slate-200/50 border border-slate-100"
           >
             <div 
-              className="absolute inset-0 z-0"
+              className="absolute inset-0 z-0 bg-white"
               onClick={() => setSelectedBrand(brand)}
             >
               <img 
                 src={brand.image || 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1000'} 
                 alt={brand.name}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/30 to-transparent flex flex-col justify-end p-6">
                 <h3 className="text-2xl font-black text-white mb-1 tracking-tight">{brand.name}</h3>

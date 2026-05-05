@@ -513,7 +513,7 @@ export const SupabaseService = {
       .from('energy_efficiency_records')
       .select(`
         *,
-        supplier:suppliers(legal_name)
+        supplier:suppliers!energy_efficiency_records_supplier_id_fkey(legal_name)
       `)
       .order('created_at', { ascending: false });
     if (error) throw error;
