@@ -140,7 +140,7 @@ export default function EnergyEfficiency({
       try {
         const uploadedPhotos: FileInfo[] = [];
         for (const f of Array.from(files) as File[]) {
-          const fileInfo = await SupabaseService.uploadFile('energy-efficiency', `gallery/${Date.now()}_${f.name}`, f) as any;
+          const fileInfo = await SupabaseService.uploadFile('rd-files', `ee/gallery/${Date.now()}_${f.name}`, f) as any;
           uploadedPhotos.push({
             name: f.name,
             url: fileInfo.url,
@@ -351,7 +351,7 @@ export default function EnergyEfficiency({
       if (file) {
         toast.loading(`Subiendo ${type === 'certificado' ? 'Certificado' : 'Etiqueta'}...`);
         try {
-          const fileInfo = await SupabaseService.uploadFile('energy-efficiency', `ee/${Date.now()}_${file.name}`, file);
+          const fileInfo = await SupabaseService.uploadFile('rd-files', `ee/${Date.now()}_${file.name}`, file);
           const mockFile: FileInfo = {
             name: file.name,
             url: fileInfo.url,
@@ -427,7 +427,7 @@ export default function EnergyEfficiency({
         try {
           const uploadedPhotos: FileInfo[] = [];
           for (const f of Array.from(files) as File[]) {
-            const fileInfo = await SupabaseService.uploadFile('energy-efficiency', `gallery/${Date.now()}_${f.name}`, f) as any;
+            const fileInfo = await SupabaseService.uploadFile('rd-files', `ee/gallery/${Date.now()}_${f.name}`, f) as any;
             uploadedPhotos.push({
               name: f.name,
               url: fileInfo.url,

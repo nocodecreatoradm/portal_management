@@ -233,7 +233,7 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
     try {
       let fileInfo: FileInfo;
       if (file && file.size > 0) {
-        fileInfo = await SupabaseService.uploadFile('inventory', `certificates/${item.serialNumber}/${file.name}`, file);
+        fileInfo = await SupabaseService.uploadFile('rd-files', `inventory/certificates/${item.serialNumber}/${file.name}`, file);
       } else {
         fileInfo = { 
           name: `Certificado_${item.serialNumber}_${calDate}.pdf`, 
@@ -568,7 +568,7 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
       if (!file) return;
 
       try {
-        const fileInfo = await SupabaseService.uploadFile('inventory', `photos/${item?.serialNumber || 'new'}/${file.name}`, file);
+        const fileInfo = await SupabaseService.uploadFile('rd-files', `inventory/photos/${item?.serialNumber || 'new'}/${file.name}`, file);
         setPhotos(prev => [...prev, fileInfo]);
         toast.success('Foto subida');
       } catch (error) {
@@ -582,7 +582,7 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
       if (!file) return;
 
       try {
-        const fileInfo = await SupabaseService.uploadFile('inventory', `manuals/${item?.serialNumber || 'new'}/${file.name}`, file);
+        const fileInfo = await SupabaseService.uploadFile('rd-files', `inventory/manuals/${item?.serialNumber || 'new'}/${file.name}`, file);
         setManual(fileInfo);
         toast.success('Manual subido');
       } catch (error) {

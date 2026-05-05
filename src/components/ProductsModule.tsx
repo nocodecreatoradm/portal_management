@@ -335,7 +335,7 @@ export default function ProductsModule({
       try {
         const uploadedFiles: FileInfo[] = [];
         for (const f of Array.from(files) as File[]) {
-          const fileInfo = await SupabaseService.uploadFile('products', `explode/${Date.now()}_${f.name}`, f) as any;
+          const fileInfo = await SupabaseService.uploadFile('rd-files', `products/explode/${Date.now()}_${f.name}`, f) as any;
           uploadedFiles.push({
             name: f.name,
             url: fileInfo.url,
@@ -362,7 +362,7 @@ export default function ProductsModule({
       try {
         const uploadedFiles: FileInfo[] = [];
         for (const f of Array.from(files) as File[]) {
-          const fileInfo = await SupabaseService.uploadFile('products', `additional/${Date.now()}_${f.name}`, f) as any;
+          const fileInfo = await SupabaseService.uploadFile('rd-files', `products/additional/${Date.now()}_${f.name}`, f) as any;
           uploadedFiles.push({
             name: f.name,
             url: fileInfo.url,
@@ -389,7 +389,7 @@ export default function ProductsModule({
       try {
         const uploadedPhotos: FileInfo[] = [];
         for (const f of Array.from(files) as File[]) {
-          const fileInfo = await SupabaseService.uploadFile('products', `gallery/${Date.now()}_${f.name}`, f) as any;
+          const fileInfo = await SupabaseService.uploadFile('rd-files', `products/gallery/${Date.now()}_${f.name}`, f) as any;
           uploadedPhotos.push({
             name: f.name,
             url: fileInfo.url,

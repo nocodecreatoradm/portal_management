@@ -124,8 +124,8 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
         const toastId = toast.loading('Subiendo archivo...');
         try {
           fileInfo = await SupabaseService.uploadFile(
-            'ntp-regulations',
-            `docs/${Date.now()}_${selectedFile.name}`,
+            'rd-files',
+            `ntp/docs/${Date.now()}_${selectedFile.name}`,
             selectedFile
           );
           toast.success('Archivo subido correctamente', { id: toastId });

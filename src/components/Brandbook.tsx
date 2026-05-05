@@ -106,7 +106,7 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
       const toastId = toast.loading('Subiendo archivo...');
       
       // Upload to storage
-      const uploadedFile = await SupabaseService.uploadFile('brandbook', `docs/${Date.now()}_${file.name}`, file);
+      const uploadedFile = await SupabaseService.uploadFile('rd-files', `brandbook/docs/${Date.now()}_${file.name}`, file);
 
       const getFileType = (fileName: string): BrandDocument['type'] => {
         const ext = fileName.split('.').pop()?.toLowerCase();
@@ -148,7 +148,7 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
 
     try {
       const toastId = toast.loading('Actualizando imagen...');
-      const uploadedFile = await SupabaseService.uploadFile('brandbook', `images/${Date.now()}_${file.name}`, file);
+      const uploadedFile = await SupabaseService.uploadFile('rd-files', `brandbook/images/${Date.now()}_${file.name}`, file);
       
       if (uploadingTarget.type === 'hero') {
         await SupabaseService.updateBrandbookSettings(uploadedFile.url);
