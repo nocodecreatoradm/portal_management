@@ -54,6 +54,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
   const [galleryCategory, setGalleryCategory] = useState('');
   const [comparisonIds, setComparisonIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'specs' | 'summary' | 'comparison'>('specs');
+  const [receivedBy, setReceivedBy] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
   const [allCalculationRecords, setAllCalculationRecords] = useState<CalculationRecord[]>([]);
@@ -1170,8 +1171,8 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
                   <UserSelect
                     label="Persona que Recepcionó"
                     name="receivedBy"
-                    value=""
-                    onChange={() => {}}
+                    value={receivedBy}
+                    onChange={setReceivedBy}
                     required
                   />
                 <div className="space-y-1.5">
@@ -1249,7 +1250,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
                   label="Técnico"
                   name="technician"
                   value={selectedSample?.technician || ''}
-                  onChange={() => {}}
+                  onChange={(val) => setSelectedSample(prev => prev ? { ...prev, technician: val } : null)}
                   required
                 />
               <div className="space-y-1.5">

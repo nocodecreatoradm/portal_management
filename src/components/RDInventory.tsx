@@ -562,6 +562,7 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
   const EquipmentForm = ({ item, onSubmit, onCancel, title }: { item?: RDInventoryItem, onSubmit: (data: any) => void, onCancel: () => void, title: string }) => {
     const [photos, setPhotos] = useState<FileInfo[]>(item?.photos || []);
     const [manual, setManual] = useState<FileInfo | null>(item?.manual || null);
+    const [responsible, setResponsible] = useState(item?.responsible || 'I+D');
 
     const handlePhotoAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -673,8 +674,8 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
             <UserSelect
               label="Responsable"
               name="responsible"
-              value={item?.responsible || 'I+D'}
-              onChange={() => {}}
+              value={responsible}
+              onChange={setResponsible}
               required
             />
             <div className="space-y-2">
