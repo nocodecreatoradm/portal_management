@@ -1177,6 +1177,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))
                     }
+                  </select>
                 </div>
               </div>
 
@@ -1682,7 +1683,6 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                       {selectedSampleForDetail.inspectionStatus}
                     </span>
                   </div>
-                </div>
                 </div>
               </div>
 
