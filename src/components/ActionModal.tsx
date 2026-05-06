@@ -53,7 +53,8 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
   const [proformaNumber, setProformaNumber] = useState('');
   const [solpedNumber, setSolpedNumber] = useState('');
   const [estimatedShipmentDate, setEstimatedShipmentDate] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<'approved' | 'rejected' | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<ApprovalStatus | null>(null);
+  const [withObservation, setWithObservation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeVersion, setActiveVersion] = useState<DocumentVersion | undefined>(version);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -62,8 +63,8 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
     if (isOpen) {
       setActiveVersion(version);
       // Reset form fields when modal opens
-      setComments('');
       setSelectedStatus(null);
+      setWithObservation(false);
       setError(null);
       if (action === 'approve' && version) {
         setProformaNumber(version.proformaNumber || '');
@@ -113,7 +114,9 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
           proformaNumber,
           solpedNumber,
           estimatedShipmentDate,
-          status: selectedStatus || 'approved',
+          status: stage === 'PLAN' 
+            ? (withObservation ? 'approved_with_observation' : 'approved') 
+            : (selectedStatus || 'approved'),
           targetVersion: activeVersion,
           userEmail: user?.email,
           userId: user?.id
@@ -297,6 +300,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
             {(action === 'view' || action === 'approve') && activeVersion && (
               <div className="space-y-6">
                 {/* Version Selector Dropdowns */}
+                {stage !== 'PLAN' && (
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   {type === 'artwork' && (
                     <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
@@ -337,6 +341,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                     </select>
                   </div>
                 </div>
+                )}
 
                 {action === 'approve' && (
                   <>
@@ -345,32 +350,58 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                         {error}
                       </div>
                     )}
-                    <div className="flex gap-4 mb-6">
-                      <button 
-                        type="button" 
-                        onClick={() => setSelectedStatus('approved')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-colors border ${
-                          selectedStatus === 'approved' 
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' 
-                            : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                        }`}
-                      >
-                        <CheckCircle size={20} />
-                        Aprobar
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={() => setSelectedStatus('rejected')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-colors border ${
-                          selectedStatus === 'rejected' 
-                            ? (stage === 'PROV' || stage === 'PLAN' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-red-600 text-white border-red-600 shadow-md')
-                            : (stage === 'PROV' || stage === 'PLAN' ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100')
-                        }`}
-                      >
-                        {stage === 'PROV' || stage === 'PLAN' ? <Eye size={20} /> : <ThumbsDown size={20} />}
-                        {stage === 'PROV' || stage === 'PLAN' ? 'Observación' : 'Rechazar'}
-                      </button>
-                    </div>
+                    {stage === 'PLAN' ? (
+                      <div className="mb-6 flex items-center justify-between bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-emerald-100 text-emerald-600 p-2 rounded-lg">
+                            <CheckCircle size={24} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-800">Aprobación de Planeamiento</p>
+                            <p className="text-xs text-gray-600">Llena los campos amarillos para confirmar</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              className="sr-only peer"
+                              checked={withObservation}
+                              onChange={(e) => setWithObservation(e.target.checked)}
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">¿Con Observación?</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-4 mb-6">
+                        <button 
+                          type="button" 
+                          onClick={() => setSelectedStatus('approved')}
+                          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-colors border ${
+                            selectedStatus === 'approved' 
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' 
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                          }`}
+                        >
+                          <CheckCircle size={20} />
+                          Aprobar
+                        </button>
+                        <button 
+                          type="button" 
+                          onClick={() => setSelectedStatus('rejected')}
+                          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-colors border ${
+                            selectedStatus === 'rejected' 
+                              ? (stage === 'PROV' || stage === 'PLAN' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-red-600 text-white border-red-600 shadow-md')
+                              : (stage === 'PROV' || stage === 'PLAN' ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100')
+                          }`}
+                        >
+                          {stage === 'PROV' || stage === 'PLAN' ? <Eye size={20} /> : <ThumbsDown size={20} />}
+                          {stage === 'PROV' || stage === 'PLAN' ? 'Observación' : 'Rechazar'}
+                        </button>
+                      </div>
+                    )}
 
                     {stage === 'PLAN' && (
                       <div className="space-y-4 mb-4 bg-amber-50 p-4 rounded-lg border border-amber-100">
@@ -512,18 +543,22 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                         ? 'text-emerald-600' 
                         : item.approval.status === 'rejected' 
                           ? 'text-red-600' 
-                          : 'text-amber-600';
+                          : item.approval.status === 'approved_with_observation'
+                            ? 'text-amber-600'
+                            : 'text-slate-400';
                       
                       return (
                         <div key={idx} className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded border border-gray-100">
                           <span className="font-medium">{item.label}</span>
-                          <span className={`${statusColor} flex items-center gap-1`}>
-                            {item.approval.status === 'approved' ? <CheckCircle size={14}/> : item.approval.status === 'rejected' ? (item.label === 'PROV' || item.label === 'PLAN' ? <Eye size={14}/> : <ThumbsDown size={14}/>) : <Clock size={14}/>}
+                          <span className={`${statusColor} flex items-center gap-1 font-bold`}>
+                            {item.approval.status === 'approved' ? <CheckCircle size={14}/> : (item.approval.status === 'rejected' || item.approval.status === 'approved_with_observation') ? (item.label === 'PROV' || item.label === 'PLAN' ? <Eye size={14}/> : <ThumbsDown size={14}/>) : <Clock size={14}/>}
                             {item.approval.status === 'approved' 
                               ? `Aprobado por ${item.approval.user}` 
-                              : item.approval.status === 'rejected' 
-                                ? `${item.label === 'PROV' || item.label === 'PLAN' ? 'Observado' : 'Rechazar'} por ${item.approval.user}` 
-                                : 'Pendiente'}
+                              : item.approval.status === 'approved_with_observation'
+                                ? `Aprobado con observación por ${item.approval.user}`
+                                : item.approval.status === 'rejected' 
+                                  ? `${item.label === 'PROV' || item.label === 'PLAN' ? 'Observado' : 'Rechazar'} por ${item.approval.user}` 
+                                  : 'Pendiente'}
                           </span>
                         </div>
                       );

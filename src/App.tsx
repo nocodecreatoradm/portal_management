@@ -427,7 +427,7 @@ export default function App() {
               
               setData(newData);
 
-              if (actionData.status === 'approved') {
+              if (actionData.status === 'approved' || actionData.status === 'approved_with_observation') {
                 if (modalConfig.stage === 'PLAN') {
                   outlookService.sendApprovalEmail(record, updatedVersion, modalConfig.type || 'artwork');
                 } else {
