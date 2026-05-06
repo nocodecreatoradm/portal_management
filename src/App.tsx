@@ -383,58 +383,58 @@ export default function App() {
               v.subcategory === targetVersion?.subcategory
             );
             
-              let updatedVersion;
-              if (modalConfig.stage === 'PLAN') {
-                // Para Planeamiento, la aprobación es GLOBAL para todos los documentos del registro
-                record[docArrayKey] = currentDocs.map(v => ({
-                  ...v,
-                  planApproval: {
-                    status: actionData.status,
-                    user: user?.name || 'Sistema',
-                    date: new Date().toISOString().split('T')[0],
-                    comments: actionData.comments
-                  },
-                  proformaNumber: actionData.proformaNumber,
-                  solpedNumber: actionData.solpedNumber,
-                  estimatedShipmentDate: actionData.estimatedShipmentDate
-                }));
-                updatedVersion = record[docArrayKey][0];
-              } else if (versionIndex > -1) {
-                const stageKey = modalConfig.stage === 'I+D' ? 'idApproval' : 
-                                 modalConfig.stage === 'MKT' ? 'mktApproval' : 'provApproval';
-                
-                updatedVersion = {
-                  ...currentDocs[versionIndex],
-                  [stageKey]: {
-                    status: actionData.status,
-                    user: user?.name || 'Sistema',
-                    date: new Date().toISOString().split('T')[0],
-                    comments: actionData.comments
-                  }
-                };
-                currentDocs[versionIndex] = updatedVersion;
-                record[docArrayKey] = currentDocs;
-              }
+            let updatedVersion;
+            if (modalConfig.stage === 'PLAN') {
+              // Para Planeamiento, la aprobación es GLOBAL para todos los documentos del registro
+              record[docArrayKey] = currentDocs.map(v => ({
+                ...v,
+                planApproval: {
+                  status: actionData.status,
+                  user: user?.name || 'Sistema',
+                  date: new Date().toISOString().split('T')[0],
+                  comments: actionData.comments
+                },
+                proformaNumber: actionData.proformaNumber,
+                solpedNumber: actionData.solpedNumber,
+                estimatedShipmentDate: actionData.estimatedShipmentDate
+              }));
+              updatedVersion = record[docArrayKey][0];
+            } else if (versionIndex > -1) {
+              const stageKey = modalConfig.stage === 'I+D' ? 'idApproval' : 
+                               modalConfig.stage === 'MKT' ? 'mktApproval' : 'provApproval';
               
-              newData[recordIndex] = record;
-              
-              // Persist to Supabase
-              if (record.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record.id)) {
-                await SupabaseService.updateProduct(record.id, { [docArrayKey]: record[docArrayKey] });
-              } else if (record.codigoSAP) {
-                await SupabaseService.updateProductBySAP(record.codigoSAP, { [docArrayKey]: record[docArrayKey] });
-              }
-              
-              setData(newData);
-
-              if (actionData.status === 'approved' || actionData.status === 'approved_with_observation') {
-                if (modalConfig.stage === 'PLAN') {
-                  outlookService.sendApprovalEmail(record, updatedVersion, modalConfig.type || 'artwork');
-                } else {
-                  toast.info(`Informando sobre la aprobación de ${modalConfig.type}`);
+              updatedVersion = {
+                ...currentDocs[versionIndex],
+                [stageKey]: {
+                  status: actionData.status,
+                  user: user?.name || 'Sistema',
+                  date: new Date().toISOString().split('T')[0],
+                  comments: actionData.comments
                 }
+              };
+              currentDocs[versionIndex] = updatedVersion;
+              record[docArrayKey] = currentDocs;
+            }
+            
+            newData[recordIndex] = record;
+            
+            // Persist to Supabase
+            if (record.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record.id)) {
+              await SupabaseService.updateProduct(record.id, { [docArrayKey]: record[docArrayKey] });
+            } else if (record.codigoSAP) {
+              await SupabaseService.updateProductBySAP(record.codigoSAP, { [docArrayKey]: record[docArrayKey] });
+            }
+            
+            setData(newData);
+
+            if (actionData.status === 'approved' || actionData.status === 'approved_with_observation') {
+              if (modalConfig.stage === 'PLAN') {
+                outlookService.sendApprovalEmail(record, updatedVersion, modalConfig.type || 'artwork');
+              } else {
+                toast.info(`Informando sobre la aprobación de ${modalConfig.type}`);
               }
-              toast.success('Estado actualizado correctamente');
+            }
+            toast.success('Estado actualizado correctamente');
           }
         }
       } catch (error) {
