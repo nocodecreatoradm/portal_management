@@ -128,7 +128,7 @@ export default function App() {
       code: item.codProv
     }));
     const fromSuppliers = suppliers.map(sup => ({
-      name: sup.legalName,
+      name: sup.commercialAlias || sup.legalName,
       emails: Array.isArray(sup.email) ? sup.email : (sup.email ? [sup.email] : []),
       code: sup.erpCode || ''
     }));
