@@ -973,7 +973,14 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
                     </td>
                     <td className="px-6 py-5">
                       {item.certificate ? (
-                        <button className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 transition-colors">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const latest = [...(item.certificateHistory || [])].sort((a, b) => b.version - a.version)[0];
+                            if (latest?.url) window.open(latest.url, '_blank');
+                          }}
+                          className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 transition-colors"
+                        >
                           <FileText size={16} />
                           <span className="text-[10px] font-black uppercase">{item.certificate}</span>
                         </button>

@@ -33,7 +33,9 @@ export const mapInventoryToDB = (item: Partial<RDInventoryItem>) => ({
   last_calibration_date: item.lastCalibrationDate,
   next_calibration_date: item.nextCalibrationDate,
   manual_file: item.manual,
-  photos: item.photos
+  photos: item.photos,
+  certificate: item.certificate,
+  certificates: item.certificateHistory
 });
 
 export const mapDBToInventory = (dbItem: any): RDInventoryItem => ({
@@ -54,7 +56,8 @@ export const mapDBToInventory = (dbItem: any): RDInventoryItem => ({
   nextCalibrationDate: dbItem.next_calibration_date,
   manual: dbItem.manual_file,
   photos: dbItem.photos,
-  certificateHistory: dbItem.certificates
+  certificateHistory: dbItem.certificates,
+  certificate: dbItem.certificate
 });
 
 export const mapEEToDB = (record: Partial<EnergyEfficiencyRecord>) => {
