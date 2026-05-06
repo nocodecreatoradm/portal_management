@@ -21,12 +21,18 @@ import { SupabaseService } from '../lib/SupabaseService';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 
+interface SamplesProps {
+  samples: SampleRecord[];
+  onUpdateSample: (id: string, updates: Partial<SampleRecord>) => void;
+  onAddSample: (sample: SampleRecord) => void;
+  suppliers: Supplier[];
   onExportPPT?: () => void;
   onLoadRecord?: (moduleId: ModuleId, data: any) => void;
   brands: { id: string; name: string }[];
   productLines: { id: string; name: string }[];
   categories: { id: string; name: string; productLineId: string }[];
 }
+
 
 export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, productLines, categories }: Omit<SamplesProps, 'samples' | 'onUpdateSample' | 'onAddSample'>) {
   const { user } = useAuth();

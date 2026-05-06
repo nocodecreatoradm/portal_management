@@ -1301,18 +1301,6 @@ export const SupabaseService = {
     return data.map(mapDBToBrand);
   },
 
-  async updateBrand(id: string, updates: Partial<Brand>) {
-    const dbUpdates = mapBrandToDB(updates);
-    const { data, error } = await supabase
-      .from('brands')
-      .update(dbUpdates)
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    return mapDBToBrand(data);
-  },
-
   async getBrandbookDocuments(brandId?: string) {
     let query = supabase.from('brand_documents').select().order('name');
     if (brandId) {
