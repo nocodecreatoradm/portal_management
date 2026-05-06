@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   XCircle, Save, Play, Pause, CheckCircle2, AlertCircle, 
   Plus, Trash2, Camera, ChevronDown, ChevronUp, Clock,
-  FileText, Image as ImageIcon, Loader2
+  FileText, Image as ImageIcon, Loader2, Eye, EyeOff, ExternalLink
 } from 'lucide-react';
 import { SampleRecord, InspectionSection, WorkflowStage, FileInfo, InspectionTimer, InspectionTemplate } from '../types';
 import { SupabaseService } from '../lib/SupabaseService';
@@ -19,6 +19,7 @@ interface InspectionModalProps {
 
 export default function InspectionModal({ isOpen, onClose, sample, onSave }: InspectionModalProps) {
   const [activeTab, setActiveTab] = useState<'form' | 'workflow'>('form');
+  const [showProcedure, setShowProcedure] = useState(false);
   const [form, setForm] = useState<InspectionSection[]>(sample.inspectionForm || [
     {
       id: 'sec1',
@@ -71,6 +72,7 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
         const tpt = await SupabaseService.getInspectionTemplateByCategory(sample.categoryId);
         if (tpt) {
           setTemplate(tpt);
+          if (tpt.procedureFile) setShowProcedure(true);
           
           // If the sample doesn't have a form or workflow yet, use the template ones
           if (!sample.inspectionForm || sample.inspectionForm.length === 0) {
@@ -380,7 +382,7 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-6xl rounded-[32px] shadow-2xl overflow-hidden flex flex-col h-[90vh]">
+      <div className={`bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col h-[90vh] transition-all duration-500 ${showProcedure && template?.procedureFile ? 'max-w-[95vw] w-full' : 'max-w-6xl w-full'}`}>
         {/* Hidden File Input */}
         <input 
           type="file" 
@@ -415,14 +417,23 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+            {template?.procedureFile && (
+              <button 
+                onClick={() => setShowProcedure(!showProcedure)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                  showProcedure ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                {showProcedure ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showProcedure ? 'Ocultar Procedimiento' : 'Ver Procedimiento'}
+              </button>
+            )}
+
             {/* Timer Display */}
             <div className="flex items-center gap-3 bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-sm">
               <Clock size={18} className="text-indigo-500 animate-pulse" />
               <span className="text-lg font-mono font-black text-slate-700">{formatTime(elapsedTime)}</span>
-              <div className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
-                En Curso
-              </div>
             </div>
 
             <button 
@@ -434,246 +445,313 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
           </div>
         </div>
 
-          <div className="flex border-b border-slate-100 px-8 bg-white justify-between items-center">
-            <div className="flex">
-              <button 
-                onClick={() => setActiveTab('form')}
-                className={`px-6 py-4 text-sm font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'form' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-              >
-                Formato de Inspección
-              </button>
-              <button 
-                onClick={() => setActiveTab('workflow')}
-                className={`px-6 py-4 text-sm font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'workflow' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-              >
-                Flujo de Trabajo
-              </button>
+        <div className="flex-1 flex overflow-hidden">
+          {/* Main Content Area */}
+          <div className={`flex-1 flex flex-col min-w-0 transition-all duration-500`}>
+            <div className="flex border-b border-slate-100 px-8 bg-white justify-between items-center shrink-0">
+              <div className="flex">
+                <button 
+                  onClick={() => setActiveTab('form')}
+                  className={`px-6 py-4 text-sm font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'form' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                >
+                  Formato de Inspección
+                </button>
+                <button 
+                  onClick={() => setActiveTab('workflow')}
+                  className={`px-6 py-4 text-sm font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'workflow' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                >
+                  Flujo de Trabajo
+                </button>
+              </div>
+              
+              {activeTab === 'form' ? (
+                <button 
+                  onClick={handleAddSection}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition-all"
+                >
+                  <Plus size={16} />
+                  Añadir Sección
+                </button>
+              ) : (
+                <button 
+                  onClick={handleAddWorkflowStage}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition-all"
+                >
+                  <Plus size={16} />
+                  Añadir Procedimiento
+                </button>
+              )}
             </div>
-            
-            {activeTab === 'form' ? (
-              <button 
-                onClick={handleAddSection}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition-all"
-              >
-                <Plus size={16} />
-                Añadir Sección
-              </button>
-            ) : (
-              <button 
-                onClick={handleAddWorkflowStage}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition-all"
-              >
-                <Plus size={16} />
-                Añadir Procedimiento
-              </button>
-            )}
-          </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-8 bg-slate-50/30">
-          {activeTab === 'form' ? (
-            <div className="space-y-8">
-              {form.map((section) => (
-                <div key={section.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                    <input 
-                      type="text"
-                      value={section.title}
-                      onChange={(e) => handleUpdateSectionTitle(section.id, e.target.value)}
-                      className="text-sm font-black text-slate-800 uppercase tracking-widest bg-transparent outline-none focus:text-indigo-600"
-                    />
-                    <div className="flex items-center gap-4">
-                      <button 
-                        onClick={() => handleAddField(section.id)}
-                        className="flex items-center gap-1.5 text-[10px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest"
-                      >
-                        <Plus size={14} />
-                        Añadir Fila
-                      </button>
-                      <button 
-                        onClick={() => handleRemoveSection(section.id)}
-                        className="text-slate-400 hover:text-red-500 transition-all"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="divide-y divide-slate-100">
-                    {section.fields.map((field) => (
-                      <div key={field.id} className="grid grid-cols-12 gap-6 p-6 items-start hover:bg-slate-50/50 transition-colors">
-                        <div className="col-span-3">
-                          <input 
-                            type="text" 
-                            value={field.label}
-                            onChange={(e) => handleUpdateField(section.id, field.id, { label: e.target.value })}
-                            className="w-full bg-transparent text-sm font-bold text-slate-700 outline-none focus:text-indigo-600"
-                          />
-                        </div>
-                        <div className="col-span-4">
-                          <textarea 
-                            value={field.value}
-                            onChange={(e) => handleUpdateField(section.id, field.id, { value: e.target.value })}
-                            placeholder="Ingresar descripción o valor..."
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500/10 outline-none min-h-[120px] resize-none shadow-inner"
-                          />
-                        </div>
-                        <div className="col-span-5 space-y-3">
-                          <div className="flex flex-wrap gap-2">
-                            {field.photos.map((photo, idx) => (
-                              <div key={idx} className="relative group w-20 h-20 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-                                <img src={photo.url} alt="Evidencia" className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                  <button 
-                                    onClick={() => {
-                                      const newPhotos = field.photos.filter((_, i) => i !== idx);
-                                      handleUpdateField(section.id, field.id, { photos: newPhotos });
-                                    }}
-                                    className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                            <button 
-                              onClick={() => triggerUpload(section.id, field.id)}
-                              className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 hover:border-indigo-300 hover:text-indigo-500 transition-all bg-slate-50 group"
-                            >
-                              <Camera size={20} className="group-hover:scale-110 transition-transform" />
-                              <span className="text-[8px] font-bold uppercase mt-1">Subir</span>
-                            </button>
-                          </div>
-                        </div>
-                        <div className="col-span-1 flex justify-end">
+            <div className="flex-1 overflow-y-auto p-8 bg-slate-50/30">
+              {activeTab === 'form' ? (
+                <div className="space-y-8">
+                  {form.map((section) => (
+                    <div key={section.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                      <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                        <input 
+                          type="text"
+                          value={section.title}
+                          onChange={(e) => handleUpdateSectionTitle(section.id, e.target.value)}
+                          className="text-sm font-black text-slate-800 uppercase tracking-widest bg-transparent outline-none focus:text-indigo-600"
+                        />
+                        <div className="flex items-center gap-4">
                           <button 
-                            onClick={() => handleRemoveField(section.id, field.id)}
-                            className="text-slate-300 hover:text-red-500 transition-all"
+                            onClick={() => handleAddField(section.id)}
+                            className="flex items-center gap-1.5 text-[10px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest"
                           >
-                            <Trash2 size={16} />
+                            <Plus size={14} />
+                            Añadir Fila
+                          </button>
+                          <button 
+                            onClick={() => handleRemoveSection(section.id)}
+                            className="text-slate-400 hover:text-red-500 transition-all"
+                          >
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="max-w-3xl mx-auto space-y-6">
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
-                <h4 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-2">
-                  <CheckCircle2 className="text-indigo-500" size={24} />
-                  Checklist de Procedimiento
-                </h4>
-                <div className="space-y-4">
-                  {workflow.map((stage) => (
-                    <div key={stage.id} className="space-y-3 p-6 bg-slate-50 rounded-3xl border border-slate-100 group">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                            stage.status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
-                            stage.status === 'observed' ? 'bg-amber-100 text-amber-600' : 'bg-white text-slate-300'
-                          }`}>
-                            {stage.status === 'approved' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
-                          </div>
-                          <input 
-                            type="text"
-                            value={stage.stage}
-                            onChange={(e) => handleUpdateWorkflow(stage.id, { stage: e.target.value })}
-                            className="text-sm font-bold text-slate-700 bg-transparent outline-none focus:text-indigo-600 flex-1"
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => handleUpdateWorkflow(stage.id, { status: 'approved' })}
-                            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                              stage.status === 'approved' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white text-slate-400 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-600'
-                            }`}
-                          >
-                            Aprobado
-                          </button>
-                          <button 
-                            onClick={() => handleUpdateWorkflow(stage.id, { status: 'observed' })}
-                            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                              stage.status === 'observed' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-white text-slate-400 border border-slate-200 hover:bg-amber-50 hover:text-amber-600'
-                            }`}
-                          >
-                            Observado
-                          </button>
-                          <button 
-                            onClick={() => handleRemoveWorkflowStage(stage.id)}
-                            className="p-2 text-slate-300 hover:text-red-500 transition-all"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col gap-4 pl-14">
-                        <div className="flex-1">
-                          <textarea 
-                            placeholder="Añadir comentario u observación..."
-                            value={stage.comment || ''}
-                            onChange={(e) => handleUpdateWorkflow(stage.id, { comment: e.target.value })}
-                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500/10 min-h-[120px] resize-none shadow-inner"
-                          />
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-2">
-                          {stage.files?.map((file, idx) => (
-                            <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl group relative">
-                              <FileText size={14} className="text-indigo-500" />
-                              <span className="text-[10px] font-bold text-slate-600 truncate max-w-[150px]">{file.name}</span>
-                              <div className="flex items-center gap-1">
-                                <a 
-                                  href={file.url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-indigo-600 hover:text-indigo-700 text-[10px] font-black uppercase"
-                                >
-                                  Ver
-                                </a>
+                      <div className="divide-y divide-slate-100">
+                        {section.fields.map((field) => (
+                          <div key={field.id} className="grid grid-cols-12 gap-6 p-6 items-start hover:bg-slate-50/50 transition-colors">
+                            <div className="col-span-3">
+                              <input 
+                                type="text" 
+                                value={field.label}
+                                onChange={(e) => handleUpdateField(section.id, field.id, { label: e.target.value })}
+                                className="w-full bg-transparent text-sm font-bold text-slate-700 outline-none focus:text-indigo-600"
+                              />
+                            </div>
+                            <div className="col-span-4">
+                              <textarea 
+                                value={field.value}
+                                onChange={(e) => handleUpdateField(section.id, field.id, { value: e.target.value })}
+                                placeholder="Ingresar descripción o valor..."
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500/10 outline-none min-h-[120px] resize-none shadow-inner"
+                              />
+                            </div>
+                            <div className="col-span-5 space-y-3">
+                              <div className="flex flex-wrap gap-2">
+                                {field.photos.map((photo, idx) => (
+                                  <div key={idx} className="relative group w-20 h-20 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                                    <img src={photo.url} alt="Evidencia" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                      <button 
+                                        onClick={() => {
+                                          const newPhotos = field.photos.filter((_, i) => i !== idx);
+                                          handleUpdateField(section.id, field.id, { photos: newPhotos });
+                                        }}
+                                        className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
                                 <button 
-                                  onClick={() => {
-                                    const newFiles = stage.files?.filter((_, i) => i !== idx);
-                                    handleUpdateWorkflow(stage.id, { files: newFiles });
-                                  }}
-                                  className="p-1 hover:bg-red-50 text-slate-300 hover:text-red-500 rounded transition-colors"
+                                  onClick={() => triggerUpload(section.id, field.id)}
+                                  className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 hover:border-indigo-300 hover:text-indigo-500 transition-all bg-slate-50 group"
                                 >
-                                  <Trash2 size={12} />
+                                  <Camera size={20} className="group-hover:scale-110 transition-transform" />
+                                  <span className="text-[8px] font-bold uppercase mt-1">Subir</span>
                                 </button>
                               </div>
                             </div>
-                          ))}
-                          <button 
-                            onClick={() => triggerWorkflowUpload(stage.id)}
-                            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-slate-50 transition-all border-dashed"
-                          >
-                            <Plus size={14} />
-                            Añadir Doc / Foto
-                          </button>
-                        </div>
+                            <div className="col-span-1 flex justify-end">
+                              <button 
+                                onClick={() => handleRemoveField(section.id, field.id)}
+                                className="text-slate-300 hover:text-red-500 transition-all"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              ) : (
+                <div className="max-w-3xl mx-auto space-y-6">
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+                    <h4 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-2">
+                      <CheckCircle2 className="text-indigo-500" size={24} />
+                      Checklist de Procedimiento
+                    </h4>
+                    <div className="space-y-4">
+                      {workflow.map((stage) => (
+                        <div key={stage.id} className="space-y-3 p-6 bg-slate-50 rounded-3xl border border-slate-100 group">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 flex-1">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                stage.status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
+                                stage.status === 'observed' ? 'bg-amber-100 text-amber-600' : 'bg-white text-slate-300'
+                              }`}>
+                                {stage.status === 'approved' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+                              </div>
+                              <input 
+                                type="text"
+                                value={stage.stage}
+                                onChange={(e) => handleUpdateWorkflow(stage.id, { stage: e.target.value })}
+                                className="text-sm font-bold text-slate-700 bg-transparent outline-none focus:text-indigo-600 flex-1"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => handleUpdateWorkflow(stage.id, { status: 'approved' })}
+                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                                  stage.status === 'approved' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white text-slate-400 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-600'
+                                }`}
+                              >
+                                Aprobado
+                              </button>
+                              <button 
+                                onClick={() => handleUpdateWorkflow(stage.id, { status: 'observed' })}
+                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                                  stage.status === 'observed' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-white text-slate-400 border border-slate-200 hover:bg-amber-50 hover:text-amber-600'
+                                }`}
+                              >
+                                Observado
+                              </button>
+                              <button 
+                                onClick={() => handleRemoveWorkflowStage(stage.id)}
+                                className="p-2 text-slate-300 hover:text-red-500 transition-all"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col gap-4 pl-14">
+                            <div className="flex-1">
+                              <textarea 
+                                placeholder="Añadir comentario u observación..."
+                                value={stage.comment || ''}
+                                onChange={(e) => handleUpdateWorkflow(stage.id, { comment: e.target.value })}
+                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500/10 min-h-[120px] resize-none shadow-inner"
+                              />
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-2">
+                              {stage.files?.map((file, idx) => (
+                                <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl group relative">
+                                  <FileText size={14} className="text-indigo-500" />
+                                  <span className="text-[10px] font-bold text-slate-600 truncate max-w-[150px]">{file.name}</span>
+                                  <div className="flex items-center gap-1">
+                                    <a 
+                                      href={file.url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-indigo-600 hover:text-indigo-700 text-[10px] font-black uppercase"
+                                    >
+                                      Ver
+                                    </a>
+                                    <button 
+                                      onClick={() => {
+                                        const newFiles = stage.files?.filter((_, i) => i !== idx);
+                                        handleUpdateWorkflow(stage.id, { files: newFiles });
+                                      }}
+                                      className="p-1 hover:bg-red-50 text-slate-300 hover:text-red-500 rounded transition-colors"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                              <button 
+                                onClick={() => triggerWorkflowUpload(stage.id)}
+                                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-slate-50 transition-all border-dashed"
+                              >
+                                <Plus size={14} />
+                                Añadir Doc / Foto
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100 flex items-start gap-4">
-                <AlertCircle className="text-indigo-500 shrink-0" size={20} />
-                <div>
-                  <p className="text-sm font-bold text-indigo-900">Validación de Flujo</p>
-                  <p className="text-xs font-medium text-indigo-700 mt-1 leading-relaxed">
-                    Asegúrese de completar todos los ensayos requeridos según el procedimiento estándar para esta categoría de producto.
-                  </p>
+                  <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100 flex items-start gap-4">
+                    <AlertCircle className="text-indigo-500 shrink-0" size={20} />
+                    <div>
+                      <p className="text-sm font-bold text-indigo-900">Validación de Flujo</p>
+                      <p className="text-xs font-medium text-indigo-700 mt-1 leading-relaxed">
+                        Asegúrese de completar todos los ensayos requeridos según el procedimiento estándar para esta categoría de producto.
+                      </p>
+                    </div>
+                  </div>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* Procedure Viewer Panel */}
+          {showProcedure && template?.procedureFile && (
+            <div className="w-1/2 border-l border-slate-200 bg-slate-100/50 flex flex-col animate-in slide-in-from-right duration-500">
+              <div className="p-4 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                    <FileText size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight">{template.procedureFile.name}</h4>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Procedimiento de Inspección</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a 
+                    href={template.procedureFile.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                    title="Abrir en pestaña nueva"
+                  >
+                    <ExternalLink size={18} />
+                  </a>
+                  <button 
+                    onClick={() => setShowProcedure(false)}
+                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                  >
+                    <XCircle size={18} />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 bg-slate-200 relative">
+                {template.procedureFile.type?.includes('pdf') ? (
+                  <iframe 
+                    src={`${template.procedureFile.url}#toolbar=0`} 
+                    className="w-full h-full border-none"
+                    title="Procedimiento PDF"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center gap-4">
+                    <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-xl">
+                      <FileText size={40} className="text-slate-300" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-black text-slate-900 uppercase tracking-tight">Documento Word</h5>
+                      <p className="text-xs font-medium text-slate-500 mt-2">
+                        Los documentos Word no se pueden previsualizar directamente. 
+                        Por favor, descárgalo para revisarlo.
+                      </p>
+                      <a 
+                        href={template.procedureFile.url} 
+                        download
+                        className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+                      >
+                        Descargar Documento
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-8 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="p-8 border-t border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
           <div className="flex items-center gap-6">
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado de Inspección</span>

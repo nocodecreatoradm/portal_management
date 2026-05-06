@@ -4,9 +4,9 @@ import {
   ClipboardList, Tag, Layers, Briefcase, 
   ChevronRight, GripVertical, Type, AlignLeft, 
   CheckSquare, CircleDot, Camera, PenTool,
-  PlusCircle, MinusCircle, ArrowRight
+  PlusCircle, MinusCircle, ArrowRight, FileText, Upload
 } from 'lucide-react';
-import { Brand, ProductLine, Category, InspectionTemplate, InspectionFormField, WorkflowStage } from '../types';
+import { Brand, ProductLine, Category, InspectionTemplate, InspectionFormField, WorkflowStage, FileInfo } from '../types';
 import { SupabaseService } from '../lib/SupabaseService';
 import { toast } from 'sonner';
 
@@ -323,6 +323,7 @@ function Modal({ type, item, onClose, onSuccess, brands, lines, categories }: an
 function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
   const [name, setName] = useState(template?.name || '');
   const [categoryId, setCategoryId] = useState(template?.categoryId || '');
+  const [procedureFile, setProcedureFile] = useState<FileInfo | undefined>(template?.procedureFile);
   const [sections, setSections] = useState<any[]>(template?.formStructure?.sections || [
     { id: 'sec_1', title: 'INFORMACIÓN GENERAL', fields: [] }
   ]);
@@ -332,6 +333,34 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
     { id: 'stg_3', name: 'REPORTE', role: 'TECHNICAL', status: 'COMPLETED' }
   ]);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const filePath = `rd-files/procedures/${Date.now()}_${file.name}`;
+      const { data, error } = await SupabaseService.uploadFile('rd-files', filePath, file);
+      if (error) throw error;
+
+      const fileInfo: FileInfo = {
+        name: file.name,
+        url: data.publicUrl,
+        type: file.type,
+        size: file.size,
+        uploadedAt: new Date().toISOString()
+      };
+      setProcedureFile(fileInfo);
+      toast.success('Procedimiento cargado correctamente');
+    } catch (error) {
+      console.error('Error uploading procedure:', error);
+      toast.error('Error al cargar procedimiento');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const addSection = () => {
     setSections([...sections, { id: `sec_${Date.now()}`, title: 'NUEVA SECCIÓN', fields: [] }]);
@@ -375,7 +404,8 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
         name,
         categoryId,
         formStructure: { sections },
-        workflowStructure: { stages: workflow }
+        workflowStructure: { stages: workflow },
+        procedureFile
       };
 
       if (template) await SupabaseService.updateInspectionTemplate(template.id, payload);
@@ -432,6 +462,34 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
                   <option value="">Seleccionar...</option>
                   {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Procedimiento (PDF/WORD)</label>
+                {procedureFile ? (
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 group">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                        <FileText size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-black text-slate-900 truncate uppercase">{procedureFile.name}</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase">{(procedureFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setProcedureFile(undefined)} className="p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50/30 transition-all cursor-pointer group">
+                    <input type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={handleFileUpload} disabled={uploading} />
+                    <Upload size={20} className="text-slate-300 group-hover:text-indigo-400 mb-2" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase group-hover:text-indigo-600">
+                      {uploading ? 'Cargando...' : 'Subir Archivo'}
+                    </p>
+                  </label>
+                )}
               </div>
             </div>
           </div>

@@ -354,6 +354,7 @@ export const mapSupplierToDB = (supplier: Partial<Supplier>) => {
   if (supplier.wechat !== undefined) dbSupplier.wechat = supplier.wechat;
   if (supplier.email !== undefined) dbSupplier.email = supplier.email;
   if (supplier.evaluation !== undefined) dbSupplier.evaluation = supplier.evaluation;
+  if (supplier.quotations !== undefined) dbSupplier.quotations = supplier.quotations;
   return dbSupplier;
 };
 
@@ -368,7 +369,8 @@ export const mapDBToSupplier = (dbSupplier: any): Supplier => ({
   website: dbSupplier.website,
   wechat: dbSupplier.wechat,
   email: dbSupplier.email,
-  evaluation: dbSupplier.evaluation
+  evaluation: dbSupplier.evaluation,
+  quotations: dbSupplier.quotations || []
 });
 
 export const mapTemplateToDB = (template: Partial<RDProjectTemplate>) => {
@@ -551,7 +553,8 @@ export const mapInspectionTemplateToDB = (template: Partial<InspectionTemplate>)
   category_id: template.categoryId,
   name: template.name,
   form_structure: template.formStructure,
-  workflow_structure: template.workflowStructure
+  workflow_structure: template.workflowStructure,
+  procedure_file: template.procedureFile
 });
 
 export const mapDBToInspectionTemplate = (dbTemplate: any): InspectionTemplate => ({
@@ -560,6 +563,7 @@ export const mapDBToInspectionTemplate = (dbTemplate: any): InspectionTemplate =
   name: dbTemplate.name,
   formStructure: dbTemplate.form_structure,
   workflowStructure: dbTemplate.workflow_structure,
+  procedureFile: dbTemplate.procedure_file,
   createdAt: dbTemplate.created_at,
   updatedAt: dbTemplate.updated_at
 });

@@ -187,6 +187,7 @@ export interface InspectionTemplate {
   name: string;
   formStructure: InspectionSection[];
   workflowStructure: WorkflowStage[];
+  procedureFile?: FileInfo;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -472,6 +473,7 @@ export interface Supplier {
   wechat?: string;
   email?: string;
   evaluation?: SupplierEvaluation;
+  quotations?: FileInfo[];
 }
 
 export interface AuditLog {

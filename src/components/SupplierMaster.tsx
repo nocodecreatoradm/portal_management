@@ -22,7 +22,9 @@ import {
   DollarSign,
   ClipboardList,
   Upload,
-  Loader2
+  Loader2,
+  FileText,
+  Download
 } from 'lucide-react';
 import { Supplier, SupplierEvaluation } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -67,10 +69,13 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
       quality: 0,
       failureIndex: 0,
       price: 0
-    }
+    },
+    quotations: []
   });
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingQuotation, setIsUploadingQuotation] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const quotationInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchSuppliers();
@@ -162,7 +167,8 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
           quality: 0,
           failureIndex: 0,
           price: 0
-        }
+        },
+        quotations: supplier.quotations || []
       });
     } else {
       setEditingSupplier(null);
@@ -182,7 +188,8 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
           quality: 0,
           failureIndex: 0,
           price: 0
-        }
+        },
+        quotations: []
       });
     }
     setIsModalOpen(true);
@@ -207,6 +214,36 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
       setIsUploading(false);
       if (logoInputRef.current) logoInputRef.current.value = '';
     }
+  };
+
+  const handleQuotationUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    try {
+      setIsUploadingQuotation(true);
+      for (const file of files) {
+        const fileInfo = await SupabaseService.uploadFile('rd-files', `suppliers/quotations/${Date.now()}_${file.name}`, file);
+        setFormData(prev => ({
+          ...prev,
+          quotations: [...(prev.quotations || []), fileInfo]
+        }));
+      }
+      toast.success('Cotización(es) subida(s) correctamente');
+    } catch (error: any) {
+      console.error('Error uploading quotations:', error);
+      toast.error(error.message || 'Error al subir cotizaciones');
+    } finally {
+      setIsUploadingQuotation(false);
+      if (quotationInputRef.current) quotationInputRef.current.value = '';
+    }
+  };
+
+  const removeQuotation = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      quotations: prev.quotations?.filter((_, i) => i !== index)
+    }));
   };
 
   const handleSave = async () => {
@@ -445,6 +482,24 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
                   <p className="text-[10px] font-medium text-slate-400 italic leading-relaxed line-clamp-1">
                     "{supplier.legalName}"
                   </p>
+
+                  {supplier.quotations && supplier.quotations.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {supplier.quotations.map((q, i) => (
+                        <a
+                          key={i}
+                          href={q.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                          title={q.name}
+                        >
+                          <FileText size={10} />
+                          <span className="text-[9px] font-black uppercase tracking-tighter max-w-[80px] truncate">{q.name}</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -802,6 +857,87 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
                         />
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Quotations Section */}
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-100">
+                    <FileText size={16} className="text-blue-600" />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Cotizaciones / Documentos</span>
+                  </div>
+
+                  <div className="space-y-4">
+                    <input
+                      type="file"
+                      ref={quotationInputRef}
+                      onChange={handleQuotationUpload}
+                      className="hidden"
+                      multiple
+                      accept=".pdf,.xlsx,.xls"
+                    />
+                    
+                    <button
+                      onClick={() => quotationInputRef.current?.click()}
+                      disabled={isUploadingQuotation}
+                      className={`w-full flex items-center justify-center gap-3 px-6 py-6 rounded-2xl border-2 border-dashed transition-all ${
+                        isUploadingQuotation
+                          ? 'bg-slate-50 border-slate-200 cursor-not-allowed'
+                          : 'bg-slate-50 border-slate-200 hover:border-blue-400 hover:bg-blue-50/30'
+                      }`}
+                    >
+                      {isUploadingQuotation ? (
+                        <>
+                          <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                          <span className="text-xs font-black text-blue-600 uppercase tracking-widest">Subiendo Documentos...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-5 h-5 text-slate-400" />
+                          <div className="text-left">
+                            <span className="block text-xs font-black text-slate-500 uppercase tracking-widest">Adjuntar Cotizaciones</span>
+                            <span className="block text-[10px] font-medium text-slate-400 uppercase tracking-tighter mt-0.5">Formatos aceptados: PDF, Excel (Máx. 25MB)</span>
+                          </div>
+                        </>
+                      )}
+                    </button>
+
+                    {formData.quotations && formData.quotations.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {formData.quotations.map((file, index) => (
+                          <div 
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl group/file shadow-sm"
+                          >
+                            <div className="flex items-center gap-3 overflow-hidden">
+                              <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center shrink-0">
+                                <FileText className="w-4 h-4 text-blue-600" />
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-[11px] font-bold text-slate-700 truncate">{file.name}</span>
+                                <span className="text-[9px] font-medium text-slate-400 uppercase tracking-tighter">{file.type.split('/')[1] || 'FILE'}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <a 
+                                href={file.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors"
+                              >
+                                <Download size={14} />
+                              </a>
+                              <button
+                                onClick={() => removeQuotation(index)}
+                                className="p-1.5 text-slate-400 hover:text-red-600 transition-colors"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 

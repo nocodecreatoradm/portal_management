@@ -890,9 +890,9 @@ export default function EnergyEfficiency({
                         <div className="p-2 bg-slate-50 rounded-xl text-slate-400 group-hover:text-indigo-600 transition-colors">
                           <ImageIcon size={20} />
                         </div>
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <p className="text-xs font-bold text-slate-700 uppercase">Etiqueta</p>
-                          <p className="text-[10px] text-slate-400 font-medium truncate max-w-[150px]">{record.etiquetaFile.name}</p>
+                          <p className="text-[10px] text-slate-400 font-medium truncate" title={record.etiquetaFile.name}>{record.etiquetaFile.name}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
@@ -925,9 +925,9 @@ export default function EnergyEfficiency({
                         <div className="p-2 bg-slate-50 rounded-xl text-slate-400 group-hover:text-indigo-600 transition-colors">
                           <ClipboardList size={20} />
                         </div>
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <p className="text-xs font-bold text-slate-700 uppercase">Test Report</p>
-                          <p className="text-[10px] text-slate-400 font-medium truncate max-w-[150px]">{record.testReportFile.name}</p>
+                          <p className="text-[10px] text-slate-400 font-medium truncate" title={record.testReportFile.name}>{record.testReportFile.name}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
@@ -958,19 +958,19 @@ export default function EnergyEfficiency({
 
               <div className="space-y-4">
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vista Previa</h4>
-                <div className="aspect-video bg-slate-100 rounded-3xl border border-slate-200 flex items-center justify-center text-slate-400 overflow-hidden">
+                <div className="aspect-video bg-white rounded-[32px] border border-slate-200 flex items-center justify-center text-slate-400 overflow-hidden p-6 shadow-inner">
                   {record.etiquetaFile ? (
                     record.etiquetaFile.type.includes('image') ? (
                       <img 
                         src={record.etiquetaFile.url} 
                         alt="Vista previa" 
-                        className="w-full h-full object-contain p-2" 
+                        className="w-full h-full object-contain" 
                         referrerPolicy="no-referrer" 
                       />
                     ) : (
                       <iframe 
-                        src={`${record.etiquetaFile.url}#toolbar=0&navpanes=0&scrollbar=0`} 
-                        className="w-full h-full border-none"
+                        src={`${record.etiquetaFile.url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
+                        className="w-full h-full border-none rounded-2xl"
                         title="Vista previa etiqueta"
                       />
                     )

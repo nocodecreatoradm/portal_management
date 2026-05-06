@@ -446,8 +446,7 @@ export const SupabaseService = {
       .select(`
         id, correlative_id, sap_code, ean_code, sap_description, brand_id, supplier_id, line_id, sample_id, 
         fob_price, fob_price_history, explode_files, additional_provider_documents, gallery, 
-        created_at, updated_at, commercial_status, quality_inspection_date,
-        artwork_assignment, technical_assignment, commercial_assignment,
+        approved_documents, created_at, updated_at,
         brand:brands(name),
         supplier:suppliers(legal_name),
         line:product_lines(name),
