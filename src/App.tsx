@@ -42,6 +42,7 @@ import InnovationProposals from './components/InnovationProposals';
 import CrNiCoatingAnalysis from './components/CrNiCoatingAnalysis';
 import CantonFair from './components/CantonFair';
 import OvenExperimental from './components/OvenExperimental';
+import MasterDataModule from './components/MasterDataModule';
 import ModuleActions from './components/ModuleActions';
 import { exportToExcel, generateReportPDF, exportToPPT } from './lib/exportUtils';
 import { saveCalculationRecord, fetchCalculationRecords } from './lib/api';
@@ -87,6 +88,7 @@ export default function App() {
   const [approvers, setApprovers] = useState(initialApprovers);
   const [brands, setBrands] = useState<any[]>([]);
   const [productLines, setProductLines] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [isApproverModalOpen, setIsApproverModalOpen] = useState(false);
   const [moduleInitialData, setModuleInitialData] = useState<Record<ModuleId, any>>({} as any);
   const [energyEfficiency, setEnergyEfficiency] = useState<any[]>([]);
@@ -99,6 +101,14 @@ export default function App() {
   
   // Filtered data
   const filteredData = data.filter(record => {
+    // Tracking type filter for followup modules
+    const isFollowupModule = ['artwork_followup', 'technical_datasheet', 'commercial_datasheet'].includes(activeModule);
+    if (isFollowupModule) {
+      const expectedType = activeModule === 'artwork_followup' ? 'artwork' : 
+                           activeModule === 'technical_datasheet' ? 'technical' : 'commercial';
+      if (record.trackingType !== expectedType) return false;
+    }
+
     const matchMarca = !filters.marca || record.marca === filters.marca;
     const matchLinea = !filters.linea || record.linea === filters.linea;
     const matchProveedor = !filters.proveedor || record.proveedor === filters.proveedor;
@@ -207,6 +217,14 @@ export default function App() {
 
         if (linesRes.status === 'fulfilled') setProductLines(linesRes.value);
         else console.error('Error loading product lines:', linesRes.reason);
+
+        // Fetch categories as well
+        try {
+          const cats = await SupabaseService.getCategories();
+          setCategories(cats);
+        } catch (e) {
+          console.error('Error loading categories:', e);
+        }
 
         if (approversRes.status === 'fulfilled') setApprovers(approversRes.value);
         else console.error('Error loading approvers:', approversRes.reason);
@@ -549,12 +567,60 @@ export default function App() {
 
   const handleNewRequest = async (newRecord: ProductRecord) => {
     try {
-      const existingIndex = data.findIndex(r => r.codigoSAP.toLowerCase() === newRecord.codigoSAP.toLowerCase());
+      const isFollowupModule = ['artwork_followup', 'technical_datasheet', 'commercial_datasheet'].includes(activeModule);
       
+      const existingIndex = data.findIndex(r => 
+        (r.id === newRecord.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(r.id)) || 
+        r.codigoSAP.toLowerCase() === newRecord.codigoSAP.toLowerCase()
+      );
+      
+      // Helper to resolve master data names to IDs
+      const resolveMetadata = async (record: any) => {
+        const resolved = { ...record };
+        if (record.marca) {
+          const brand = brands.find(b => b.name === record.marca);
+          if (brand) resolved.marca = brand.id;
+          else if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record.marca)) {
+            try {
+              const newBrand = await SupabaseService.createBrand({ name: record.marca });
+              resolved.marca = newBrand.id;
+              setBrands(prev => [...prev, newBrand]);
+            } catch (err) { console.warn('Error creating brand:', err); }
+          }
+        }
+        if (record.linea) {
+          const line = productLines.find(l => l.name === record.linea);
+          if (line) resolved.linea = line.id;
+          else if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record.linea)) {
+            try {
+              const newLine = await SupabaseService.createProductLine({ name: record.linea });
+              resolved.linea = newLine.id;
+              setProductLines(prev => [...prev, newLine]);
+            } catch (err) { console.warn('Error creating line:', err); }
+          }
+        }
+        if (record.proveedor) {
+          const supplier = suppliers.find(s => s.legalName === record.proveedor || s.commercialAlias === record.proveedor);
+          if (supplier) resolved.proveedor = supplier.id;
+          else if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record.proveedor)) {
+            try {
+              const newSupplier = await SupabaseService.createSupplier({
+                legalName: record.proveedor,
+                commercialAlias: record.proveedor,
+                erpCode: record.codProv || 'NEW'
+              });
+              resolved.proveedor = newSupplier.id;
+              setSuppliers(prev => [...prev, newSupplier]);
+            } catch (err) { console.warn('Error creating supplier:', err); }
+          }
+        }
+        return resolved;
+      };
+
       if (existingIndex > -1) {
-        // Update existing record metadata
         const existingRecord = data[existingIndex];
-        const updates: Partial<ProductRecord> = {
+        const resolvedUpdates = await resolveMetadata({
+          codigoSAP: newRecord.codigoSAP,
           codigoEAN: newRecord.codigoEAN,
           descripcionSAP: newRecord.descripcionSAP,
           proveedor: newRecord.proveedor,
@@ -562,145 +628,52 @@ export default function App() {
           correoProveedor: newRecord.correoProveedor,
           marca: newRecord.marca,
           linea: newRecord.linea,
-        };
-        
-        // Resolve names to IDs
-        const resolvedUpdates = { ...updates };
-        
-        if (updates.marca) {
-          const brand = brands.find(b => b.name === updates.marca);
-          if (brand) {
-            (resolvedUpdates as any).marca = brand.id;
-          } else {
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.marca);
-            if (!isUUID) {
-              try {
-                const newBrand = await SupabaseService.createBrand({ name: updates.marca });
-                (resolvedUpdates as any).marca = newBrand.id;
-                setBrands(prev => [...prev, newBrand]);
-              } catch (err) {
-                console.warn('Error creating brand, ignoring:', err);
-              }
-            }
-          }
-        }
-
-        if (updates.linea) {
-          const line = productLines.find(l => l.name === updates.linea);
-          if (line) {
-            (resolvedUpdates as any).linea = line.id;
-          } else {
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.linea);
-            if (!isUUID) {
-              try {
-                const newProductLine = await SupabaseService.createProductLine({ name: updates.linea });
-                (resolvedUpdates as any).linea = newProductLine.id;
-                setProductLines(prev => [...prev, newProductLine]);
-              } catch (err) {
-                console.warn('Error creating line, ignoring:', err);
-              }
-            }
-          }
-        }
-
-        if (updates.proveedor) {
-          let supplier = suppliers.find(s => s.legalName === updates.proveedor);
-          if (supplier) {
-            (resolvedUpdates as any).proveedor = supplier.id;
-          } else {
-            // Create new supplier if it's a name and not found
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.proveedor);
-            if (!isUUID) {
-              try {
-                const newSupplier = await SupabaseService.createSupplier({
-                  legalName: updates.proveedor,
-                  commercialAlias: updates.proveedor,
-                  erpCode: updates.codProv || 'NEW'
-                });
-                (resolvedUpdates as any).proveedor = newSupplier.id;
-                setSuppliers(prev => [...prev, newSupplier]);
-              } catch (err) {
-                console.warn('Error creating supplier, ignoring:', err);
-              }
-            }
-          }
-        }
-        
-        const result = await SupabaseService.updateProduct(existingRecord.id, resolvedUpdates);
-        
-        setData(prev => {
-          const newData = [...prev];
-          newData.splice(existingIndex, 1);
-          newData.unshift(result);
-          return newData;
+          correlativeId: newRecord.correlativeId,
+          sampleId: newRecord.sampleId,
         });
-        toast.success('Producto existente actualizado and movido al inicio');
+
+        if (isFollowupModule && existingRecord.linkedGroupId) {
+          // Update all records in the same group
+          const linkedRecords = data.filter(r => r.linkedGroupId === existingRecord.linkedGroupId);
+          const updatePromises = linkedRecords.map(r => SupabaseService.updateProduct(r.id, resolvedUpdates));
+          const results = await Promise.all(updatePromises);
+          
+          setData(prev => {
+            const newData = prev.map(r => {
+              const updated = results.find(res => res.id === r.id);
+              return updated || r;
+            });
+            return newData;
+          });
+          toast.success('Solicitud y sus vinculados actualizados');
+        } else {
+          const result = await SupabaseService.updateProduct(existingRecord.id, resolvedUpdates);
+          setData(prev => prev.map(r => r.id === existingRecord.id ? result : r));
+          toast.success('Registro actualizado');
+        }
       } else {
-        // Resolve names to IDs for new record
-        const resolvedNewRecord = { ...newRecord };
+        const resolvedNewRecord = await resolveMetadata(newRecord);
         
-        if (newRecord.marca) {
-          const brand = brands.find(b => b.name === newRecord.marca);
-          if (brand) {
-            (resolvedNewRecord as any).marca = brand.id;
-          } else {
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(newRecord.marca);
-            if (!isUUID) {
-              try {
-                const newBrand = await SupabaseService.createBrand({ name: newRecord.marca });
-                (resolvedNewRecord as any).marca = newBrand.id;
-                setBrands(prev => [...prev, newBrand]);
-              } catch (err) {
-                console.warn('Error creating brand, ignoring:', err);
-              }
-            }
-          }
+        if (isFollowupModule) {
+          // Create 3 linked records
+          const linkedGroupId = window.crypto.randomUUID();
+          const types: ('artwork' | 'technical' | 'commercial')[] = ['artwork', 'technical', 'commercial'];
+          
+          const results = await Promise.all(types.map(type => 
+            SupabaseService.createProduct({
+              ...resolvedNewRecord,
+              trackingType: type,
+              linkedGroupId
+            } as any)
+          ));
+          
+          setData(prev => [...results, ...prev]);
+          toast.success('Nueva solicitud creada en los 3 módulos de seguimiento');
+        } else {
+          const result = await SupabaseService.createProduct(resolvedNewRecord as any);
+          setData(prev => [result, ...prev]);
+          toast.success('Nueva solicitud registrada');
         }
-
-        if (newRecord.linea) {
-          const line = productLines.find(l => l.name === newRecord.linea);
-          if (line) {
-            (resolvedNewRecord as any).linea = line.id;
-          } else {
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(newRecord.linea);
-            if (!isUUID) {
-              try {
-                const newProductLine = await SupabaseService.createProductLine({ name: newRecord.linea });
-                (resolvedNewRecord as any).linea = newProductLine.id;
-                setProductLines(prev => [...prev, newProductLine]);
-              } catch (err) {
-                console.warn('Error creating line, ignoring:', err);
-              }
-            }
-          }
-        }
-
-        if (newRecord.proveedor) {
-          let supplier = suppliers.find(s => s.legalName === newRecord.proveedor);
-          if (supplier) {
-            (resolvedNewRecord as any).proveedor = supplier.id;
-          } else {
-            // Create new supplier if it's a name and not found
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(newRecord.proveedor);
-            if (!isUUID) {
-              try {
-                const newSupplier = await SupabaseService.createSupplier({
-                  legalName: newRecord.proveedor,
-                  commercialAlias: newRecord.proveedor,
-                  erpCode: newRecord.codProv || 'NEW'
-                });
-                (resolvedNewRecord as any).proveedor = newSupplier.id;
-                setSuppliers(prev => [...prev, newSupplier]);
-              } catch (err) {
-                console.warn('Error creating supplier, ignoring:', err);
-              }
-            }
-          }
-        }
-
-        const result = await SupabaseService.createProduct(resolvedNewRecord as any);
-        setData(prev => [result, ...prev]);
-        toast.success('Nueva solicitud registrada');
       }
     } catch (error) {
       console.error('Error in handleNewRequest:', error);
@@ -710,7 +683,7 @@ export default function App() {
 
   const handleUpdateRecord = async (id: string, updates: Partial<ProductRecord>) => {
     try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       const resolvedUpdates = { ...updates };
       
       if (updates.marca) {
@@ -718,7 +691,7 @@ export default function App() {
         if (brand) {
           (resolvedUpdates as any).marca = brand.id;
         } else {
-          const isBrandUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.marca);
+          const isBrandUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(updates.marca);
           if (!isBrandUUID) {
             try {
               const newBrand = await SupabaseService.createBrand({ name: updates.marca });
@@ -736,7 +709,7 @@ export default function App() {
         if (line) {
           (resolvedUpdates as any).linea = line.id;
         } else {
-          const isLineUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.linea);
+          const isLineUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(updates.linea);
           if (!isLineUUID) {
             try {
               const newProductLine = await SupabaseService.createProductLine({ name: updates.linea });
@@ -750,13 +723,13 @@ export default function App() {
       }
 
       if (updates.proveedor) {
-        let supplier = suppliers.find(s => s.legalName === updates.proveedor);
+        let supplier = suppliers.find(s => s.legalName === updates.proveedor || s.commercialAlias === updates.proveedor);
         if (supplier) {
           (resolvedUpdates as any).proveedor = supplier.id;
         } else {
           // Create new supplier if it's a name and not found
-          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updates.proveedor);
-          if (!isUUID) {
+          const isSupplierUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(updates.proveedor);
+          if (!isSupplierUUID) {
             try {
               const newSupplier = await SupabaseService.createSupplier({
                 legalName: updates.proveedor,
@@ -774,18 +747,33 @@ export default function App() {
 
       let result;
       if (isUUID) {
-        result = await SupabaseService.updateProduct(id, resolvedUpdates);
+        const metadataFields = ['codigoSAP', 'codigoEAN', 'descripcionSAP', 'marca', 'linea', 'proveedor', 'correlativeId', 'sampleId'];
+        const hasMetadataUpdate = Object.keys(updates).some(key => metadataFields.includes(key));
+        const currentRecord = data.find(r => r.id === id);
+
+        if (hasMetadataUpdate && currentRecord?.linkedGroupId) {
+          // Update all records in the group for metadata fields
+          const metadataUpdates: any = {};
+          metadataFields.forEach(f => { if ((resolvedUpdates as any)[f] !== undefined) metadataUpdates[f] = (resolvedUpdates as any)[f]; });
+          
+          const linkedRecords = data.filter(r => r.linkedGroupId === currentRecord.linkedGroupId);
+          const results = await Promise.all(linkedRecords.map(r => 
+            SupabaseService.updateProduct(r.id, r.id === id ? resolvedUpdates : metadataUpdates)
+          ));
+          
+          setData(prev => prev.map(r => results.find(res => res.id === r.id) || r));
+          result = results.find(res => res.id === id);
+        } else {
+          result = await SupabaseService.updateProduct(id, resolvedUpdates);
+          setData(prev => prev.map(r => r.id === id ? result : r));
+        }
       } else {
-        // If not UUID, it's a mock record being updated for the first time
-        // We merge the current record with updates and create it in Supabase
         const currentRecord = data.find(r => r.id === id);
         if (!currentRecord) throw new Error('Record not found');
-        
         const { id: _, createdAt: __, ...recordToCreate } = { ...currentRecord, ...resolvedUpdates };
         result = await SupabaseService.createProduct(recordToCreate as any);
+        setData(prev => prev.map(r => r.id === id ? result : r));
       }
-
-      setData(prev => prev.map(r => r.id === id ? result : r));
       toast.success('Datos actualizados correctamente');
     } catch (error) {
       console.error('Error updating record:', error);
@@ -825,11 +813,16 @@ export default function App() {
       oven_experimental: t('menu.oven_experimental'),
       records: t('menu.base_records'),
       calendar: t('menu.calendar'),
-      user_management: t('menu.users_permissions')
+      user_management: t('menu.users_permissions'),
+      master_data: 'Maestro de Datos'
     };
 
     if (activeModule === 'user_management') {
       return <UserManagement />;
+    }
+
+    if (activeModule === 'master_data') {
+      return <MasterDataModule />;
     }
 
     if (activeModule === 'innovation_proposals') {
@@ -982,6 +975,9 @@ export default function App() {
           suppliers={suppliers}
           onExportPPT={handleExportPPT}
           onLoadRecord={handleLoadRecord}
+          brands={brands}
+          productLines={productLines}
+          categories={categories}
         />
       );
     }
@@ -1095,11 +1091,23 @@ export default function App() {
               setIsNewRequestModalOpen(true);
             }}
             onDelete={async (record) => {
-              if (window.confirm('¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.')) {
+              const label = activeModule === 'artwork_followup' ? 'artes' : 
+                          activeModule === 'technical_datasheet' ? 'fichas técnicas' : 'fichas comerciales';
+              const confirmMsg = record.linkedGroupId 
+                ? `¿Estás seguro de que deseas eliminar este registro? Al estar vinculado, se eliminará también de los otros módulos de seguimiento (${label}). Esta acción no se puede deshacer.`
+                : '¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.';
+
+              if (window.confirm(confirmMsg)) {
                 try {
-                  await SupabaseService.deleteProduct(record.id);
-                  setData(prev => prev.filter(r => r.id !== record.id));
-                  toast.success('Registro eliminado correctamente');
+                  if (record.linkedGroupId) {
+                    await SupabaseService.deleteLinkedProducts(record.linkedGroupId);
+                    setData(prev => prev.filter(r => r.linkedGroupId !== record.linkedGroupId));
+                    toast.success('Registros vinculados eliminados correctamente');
+                  } else {
+                    await SupabaseService.deleteProduct(record.id);
+                    setData(prev => prev.filter(r => r.id !== record.id));
+                    toast.success('Registro eliminado correctamente');
+                  }
                 } catch (error) {
                   console.error('Error deleting record:', error);
                   toast.error('Error al eliminar el registro');
@@ -1290,11 +1298,12 @@ export default function App() {
             onSubmit={handleNewRequest}
             existingProviders={uniqueProviders}
             existingData={data}
+            brands={brands}
+            productLines={productLines}
+            categories={categories}
             mode={activeModule === 'artwork_followup' ? 'artwork' : 
                   activeModule === 'technical_datasheet' ? 'technical_sheet' : 'commercial_sheet'}
             initialData={editingProduct}
-            brands={brands}
-            productLines={productLines}
           />
 
           <ApproverConfigModal

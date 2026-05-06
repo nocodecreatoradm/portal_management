@@ -16,7 +16,10 @@ import {
   ProductManagementRecord,
   ProjectActivity,
   RDProjectTemplate,
-  RDProject
+  RDProject,
+  ProductLine,
+  Category,
+  InspectionTemplate
 } from '../types';
 import {
   mapInventoryToDB,
@@ -46,10 +49,15 @@ import {
   mapDBToSample,
   mapDBToRDProject,
   mapRDProjectToDB,
-  mapBrandToDB,
   mapDBToBrand,
   mapBrandDocumentToDB,
-  mapDBToBrandDocument
+  mapDBToBrandDocument,
+  mapProductLineToDB,
+  mapDBToProductLine,
+  mapCategoryToDB,
+  mapDBToCategory,
+  mapInspectionTemplateToDB,
+  mapDBToInspectionTemplate
 } from './mappings';
 
 
@@ -96,7 +104,20 @@ export const SupabaseService = {
   async createBrand(brand: { name: string }) {
     const { data, error } = await supabase.from('brands').insert([brand]).select().single();
     if (error) throw error;
-    return data;
+    return mapDBToBrand(data);
+  },
+
+  async updateBrand(id: string, updates: Partial<Brand>) {
+    const dbUpdates = mapBrandToDB(updates);
+    const { data, error } = await supabase.from('brands').update(dbUpdates).eq('id', id).select().single();
+    if (error) throw error;
+    return mapDBToBrand(data);
+  },
+
+  async deleteBrand(id: string) {
+    const { error } = await supabase.from('brands').delete().eq('id', id);
+    if (error) throw error;
+    return true;
   },
 
   async getProductLines() {
@@ -108,19 +129,83 @@ export const SupabaseService = {
   async createProductLine(line: { name: string }) {
     const { data, error } = await supabase.from('product_lines').insert([line]).select().single();
     if (error) throw error;
-    return data;
+    return mapDBToProductLine(data);
+  },
+
+  async updateProductLine(id: string, updates: Partial<ProductLine>) {
+    const dbUpdates = mapProductLineToDB(updates);
+    const { data, error } = await supabase.from('product_lines').update(dbUpdates).eq('id', id).select().single();
+    if (error) throw error;
+    return mapDBToProductLine(data);
+  },
+
+  async deleteProductLine(id: string) {
+    const { error } = await supabase.from('product_lines').delete().eq('id', id);
+    if (error) throw error;
+    return true;
   },
 
   async getCategories() {
     const { data, error } = await supabase.from('categories').select().order('name');
     if (error) throw error;
-    return data;
+    return data.map(mapDBToCategory);
   },
 
-  async createCategory(category: { name: string }) {
-    const { data, error } = await supabase.from('categories').insert([category]).select().single();
+  async createCategory(category: Partial<Category>) {
+    const dbCategory = mapCategoryToDB(category);
+    const { data, error } = await supabase.from('categories').insert([dbCategory]).select().single();
     if (error) throw error;
-    return data;
+    return mapDBToCategory(data);
+  },
+
+  async updateCategory(id: string, updates: Partial<Category>) {
+    const dbUpdates = mapCategoryToDB(updates);
+    const { data, error } = await supabase.from('categories').update(dbUpdates).eq('id', id).select().single();
+    if (error) throw error;
+    return mapDBToCategory(data);
+  },
+
+  async deleteCategory(id: string) {
+    const { error } = await supabase.from('categories').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
+  // INSPECTION TEMPLATES
+  async getInspectionTemplates() {
+    const { data, error } = await supabase.from('inspection_templates').select().order('name');
+    if (error) throw error;
+    return data.map(mapDBToInspectionTemplate);
+  },
+
+  async createInspectionTemplate(template: Partial<InspectionTemplate>) {
+    const dbTemplate = mapInspectionTemplateToDB(template);
+    const { data, error } = await supabase.from('inspection_templates').insert(dbTemplate).select().single();
+    if (error) throw error;
+    return mapDBToInspectionTemplate(data);
+  },
+
+  async updateInspectionTemplate(id: string, updates: Partial<InspectionTemplate>) {
+    const dbUpdates = mapInspectionTemplateToDB(updates);
+    const { data, error } = await supabase.from('inspection_templates').update(dbUpdates).eq('id', id).select().single();
+    if (error) throw error;
+    return mapDBToInspectionTemplate(data);
+  },
+
+  async deleteInspectionTemplate(id: string) {
+    const { error } = await supabase.from('inspection_templates').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
+  async getInspectionTemplateByCategory(categoryId: string) {
+    const { data, error } = await supabase
+      .from('inspection_templates')
+      .select()
+      .eq('category_id', categoryId)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? mapDBToInspectionTemplate(data) : null;
   },
 
   // SAMPLES (MUESTRAS)
@@ -155,7 +240,12 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('samples')
       .insert(dbSample)
-      .select()
+      .select(`
+        *,
+        supplier:suppliers(legal_name, erp_code),
+        brand:brands(name),
+        line:product_lines(name)
+      `)
       .single();
     if (error) throw error;
     
@@ -177,7 +267,12 @@ export const SupabaseService = {
       .from('samples')
       .update(dbUpdates)
       .eq('id', id)
-      .select()
+      .select(`
+        *,
+        supplier:suppliers(legal_name, erp_code),
+        brand:brands(name),
+        line:product_lines(name)
+      `)
       .single();
     if (error) throw error;
     
@@ -198,19 +293,25 @@ export const SupabaseService = {
   },
 
   // PRODUCTS
-  async getProducts() {
-    const { data, error } = await supabase
+  async getProducts(trackingType?: 'artwork' | 'technical' | 'commercial') {
+    let query = supabase
       .from('products')
       .select(`
-        id, sap_code, ean_code, sap_description, brand_id, supplier_id, line_id, sample_id, 
+        id, correlative_id, sap_code, ean_code, sap_description, brand_id, supplier_id, line_id, sample_id, 
         commercial_status, quality_inspection_date, fob_price, fob_price_history, explode_files, 
         additional_provider_documents, created_at, updated_at, 
-        artwork_assignment, technical_assignment, commercial_assignment,
+        artwork_assignment, technical_assignment, commercial_assignment, tracking_type, linked_group_id,
         brand:brands(name),
         supplier:suppliers(legal_name),
-        line:product_lines(name)
-      `)
-      .order('created_at', { ascending: false });
+        line:product_lines(name),
+        sample:samples(correlative_id)
+      `);
+    
+    if (trackingType) {
+      query = query.eq('tracking_type', trackingType);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
     return data.map(mapDBToProduct);
   },
@@ -227,7 +328,13 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('products')
       .insert([dbProduct])
-      .select()
+      .select(`
+        *,
+        brand:brands(name),
+        supplier:suppliers(legal_name),
+        line:product_lines(name),
+        sample:samples(correlative_id)
+      `)
       .single();
     if (error) throw error;
     return mapDBToProduct(data);
@@ -261,7 +368,13 @@ export const SupabaseService = {
       .from('products')
       .update(dbUpdates)
       .eq('id', id)
-      .select()
+      .select(`
+        *,
+        brand:brands(name),
+        supplier:suppliers(legal_name),
+        line:product_lines(name),
+        sample:samples(correlative_id)
+      `)
       .single();
     if (error) throw error;
     return mapDBToProduct(data);
@@ -294,7 +407,13 @@ export const SupabaseService = {
       .from('products')
       .update(dbUpdates)
       .eq('sap_code', codigoSAP)
-      .select()
+      .select(`
+        *,
+        brand:brands(name),
+        supplier:suppliers(legal_name),
+        line:product_lines(name),
+        sample:samples(correlative_id)
+      `)
       .single();
     if (error) throw error;
     return mapDBToProduct(data);
@@ -310,18 +429,29 @@ export const SupabaseService = {
     return true;
   },
 
+  async deleteLinkedProducts(linkedGroupId: string) {
+    if (!isUUID(linkedGroupId)) return true;
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('linked_group_id', linkedGroupId);
+    if (error) throw error;
+    return true;
+  },
+
   // PRODUCT MANAGEMENT
   async getPMRecords() {
     const { data, error } = await supabase
       .from('product_management')
       .select(`
-        id, sap_code, ean_code, sap_description, brand_id, supplier_id, line_id, sample_id, 
+        id, correlative_id, sap_code, ean_code, sap_description, brand_id, supplier_id, line_id, sample_id, 
         fob_price, fob_price_history, explode_files, additional_provider_documents, gallery, 
         created_at, updated_at, commercial_status, quality_inspection_date,
         artwork_assignment, technical_assignment, commercial_assignment,
         brand:brands(name),
         supplier:suppliers(legal_name),
-        line:product_lines(name)
+        line:product_lines(name),
+        sample:samples(correlative_id)
       `)
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -333,7 +463,13 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('product_management')
       .insert([dbRecord])
-      .select()
+      .select(`
+        *,
+        brand:brands(name),
+        supplier:suppliers(legal_name),
+        line:product_lines(name),
+        sample:samples(correlative_id)
+      `)
       .single();
     if (error) throw error;
     return mapDBToPMRecord(data);
@@ -346,7 +482,13 @@ export const SupabaseService = {
       .from('product_management')
       .update(dbUpdates)
       .eq('id', id)
-      .select()
+      .select(`
+        *,
+        brand:brands(name),
+        supplier:suppliers(legal_name),
+        line:product_lines(name),
+        sample:samples(correlative_id)
+      `)
       .single();
     if (error) throw error;
     return mapDBToPMRecord(data);
@@ -530,7 +672,10 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('energy_efficiency_records')
       .insert(dbRecord)
-      .select()
+      .select(`
+        *,
+        supplier:suppliers!energy_efficiency_records_supplier_id_fkey(legal_name)
+      `)
       .single();
     if (error) throw error;
     return mapDBToEE(data);
@@ -543,7 +688,10 @@ export const SupabaseService = {
       .from('energy_efficiency_records')
       .update(dbUpdates)
       .eq('id', id)
-      .select()
+      .select(`
+        *,
+        supplier:suppliers!energy_efficiency_records_supplier_id_fkey(legal_name)
+      `)
       .single();
     if (error) throw error;
     return mapDBToEE(data);
@@ -907,13 +1055,24 @@ export const SupabaseService = {
   },
 
   // STORAGE HELPERS
-  // Max file size: 10 MB
-  MAX_FILE_SIZE: 10 * 1024 * 1024,
+  // Max file size: 50 MB
+  MAX_FILE_SIZE: 25 * 1024 * 1024,
 
   async uploadFile(bucket: string, path: string, file: File) {
+    // Sanitize path to avoid "Invalid key" errors with special characters or spaces
+    const sanitizedPath = path
+      .split('/')
+      .map(part => 
+        part
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9._-]/gi, '_')
+      )
+      .join('/');
+
     // Validate file size before uploading
     if (file.size > this.MAX_FILE_SIZE) {
-      throw new Error(`El archivo "${file.name}" excede el tamaño máximo permitido (10 MB). Tamaño actual: ${(file.size / (1024 * 1024)).toFixed(1)} MB`);
+      throw new Error(`El archivo "${file.name}" excede el tamaño máximo permitido (${this.MAX_FILE_SIZE / (1024 * 1024)} MB). Tamaño actual: ${(file.size / (1024 * 1024)).toFixed(1)} MB`);
     }
 
     // Compress images before uploading if they are larger than 500KB
@@ -933,7 +1092,7 @@ export const SupabaseService = {
       try {
         const { data, error } = await supabase.storage
           .from(bucket)
-          .upload(path, fileToUpload, {
+          .upload(sanitizedPath, fileToUpload, {
             cacheControl: '3600',
             upsert: true
           });
@@ -1005,7 +1164,7 @@ export const SupabaseService = {
   async getProfiles() {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, email, role, is_active')
+      .select('id, full_name, email, role, is_active, department, scopes, avatar_url')
       .order('full_name');
     if (error) throw error;
     // Refresh the cached profiles whenever full profiles are fetched
@@ -1046,6 +1205,7 @@ export const SupabaseService = {
       console.error('Detailed Supabase Update Error:', error);
       throw error;
     }
+    invalidateProfilesCache();
     return data;
   },
 

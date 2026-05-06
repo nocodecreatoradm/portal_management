@@ -137,10 +137,20 @@ export default function CommercialArtworks({
       }
       if (result) {
         setData(prev => prev.map(p => p.id === id ? result : p));
+        if (selectedProduct?.id === id) {
+          setSelectedProduct(result);
+        }
         toast.success('Estado actualizado');
       } else {
         // If it's a mock product not in Supabase, update it locally in state
-        setData(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+        setData(prev => {
+          const newData = prev.map(p => p.id === id ? { ...p, ...updates } : p);
+          if (selectedProduct?.id === id) {
+            const updated = newData.find(p => p.id === id);
+            if (updated) setSelectedProduct(updated);
+          }
+          return newData;
+        });
         toast.success('Estado actualizado localmente');
       }
     } catch (error) {

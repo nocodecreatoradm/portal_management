@@ -21,16 +21,14 @@ import { SupabaseService } from '../lib/SupabaseService';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 
-interface SamplesProps {
-  samples: SampleRecord[];
-  suppliers: Supplier[];
-  onUpdateSample: (id: string, updates: Partial<SampleRecord>) => void;
-  onAddSample: (sample: SampleRecord) => void;
   onExportPPT?: () => void;
   onLoadRecord?: (moduleId: ModuleId, data: any) => void;
+  brands: { id: string; name: string }[];
+  productLines: { id: string; name: string }[];
+  categories: { id: string; name: string; productLineId: string }[];
 }
 
-export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<SamplesProps, 'samples' | 'onUpdateSample' | 'onAddSample'>) {
+export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, productLines, categories }: Omit<SamplesProps, 'samples' | 'onUpdateSample' | 'onAddSample'>) {
   const { user } = useAuth();
   const { samples, addSample, updateSample, deleteSample } = useSamples();
   const onUpdateSample = updateSample;
@@ -59,6 +57,9 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
   const [allCalculationRecords, setAllCalculationRecords] = useState<CalculationRecord[]>([]);
   const [isAddCalculationModalOpen, setIsAddCalculationModalOpen] = useState(false);
+  const [selectedBrandId, setSelectedBrandId] = useState('');
+  const [selectedLineId, setSelectedLineId] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
 
   // Load calculations
   useEffect(() => {
@@ -287,19 +288,26 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
     const nextNumber = samples.length + 1;
     const correlativeId = `M-${nextNumber.toString().padStart(3, '0')}`;
     const selectedSupplierName = formData.get('proveedor') as string;
-    const selectedSupplier = suppliers.find(s => s.commercialAlias === selectedSupplierName);
+    const selectedSupplier = suppliers.find(s => s.legalName === selectedSupplierName || s.commercialAlias === selectedSupplierName);
+
+    const brand = brands.find(b => b.id === selectedBrandId);
+    const line = productLines.find(l => l.id === selectedLineId);
+    const category = categories.find(c => c.id === selectedCategoryId);
 
     const newSample: SampleRecord = {
       id: `UID-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       correlativeId,
       createdAt: new Date().toISOString(),
       version: 1,
+      brandId: selectedBrandId,
+      lineId: selectedLineId,
+      categoryId: selectedCategoryId,
       descripcionSAP: formData.get('descripcion') as string,
-      marca: formData.get('marca') as string,
-      proveedor: selectedSupplierName,
+      marca: brand?.name || '',
+      proveedor: selectedSupplier ? selectedSupplier.id : selectedSupplierName,
       codProv: selectedSupplier?.erpCode,
-      linea: formData.get('linea') as string,
-      categoria: formData.get('categoria') as string,
+      linea: line?.name || '',
+      categoria: category?.name || '',
       tipoSuestra: formData.get('tipo') as string,
       inspectionDate: new Date().toISOString().split('T')[0],
       inspectionStatus: 'Inspeccionado sin informe',
@@ -308,7 +316,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
       warehouseEntryDate: formData.get('warehouseEntryDate') as string,
       receptionPhoto: receptionPhoto || undefined,
       history: [
-        { date: new Date().toISOString().split('T')[0], status: 'Inspeccionado sin informe', user: 'Carlos H.', comment: 'Muestra registrada y recepcionada' }
+        { date: new Date().toISOString().split('T')[0], status: 'Inspeccionado sin informe', user: user?.name || 'Sistema', comment: 'Muestra registrada y recepcionada' }
       ]
     };
     addSample(newSample);
@@ -1136,12 +1144,55 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
                   </select>
                 </div>
                 <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Marca</label>
+                  <select 
+                    name="marca" 
+                    required 
+                    value={selectedBrandId}
+                    onChange={(e) => setSelectedBrandId(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                  >
+                    <option value="">Seleccionar Marca</option>
+                    {brands.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Línea</label>
+                  <select 
+                    name="linea" 
+                    required 
+                    value={selectedLineId}
+                    onChange={(e) => {
+                      setSelectedLineId(e.target.value);
+                      setSelectedCategoryId('');
+                    }}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                  >
+                    <option value="">Seleccionar Línea</option>
+                    {productLines.map(l => (
+                      <option key={l.id} value={l.id}>{l.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoría</label>
-                  <select name="categoria" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all">
-                    <option value="Encimera">Encimera</option>
-                    <option value="Calentador a Gas">Calentador a Gas</option>
-                    <option value="Termas Eléctricas">Termas Eléctricas</option>
-                    <option value="Campanas">Campanas</option>
+                  <select 
+                    name="categoria" 
+                    required 
+                    value={selectedCategoryId}
+                    onChange={(e) => setSelectedCategoryId(e.target.value)}
+                    disabled={!selectedLineId}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all disabled:opacity-50"
+                  >
+                    <option value="">Seleccionar Categoría</option>
+                    {categories
+                      .filter(c => c.productLineId === selectedLineId)
+                      .map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))
+                    }
                   </select>
                 </div>
                 <div className="space-y-1.5">
@@ -1150,22 +1201,6 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord }: Omit<S
                     <option value="1">Muestra 1</option>
                     <option value="2">Muestra 2</option>
                     <option value="3">Muestra 3</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Marca</label>
-                  <select name="marca" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all">
-                    <option value="SOLE">SOLE</option>
-                    <option value="S-Collection">S-Collection</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Línea</label>
-                  <select name="linea" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all">
-                    <option value="LÍNEA BLANCA">LÍNEA BLANCA</option>
-                    <option value="AGUA CALIENTE">AGUA CALIENTE</option>
-                    <option value="CLIMATIZACIÓN">CLIMATIZACIÓN</option>
-                    <option value="PURIFICACIÓN">PURIFICACIÓN</option>
                   </select>
                 </div>
                   <UserSelect

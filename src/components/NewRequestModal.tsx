@@ -14,6 +14,7 @@ interface NewRequestModalProps {
   initialData?: ProductRecord | null;
   brands?: { id: string; name: string }[];
   productLines?: { id: string; name: string }[];
+  categories?: { id: string; name: string; productLineId: string }[];
 }
 
 export default function NewRequestModal({ 
@@ -25,7 +26,8 @@ export default function NewRequestModal({
   mode = 'artwork',
   initialData = null,
   brands = [],
-  productLines = []
+  productLines = [],
+  categories = []
 }: Omit<NewRequestModalProps, 'samples'>) {
   const { samples } = useSamples();
   const [step, setStep] = React.useState<1 | 2>(initialData ? 2 : 1);
@@ -40,8 +42,13 @@ export default function NewRequestModal({
     proveedor: initialData?.proveedor || '',
     correoProveedor: initialData?.correoProveedor || [] as string[],
     marca: initialData?.marca || (brands[0]?.name || 'SOLE'),
+    brandId: initialData?.brandId || (brands[0]?.id || ''),
     linea: initialData?.linea || (productLines[0]?.name || 'LÍNEA BLANCA'),
+    lineId: initialData?.lineId || (productLines[0]?.id || ''),
+    categoria: initialData?.categoria || '',
+    categoryId: initialData?.categoryId || '',
     sampleId: initialData?.sampleId || '',
+    correlativeId: initialData?.correlativeId || '',
   });
 
   React.useEffect(() => {
@@ -56,6 +63,7 @@ export default function NewRequestModal({
         marca: initialData.marca as any,
         linea: initialData.linea as any,
         sampleId: initialData.sampleId || '',
+        correlativeId: initialData.correlativeId || '',
       });
       setArtworkType(initialData.proveedor === 'LOCAL' ? 'local' : 'imported');
       setStep(2);
@@ -70,6 +78,7 @@ export default function NewRequestModal({
         marca: brands[0]?.name || 'SOLE',
         linea: productLines[0]?.name || 'LÍNEA BLANCA',
         sampleId: '',
+        correlativeId: '',
       });
       setStep(1);
       setArtworkType(null);
@@ -92,7 +101,8 @@ export default function NewRequestModal({
         proveedor: 'LOCAL',
         codProv: 'N/A',
         correoProveedor: [],
-        sampleId: ''
+        sampleId: '',
+        correlativeId: ''
       }));
     }
     setStep(2);
@@ -120,12 +130,46 @@ export default function NewRequestModal({
           proveedor: artworkType === 'local' ? 'LOCAL' : existingProduct.proveedor,
           correoProveedor: artworkType === 'local' ? [] : [...existingProduct.correoProveedor],
           marca: existingProduct.marca as any,
+          brandId: (existingProduct as any).brandId || '',
           linea: existingProduct.linea as any,
+          lineId: (existingProduct as any).lineId || '',
+          categoria: (existingProduct as any).categoria || '',
+          categoryId: (existingProduct as any).categoryId || '',
+          correlativeId: existingProduct.correlativeId || '',
         }));
         setAutoFilled(true);
         setTimeout(() => setAutoFilled(false), 3000);
         return;
       }
+    }
+
+    if (name === 'correlativeId') {
+      setFormData(prev => ({ ...prev, correlativeId: value }));
+      return;
+    }
+
+    if (name === 'marca') {
+      const brand = brands.find(b => b.name === value);
+      setFormData(prev => ({ ...prev, marca: value, brandId: brand?.id || '' }));
+      return;
+    }
+
+    if (name === 'linea') {
+      const line = productLines.find(l => l.name === value);
+      setFormData(prev => ({ 
+        ...prev, 
+        linea: value, 
+        lineId: line?.id || '',
+        categoria: '', // Reset category when line changes
+        categoryId: ''
+      }));
+      return;
+    }
+
+    if (name === 'categoria') {
+      const cat = categories.find(c => c.name === value);
+      setFormData(prev => ({ ...prev, categoria: value, categoryId: cat?.id || '' }));
+      return;
     }
 
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -239,6 +283,20 @@ export default function NewRequestModal({
               )}
               <form id="new-request-form" onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ID de Seguimiento / Correlativo</label>
+                    <input 
+                      type="text" 
+                      name="correlativeId"
+                      value={formData.correlativeId}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-blue-50/20 font-bold text-blue-700"
+                      placeholder="Ej. MUE-001 o ID Personalizado"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold italic">
+                      * Este ID identifica el seguimiento en la tabla principal. Se auto-completa al vincular una muestra.
+                    </p>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Código EAN</label>
                     <input 
@@ -303,18 +361,28 @@ export default function NewRequestModal({
                       onChange={handleChange}
                       className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                     >
-                      {productLines.length > 0 ? (
-                        productLines.map(l => (
-                          <option key={l.id} value={l.name}>{l.name}</option>
+                      <option value="">Seleccionar Línea</option>
+                      {productLines.map(l => (
+                        <option key={l.id} value={l.name}>{l.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                    <select 
+                      name="categoria"
+                      value={formData.categoria}
+                      onChange={handleChange}
+                      disabled={!formData.lineId}
+                      className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">Seleccionar Categoría</option>
+                      {categories
+                        .filter(c => c.productLineId === formData.lineId)
+                        .map(c => (
+                          <option key={c.id} value={c.name}>{c.name}</option>
                         ))
-                      ) : (
-                        <>
-                          <option value="LÍNEA BLANCA">LÍNEA BLANCA</option>
-                          <option value="AGUA CALIENTE">AGUA CALIENTE</option>
-                          <option value="CLIMATIZACIÓN">CLIMATIZACIÓN</option>
-                          <option value="PURIFICACIÓN">PURIFICACIÓN</option>
-                        </>
-                      )}
+                      }
                     </select>
                   </div>
 
@@ -394,7 +462,7 @@ export default function NewRequestModal({
                                       key={s.id}
                                       className="p-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0"
                                       onClick={() => {
-                                        setFormData(prev => ({ ...prev, sampleId: s.id }));
+                                        setFormData(prev => ({ ...prev, sampleId: s.id, correlativeId: s.correlativeId }));
                                         setIsSampleDropdownOpen(false);
                                         setSampleSearch('');
                                       }}

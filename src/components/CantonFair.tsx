@@ -1157,7 +1157,7 @@ const CantonFair: React.FC = () => {
                         </div>
                       )}
                       {selectedSupplier.website && (
-                        <a href={`https://${selectedSupplier.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline">
+                        <a href={selectedSupplier.website.startsWith('http') ? selectedSupplier.website : `https://${selectedSupplier.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline">
                           <Globe size={18} />
                           {selectedSupplier.website}
                           <ExternalLink size={14} />
@@ -2090,7 +2090,7 @@ const CantonFair: React.FC = () => {
                         </div>
                         <div className="text-center">
                           <p className="text-sm font-black text-slate-600">Subir Banner</p>
-                          <p className="text-[10px] font-medium text-slate-400">JPG, PNG o WEBP (Máx 5MB)</p>
+                          <p className="text-[10px] font-medium text-slate-400">JPG, PNG o WEBP (Máx. 25 MB)</p>
                         </div>
                       </>
                     )}

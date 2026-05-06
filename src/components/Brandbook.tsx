@@ -25,8 +25,10 @@ import { exportToExcel, exportToPDF } from '../lib/exportUtils';
 import { toast } from 'sonner';
 import { SupabaseService } from '../lib/SupabaseService';
 import { Brand, BrandDocument } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void }) {
+  const { profile } = useAuth();
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<BrandDocument | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,6 +43,8 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [uploadingTarget, setUploadingTarget] = useState<{ type: 'hero' | 'brand', id?: string } | null>(null);
+
+  const currentUserName = profile?.full_name || 'Usuario';
 
   useEffect(() => {
     loadInitialData();
@@ -85,7 +89,7 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
         parentId: currentFolderId,
         name: newFolderName,
         type: 'folder',
-        modifiedBy: 'Usuario Actual' // Should get from auth context
+        modifiedBy: currentUserName
       };
 
       const createdFolder = await SupabaseService.createBrandbookDocument(newFolder);
@@ -122,13 +126,14 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
         parentId: currentFolderId,
         name: file.name,
         type: getFileType(file.name),
-        modifiedBy: 'Usuario Actual', // Should get from auth context
+        modifiedBy: currentUserName,
         versions: [{
           id: Math.random().toString(36).substr(2, 9),
           version: '1.0',
           date: new Date().toISOString().split('T')[0],
-          modifiedBy: 'Usuario Actual',
-          changeDescription: 'Versión inicial'
+          modifiedBy: currentUserName,
+          changeDescription: 'Versión inicial',
+          url: uploadedFile.url
         }]
       };
 
@@ -160,8 +165,9 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
         toast.success('Imagen de marca actualizada', { id: toastId });
       }
       setUploadingTarget(null);
-    } catch (error) {
-      toast.error('Error al actualizar imagen');
+    } catch (error: any) {
+      console.error('Error in handleImageUpload:', error);
+      toast.error(`Error al actualizar imagen: ${error.message || 'Error desconocido'}`);
     }
   };
 
@@ -512,7 +518,14 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          toast.info(`Visualizando: ${doc.name}`);
+                          const latestVersion = doc.versions && doc.versions.length > 0 
+                            ? doc.versions[doc.versions.length - 1] 
+                            : null;
+                          if (latestVersion?.url) {
+                            window.open(latestVersion.url, '_blank');
+                          } else {
+                            toast.error('No se encontró el archivo para visualizar');
+                          }
                         }}
                         className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-blue-600 shadow-sm transition-all"
                         title="Visualizar"
@@ -532,7 +545,21 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          toast.success(`Iniciando descarga de: ${doc.name}`);
+                          const latestVersion = doc.versions && doc.versions.length > 0 
+                            ? doc.versions[doc.versions.length - 1] 
+                            : null;
+                          if (latestVersion?.url) {
+                            const link = document.createElement('a');
+                            link.href = latestVersion.url;
+                            link.download = doc.name;
+                            link.target = '_blank';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            toast.success(`Iniciando descarga de: ${doc.name}`);
+                          } else {
+                            toast.error('No se encontró el archivo para descargar');
+                          }
                         }}
                         className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-blue-600 shadow-sm transition-all"
                         title="Descargar"
@@ -619,7 +646,16 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
                           </div>
                           <span className="text-xs font-bold text-slate-500">{version.modifiedBy}</span>
                         </div>
-                        <button className="flex items-center gap-2 text-xs font-black text-blue-600 hover:text-blue-700 transition-colors">
+                        <button 
+                          onClick={() => {
+                            if (version.url) {
+                              window.open(version.url, '_blank');
+                            } else {
+                              toast.error('No se encontró el archivo para esta versión');
+                            }
+                          }}
+                          className="flex items-center gap-2 text-xs font-black text-blue-600 hover:text-blue-700 transition-colors"
+                        >
                            <Download size={14} />
                            Descargar esta versión
                         </button>

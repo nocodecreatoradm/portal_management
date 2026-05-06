@@ -53,13 +53,25 @@ export interface BrandDocumentVersion {
   date: string;
   modifiedBy: string;
   changeDescription: string;
+  url: string;
 }
 
 export interface Brand {
   id: string;
   name: string;
-  image: string;
-  description: string;
+  image?: string;
+  description?: string;
+}
+
+export interface ProductLine {
+  id: string;
+  name: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  productLineId: string;
 }
 
 export interface BrandDocument {
@@ -105,7 +117,10 @@ export interface ProductRecord {
   proveedor: string;
   correoProveedor: string[];
   marca: string;
+  brandId?: string;
   linea: 'LÍNEA BLANCA' | 'AGUA CALIENTE' | 'CLIMATIZACIÓN' | 'PURIFICACIÓN';
+  lineId?: string;
+  categoryId?: string;
   artworks: DocumentVersion[];
   technicalSheets?: DocumentVersion[];
   commercialSheets?: DocumentVersion[];
@@ -123,6 +138,8 @@ export interface ProductRecord {
   artworkAssignment?: AssignmentInfo;
   technicalAssignment?: AssignmentInfo;
   commercialAssignment?: AssignmentInfo;
+  trackingType?: 'artwork' | 'technical' | 'commercial';
+  linkedGroupId?: string;
 }
 
 export type SampleStatus = 'Aprobado' | 'Pasó a Comité' | 'Rechazado' | 'Observado' | 'Tolerado' | 'Inspeccionado sin informe';
@@ -164,6 +181,16 @@ export interface InspectionTimer {
   firstStartTime?: string;
 }
 
+export interface InspectionTemplate {
+  id: string;
+  categoryId: string;
+  name: string;
+  formStructure: InspectionSection[];
+  workflowStructure: WorkflowStage[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 
 
 export interface SampleRecord {
@@ -177,7 +204,10 @@ export interface SampleRecord {
   proveedor: string;
   codProv?: string;
   linea: string;
+  lineId?: string;
   categoria?: string;
+  categoryId?: string;
+  brandId?: string;
   tipoSuestra?: string;
   inspectionDate: string;
   inspectionStatus: SampleStatus;
@@ -265,7 +295,7 @@ export interface CantonFairSupplier {
   createdAt: string;
 }
 
-export type ModuleId = 'rd_inventory' | 'ntp_regulations' | 'work_plan' | 'samples' | 'technical_datasheet' | 'commercial_datasheet' | 'artwork_followup' | 'commercial_artworks' | 'approved_technical_sheets' | 'approved_commercial_sheets' | 'applications' | 'supplier_master' | 'water_demand' | 'gas_heater_experimental' | 'records' | 'absorption_calculation' | 'temperature_loss' | 'brandbook' | 'energy_efficiency' | 'product_management' | 'calendar' | 'rd_projects' | 'calculations_dashboard' | 'innovation_proposals' | 'cr_ni_coating_analysis' | 'canton_fair' | 'oven_experimental' | 'user_management';
+export type ModuleId = 'rd_inventory' | 'ntp_regulations' | 'work_plan' | 'samples' | 'technical_datasheet' | 'commercial_datasheet' | 'artwork_followup' | 'commercial_artworks' | 'approved_technical_sheets' | 'approved_commercial_sheets' | 'applications' | 'supplier_master' | 'water_demand' | 'gas_heater_experimental' | 'records' | 'absorption_calculation' | 'temperature_loss' | 'brandbook' | 'energy_efficiency' | 'product_management' | 'calendar' | 'rd_projects' | 'calculations_dashboard' | 'innovation_proposals' | 'cr_ni_coating_analysis' | 'canton_fair' | 'oven_experimental' | 'user_management' | 'master_data';
 
 export interface OvenInspectionPoint {
   id: string;
@@ -334,19 +364,28 @@ export interface CalendarTask {
 
 export interface ProductManagementRecord {
   id: string;
+  correlativeId?: string;
   codigoSAP: string;
+  codigoEAN?: string;
+  eanCode?: string;
   descripcionSAP: string;
   marca: string;
+  brandId?: string;
   proveedor: string;
+  supplierId?: string;
   linea: string;
+  lineId?: string;
   sampleId?: string; // Linked sample
   approvedDocuments: {
     id: string;
-    name: string;
-    type: string;
-    url: string;
     category: string;
-    approvalDate: string;
+    documents: {
+      id: string;
+      name: string;
+      type: string;
+      url: string;
+      approvalDate: string;
+    }[];
   }[];
   gallery: {
     id: string;
@@ -389,6 +428,8 @@ export interface EnergyEfficiencyRecord {
   certificadoHistory?: EnergyEfficiencyDocument[];
   etiquetaFile?: FileInfo;
   etiquetaHistory?: EnergyEfficiencyDocument[];
+  testReportFile?: FileInfo;
+  testReportHistory?: EnergyEfficiencyDocument[];
   gallery?: {
     id: string;
     category: string;

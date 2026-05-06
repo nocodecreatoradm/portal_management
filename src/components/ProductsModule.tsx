@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ProductManagementRecord, SampleRecord, FileInfo, ProductRecord, DocumentVersion } from '../types';
+import { ProductManagementRecord, SampleRecord, FileInfo, ProductRecord, DocumentVersion, Supplier, Brand, ProductLine } from '../types';
 import { 
   Search, Plus, Filter, Download, Calendar, 
   FileText, Upload, Trash2, Edit2, X, Check,
   Eye, Link as LinkIcon, Image as ImageIcon, Box, Files,
   CheckCircle2, Grid, List, Tag, ShoppingBag, ChevronRight,
-  TrendingUp, History as HistoryIcon, DollarSign, AlertCircle
+  TrendingUp, History as HistoryIcon, DollarSign, AlertCircle,
+  ArrowUp, ArrowDown, Edit3
 } from 'lucide-react';
 import { format } from 'date-fns';
 import ModuleActions from './ModuleActions';
@@ -15,6 +16,8 @@ import { toast } from 'sonner';
 import { SupabaseService } from '../lib/SupabaseService';
 import { Loader2 } from 'lucide-react';
 import HeaderFilterPopover from './HeaderFilterPopover';
+
+const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
 interface ProductsModuleProps {
   onExportPPT?: () => void;
@@ -27,6 +30,9 @@ export default function ProductsModule({
   const [records, setRecords] = useState<ProductManagementRecord[]>([]);
   const [samples, setSamples] = useState<SampleRecord[]>([]);
   const [allProducts, setAllProducts] = useState<ProductRecord[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [productLines, setProductLines] = useState<ProductLine[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({
@@ -83,14 +89,20 @@ export default function ProductsModule({
   const loadData = async () => {
     try {
       setLoading(true);
-      const [recordsData, samplesData, productsData] = await Promise.all([
+      const [recordsData, samplesData, productsData, suppliersData, brandsData, linesData] = await Promise.all([
         SupabaseService.getPMRecords(),
         SupabaseService.getSamples(),
-        SupabaseService.getProducts()
+        SupabaseService.getProducts(),
+        SupabaseService.getSuppliers(),
+        SupabaseService.getBrands(),
+        SupabaseService.getProductLines()
       ]);
       setRecords(recordsData);
       setSamples(samplesData);
       setAllProducts(productsData);
+      setSuppliers(suppliersData as unknown as Supplier[]);
+      setBrands(brandsData as unknown as Brand[]);
+      setProductLines(linesData as unknown as ProductLine[]);
     } catch (error) {
       console.error('Error loading PM data:', error);
       toast.error('Error al cargar datos');
@@ -122,6 +134,9 @@ export default function ProductsModule({
       }
       if (result) {
         setRecords(prev => prev.map(r => r.id === updatedRecord.id ? result! : r));
+        if (selectedRecord?.id === updatedRecord.id) {
+          setSelectedRecord(result);
+        }
         toast.success('Producto actualizado');
       }
     } catch (error) {
@@ -210,8 +225,11 @@ export default function ProductsModule({
       codigoSAP: '',
       descripcionSAP: '',
       marca: 'SOLE',
+      brandId: undefined,
       proveedor: '',
+      supplierId: undefined,
       linea: 'AGUA CALIENTE',
+      lineId: undefined,
       sampleId: '',
       approvedDocuments: [],
       gallery: [],
@@ -225,12 +243,23 @@ export default function ProductsModule({
 
   const handleOpenEditModal = (record: ProductManagementRecord) => {
     setEditingRecord(record);
+    
+    // Ensure IDs are used for selects if possible
+    const brandId = record.brandId || brands.find(b => b.name === record.marca)?.id || record.marca;
+    const supplierId = record.supplierId || 
+                     suppliers.find(s => s.legalName === record.proveedor || s.commercialAlias === record.proveedor)?.id || 
+                     record.proveedor;
+    const lineId = record.lineId || productLines.find(l => l.name === record.linea)?.id || record.linea;
+
     setFormData({
       codigoSAP: record.codigoSAP,
       descripcionSAP: record.descripcionSAP,
-      marca: record.marca,
-      proveedor: record.proveedor,
-      linea: record.linea,
+      marca: brandId,
+      brandId: isUUID(brandId) ? brandId : undefined,
+      proveedor: supplierId,
+      supplierId: isUUID(supplierId) ? supplierId : undefined,
+      linea: lineId,
+      lineId: isUUID(lineId) ? lineId : undefined,
       sampleId: record.sampleId || '',
       approvedDocuments: record.approvedDocuments || [],
       gallery: record.gallery || [],
@@ -242,14 +271,83 @@ export default function ProductsModule({
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingRecord) {
-      handleUpdateRecord({ ...editingRecord, ...formData });
-    } else {
-      handleAddRecord(formData);
+    setIsSubmitting(true);
+
+    try {
+      const resolvedFormData = { ...formData };
+
+      // Resolve Brand
+      if (!isUUID(resolvedFormData.marca) && resolvedFormData.marca) {
+        const found = brands.find(b => b.name === resolvedFormData.marca);
+        if (found) {
+          resolvedFormData.marca = found.id;
+          resolvedFormData.brandId = found.id;
+        } else {
+          try {
+            const newBrand = await SupabaseService.createBrand({ name: resolvedFormData.marca });
+            resolvedFormData.marca = newBrand.id;
+            resolvedFormData.brandId = newBrand.id;
+            setBrands(prev => [...prev, newBrand]);
+          } catch (err) {
+            console.warn('Error creating brand, using name:', err);
+          }
+        }
+      }
+
+      // Resolve Supplier
+      if (!isUUID(resolvedFormData.proveedor) && resolvedFormData.proveedor) {
+        const found = suppliers.find(s => s.legalName === resolvedFormData.proveedor || s.commercialAlias === resolvedFormData.proveedor);
+        if (found) {
+          resolvedFormData.proveedor = found.id;
+          resolvedFormData.supplierId = found.id;
+        } else {
+          try {
+            const newSupplier = await SupabaseService.createSupplier({ 
+              legalName: resolvedFormData.proveedor,
+              commercialAlias: resolvedFormData.proveedor,
+              erpCode: 'TEMP-' + Date.now()
+            });
+            resolvedFormData.proveedor = newSupplier.id;
+            resolvedFormData.supplierId = newSupplier.id;
+            setSuppliers(prev => [...prev, newSupplier]);
+          } catch (err) {
+            console.warn('Error creating supplier, using name:', err);
+          }
+        }
+      }
+
+      // Resolve Line
+      if (!isUUID(resolvedFormData.linea) && resolvedFormData.linea) {
+        const found = productLines.find(l => l.name === resolvedFormData.linea);
+        if (found) {
+          resolvedFormData.linea = found.id;
+          resolvedFormData.lineId = found.id;
+        } else {
+          try {
+            const newLine = await SupabaseService.createProductLine({ name: resolvedFormData.linea });
+            resolvedFormData.linea = newLine.id;
+            resolvedFormData.lineId = newLine.id;
+            setProductLines(prev => [...prev, newLine]);
+          } catch (err) {
+            console.warn('Error creating line, using name:', err);
+          }
+        }
+      }
+
+      if (editingRecord) {
+        await handleUpdateRecord({ ...editingRecord, ...resolvedFormData });
+      } else {
+        await handleAddRecord(resolvedFormData);
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error('Error in handleSubmit:', err);
+      toast.error('Error al guardar el registro');
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsModalOpen(false);
   };
 
   const handleSyncDocuments = () => {
@@ -264,9 +362,9 @@ export default function ProductsModule({
       return;
     }
 
-    const approvedDocs: any[] = [];
+    const syncedGroups: any[] = [];
     
-    const checkVersion = (version: DocumentVersion, category: string) => {
+    const checkVersion = (version: DocumentVersion, categoryName: string) => {
       const isApproved = 
         version.idApproval.status === 'approved' &&
         version.mktApproval.status === 'approved' &&
@@ -274,13 +372,21 @@ export default function ProductsModule({
         version.provApproval.status === 'approved';
       
       if (isApproved) {
+        let group = syncedGroups.find(g => g.category === categoryName);
+        if (!group) {
+          group = {
+            id: `GROUP-${Math.random().toString(36).substr(2, 9)}`,
+            category: categoryName,
+            documents: []
+          };
+          syncedGroups.push(group);
+        }
         version.files.forEach((f: FileInfo) => {
-          approvedDocs.push({
+          group.documents.push({
             id: `DOC-${Math.random().toString(36).substr(2, 9)}`,
             name: f.name,
             type: f.type,
             url: f.url,
-            category: category,
             approvalDate: new Date().toISOString().split('T')[0]
           });
         });
@@ -291,15 +397,75 @@ export default function ProductsModule({
     product.technicalSheets?.forEach(v => checkVersion(v, 'Ficha Técnica'));
     product.commercialSheets?.forEach(v => checkVersion(v, 'Ficha Comercial'));
 
-    if (approvedDocs.length === 0) {
+    if (syncedGroups.length === 0) {
       toast.info('No se encontraron documentos aprobados para este código SAP');
     } else {
       setFormData(prev => ({
         ...prev,
-        approvedDocuments: [...prev.approvedDocuments, ...approvedDocs]
+        approvedDocuments: syncedGroups
       }));
-      toast.success(`Se sincronizaron ${approvedDocs.length} documentos aprobados`);
+      toast.success(`Se sincronizaron ${syncedGroups.reduce((acc, g) => acc + g.documents.length, 0)} documentos aprobados`);
     }
+  };
+
+  const handleAddNewDocCategory = () => {
+    if (newDocCategoryName.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        approvedDocuments: [
+          ...prev.approvedDocuments,
+          {
+            id: `GROUP-${Math.random().toString(36).substr(2, 9)}`,
+            category: newDocCategoryName.trim(),
+            documents: []
+          }
+        ]
+      }));
+      setNewDocCategoryName('');
+      setIsAddingNewDocCategory(false);
+    }
+  };
+
+  const handleSaveDocCategoryName = (id: string) => {
+    if (editingDocCategoryName.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        approvedDocuments: prev.approvedDocuments.map(g => 
+          g.id === id ? { ...g, category: editingDocCategoryName.trim() } : g
+        )
+      }));
+    }
+    setEditingDocCategoryId(null);
+  };
+
+  const handleMoveDoc = (groupId: string, docId: string, direction: 'up' | 'down') => {
+    setFormData(prev => ({
+      ...prev,
+      approvedDocuments: prev.approvedDocuments.map(group => {
+        if (group.id !== groupId) return group;
+        const newDocs = [...group.documents];
+        const idx = newDocs.findIndex(d => d.id === docId);
+        if (direction === 'up' && idx > 0) {
+          [newDocs[idx], newDocs[idx - 1]] = [newDocs[idx - 1], newDocs[idx]];
+        } else if (direction === 'down' && idx < newDocs.length - 1) {
+          [newDocs[idx], newDocs[idx + 1]] = [newDocs[idx + 1], newDocs[idx]];
+        }
+        return { ...group, documents: newDocs };
+      })
+    }));
+  };
+
+  const handleMoveGroup = (groupId: string, direction: 'up' | 'down') => {
+    setFormData(prev => {
+      const newGroups = [...prev.approvedDocuments];
+      const idx = newGroups.findIndex(g => g.id === groupId);
+      if (direction === 'up' && idx > 0) {
+        [newGroups[idx], newGroups[idx - 1]] = [newGroups[idx - 1], newGroups[idx]];
+      } else if (direction === 'down' && idx < newGroups.length - 1) {
+        [newGroups[idx], newGroups[idx + 1]] = [newGroups[idx + 1], newGroups[idx]];
+      }
+      return { ...prev, approvedDocuments: newGroups };
+    });
   };
 
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
@@ -320,6 +486,12 @@ export default function ProductsModule({
   const [galleryCategory, setGalleryCategory] = useState('');
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+
+  // Approved Docs Category management
+  const [isAddingNewDocCategory, setIsAddingNewDocCategory] = useState(false);
+  const [newDocCategoryName, setNewDocCategoryName] = useState('');
+  const [editingDocCategoryId, setEditingDocCategoryId] = useState<string | null>(null);
+  const [editingDocCategoryName, setEditingDocCategoryName] = useState('');
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ 
     id: string; 
@@ -913,8 +1085,10 @@ export default function ProductsModule({
                     value={formData.marca}
                     onChange={(e) => setFormData({ ...formData, marca: e.target.value as any })}
                   >
-                    <option value="SOLE">SOLE</option>
-                    <option value="S-Collection">S-Collection</option>
+                    <option value="">Seleccione una marca</option>
+                    {brands.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -924,21 +1098,25 @@ export default function ProductsModule({
                     value={formData.linea}
                     onChange={(e) => setFormData({ ...formData, linea: e.target.value as any })}
                   >
-                    <option value="AGUA CALIENTE">AGUA CALIENTE</option>
-                    <option value="LÍNEA BLANCA">LÍNEA BLANCA</option>
-                    <option value="CLIMATIZACIÓN">CLIMATIZACIÓN</option>
-                    <option value="PURIFICACIÓN">PURIFICACIÓN</option>
+                    <option value="">Seleccione una línea</option>
+                    {productLines.map(l => (
+                      <option key={l.id} value={l.id}>{l.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-500 uppercase tracking-wider ml-1">Proveedor</label>
-                  <input 
-                    type="text" 
+                  <select 
                     required
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500/20 outline-none"
                     value={formData.proveedor}
                     onChange={(e) => setFormData({ ...formData, proveedor: e.target.value })}
-                  />
+                  >
+                    <option value="">Seleccione un proveedor</option>
+                    {suppliers.map(s => (
+                      <option key={s.id} value={s.id}>{s.legalName}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-500 uppercase tracking-wider ml-1">Vincular Muestra</label>
@@ -962,34 +1140,164 @@ export default function ProductsModule({
                     <CheckCircle2 size={18} className="text-emerald-500" />
                     Documentos Aprobados
                   </h4>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {formData.approvedDocuments.map((doc, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <FileText size={18} className="text-emerald-600 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-900 truncate">{doc.name}</p>
-                          <p className="text-[10px] text-emerald-600 font-black uppercase">{doc.category}</p>
-                        </div>
+                  <div className="flex items-center gap-3">
+                    {isAddingNewDocCategory ? (
+                      <div className="flex items-center gap-2 animate-in slide-in-from-right-4">
+                        <input 
+                          type="text"
+                          placeholder="Nombre de categoría..."
+                          className="px-3 py-1.5 text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500/20"
+                          value={newDocCategoryName}
+                          onChange={(e) => setNewDocCategoryName(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddNewDocCategory()}
+                          autoFocus
+                        />
+                        <button 
+                          type="button"
+                          onClick={handleAddNewDocCategory}
+                          className="p-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all"
+                        >
+                          <Plus size={14} />
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => setIsAddingNewDocCategory(false)}
+                          className="p-1.5 bg-slate-100 text-slate-400 rounded-lg hover:bg-slate-200 transition-all"
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
+                    ) : (
                       <button 
                         type="button"
-                        onClick={() => setFormData(prev => ({
-                          ...prev,
-                          approvedDocuments: prev.approvedDocuments.filter((_, i) => i !== idx)
-                        }))}
-                        className="p-1.5 text-emerald-400 hover:text-red-600 transition-colors"
+                        onClick={() => setIsAddingNewDocCategory(true)}
+                        className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2"
                       >
-                        <Trash2 size={14} />
+                        <Plus size={14} />
+                        Nueva Categoría
                       </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {formData.approvedDocuments.map((group) => (
+                    <div key={group.id} className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm group">
+                      <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {editingDocCategoryId === group.id ? (
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type="text"
+                                className="px-2 py-1 text-xs font-bold bg-white border border-slate-200 rounded-lg outline-none"
+                                value={editingDocCategoryName}
+                                onChange={(e) => setEditingDocCategoryName(e.target.value)}
+                                autoFocus
+                              />
+                              <button 
+                                type="button"
+                                onClick={() => handleSaveDocCategoryName(group.id)}
+                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
+                              >
+                                <Check size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{group.category}</span>
+                          )}
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                setEditingDocCategoryId(group.id);
+                                setEditingDocCategoryName(group.category);
+                              }}
+                              className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
+                            >
+                              <Edit3 size={12} />
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => handleMoveGroup(group.id, 'up')}
+                              className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
+                            >
+                              <ArrowUp size={12} />
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => handleMoveGroup(group.id, 'down')}
+                              className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
+                            >
+                              <ArrowDown size={12} />
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => setFormData(prev => ({
+                                ...prev,
+                                approvedDocuments: prev.approvedDocuments.filter(g => g.id !== group.id)
+                              }))}
+                              className="p-1 text-slate-400 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                        <span className="text-[9px] font-black text-slate-400 uppercase">{group.documents.length} documentos</span>
+                      </div>
+                      
+                      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {group.documents.map((doc) => (
+                          <div key={doc.id} className="flex items-center justify-between p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl group/doc">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <FileText size={18} className="text-emerald-600 shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-900 truncate">{doc.name}</p>
+                                <p className="text-[9px] text-emerald-600 font-black uppercase">{doc.approvalDate}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover/doc:opacity-100 transition-opacity">
+                              <button 
+                                type="button"
+                                onClick={() => handleMoveDoc(group.id, doc.id, 'up')}
+                                className="p-1 text-emerald-400 hover:text-emerald-600 transition-colors"
+                              >
+                                <ArrowUp size={12} />
+                              </button>
+                              <button 
+                                type="button"
+                                onClick={() => handleMoveDoc(group.id, doc.id, 'down')}
+                                className="p-1 text-emerald-400 hover:text-emerald-600 transition-colors"
+                              >
+                                <ArrowDown size={12} />
+                              </button>
+                              <button 
+                                type="button"
+                                onClick={() => setFormData(prev => ({
+                                  ...prev,
+                                  approvedDocuments: prev.approvedDocuments.map(g => 
+                                    g.id === group.id ? { ...g, documents: g.documents.filter(d => d.id !== doc.id) } : g
+                                  )
+                                }))}
+                                className="p-1 text-emerald-400 hover:text-red-600 transition-colors"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {group.documents.length === 0 && (
+                          <div className="col-span-full py-4 flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                            <p className="text-[10px] font-bold uppercase tracking-widest">Sin documentos en esta categoría</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                   {formData.approvedDocuments.length === 0 && (
-                    <div className="col-span-full py-8 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400">
-                      <FileText size={32} className="mb-2 opacity-20" />
-                      <p className="text-xs font-bold">No hay documentos sincronizados</p>
-                      <p className="text-[10px] mt-1">Use el botón "Sincronizar Docs" arriba</p>
+                    <div className="py-12 border-2 border-dashed border-slate-200 rounded-[32px] flex flex-col items-center justify-center text-slate-400">
+                      <FileText size={48} className="mb-3 opacity-10" />
+                      <p className="text-sm font-bold uppercase tracking-widest text-slate-300">No hay documentos sincronizados</p>
+                      <p className="text-[10px] mt-1 font-medium">Use el botón "Sincronizar Docs" arriba para traer los archivos aprobados</p>
                     </div>
                   )}
                 </div>
@@ -1000,7 +1308,7 @@ export default function ProductsModule({
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <ImageIcon size={18} className="text-indigo-500" />
-                    Galería de Inspección I+D
+                    Galería de Inspección I+D (Máx. 50 MB)
                   </h4>
                   <div className="flex items-center gap-3">
                     {isAddingNewCategory ? (
@@ -1173,7 +1481,7 @@ export default function ProductsModule({
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                       <Box size={18} className="text-blue-500" />
-                      Explode (Vista Explosiva)
+                      Explode (Vista Explosiva) (Máx. 50 MB)
                     </h4>
                     <button 
                       type="button"
@@ -1213,7 +1521,7 @@ export default function ProductsModule({
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                       <Files size={18} className="text-amber-500" />
-                      Documentos Adicionales
+                      Documentos Adicionales (Máx. 50 MB)
                     </h4>
                     <button 
                       type="button"
@@ -1361,34 +1669,49 @@ export default function ProductsModule({
               )}
 
               {/* Approved Documents */}
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                   <CheckCircle2 size={18} className="text-emerald-500" />
                   Documentos Aprobados
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {selectedRecord.approvedDocuments.map((doc) => (
-                    <a 
-                      key={doc.id}
-                      href={doc.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl hover:border-emerald-300 hover:shadow-md transition-all group"
-                    >
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                          <FileText size={20} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-slate-900 truncate">{doc.name}</p>
-                          <p className="text-[10px] text-slate-500 font-bold uppercase">{doc.category} • {doc.approvalDate}</p>
-                        </div>
+                
+                <div className="space-y-6">
+                  {selectedRecord.approvedDocuments.map((group) => (
+                    <div key={group.id} className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-emerald-100"></div>
+                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">{group.category}</span>
+                        <div className="h-px flex-1 bg-emerald-100"></div>
                       </div>
-                      <Download size={18} className="text-slate-400 group-hover:text-emerald-600" />
-                    </a>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {group.documents.map((doc) => (
+                          <a 
+                            key={doc.id}
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl hover:border-emerald-300 hover:shadow-md transition-all group"
+                          >
+                            <div className="flex items-center gap-4 min-w-0">
+                              <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                                <FileText size={20} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-slate-900 truncate">{doc.name}</p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase">{doc.approvalDate}</p>
+                              </div>
+                            </div>
+                            <Download size={18} className="text-slate-400 group-hover:text-emerald-600" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                   {selectedRecord.approvedDocuments.length === 0 && (
-                    <p className="col-span-full text-sm text-slate-400 italic py-4 text-center">No hay documentos aprobados registrados.</p>
+                    <div className="py-12 flex flex-col items-center justify-center bg-slate-50 rounded-[32px] border border-dashed border-slate-200 text-center">
+                      <FileText size={48} className="text-slate-200 mb-3" />
+                      <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No hay documentos aprobados</p>
+                    </div>
                   )}
                 </div>
               </div>

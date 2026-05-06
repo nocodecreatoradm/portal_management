@@ -248,7 +248,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                 >
                   <UploadCloud size={32} className="mx-auto text-gray-400 mb-3" />
                   <p className="text-sm font-medium text-gray-700">Haz clic para seleccionar o arrastra los archivos aquí</p>
-                  <p className="text-xs text-gray-500 mt-1">Formatos permitidos: {acceptedTypes}</p>
+                  <p className="text-xs text-gray-500 mt-1">Formatos permitidos: {acceptedTypes} (Máx. 25 MB)</p>
                   <input 
                     type="file" 
                     ref={fileInputRef}

@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   XCircle, Save, Play, Pause, CheckCircle2, AlertCircle, 
   Plus, Trash2, Camera, ChevronDown, ChevronUp, Clock,
-  FileText, Image as ImageIcon
+  FileText, Image as ImageIcon, Loader2
 } from 'lucide-react';
-import { SampleRecord, InspectionSection, WorkflowStage, FileInfo, InspectionTimer } from '../types';
+import { SampleRecord, InspectionSection, WorkflowStage, FileInfo, InspectionTimer, InspectionTemplate } from '../types';
+import { SupabaseService } from '../lib/SupabaseService';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { isBusinessTime, getBusinessMsBetween } from '../utils/businessHours';
 
@@ -57,6 +59,43 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const timerInterval = useRef<NodeJS.Timeout | null>(null);
+  const [template, setTemplate] = useState<InspectionTemplate | null>(null);
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
+
+  useEffect(() => {
+    const loadTemplate = async () => {
+      if (!sample.categoryId) return;
+      
+      setLoadingTemplate(true);
+      try {
+        const tpt = await SupabaseService.getInspectionTemplateByCategory(sample.categoryId);
+        if (tpt) {
+          setTemplate(tpt);
+          
+          // If the sample doesn't have a form or workflow yet, use the template ones
+          if (!sample.inspectionForm || sample.inspectionForm.length === 0) {
+            setForm(tpt.formStructure.sections);
+          }
+          if (!sample.workflow || sample.workflow.length === 0) {
+            setWorkflow(tpt.workflowStructure.stages.map(s => ({
+              id: Math.random().toString(36).substr(2, 9),
+              stage: s.name,
+              status: 'pending'
+            })));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading template:', error);
+        toast.error('Error al cargar la plantilla de inspección');
+      } finally {
+        setLoadingTemplate(false);
+      }
+    };
+
+    if (isOpen) {
+      loadTemplate();
+    }
+  }, [isOpen, sample.categoryId]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -351,6 +390,15 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
           onChange={handleFileUpload}
         />
 
+        {loadingTemplate && (
+          <div className="absolute inset-0 z-[110] bg-white/80 backdrop-blur-sm flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+              <p className="text-sm font-bold text-slate-600 uppercase tracking-widest">Cargando Plantilla...</p>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-4">
@@ -358,7 +406,9 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
               <FileText size={24} />
             </div>
             <div>
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Inspección de Muestra</h3>
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">
+                Inspección de Muestra {template && <span className="text-indigo-600 ml-2">(Dinámica: {template.name})</span>}
+              </h3>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                 {sample.descripcionSAP} | Técnico: {sample.technician || 'No asignado'}
               </p>

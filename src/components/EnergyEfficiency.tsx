@@ -4,7 +4,7 @@ import {
   Search, Plus, Filter, Download, Calendar, 
   FileText, Upload, Trash2, Edit2, X, Check,
   Zap, Eye, Link as LinkIcon, Image as ImageIcon, Tag,
-  History as HistoryIcon, User, Clock
+  History as HistoryIcon, User, Clock, ClipboardList
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -342,14 +342,21 @@ export default function EnergyEfficiency({
   }) => {
     const [certificado, setCertificado] = useState<FileInfo | undefined>(record?.certificadoFile);
     const [etiqueta, setEtiqueta] = useState<FileInfo | undefined>(record?.etiquetaFile);
+    const [testReport, setTestReport] = useState<FileInfo | undefined>(record?.testReportFile);
     const [certificadoHistory, setCertificadoHistory] = useState<EnergyEfficiencyDocument[]>(record?.certificadoHistory || []);
     const [etiquetaHistory, setEtiquetaHistory] = useState<EnergyEfficiencyDocument[]>(record?.etiquetaHistory || []);
+    const [testReportHistory, setTestReportHistory] = useState<EnergyEfficiencyDocument[]>(record?.testReportHistory || []);
     const [gallery, setGallery] = useState<any[]>(record?.gallery || []);
 
-    const handleFileUpload = async (type: 'certificado' | 'etiqueta', e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (type: 'certificado' | 'etiqueta' | 'testReport', e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-        toast.loading(`Subiendo ${type === 'certificado' ? 'Certificado' : 'Etiqueta'}...`);
+        const typeNames = {
+          certificado: 'Certificado',
+          etiqueta: 'Etiqueta',
+          testReport: 'Test Report'
+        };
+        toast.loading(`Subiendo ${typeNames[type]}...`);
         try {
           const fileInfo = await SupabaseService.uploadFile('rd-files', `ee/${Date.now()}_${file.name}`, file);
           const mockFile: FileInfo = {
@@ -371,7 +378,7 @@ export default function EnergyEfficiency({
               setCertificadoHistory(prev => [historyEntry, ...prev]);
             }
             setCertificado(mockFile);
-          } else {
+          } else if (type === 'etiqueta') {
             if (etiqueta) {
               const historyEntry: EnergyEfficiencyDocument = {
                 ...etiqueta,
@@ -383,12 +390,24 @@ export default function EnergyEfficiency({
               setEtiquetaHistory(prev => [historyEntry, ...prev]);
             }
             setEtiqueta(mockFile);
+          } else {
+            if (testReport) {
+              const historyEntry: EnergyEfficiencyDocument = {
+                ...testReport,
+                version: testReportHistory.length + 1,
+                uploadDate: new Date().toISOString(),
+                uploadedBy: user?.name || 'Sistema',
+                changeDescription: 'Nueva versión cargada'
+              };
+              setTestReportHistory(prev => [historyEntry, ...prev]);
+            }
+            setTestReport(mockFile);
           }
           toast.dismiss();
-          toast.success(`${type === 'certificado' ? 'Certificado' : 'Etiqueta'} cargado correctamente`);
+          toast.success(`${typeNames[type]} cargado correctamente`);
         } catch (err) {
           toast.dismiss();
-          toast.error(`Error al subir ${type === 'certificado' ? 'Certificado' : 'Etiqueta'}`);
+          toast.error(`Error al subir ${typeNames[type]}`);
         }
       }
     };
@@ -465,13 +484,16 @@ export default function EnergyEfficiency({
           <form onSubmit={(e) => {
             e.preventDefault();
             const formData = new FormData(e.currentTarget);
+            const providerName = formData.get('proveedor') as string;
+            const selectedSupplier = suppliers.find(s => s.legalName === providerName);
+            
             const data = {
               codigoMT: formData.get('codigoMT') as string,
               descripcion: formData.get('descripcion') as string,
               letra: formData.get('letra') as string,
               porcentajeEE: formData.get('porcentajeEE') as string,
               ocp: formData.get('ocp') as string,
-              proveedor: formData.get('proveedor') as string,
+              proveedor: selectedSupplier ? selectedSupplier.id : providerName,
               fechaEmision: formData.get('fechaEmision') as string,
               fechaVigilancia: formData.get('fechaVigilancia') as string,
               tipoProducto: formData.get('tipoProducto') as string,
@@ -480,6 +502,8 @@ export default function EnergyEfficiency({
               certificadoHistory: certificadoHistory,
               etiquetaFile: etiqueta,
               etiquetaHistory: etiquetaHistory,
+              testReportFile: testReport,
+              testReportHistory: testReportHistory,
               gallery: gallery,
             };
             onSubmit(data);
@@ -542,21 +566,29 @@ export default function EnergyEfficiency({
               </select>
             </div>
             
-            <div className="md:col-span-2 grid grid-cols-2 gap-4">
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Certificado (PDF/JPG)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Certificado (PDF/JPG) (Máx. 25 MB)</label>
                 <label className={`w-full p-4 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${certificado ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-indigo-200 hover:text-indigo-600'}`}>
                   {certificado ? <FileText size={24} /> : <Upload size={24} />}
-                  <span className="text-[10px] font-black uppercase">{certificado ? certificado.name : 'Subir Certificado'}</span>
+                  <span className="text-[10px] font-black uppercase text-center line-clamp-1">{certificado ? certificado.name : 'Subir Certificado'}</span>
                   <input type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => handleFileUpload('certificado', e)} />
                 </label>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Etiqueta (PDF/JPG)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Etiqueta (PDF/JPG) (Máx. 25 MB)</label>
                 <label className={`w-full p-4 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${etiqueta ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-indigo-200 hover:text-indigo-600'}`}>
                   {etiqueta ? <ImageIcon size={24} /> : <Upload size={24} />}
-                  <span className="text-[10px] font-black uppercase">{etiqueta ? etiqueta.name : 'Subir Etiqueta'}</span>
+                  <span className="text-[10px] font-black uppercase text-center line-clamp-1">{etiqueta ? etiqueta.name : 'Subir Etiqueta'}</span>
                   <input type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => handleFileUpload('etiqueta', e)} />
+                </label>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Test Report (PDF/JPG) (Máx. 25 MB)</label>
+                <label className={`w-full p-4 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${testReport ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-indigo-200 hover:text-indigo-600'}`}>
+                  {testReport ? <ClipboardList size={24} /> : <Upload size={24} />}
+                  <span className="text-[10px] font-black uppercase text-center line-clamp-1">{testReport ? testReport.name : 'Subir Test Report'}</span>
+                  <input type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => handleFileUpload('testReport', e)} />
                 </label>
               </div>
             </div>
@@ -860,7 +892,7 @@ export default function EnergyEfficiency({
                         </div>
                         <div>
                           <p className="text-xs font-bold text-slate-700 uppercase">Etiqueta</p>
-                          <p className="text-[10px] text-slate-400 font-medium">{record.etiquetaFile.name}</p>
+                          <p className="text-[10px] text-slate-400 font-medium truncate max-w-[150px]">{record.etiquetaFile.name}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
@@ -886,6 +918,41 @@ export default function EnergyEfficiency({
                   ) : (
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 border-dashed text-center text-[10px] font-black text-slate-400 uppercase">Sin Etiqueta</div>
                   )}
+
+                  {record.testReportFile ? (
+                    <div className="p-4 bg-white rounded-2xl border border-slate-200 flex items-center justify-between group">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-slate-50 rounded-xl text-slate-400 group-hover:text-indigo-600 transition-colors">
+                          <ClipboardList size={20} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-700 uppercase">Test Report</p>
+                          <p className="text-[10px] text-slate-400 font-medium truncate max-w-[150px]">{record.testReportFile.name}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {record.testReportHistory && record.testReportHistory.length > 0 && (
+                          <button 
+                            onClick={() => setViewingHistory({ title: 'Test Report', history: record.testReportHistory || [] })}
+                            className="p-2 hover:bg-indigo-50 rounded-lg text-slate-400 hover:text-indigo-600 transition-all"
+                            title="Ver versiones anteriores"
+                          >
+                            <HistoryIcon size={16} />
+                          </button>
+                        )}
+                        <a 
+                          href={record.testReportFile.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-indigo-600 transition-all"
+                        >
+                          <Download size={16} />
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 border-dashed text-center text-[10px] font-black text-slate-400 uppercase">Sin Test Report</div>
+                  )}
                 </div>
               </div>
 
@@ -893,12 +960,20 @@ export default function EnergyEfficiency({
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vista Previa</h4>
                 <div className="aspect-video bg-slate-100 rounded-3xl border border-slate-200 flex items-center justify-center text-slate-400 overflow-hidden">
                   {record.etiquetaFile ? (
-                    <img 
-                      src={record.etiquetaFile.type.includes('image') ? record.etiquetaFile.url : "https://picsum.photos/seed/energy/800/450"} 
-                      alt="Vista previa" 
-                      className="w-full h-full object-cover" 
-                      referrerPolicy="no-referrer" 
-                    />
+                    record.etiquetaFile.type.includes('image') ? (
+                      <img 
+                        src={record.etiquetaFile.url} 
+                        alt="Vista previa" 
+                        className="w-full h-full object-contain p-2" 
+                        referrerPolicy="no-referrer" 
+                      />
+                    ) : (
+                      <iframe 
+                        src={`${record.etiquetaFile.url}#toolbar=0&navpanes=0&scrollbar=0`} 
+                        className="w-full h-full border-none"
+                        title="Vista previa etiqueta"
+                      />
+                    )
                   ) : (
                     <div className="flex flex-col items-center gap-2">
                       <Eye size={32} className="opacity-20" />
@@ -1336,7 +1411,7 @@ export default function EnergyEfficiency({
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-black text-slate-600 uppercase tracking-tight">Haz clic para subir fotos</p>
-                    <p className="text-[10px] font-medium text-slate-400 uppercase mt-1">JPG, PNG hasta 10MB</p>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase mt-1">JPG, PNG (Máx. 50 MB)</p>
                   </div>
                   <input 
                     type="file" 

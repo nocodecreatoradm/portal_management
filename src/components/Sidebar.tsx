@@ -130,6 +130,7 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
       icon: <Shield size={18} />,
       modules: [
         { id: 'user_management', label: t('menu.users_permissions'), icon: <Users size={18} />, permission: 'users:view' },
+        { id: 'master_data', label: 'Maestro de Datos', icon: <Database size={18} />, permission: 'users:view' },
       ]
     }
   ];

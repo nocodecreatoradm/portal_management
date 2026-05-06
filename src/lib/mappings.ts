@@ -74,6 +74,8 @@ export const mapEEToDB = (record: Partial<EnergyEfficiencyRecord>) => {
     certificate_history: record.certificadoHistory,
     label_file: record.etiquetaFile,
     label_history: record.etiquetaHistory,
+    test_report_file: record.testReportFile,
+    test_report_history: record.testReportHistory,
     gallery: record.gallery
   };
   return dbRecord;
@@ -95,6 +97,8 @@ export const mapDBToEE = (dbRecord: any): EnergyEfficiencyRecord => ({
   certificadoHistory: dbRecord.certificate_history || [],
   etiquetaFile: dbRecord.label_file,
   etiquetaHistory: dbRecord.label_history || [],
+  testReportFile: dbRecord.test_report_file,
+  testReportHistory: dbRecord.test_report_history || [],
   gallery: dbRecord.gallery || [],
   createdAt: dbRecord.created_at
 });
@@ -262,12 +266,14 @@ export const mapProductToDB = (product: Partial<ProductRecord & ProductManagemen
   const dbProduct: any = {};
   const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
+  if (product.correlativeId !== undefined) dbProduct.correlative_id = product.correlativeId;
   if (product.codigoSAP !== undefined) dbProduct.sap_code = product.codigoSAP;
   if (product.codigoEAN !== undefined) dbProduct.ean_code = product.codigoEAN;
+  if (product.eanCode !== undefined) dbProduct.ean_code = product.eanCode;
   if (product.descripcionSAP !== undefined) dbProduct.sap_description = product.descripcionSAP;
-  if (product.marca !== undefined) dbProduct.brand_id = isUUID(product.marca) ? product.marca : null;
-  if (product.proveedor !== undefined) dbProduct.supplier_id = isUUID(product.proveedor) ? product.proveedor : null;
-  if (product.linea !== undefined) dbProduct.line_id = isUUID(product.linea) ? product.linea : null;
+  if (product.marca !== undefined) dbProduct.brand_id = product.brandId || (isUUID(product.marca) ? product.marca : null);
+  if (product.proveedor !== undefined) dbProduct.supplier_id = product.supplierId || (isUUID(product.proveedor) ? product.proveedor : null);
+  if (product.linea !== undefined) dbProduct.line_id = product.lineId || (isUUID(product.linea) ? product.linea : null);
   if (product.sampleId !== undefined) dbProduct.sample_id = isUUID(product.sampleId) ? product.sampleId : null;
   if (product.commercialStatus !== undefined) dbProduct.commercial_status = product.commercialStatus;
   if (product.qualityInspectionDate !== undefined) dbProduct.quality_inspection_date = product.qualityInspectionDate;
@@ -279,12 +285,16 @@ export const mapProductToDB = (product: Partial<ProductRecord & ProductManagemen
   if (product.artworkAssignment !== undefined) dbProduct.artwork_assignment = product.artworkAssignment;
   if (product.technicalAssignment !== undefined) dbProduct.technical_assignment = product.technicalAssignment;
   if (product.commercialAssignment !== undefined) dbProduct.commercial_assignment = product.commercialAssignment;
+  if (product.approvedDocuments !== undefined) dbProduct.approved_documents = product.approvedDocuments;
+  if (product.trackingType !== undefined) dbProduct.tracking_type = product.trackingType;
+  if (product.linkedGroupId !== undefined) dbProduct.linked_group_id = product.linkedGroupId;
   return dbProduct;
 };
 
 
 export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
   id: dbProduct.id,
+  correlativeId: dbProduct.correlative_id || dbProduct.sample?.correlative_id,
   codigoSAP: dbProduct.sap_code || '',
   codigoEAN: dbProduct.ean_code || '',
   descripcionSAP: dbProduct.sap_description || '',
@@ -301,23 +311,31 @@ export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
   createdAt: dbProduct.created_at || new Date().toISOString(),
   artworkAssignment: dbProduct.artwork_assignment,
   technicalAssignment: dbProduct.technical_assignment,
-  commercialAssignment: dbProduct.commercial_assignment
+  commercialAssignment: dbProduct.commercial_assignment,
+  trackingType: dbProduct.tracking_type,
+  linkedGroupId: dbProduct.linked_group_id
 });
 
 export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
   id: dbRecord.id,
+  correlativeId: dbRecord.correlative_id || dbRecord.sample?.correlative_id,
   codigoSAP: dbRecord.sap_code || '',
+  codigoEAN: dbRecord.ean_code || '',
+  eanCode: dbRecord.ean_code || '',
   descripcionSAP: dbRecord.sap_description || '',
   marca: dbRecord.brand?.name || dbRecord.brand_id || 'SOLE',
+  brandId: dbRecord.brand_id,
   proveedor: dbRecord.supplier?.legal_name || dbRecord.supplier_id || 'Desconocido',
+  supplierId: dbRecord.supplier_id,
   linea: dbRecord.line?.name || dbRecord.line_id || 'AGUA CALIENTE',
+  lineId: dbRecord.line_id,
   sampleId: dbRecord.sample_id,
   fobPrice: dbRecord.fob_price || 0,
   fobPriceHistory: dbRecord.fob_price_history || [],
   explodeFiles: dbRecord.explode_files || [],
   additionalProviderDocuments: dbRecord.additional_provider_documents || [],
   gallery: dbRecord.gallery || [],
-  approvedDocuments: [],
+  approvedDocuments: dbRecord.approved_documents || [],
   createdAt: dbRecord.created_at || new Date().toISOString(),
   artworkAssignment: dbRecord.artwork_assignment,
   technicalAssignment: dbRecord.technical_assignment,
@@ -455,7 +473,7 @@ export const mapDBToRDProject = (dbProject: any): RDProject => ({
 
 export const mapRDProjectToDB = (project: Partial<RDProject>) => {
   const dbProject: any = {};
-  const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+  const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
   if (project.templateId !== undefined) {
     dbProject.template_id = isUUID(project.templateId) ? project.templateId : null;
@@ -507,4 +525,41 @@ export const mapDBToBrandDocument = (dbDoc: any): BrandDocument => ({
   modified: new Date(dbDoc.modified_at).toLocaleString(),
   modifiedBy: dbDoc.modified_by,
   versions: dbDoc.versions || []
+});
+
+export const mapProductLineToDB = (line: Partial<ProductLine>) => ({
+  name: line.name
+});
+
+export const mapDBToProductLine = (dbLine: any): ProductLine => ({
+  id: dbLine.id,
+  name: dbLine.name
+});
+
+export const mapCategoryToDB = (cat: Partial<Category>) => ({
+  name: cat.name,
+  line_id: cat.productLineId
+});
+
+export const mapDBToCategory = (dbCat: any): Category => ({
+  id: dbCat.id,
+  name: dbCat.name,
+  productLineId: dbCat.line_id
+});
+
+export const mapInspectionTemplateToDB = (template: Partial<InspectionTemplate>) => ({
+  category_id: template.categoryId,
+  name: template.name,
+  form_structure: template.formStructure,
+  workflow_structure: template.workflowStructure
+});
+
+export const mapDBToInspectionTemplate = (dbTemplate: any): InspectionTemplate => ({
+  id: dbTemplate.id,
+  categoryId: dbTemplate.category_id,
+  name: dbTemplate.name,
+  formStructure: dbTemplate.form_structure,
+  workflowStructure: dbTemplate.workflow_structure,
+  createdAt: dbTemplate.created_at,
+  updatedAt: dbTemplate.updated_at
 });

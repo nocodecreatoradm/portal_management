@@ -37,6 +37,18 @@ export default function ProductDetailModal({
   const handleUpdateComments = (newComments: PDFComment[]) => {
     if (!reviewingVersion || !onUpdateRecord) return;
 
+    // Update local state first to keep the modal open and responsive
+    setReviewingVersion(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        version: {
+          ...prev.version,
+          pdfComments: newComments
+        }
+      };
+    });
+
     const listKey = reviewingVersion.type === 'artwork' ? 'artworks' : 
                     reviewingVersion.type === 'technical_sheet' ? 'technicalSheets' : 
                     'commercialSheets';
@@ -46,8 +58,8 @@ export default function ProductDetailModal({
       v.version === reviewingVersion.version.version ? { ...v, pdfComments: newComments } : v
     );
 
+    // Update the parent/database
     onUpdateRecord(record.id, { [listKey]: updatedList });
-    setReviewingVersion(prev => prev ? { ...prev, version: { ...prev.version, pdfComments: newComments } } : null);
   };
 
   const handleGalleryPhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -296,6 +308,10 @@ export default function ProductDetailModal({
               <div>
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Código SAP</p>
                 <p className="font-mono text-sm font-semibold text-slate-900">{record.codigoSAP}</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">ID Seguimiento</p>
+                <p className="font-mono text-sm font-bold text-blue-600">{record.correlativeId || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Código EAN</p>
