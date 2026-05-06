@@ -213,6 +213,15 @@ export default function ProductDetailModal({
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-500 uppercase">
                             {v.uploadDate}
                           </span>
+                          {v.commercialStatus && (
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
+                              v.commercialStatus === 'A la venta'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-slate-200 text-slate-600'
+                            }`}>
+                              {v.commercialStatus}
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-slate-500 font-medium">Subido por <span className="text-slate-700 font-bold">{v.uploadedBy}</span></p>
                       </div>

@@ -45,6 +45,7 @@ export interface DocumentVersion {
   solpedNumber?: string;
   estimatedShipmentDate?: string;
   pdfComments?: PDFComment[];
+  commercialStatus?: 'A la venta' | 'No a la venta';
 }
 
 export interface BrandDocumentVersion {

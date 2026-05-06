@@ -27,6 +27,7 @@ export default function CommercialArtworks({
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
   const [selectedProduct, setSelectedProduct] = useState<ProductRecord | null>(null);
+  const [selectedVersions, setSelectedVersions] = useState<Record<string, number>>({});
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
 
@@ -157,6 +158,22 @@ export default function CommercialArtworks({
       console.error('Error updating product:', error);
       toast.error('Error al actualizar registro');
     }
+  };
+
+  const handleUpdateVersionStatus = async (productId: string, versionNumber: number, status: 'A la venta' | 'No a la venta') => {
+    const record = data.find(r => r.id === productId);
+    if (!record) return;
+
+    const listKey = mode === 'artwork' ? 'artworks' : 
+                    mode === 'technical_sheet' ? 'technicalSheets' : 
+                    'commercialSheets';
+    
+    const versions = [...(record[listKey] || [])];
+    const updatedVersions = versions.map(v => 
+      v.version === versionNumber ? { ...v, commercialStatus: status } : v
+    );
+
+    await handleUpdateRecord(productId, { [listKey]: updatedVersions });
   };
 
   // Filter products that have at least one approved version
@@ -310,7 +327,6 @@ export default function CommercialArtworks({
                 </tr>
               ) : (
                 approvedProducts.map((record) => {
-                  // Get the latest approved version
                   const versions = mode === 'artwork' ? record.artworks : 
                                     mode === 'technical_sheet' ? (record.technicalSheets || []) : 
                                     (record.commercialSheets || []);
@@ -325,7 +341,12 @@ export default function CommercialArtworks({
                       return v.idApproval.status === 'approved';
                     }
                   });
-                  const latestApproved = approvedVersions[approvedVersions.length - 1];
+
+                  if (approvedVersions.length === 0) return null;
+
+                  // Get currently selected version or default to latest
+                  const currentVersionNum = selectedVersions[record.id] || approvedVersions[approvedVersions.length - 1].version;
+                  const currentVersion = approvedVersions.find(v => v.version === currentVersionNum) || approvedVersions[approvedVersions.length - 1];
 
                   return (
                     <tr key={record.id} className="hover:bg-slate-50/50 transition-colors">
@@ -352,7 +373,7 @@ export default function CommercialArtworks({
                       </td>
                       <td className="px-4 py-4 border-r border-gray-100">
                         <div className="flex flex-col gap-1">
-                          {latestApproved.files.map((f, i) => (
+                          {currentVersion.files.map((f, i) => (
                             <a 
                               key={i} 
                               href={f.url} 
@@ -365,14 +386,22 @@ export default function CommercialArtworks({
                         </div>
                       </td>
                       <td className="px-4 py-4 border-r border-gray-100 text-center font-bold text-slate-600">
-                        V{latestApproved.version}
+                        <select
+                          value={currentVersion.version}
+                          onChange={(e) => setSelectedVersions(prev => ({ ...prev, [record.id]: parseInt(e.target.value) }))}
+                          className="bg-transparent border-none outline-none text-center cursor-pointer hover:text-blue-600 transition-colors"
+                        >
+                          {approvedVersions.map(v => (
+                            <option key={v.version} value={v.version}>V{v.version}</option>
+                          ))}
+                        </select>
                       </td>
                       <td className="px-6 py-4 bg-blue-50/20">
                         <select 
-                          value={record.commercialStatus || 'No a la venta'}
-                          onChange={(e) => handleUpdateRecord(record.id, { commercialStatus: e.target.value as any })}
+                          value={currentVersion.commercialStatus || 'No a la venta'}
+                          onChange={(e) => handleUpdateVersionStatus(record.id, currentVersion.version, e.target.value as any)}
                           className={`w-full border rounded-lg px-3 py-1.5 text-xs font-bold outline-none transition-all ${
-                            record.commercialStatus === 'A la venta'
+                            currentVersion.commercialStatus === 'A la venta'
                               ? 'bg-emerald-50 border-emerald-200 text-emerald-700 focus:ring-2 focus:ring-emerald-500'
                               : 'bg-slate-50 border-slate-200 text-slate-600 focus:ring-2 focus:ring-slate-400'
                           }`}

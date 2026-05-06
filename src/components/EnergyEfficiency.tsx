@@ -958,7 +958,7 @@ export default function EnergyEfficiency({
 
               <div className="space-y-4">
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vista Previa</h4>
-                <div className="aspect-video bg-white rounded-[32px] border border-slate-200 flex items-center justify-center text-slate-400 overflow-hidden p-6 shadow-inner">
+                <div className="aspect-[1/1.414] bg-white rounded-[32px] border border-slate-200 flex items-center justify-center text-slate-400 overflow-hidden p-6 shadow-inner">
                   {record.etiquetaFile ? (
                     record.etiquetaFile.type.includes('image') ? (
                       <img 
@@ -969,7 +969,7 @@ export default function EnergyEfficiency({
                       />
                     ) : (
                       <iframe 
-                        src={`${record.etiquetaFile.url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
+                        src={`${record.etiquetaFile.url}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`} 
                         className="w-full h-full border-none rounded-2xl"
                         title="Vista previa etiqueta"
                       />
