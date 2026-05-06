@@ -140,8 +140,7 @@ export default function NewRequestModal({
         proveedor: 'LOCAL',
         codProv: 'N/A',
         correoProveedor: [],
-        sampleId: '',
-        correlativeId: ''
+        sampleId: ''
       }));
     }
     setStep(2);
@@ -340,12 +339,12 @@ export default function NewRequestModal({
                       type="text" 
                       name="correlativeId"
                       value={formData.correlativeId}
-                      onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-blue-50/20 font-bold text-blue-700"
-                      placeholder="Ej. SOL-001"
+                      readOnly
+                      className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 font-bold text-blue-700 cursor-not-allowed"
+                      placeholder="Generando ID..."
                     />
                     <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold italic">
-                      * Este ID se genera automáticamente para mantener el orden. Puede vincularse a una muestra (Samples) para sincronizar identificadores.
+                      * Este ID se genera automáticamente para garantizar la unicidad. Puede vincularse a una muestra para sincronizar identificadores.
                     </p>
                   </div>
                   <div>

@@ -380,14 +380,16 @@ export default function DataTable({
               {/* Subheaders */}
               <th className="px-2 py-2 text-center border-r border-gray-100">Arch.</th>
               <th className="px-2 py-2 text-center border-r border-gray-100">I+D</th>
-              {mode === 'artwork' && (
+              {mode === 'artwork' ? (
                 <>
                   <th className="px-2 py-2 text-center border-r border-gray-100">MKT</th>
                   <th className="px-2 py-2 text-center border-r border-gray-100">PROV</th>
+                  <th className="px-2 py-2 text-center border-r border-gray-100">Ver.</th>
                   <th className="px-2 py-2 text-center border-r border-gray-100">PLAN</th>
                 </>
+              ) : (
+                <th className="px-2 py-2 text-center border-r border-gray-100">Ver.</th>
               )}
-              <th className="px-2 py-2 text-center border-r border-gray-100">Ver.</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -577,27 +579,42 @@ export default function DataTable({
                     </div>
                   </td>
                   {renderApprovalCell(record, mode, latestByCategory, 'I+D')}
-                  {mode === 'artwork' && (
+                  {mode === 'artwork' ? (
                     <>
                       {renderApprovalCell(record, mode, latestByCategory, 'MKT')}
                       {renderApprovalCell(record, mode, latestByCategory, 'PROV')}
+                      <td className="px-2 py-3 border-r border-gray-100">
+                        <div className="flex flex-col gap-2 items-center">
+                          {latestByCategory.length > 0 ? (
+                            latestByCategory.map((v, idx) => (
+                              <div key={idx} className="h-8 flex flex-col justify-center items-center leading-none">
+                                {v.category && <span className="text-[8px] text-slate-400 uppercase font-black">{v.category}:</span>}
+                                <span className="text-[10px] text-indigo-600 font-black">V{v.version}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-slate-300 text-[10px]">-</span>
+                          )}
+                        </div>
+                      </td>
                       {renderApprovalCell(record, mode, latestByCategory, 'PLAN')}
                     </>
+                  ) : (
+                    <td className="px-2 py-3 border-r border-gray-100">
+                      <div className="flex flex-col gap-2 items-center">
+                        {latestByCategory.length > 0 ? (
+                          latestByCategory.map((v, idx) => (
+                            <div key={idx} className="h-8 flex flex-col justify-center items-center leading-none">
+                              {v.category && <span className="text-[8px] text-slate-400 uppercase font-black">{v.category}:</span>}
+                              <span className="text-[10px] text-indigo-600 font-black">V{v.version}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-slate-300 text-[10px]">-</span>
+                        )}
+                      </div>
+                    </td>
                   )}
-                  <td className="px-2 py-3 border-r border-gray-100">
-                    <div className="flex flex-col gap-2 items-center">
-                      {latestByCategory.length > 0 ? (
-                        latestByCategory.map((v, idx) => (
-                          <div key={idx} className="h-8 flex flex-col justify-center items-center leading-none">
-                            {v.category && <span className="text-[8px] text-slate-400 uppercase font-black">{v.category}:</span>}
-                            <span className="text-[10px] text-indigo-600 font-black">V{v.version}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <span className="text-slate-300 text-[10px]">-</span>
-                      )}
-                    </div>
-                  </td>
                   <td className="px-4 py-4 border-l border-gray-100 text-center">
                     {record.sampleId ? (
                       <div className="flex flex-col items-center gap-1">
