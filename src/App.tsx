@@ -435,7 +435,6 @@ export default function App() {
                 }
               }
               toast.success('Estado actualizado correctamente');
-            }
           }
         }
       } catch (error) {
