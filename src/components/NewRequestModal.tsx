@@ -80,14 +80,18 @@ export default function NewRequestModal({
   React.useEffect(() => {
     if (initialData) {
       setFormData({
-        codigoEAN: initialData.codigoEAN,
-        codigoSAP: initialData.codigoSAP,
-        descripcionSAP: initialData.descripcionSAP,
-        codProv: initialData.codProv,
-        proveedor: initialData.proveedor,
-        correoProveedor: [...initialData.correoProveedor],
-        marca: initialData.marca as any,
-        linea: initialData.linea as any,
+        codigoEAN: initialData.codigoEAN || '',
+        codigoSAP: initialData.codigoSAP || '',
+        descripcionSAP: initialData.descripcionSAP || '',
+        codProv: initialData.codProv || '',
+        proveedor: initialData.proveedor || '',
+        correoProveedor: Array.isArray(initialData.correoProveedor) ? [...initialData.correoProveedor] : [],
+        marca: initialData.marca || (brands[0]?.name || 'SOLE'),
+        brandId: (initialData as any).brandId || (brands.find(b => b.name === initialData.marca)?.id || ''),
+        linea: initialData.linea || (productLines[0]?.name || 'LÍNEA BLANCA'),
+        lineId: (initialData as any).lineId || (productLines.find(l => l.name === initialData.linea)?.id || ''),
+        categoria: (initialData as any).categoria || '',
+        categoryId: (initialData as any).categoryId || '',
         sampleId: initialData.sampleId || '',
         correlativeId: initialData.correlativeId || '',
       });
@@ -96,6 +100,9 @@ export default function NewRequestModal({
     } else if (isOpen) {
       // Reset and generate new ID when opening for new request
       const nextId = generateNextCorrelativeId(existingData);
+      const defaultBrand = brands[0];
+      const defaultLine = productLines[0];
+      
       setFormData({
         codigoEAN: '',
         codigoSAP: '',
@@ -103,8 +110,12 @@ export default function NewRequestModal({
         codProv: '',
         proveedor: '',
         correoProveedor: [],
-        marca: brands[0]?.name || 'SOLE',
-        linea: productLines[0]?.name || 'LÍNEA BLANCA',
+        marca: defaultBrand?.name || 'SOLE',
+        brandId: defaultBrand?.id || '',
+        linea: defaultLine?.name || 'LÍNEA BLANCA',
+        lineId: defaultLine?.id || '',
+        categoria: '',
+        categoryId: '',
         sampleId: '',
         correlativeId: nextId,
       });
@@ -222,11 +233,23 @@ export default function NewRequestModal({
     }));
   };
 
-  const handleSelectProvider = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const providerKey = e.target.value;
-    if (!providerKey) return;
+  const handleSelectProvider = (val: string) => {
+    if (!val) return;
     
-    const provider = existingProviders?.find(p => (p.name + p.code) === providerKey);
+    if (val === '__custom__') {
+      const customName = prompt('Ingrese el nombre del nuevo proveedor:');
+      if (customName) {
+        setFormData(prev => ({ 
+          ...prev, 
+          proveedor: customName,
+          codProv: '',
+          correoProveedor: []
+        }));
+      }
+      return;
+    }
+
+    const provider = existingProviders?.find(p => p.name === val);
     if (provider) {
       setFormData(prev => ({
         ...prev,
@@ -402,9 +425,9 @@ export default function NewRequestModal({
                       value={formData.categoria}
                       onChange={handleChange}
                       disabled={!formData.lineId}
-                      className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className={`w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none ${!formData.lineId ? 'bg-gray-100 cursor-not-allowed border-gray-300' : 'border-blue-200 bg-blue-50/20 font-medium'}`}
                     >
-                      <option value="">Seleccionar Categoría</option>
+                      <option value="">-- Seleccionar Categoría --</option>
                       {categories
                         .filter(c => c.productLineId === formData.lineId)
                         .map(c => (
@@ -416,42 +439,48 @@ export default function NewRequestModal({
 
                   {artworkType === 'imported' && (
                     <>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Seleccionar Proveedor Existente</label>
-                        <select 
-                          onChange={handleSelectProvider}
-                          className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
-                          value=""
-                        >
-                          <option value="">-- Seleccionar para auto-completar --</option>
-                          {existingProviders?.map(p => (
-                            <option key={p.name + p.code} value={p.name + p.code}>{p.name} ({p.code})</option>
-                          ))}
-                        </select>
+                      <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+                          <select 
+                            name="proveedor"
+                            required
+                            value={formData.proveedor}
+                            onChange={(e) => handleSelectProvider(e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium shadow-sm"
+                          >
+                            <option value="">-- Seleccionar Proveedor --</option>
+                            {existingProviders?.map(p => (
+                              <option key={p.name + p.code} value={p.name}>{p.name} ({p.code})</option>
+                            ))}
+                            <option value="__custom__" className="text-blue-600 font-bold">+ Añadir Nuevo Proveedor...</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Código de Proveedor</label>
+                          <input 
+                            type="text" 
+                            name="codProv"
+                            required
+                            value={formData.codProv}
+                            onChange={handleChange}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+                            placeholder="Ej. 2000005029"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Código de Proveedor</label>
-                        <input 
-                          type="text" 
-                          name="codProv"
-                          required
-                          value={formData.codProv}
-                          onChange={handleChange}
-                          className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                          placeholder="Ej. 2000005029"
-                        />
-                      </div>
-                      <div className="relative">
+
+                      <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Vincular con Muestra (Samples)</label>
                         <div className="relative">
                           <div 
                             onClick={() => setIsSampleDropdownOpen(!isSampleDropdownOpen)}
                             className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-blue-50/30 cursor-pointer flex justify-between items-center"
                           >
-                            <span className={formData.sampleId ? 'text-slate-900' : 'text-slate-400'}>
+                            <span className={formData.sampleId ? 'text-slate-900 font-medium' : 'text-slate-400'}>
                               {formData.sampleId 
                                 ? samples.find(s => s.id === formData.sampleId)?.correlativeId + ' - ' + samples.find(s => s.id === formData.sampleId)?.descripcionSAP
-                                : 'Seleccionar muestra...'}
+                                : 'Buscar y vincular muestra...'}
                             </span>
                           </div>
                           
@@ -472,13 +501,13 @@ export default function NewRequestModal({
                               </div>
                               <div className="max-h-48 overflow-y-auto">
                                 <div 
-                                  className="p-2 text-xs hover:bg-slate-50 cursor-pointer text-slate-500 italic"
+                                  className="p-2 text-xs hover:bg-slate-50 cursor-pointer text-slate-500 italic border-b border-slate-50"
                                   onClick={() => {
                                     setFormData(prev => ({ ...prev, sampleId: '' }));
                                     setIsSampleDropdownOpen(false);
                                   }}
                                 >
-                                  Sin muestra
+                                  Sin muestra vinculada
                                 </div>
                                 {samples
                                   .filter(s => 
@@ -504,40 +533,7 @@ export default function NewRequestModal({
                           )}
                         </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
-                        <select 
-                          name="proveedor"
-                          required
-                          value={formData.proveedor}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '__custom__') {
-                              const customName = prompt('Ingrese el nombre del nuevo proveedor:');
-                              if (customName) {
-                                setFormData(prev => ({ ...prev, proveedor: customName }));
-                              }
-                            } else {
-                              handleChange(e);
-                              const matched = existingProviders.find(p => p.name === val);
-                              if (matched) {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  codProv: matched.code || prev.codProv,
-                                  correoProveedor: matched.emails.length > 0 ? matched.emails : prev.correoProveedor
-                                }));
-                              }
-                            }
-                          }}
-                          className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium"
-                        >
-                          <option value="">-- Seleccionar Proveedor --</option>
-                          {existingProviders?.map(p => (
-                            <option key={p.name + p.code} value={p.name}>{p.name} ({p.code})</option>
-                          ))}
-                          <option value="__custom__">+ Añadir Nuevo Proveedor...</option>
-                        </select>
-                      </div>
+
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Correos de Proveedor</label>
                         <div className="flex gap-2 mb-2">
@@ -564,15 +560,15 @@ export default function NewRequestModal({
                         </div>
                         <div className="flex flex-wrap gap-2 min-h-[40px] p-2 border border-dashed border-gray-300 rounded-lg bg-gray-50">
                           {formData.correoProveedor.length === 0 && (
-                            <span className="text-xs text-gray-400 italic">Añade al menos un correo...</span>
+                            <span className="text-xs text-gray-400 italic">Añade al menos un correo de contacto...</span>
                           )}
                           {formData.correoProveedor.map(email => (
-                            <div key={email} className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+                            <div key={email} className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium border border-blue-200">
                               {email}
                               <button 
                                 type="button" 
                                 onClick={() => handleRemoveEmail(email)}
-                                className="hover:text-blue-900"
+                                className="hover:text-blue-900 ml-1"
                               >
                                 <X size={14} />
                               </button>
