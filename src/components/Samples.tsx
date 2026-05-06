@@ -1170,11 +1170,11 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                     disabled={!selectedLineId}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all disabled:opacity-50"
                   >
-                    <option value="">Seleccionar Categoría</option>
+                    <option value="">SELECCIONAR CATEGORÍA</option>
                     {categories
                       .filter(c => c.productLineId === selectedLineId)
                       .map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
+                        <option key={c.id} value={c.id}>{c.name.toUpperCase()}</option>
                       ))
                     }
                   </select>

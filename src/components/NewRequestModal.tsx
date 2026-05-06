@@ -426,11 +426,11 @@ export default function NewRequestModal({
                       disabled={!formData.lineId}
                       className={`w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none ${!formData.lineId ? 'bg-gray-100 cursor-not-allowed border-gray-300' : 'border-blue-200 bg-blue-50/20 font-medium'}`}
                     >
-                      <option value="">-- Seleccionar Categoría --</option>
+                      <option value="">-- SELECCIONAR CATEGORÍA --</option>
                       {categories
                         .filter(c => c.productLineId === formData.lineId)
                         .map(c => (
-                          <option key={c.id} value={c.name}>{c.name}</option>
+                          <option key={c.id} value={c.name}>{c.name.toUpperCase()}</option>
                         ))
                       }
                     </select>

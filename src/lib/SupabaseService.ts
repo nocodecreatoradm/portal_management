@@ -450,8 +450,7 @@ export const SupabaseService = {
         approved_documents, created_at, updated_at,
         brand:brands(name),
         supplier:suppliers(legal_name),
-        line:product_lines(name),
-        sample:samples(correlative_id)
+        line:product_lines(name)
       `)
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -467,8 +466,7 @@ export const SupabaseService = {
         *,
         brand:brands(name),
         supplier:suppliers(legal_name),
-        line:product_lines(name),
-        sample:samples(correlative_id)
+        line:product_lines(name)
       `)
       .single();
     if (error) throw error;
@@ -486,8 +484,7 @@ export const SupabaseService = {
         *,
         brand:brands(name),
         supplier:suppliers(legal_name),
-        line:product_lines(name),
-        sample:samples(correlative_id)
+        line:product_lines(name)
       `)
       .single();
     if (error) throw error;
