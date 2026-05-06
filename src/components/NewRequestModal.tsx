@@ -15,6 +15,7 @@ interface NewRequestModalProps {
   brands?: { id: string; name: string }[];
   productLines?: { id: string; name: string }[];
   categories?: { id: string; name: string; productLineId: string }[];
+  isSubmitting?: boolean;
 }
 
 export default function NewRequestModal({ 
@@ -27,7 +28,8 @@ export default function NewRequestModal({
   initialData = null,
   brands = [],
   productLines = [],
-  categories = []
+  categories = [],
+  isSubmitting = false
 }: Omit<NewRequestModalProps, 'samples'>) {
   const { samples } = useSamples();
   const [step, setStep] = React.useState<1 | 2>(initialData ? 2 : 1);
@@ -51,6 +53,30 @@ export default function NewRequestModal({
     correlativeId: initialData?.correlativeId || '',
   });
 
+  const generateNextCorrelativeId = (data: ProductRecord[]) => {
+    const prefix = 'SOL-';
+    if (!data || data.length === 0) return `${prefix}001`;
+    
+    // Extract numbers from IDs like "SOL-001", "D-007", etc.
+    const numbers = data
+      .map(r => {
+        if (!r.correlativeId) return 0;
+        const match = r.correlativeId.match(/\d+/);
+        return match ? parseInt(match[0], 10) : 0;
+      })
+      .filter(n => !isNaN(n));
+      
+    const maxNumber = numbers.length > 0 ? Math.max(...numbers) : 0;
+    return `${prefix}${(maxNumber + 1).toString().padStart(3, '0')}`;
+  };
+
+  React.useEffect(() => {
+    if (isOpen && !initialData && !formData.correlativeId) {
+      const nextId = generateNextCorrelativeId(existingData);
+      setFormData(prev => ({ ...prev, correlativeId: nextId }));
+    }
+  }, [isOpen, initialData, existingData]);
+
   React.useEffect(() => {
     if (initialData) {
       setFormData({
@@ -67,7 +93,9 @@ export default function NewRequestModal({
       });
       setArtworkType(initialData.proveedor === 'LOCAL' ? 'local' : 'imported');
       setStep(2);
-    } else {
+    } else if (isOpen) {
+      // Reset and generate new ID when opening for new request
+      const nextId = generateNextCorrelativeId(existingData);
       setFormData({
         codigoEAN: '',
         codigoSAP: '',
@@ -78,12 +106,12 @@ export default function NewRequestModal({
         marca: brands[0]?.name || 'SOLE',
         linea: productLines[0]?.name || 'LÍNEA BLANCA',
         sampleId: '',
-        correlativeId: '',
+        correlativeId: nextId,
       });
       setStep(1);
       setArtworkType(null);
     }
-  }, [initialData, isOpen, brands, productLines]);
+  }, [initialData, isOpen, brands, productLines, existingData]);
 
   const [newEmail, setNewEmail] = React.useState('');
   const [autoFilled, setAutoFilled] = React.useState(false);
@@ -291,10 +319,10 @@ export default function NewRequestModal({
                       value={formData.correlativeId}
                       onChange={handleChange}
                       className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-blue-50/20 font-bold text-blue-700"
-                      placeholder="Ej. MUE-001 o ID Personalizado"
+                      placeholder="Ej. SOL-001"
                     />
                     <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold italic">
-                      * Este ID identifica el seguimiento en la tabla principal. Se auto-completa al vincular una muestra.
+                      * Este ID se genera automáticamente para mantener el orden. Puede vincularse a una muestra (Samples) para sincronizar identificadores.
                     </p>
                   </div>
                   <div>
@@ -565,8 +593,13 @@ export default function NewRequestModal({
             Cancelar
           </button>
           {step === 2 && (
-            <button type="submit" form="new-request-form" className="px-4 py-2 text-sm font-medium text-white bg-[#52627e] hover:bg-[#3d4a60] rounded-md transition-colors shadow-sm">
-              Crear Solicitud
+            <button 
+              type="submit" 
+              form="new-request-form" 
+              disabled={isSubmitting}
+              className="px-4 py-2 text-sm font-medium text-white bg-[#52627e] hover:bg-[#3d4a60] rounded-md transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Creando...' : 'Crear Solicitud'}
             </button>
           )}
         </div>

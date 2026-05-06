@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Search, 
   Plus, 
@@ -20,7 +20,9 @@ import {
   Award,
   AlertTriangle,
   DollarSign,
-  ClipboardList
+  ClipboardList,
+  Upload,
+  Loader2
 } from 'lucide-react';
 import { Supplier, SupplierEvaluation } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -67,6 +69,8 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
       price: 0
     }
   });
+  const [isUploading, setIsUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchSuppliers();
@@ -182,6 +186,27 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
       });
     }
     setIsModalOpen(true);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const fileInfo = await SupabaseService.uploadFile('rd-files', `suppliers/logos/${Date.now()}_${file.name}`, file);
+      setFormData(prev => ({
+        ...prev,
+        logoUrl: fileInfo.url
+      }));
+      toast.success('Logotipo subido correctamente');
+    } catch (error: any) {
+      console.error('Error uploading logo:', error);
+      toast.error(error.message || 'Error al subir el logotipo');
+    } finally {
+      setIsUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
   };
 
   const handleSave = async () => {
@@ -595,17 +620,55 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
 
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        URL del Logotipo
+                        Logotipo del Socio
                       </label>
-                      <div className="relative group">
-                        <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
-                        <input
-                          type="text"
-                          value={formData.logoUrl}
-                          onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
-                          placeholder="https://ejemplo.com/logo.png"
-                        />
+                      <input 
+                        type="file"
+                        ref={logoInputRef}
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                        accept="image/*"
+                      />
+                      <div className="flex flex-col gap-4">
+                        {formData.logoUrl && (
+                          <div className="relative group/logo w-32 h-32 bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
+                            <img 
+                              src={formData.logoUrl} 
+                              alt="Logo preview" 
+                              className="w-full h-full object-contain p-2"
+                            />
+                            <button
+                              onClick={() => setFormData(prev => ({ ...prev, logoUrl: '' }))}
+                              className="absolute inset-0 bg-red-600/80 text-white flex items-center justify-center opacity-0 group-hover/logo:opacity-100 transition-opacity"
+                            >
+                              <Trash2 size={24} />
+                            </button>
+                          </div>
+                        )}
+                        
+                        <button
+                          onClick={() => logoInputRef.current?.click()}
+                          disabled={isUploading}
+                          className={`w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl border-2 border-dashed transition-all ${
+                            isUploading 
+                              ? 'bg-slate-50 border-slate-200 cursor-not-allowed' 
+                              : 'bg-slate-50 border-slate-200 hover:border-blue-400 hover:bg-blue-50/30'
+                          }`}
+                        >
+                          {isUploading ? (
+                            <>
+                              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                              <span className="text-xs font-black text-blue-600 uppercase tracking-widest">Subiendo...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-5 h-5 text-slate-400" />
+                              <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
+                                {formData.logoUrl ? 'Cambiar Foto' : 'Subir Foto del Logo'}
+                              </span>
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>

@@ -53,12 +53,10 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
   const [isFullComparisonOpen, setIsFullComparisonOpen] = useState(false);
   const [selectedSampleForDetail, setSelectedSampleForDetail] = useState<SampleRecord | null>(null);
   const [isGalleryUploadModalOpen, setIsGalleryUploadModalOpen] = useState(false);
-  const [receptionPhoto, setReceptionPhoto] = useState<FileInfo | null>(null);
   const [tempGalleryPhotos, setTempGalleryPhotos] = useState<FileInfo[]>([]);
   const [galleryCategory, setGalleryCategory] = useState('');
   const [comparisonIds, setComparisonIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'specs' | 'summary' | 'comparison'>('specs');
-  const [receivedBy, setReceivedBy] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
   const [allCalculationRecords, setAllCalculationRecords] = useState<CalculationRecord[]>([]);
@@ -314,20 +312,14 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
       codProv: selectedSupplier?.erpCode,
       linea: line?.name || '',
       categoria: category?.name || '',
-      tipoSuestra: formData.get('tipo') as string,
-      inspectionDate: new Date().toISOString().split('T')[0],
       inspectionStatus: 'Inspeccionado sin informe',
       inspectionProgress: 'pending',
-      receivedBy: formData.get('receivedBy') as string,
-      warehouseEntryDate: formData.get('warehouseEntryDate') as string,
-      receptionPhoto: receptionPhoto || undefined,
       history: [
         { date: new Date().toISOString().split('T')[0], status: 'Inspeccionado sin informe', user: user?.name || 'Sistema', comment: 'Muestra registrada y recepcionada' }
       ]
     };
     addSample(newSample);
     setIsNewSampleModalOpen(false);
-    setReceptionPhoto(null);
   };
 
   const handleAssign = (e: React.FormEvent<HTMLFormElement>) => {
@@ -465,21 +457,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
     addSample(newSample);
   };
 
-  const handleReceptionPhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        toast.loading('Subiendo foto de recepción...');
-        const fileInfo = await SupabaseService.uploadFile('rd-files', `samples/reception/${Date.now()}_${file.name}`, file);
-        setReceptionPhoto(fileInfo);
-        toast.dismiss();
-        toast.success('Foto subida');
-      } catch (error) {
-        console.error('Error uploading reception photo:', error);
-        toast.error('Error al subir foto');
-      }
-    }
-  };
+
 
   const [isGalleryUploading, setIsGalleryUploading] = useState(false);
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
@@ -1199,65 +1177,10 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))
                     }
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Muestra</label>
-                  <select name="tipo" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all">
-                    <option value="1">Muestra 1</option>
-                    <option value="2">Muestra 2</option>
-                    <option value="3">Muestra 3</option>
-                  </select>
-                </div>
-                  <UserSelect
-                    label="Persona que Recepcionó"
-                    name="receivedBy"
-                    value={receivedBy}
-                    onChange={setReceivedBy}
-                    required
-                  />
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha Ingreso Almacén</label>
-                  <input name="warehouseEntryDate" required type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
                 </div>
               </div>
 
-              {/* Reception Photo Upload */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Foto de Recepción (Confirmación)</label>
-                <div 
-                  onClick={() => document.getElementById('reception-photo-input')?.click()}
-                  className={`border-2 border-dashed rounded-[24px] p-6 flex flex-col items-center justify-center gap-3 transition-all cursor-pointer group ${
-                    receptionPhoto ? 'border-indigo-400 bg-indigo-50/30' : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30'
-                  }`}
-                >
-                  {receptionPhoto ? (
-                    <div className="relative w-full max-w-[200px] aspect-video rounded-xl overflow-hidden shadow-md">
-                      <img src={receptionPhoto.url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <p className="text-[10px] font-black text-white uppercase tracking-widest">Cambiar Foto</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform duration-300">
-                        <ImageIcon size={24} />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs font-black text-slate-900 uppercase tracking-tight">Subir foto de recepción</p>
-                        <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Click para seleccionar archivo</p>
-                      </div>
-                    </>
-                  )}
-                  <input
-                    id="reception-photo-input"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleReceptionPhotoSelect}
-                    className="hidden"
-                  />
-                </div>
-              </div>
+
 
               <div className="flex items-center justify-end gap-4 pt-4">
                 <button type="button" onClick={() => setIsNewSampleModalOpen(false)} className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-700 transition-all">Cancelar</button>
@@ -1760,36 +1683,6 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                     </span>
                   </div>
                 </div>
-                <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 md:col-span-3 flex flex-col md:flex-row gap-6">
-                  <div className="flex-1 space-y-4">
-                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                      <FileCheck size={16} className="text-emerald-500" />
-                      Datos de Recepción
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Recepcionado por</span>
-                        <p className="text-sm font-bold text-slate-700">{selectedSampleForDetail.receivedBy || 'No registrado'}</p>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Fecha Ingreso Almacén</span>
-                        <p className="text-sm font-bold text-slate-700">{selectedSampleForDetail.warehouseEntryDate ? format(parseISO(selectedSampleForDetail.warehouseEntryDate), 'dd/MM/yyyy') : 'No registrada'}</p>
-                      </div>
-                    </div>
-                  </div>
-                  {selectedSampleForDetail.receptionPhoto && (
-                    <div className="w-full md:w-48 space-y-2">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Foto de Recepción</span>
-                      <div className="aspect-video rounded-2xl overflow-hidden border border-slate-200 shadow-sm cursor-pointer hover:ring-2 hover:ring-indigo-500/20 transition-all">
-                        <img 
-                          src={selectedSampleForDetail.receptionPhoto.url} 
-                          className="w-full h-full object-cover" 
-                          referrerPolicy="no-referrer"
-                          onClick={() => window.open(selectedSampleForDetail.receptionPhoto?.url, '_blank')}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
 

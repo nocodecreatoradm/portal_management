@@ -98,6 +98,7 @@ export default function App() {
     linea: '',
     proveedor: '',
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Filtered data
   const filteredData = data.filter(record => {
@@ -566,6 +567,8 @@ export default function App() {
   };
 
   const handleNewRequest = async (newRecord: ProductRecord) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const isFollowupModule = ['artwork_followup', 'technical_datasheet', 'commercial_datasheet'].includes(activeModule);
       
@@ -639,6 +642,7 @@ export default function App() {
           const results = await Promise.all(updatePromises);
           
           setData(prev => {
+            const updatedIds = new Set(results.map(res => res.id));
             const newData = prev.map(r => {
               const updated = results.find(res => res.id === r.id);
               return updated || r;
@@ -667,21 +671,28 @@ export default function App() {
             } as any)
           ));
           
-          setData(prev => [...results, ...prev]);
+          setData(prev => {
+            const newIds = new Set(results.map(r => r.id));
+            return [...results, ...prev.filter(r => !newIds.has(r.id))];
+          });
           toast.success('Nueva solicitud creada en los 3 módulos de seguimiento');
         } else {
           const result = await SupabaseService.createProduct(resolvedNewRecord as any);
-          setData(prev => [result, ...prev]);
+          setData(prev => [result, ...prev.filter(r => r.id !== result.id)]);
           toast.success('Nueva solicitud registrada');
         }
       }
     } catch (error) {
       console.error('Error in handleNewRequest:', error);
       toast.error('Error al registrar la solicitud');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleUpdateRecord = async (id: string, updates: Partial<ProductRecord>) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       const resolvedUpdates = { ...updates };
@@ -778,6 +789,8 @@ export default function App() {
     } catch (error) {
       console.error('Error updating record:', error);
       toast.error('Error al actualizar datos');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1296,6 +1309,7 @@ export default function App() {
               setEditingProduct(null);
             }}
             onSubmit={handleNewRequest}
+            isSubmitting={isSubmitting}
             existingProviders={uniqueProviders}
             existingData={data}
             brands={brands}
