@@ -1,4 +1,4 @@
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'not_required' | 'not_started';
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'not_required' | 'not_started' | 'approved_with_observation';
 
 export interface Approval {
   status: ApprovalStatus;

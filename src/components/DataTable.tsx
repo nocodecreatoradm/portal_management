@@ -103,10 +103,14 @@ export default function DataTable({
   const renderApprovalCell = (record: ProductRecord, type: 'artwork' | 'technical_sheet' | 'commercial_sheet', versions: DocumentVersion[], stage: string) => {
     if (versions.length === 0) return <td className="px-2 py-3 border-r border-gray-100 text-center">-</td>;
     
+    // Para Planeamiento, solo mostramos una aprobación global (la última versión)
+    const isPlan = stage === 'PLAN';
+    const displayVersions = isPlan ? [versions[versions.length - 1]] : versions;
+
     return (
       <td className="px-2 py-3 border-r border-gray-100 text-center">
         <div className="flex flex-col gap-2 items-center">
-          {versions.map((v, idx) => {
+          {displayVersions.map((v, idx) => {
             const approval = stage === 'I+D' ? v.idApproval : 
                              stage === 'MKT' ? v.mktApproval : 
                              stage === 'PLAN' ? v.planApproval : v.provApproval;

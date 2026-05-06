@@ -383,29 +383,39 @@ export default function App() {
               v.subcategory === targetVersion?.subcategory
             );
             
-            if (versionIndex > -1) {
-              const stageKey = modalConfig.stage === 'I+D' ? 'idApproval' : 
-                               modalConfig.stage === 'MKT' ? 'mktApproval' : 
-                               modalConfig.stage === 'PLAN' ? 'planApproval' : 'provApproval';
-              
-              const updatedVersion = {
-                ...currentDocs[versionIndex],
-                [stageKey]: {
-                  status: actionData.status,
-                  user: user?.name || 'Sistema',
-                  date: new Date().toISOString().split('T')[0],
-                  comments: actionData.comments
-                }
-              };
-
+              let updatedVersion;
               if (modalConfig.stage === 'PLAN') {
-                updatedVersion.proformaNumber = actionData.proformaNumber;
-                updatedVersion.solpedNumber = actionData.solpedNumber;
-                updatedVersion.estimatedShipmentDate = actionData.estimatedShipmentDate;
+                // Para Planeamiento, la aprobación es GLOBAL para todos los documentos del registro
+                record[docArrayKey] = currentDocs.map(v => ({
+                  ...v,
+                  planApproval: {
+                    status: actionData.status,
+                    user: user?.name || 'Sistema',
+                    date: new Date().toISOString().split('T')[0],
+                    comments: actionData.comments
+                  },
+                  proformaNumber: actionData.proformaNumber,
+                  solpedNumber: actionData.solpedNumber,
+                  estimatedShipmentDate: actionData.estimatedShipmentDate
+                }));
+                updatedVersion = record[docArrayKey][0];
+              } else if (versionIndex > -1) {
+                const stageKey = modalConfig.stage === 'I+D' ? 'idApproval' : 
+                                 modalConfig.stage === 'MKT' ? 'mktApproval' : 'provApproval';
+                
+                updatedVersion = {
+                  ...currentDocs[versionIndex],
+                  [stageKey]: {
+                    status: actionData.status,
+                    user: user?.name || 'Sistema',
+                    date: new Date().toISOString().split('T')[0],
+                    comments: actionData.comments
+                  }
+                };
+                currentDocs[versionIndex] = updatedVersion;
+                record[docArrayKey] = currentDocs;
               }
-
-              currentDocs[versionIndex] = updatedVersion;
-              record[docArrayKey] = currentDocs;
+              
               newData[recordIndex] = record;
               
               // Persist to Supabase
@@ -659,23 +669,20 @@ export default function App() {
         const resolvedNewRecord = await resolveMetadata(newRecord);
         
         if (isFollowupModule) {
-          // Create 3 linked records
-          const linkedGroupId = window.crypto.randomUUID();
-          const types: ('artwork' | 'technical' | 'commercial')[] = ['artwork', 'technical', 'commercial'];
+          // Determine specific type based on active module
+          const type = activeModule === 'artwork_followup' ? 'artwork' : 
+                       activeModule === 'technical_datasheet' ? 'technical' : 'commercial';
           
-          const results = await Promise.all(types.map(type => 
-            SupabaseService.createProduct({
-              ...resolvedNewRecord,
-              trackingType: type,
-              linkedGroupId
-            } as any)
-          ));
+          const result = await SupabaseService.createProduct({
+            ...resolvedNewRecord,
+            trackingType: type
+          } as any);
           
-          setData(prev => {
-            const newIds = new Set(results.map(r => r.id));
-            return [...results, ...prev.filter(r => !newIds.has(r.id))];
-          });
-          toast.success('Nueva solicitud creada en los 3 módulos de seguimiento');
+          setData(prev => [result, ...prev.filter(r => r.id !== result.id)]);
+          toast.success(`Nueva solicitud creada en el módulo de ${
+            activeModule === 'artwork_followup' ? 'Artes' : 
+            activeModule === 'technical_datasheet' ? 'Ficha Técnica' : 'Ficha Comercial'
+          }`);
         } else {
           const result = await SupabaseService.createProduct(resolvedNewRecord as any);
           setData(prev => [result, ...prev.filter(r => r.id !== result.id)]);
