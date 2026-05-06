@@ -41,6 +41,7 @@ import {
   mapProductToDB, 
   mapDBToProduct,
   mapDBToPMRecord,
+  mapPMRecordToDB,
   mapSupplierToDB,
   mapDBToSupplier,
   mapTemplateToDB,
@@ -458,7 +459,7 @@ export const SupabaseService = {
   },
 
   async createProductManagementRecord(record: Partial<ProductManagementRecord>) {
-    const dbRecord = mapProductToDB(record as any);
+    const dbRecord = mapPMRecordToDB(record);
     const { data, error } = await supabase
       .from('product_management')
       .insert([dbRecord])
@@ -476,7 +477,7 @@ export const SupabaseService = {
 
   async updateProductManagementRecord(id: string, updates: Partial<ProductManagementRecord>) {
     if (!isUUID(id)) return null;
-    const dbUpdates = mapProductToDB(updates as any);
+    const dbUpdates = mapPMRecordToDB(updates);
     const { data, error } = await supabase
       .from('product_management')
       .update(dbUpdates)
@@ -1223,8 +1224,8 @@ export const SupabaseService = {
     if (!data) return {
       'I+D': 'I+D',
       'MKT': 'MKT',
-      'PLAN': 'PLAN',
-      'PROV': 'PROV'
+      'PROV': 'PROV',
+      'PLAN': 'PLAN'
     };
 
     return {

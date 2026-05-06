@@ -38,16 +38,16 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
     const stageTimes: Record<string, number[]> = {
       'I+D': [],
       'MKT': [],
-      'PLAN': [],
-      'PROV': []
+      'PROV': [],
+      'PLAN': []
     };
 
     // Status counts by stage
     const stageStatus: Record<string, { approved: number, rejected: number }> = {
       'I+D': { approved: 0, rejected: 0 },
       'MKT': { approved: 0, rejected: 0 },
-      'PLAN': { approved: 0, rejected: 0 },
-      'PROV': { approved: 0, rejected: 0 }
+      'PROV': { approved: 0, rejected: 0 },
+      'PLAN': { approved: 0, rejected: 0 }
     };
 
     data.forEach(record => {

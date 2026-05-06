@@ -37,8 +37,8 @@ export interface DocumentVersion {
   uploadedBy: string;
   idApproval: Approval;
   mktApproval: Approval;
-  planApproval: Approval;
   provApproval: Approval;
+  planApproval: Approval;
   aplicaA?: string;
   changeDescription?: string;
   proformaNumber?: string;
@@ -403,6 +403,9 @@ export interface ProductManagementRecord {
   }[];
   explodeFiles?: FileInfo[];
   additionalProviderDocuments?: FileInfo[];
+  artworkAssignment?: string;
+  technicalAssignment?: string;
+  commercialAssignment?: string;
   createdAt: string;
 }
 

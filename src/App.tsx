@@ -358,8 +358,8 @@ export default function App() {
               changeDescription: actionData.changeDescription,
               idApproval: { status: 'not_started' },
               mktApproval: { status: 'not_started' },
-              planApproval: { status: 'not_started' },
               provApproval: { status: 'not_started' },
+              planApproval: { status: 'not_started' },
             };
             
             record[docArrayKey] = [...currentDocs, newVersion];
@@ -470,8 +470,8 @@ export default function App() {
           ...v,
           idApproval: v.idApproval.status === 'not_started' ? { status: 'pending' } : v.idApproval,
           mktApproval: isArtwork && v.mktApproval.status === 'not_started' ? { status: 'pending' } : v.mktApproval,
-          planApproval: isArtwork && v.planApproval.status === 'not_started' ? { status: 'pending' } : v.planApproval,
           provApproval: isArtwork && v.provApproval.status === 'not_started' ? { status: 'pending' } : v.provApproval,
+          planApproval: isArtwork && v.planApproval.status === 'not_started' ? { status: 'pending' } : v.planApproval,
         };
         updatedRecord[docArrayKey] = docArray;
         newData[recordIndex] = updatedRecord;

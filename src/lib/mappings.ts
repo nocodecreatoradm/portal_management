@@ -291,6 +291,32 @@ export const mapProductToDB = (product: Partial<ProductRecord & ProductManagemen
   return dbProduct;
 };
 
+export const mapPMRecordToDB = (record: Partial<ProductManagementRecord>) => {
+  const dbRecord: any = {};
+  const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  if (record.correlativeId !== undefined) dbRecord.correlative_id = record.correlativeId;
+  if (record.codigoSAP !== undefined) dbRecord.sap_code = record.codigoSAP;
+  if (record.codigoEAN !== undefined) dbRecord.ean_code = record.codigoEAN;
+  if (record.eanCode !== undefined) dbRecord.ean_code = record.eanCode;
+  if (record.descripcionSAP !== undefined) dbRecord.sap_description = record.descripcionSAP;
+  if (record.brandId !== undefined) dbRecord.brand_id = record.brandId;
+  if (record.supplierId !== undefined) dbRecord.supplier_id = record.supplierId;
+  if (record.lineId !== undefined) dbRecord.line_id = record.lineId;
+  if (record.sampleId !== undefined) dbRecord.sample_id = isUUID(record.sampleId) ? record.sampleId : null;
+  if (record.fobPrice !== undefined) dbRecord.fob_price = record.fobPrice;
+  if (record.fobPriceHistory !== undefined) dbRecord.fob_price_history = record.fobPriceHistory;
+  if (record.explodeFiles !== undefined) dbRecord.explode_files = record.explodeFiles;
+  if (record.additionalProviderDocuments !== undefined) dbRecord.additional_provider_documents = record.additionalProviderDocuments;
+  if (record.gallery !== undefined) dbRecord.gallery = record.gallery;
+  if (record.approvedDocuments !== undefined) dbRecord.approved_documents = record.approvedDocuments;
+  if (record.artworkAssignment !== undefined) dbRecord.artwork_assignment = record.artworkAssignment;
+  if (record.technicalAssignment !== undefined) dbRecord.technical_assignment = record.technicalAssignment;
+  if (record.commercialAssignment !== undefined) dbRecord.commercial_assignment = record.commercialAssignment;
+  
+  return dbRecord;
+};
+
 
 export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
   id: dbProduct.id,
@@ -336,10 +362,10 @@ export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
   additionalProviderDocuments: dbRecord.additional_provider_documents || [],
   gallery: dbRecord.gallery || [],
   approvedDocuments: dbRecord.approved_documents || [],
-  createdAt: dbRecord.created_at || new Date().toISOString(),
   artworkAssignment: dbRecord.artwork_assignment,
   technicalAssignment: dbRecord.technical_assignment,
-  commercialAssignment: dbRecord.commercial_assignment
+  commercialAssignment: dbRecord.commercial_assignment,
+  createdAt: dbRecord.created_at || new Date().toISOString()
 });
 
 export const mapSupplierToDB = (supplier: Partial<Supplier>) => {

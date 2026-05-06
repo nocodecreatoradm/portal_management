@@ -383,8 +383,8 @@ export default function DataTable({
               {mode === 'artwork' && (
                 <>
                   <th className="px-2 py-2 text-center border-r border-gray-100">MKT</th>
-                  <th className="px-2 py-2 text-center border-r border-gray-100">PLAN</th>
                   <th className="px-2 py-2 text-center border-r border-gray-100">PROV</th>
+                  <th className="px-2 py-2 text-center border-r border-gray-100">PLAN</th>
                 </>
               )}
               <th className="px-2 py-2 text-center border-r border-gray-100">Ver.</th>
@@ -580,8 +580,8 @@ export default function DataTable({
                   {mode === 'artwork' && (
                     <>
                       {renderApprovalCell(record, mode, latestByCategory, 'MKT')}
-                      {renderApprovalCell(record, mode, latestByCategory, 'PLAN')}
                       {renderApprovalCell(record, mode, latestByCategory, 'PROV')}
+                      {renderApprovalCell(record, mode, latestByCategory, 'PLAN')}
                     </>
                   )}
                   <td className="px-2 py-3 border-r border-gray-100">

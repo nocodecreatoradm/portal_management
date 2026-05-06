@@ -57,8 +57,8 @@ export default function ApproverConfigModal({
   const stages = [
     { id: 'I+D', label: 'Investigación y Desarrollo (I+D)' },
     { id: 'MKT', label: 'Marketing (MKT)' },
-    { id: 'PLAN', label: 'Planeamiento (PLAN)' },
     { id: 'PROV', label: 'Proveedor (PROV)' },
+    { id: 'PLAN', label: 'Planeamiento (PLAN)' },
   ];
 
   return (

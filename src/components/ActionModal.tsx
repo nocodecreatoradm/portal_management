@@ -533,8 +533,8 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                     {[
                       { label: 'I+D', approval: activeVersion.idApproval },
                       { label: 'MKT', approval: activeVersion.mktApproval },
-                      { label: 'PLAN', approval: activeVersion.planApproval },
-                      { label: 'PROV', approval: activeVersion.provApproval }
+                      { label: 'PROV', approval: activeVersion.provApproval },
+                      { label: 'PLAN', approval: activeVersion.planApproval }
                     ].map((item, idx) => {
                       if (!item.approval || item.approval.status === 'not_required') return null;
                       if (type !== 'artwork' && item.label !== 'I+D') return null;
