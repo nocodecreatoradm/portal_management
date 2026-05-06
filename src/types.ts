@@ -277,6 +277,8 @@ export interface CantonFairSupplier {
   priceRating: number; // 1-5
   manufacturingRating: number; // 1-5
   catalogues: FileInfo[];
+  agreements: FileInfo[];
+  quotations: FileInfo[];
   featuredProducts: CantonFairProduct[];
   fobPrices: string;
   comments: string;

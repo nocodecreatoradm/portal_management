@@ -190,6 +190,8 @@ const CantonFair: React.FC = () => {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const wechatQrInputRef = useRef<HTMLInputElement>(null);
   const catalogueInputRef = useRef<HTMLInputElement>(null);
+  const agreementInputRef = useRef<HTMLInputElement>(null);
+  const quotationInputRef = useRef<HTMLInputElement>(null);
   const [viewingCatalogue, setViewingCatalogue] = useState<FileInfo | null>(null);
   const [editingImageIdx, setEditingImageIdx] = useState<number | null>(null);
   const [tempImageComment, setTempImageComment] = useState('');
@@ -247,7 +249,7 @@ const CantonFair: React.FC = () => {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'catalogue' | 'logo' | 'wechatQr') => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'catalogue' | 'logo' | 'wechatQr' | 'agreement' | 'quotation') => {
     const files = e.target.files;
     if (!files) return;
 
@@ -268,6 +270,16 @@ const CantonFair: React.FC = () => {
         setFormData(prev => ({ ...prev, logo: uploadedFiles[0] }));
       } else if (type === 'wechatQr') {
         setFormData(prev => ({ ...prev, wechatQr: uploadedFiles[0] }));
+      } else if (type === 'agreement') {
+        setFormData(prev => ({
+          ...prev,
+          agreements: [...(prev.agreements || []), ...uploadedFiles]
+        }));
+      } else if (type === 'quotation') {
+        setFormData(prev => ({
+          ...prev,
+          quotations: [...(prev.quotations || []), ...uploadedFiles]
+        }));
       } else {
         setFormData(prev => ({
           ...prev,
@@ -300,6 +312,8 @@ const CantonFair: React.FC = () => {
       priceRating: formData.priceRating || 0,
       manufacturingRating: formData.manufacturingRating || 0,
       catalogues: formData.catalogues || [],
+      agreements: formData.agreements || [],
+      quotations: formData.quotations || [],
       featuredProducts: formData.featuredProducts || [],
       fobPrices: formData.fobPrices || '',
       comments: formData.comments || '',
@@ -376,6 +390,8 @@ const CantonFair: React.FC = () => {
       comments: '',
       images: [],
       catalogues: [],
+      agreements: [],
+      quotations: [],
       logo: undefined,
       phone: '',
       email: '',
@@ -1291,6 +1307,7 @@ const CantonFair: React.FC = () => {
                         Catálogos
                       </h3>
                       <div className="space-y-2">
+                        {selectedSupplier.catalogues.length === 0 && <p className="text-xs text-slate-400 italic">No hay catálogos</p>}
                         {selectedSupplier.catalogues.map((cat, idx) => (
                           <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
                             <div className="flex items-center gap-3">
@@ -1302,6 +1319,80 @@ const CantonFair: React.FC = () => {
                                 <button 
                                   onClick={() => setViewingCatalogue(cat)}
                                   className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  title="Visualizar"
+                                >
+                                  <Eye size={18} />
+                                </button>
+                              )}
+                              <a 
+                                href={cat.url} 
+                                download={cat.name}
+                                className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
+                                title="Descargar"
+                              >
+                                <Download size={18} />
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                        <CheckCircle2 size={20} className="text-emerald-600" />
+                        Acuerdos
+                      </h3>
+                      <div className="space-y-2">
+                        {(selectedSupplier.agreements || []).length === 0 && <p className="text-xs text-slate-400 italic">No hay acuerdos</p>}
+                        {(selectedSupplier.agreements || []).map((cat, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
+                            <div className="flex items-center gap-3">
+                              <FileIcon size={20} className="text-slate-400" />
+                              <span className="text-sm font-bold text-slate-700 truncate max-w-[200px]">{cat.name}</span>
+                            </div>
+                            <div className="flex gap-2">
+                              {cat.type === 'application/pdf' && (
+                                <button 
+                                  onClick={() => setViewingCatalogue(cat)}
+                                  className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                  title="Visualizar"
+                                >
+                                  <Eye size={18} />
+                                </button>
+                              )}
+                              <a 
+                                href={cat.url} 
+                                download={cat.name}
+                                className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
+                                title="Descargar"
+                              >
+                                <Download size={18} />
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                        <DollarSign size={20} className="text-amber-600" />
+                        Cotizaciones
+                      </h3>
+                      <div className="space-y-2">
+                        {(selectedSupplier.quotations || []).length === 0 && <p className="text-xs text-slate-400 italic">No hay cotizaciones</p>}
+                        {(selectedSupplier.quotations || []).map((cat, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
+                            <div className="flex items-center gap-3">
+                              <FileIcon size={20} className="text-slate-400" />
+                              <span className="text-sm font-bold text-slate-700 truncate max-w-[200px]">{cat.name}</span>
+                            </div>
+                            <div className="flex gap-2">
+                              {cat.type === 'application/pdf' && (
+                                <button 
+                                  onClick={() => setViewingCatalogue(cat)}
+                                  className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                                   title="Visualizar"
                                 >
                                   <Eye size={18} />
@@ -1989,11 +2080,29 @@ const CantonFair: React.FC = () => {
                       className="aspect-square rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all"
                     >
                       <FileText size={24} />
-                      <span className="text-xs font-black uppercase tracking-widest">Catálogo ({formData.catalogues?.length})</span>
+                      <span className="text-xs font-black uppercase tracking-widest text-center">Catálogo<br/>({formData.catalogues?.length || 0})</span>
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => agreementInputRef.current?.click()}
+                      className="aspect-square rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-50 transition-all"
+                    >
+                      <CheckCircle2 size={24} />
+                      <span className="text-xs font-black uppercase tracking-widest text-center">Acuerdos<br/>({formData.agreements?.length || 0})</span>
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => quotationInputRef.current?.click()}
+                      className="aspect-square rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-amber-500 hover:text-amber-500 hover:bg-amber-50 transition-all"
+                    >
+                      <DollarSign size={24} />
+                      <span className="text-xs font-black uppercase tracking-widest text-center">Cotiz.<br/>({formData.quotations?.length || 0})</span>
                     </button>
                   </div>
                   <input type="file" ref={fileInputRef} hidden multiple accept="image/*" onChange={(e) => handleFileUpload(e, 'image')} />
                   <input type="file" ref={catalogueInputRef} hidden multiple accept=".pdf,.doc,.docx" onChange={(e) => handleFileUpload(e, 'catalogue')} />
+                  <input type="file" ref={agreementInputRef} hidden multiple accept=".pdf,.doc,.docx" onChange={(e) => handleFileUpload(e, 'agreement')} />
+                  <input type="file" ref={quotationInputRef} hidden multiple accept=".pdf,.doc,.docx" onChange={(e) => handleFileUpload(e, 'quotation')} />
                 </div>
 
                 <div className="pt-8 flex gap-4">

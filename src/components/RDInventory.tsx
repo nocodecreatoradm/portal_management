@@ -292,15 +292,27 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Archivo del Certificado</label>
             <div className="relative">
-              <input type="file" name="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  toast.info(`Archivo seleccionado: ${file.name}`);
-                }
-              }} />
+              <input 
+                type="file" 
+                name="file" 
+                className="absolute inset-0 opacity-0 cursor-pointer" 
+                accept=".pdf"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    if (file.type !== 'application/pdf') {
+                      toast.error('Solo se permiten archivos PDF');
+                      e.target.value = '';
+                      return;
+                    }
+                    toast.info(`PDF seleccionado: ${file.name}`);
+                  }
+                }} 
+              />
               <div className="w-full px-5 py-8 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 text-slate-400 group-hover:border-indigo-200 transition-all">
-                <Upload size={24} />
-                <span className="text-[10px] font-black uppercase">Seleccionar PDF</span>
+                <FileText size={24} className="text-indigo-500" />
+                <span className="text-[10px] font-black uppercase text-slate-600">Seleccionar Certificado PDF</span>
+                <p className="text-[9px] font-medium text-slate-400">El archivo se vinculará al equipo automáticamente</p>
               </div>
             </div>
           </div>

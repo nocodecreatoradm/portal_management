@@ -104,7 +104,7 @@ export const fetchCantonFairSuppliers = async (year?: number) => {
       'innovation_rating, price_rating, manufacturing_rating, ' +
       'fob_prices, comments, phone, email, ' +
       'factory_visited, visit_date, visit_time, location_label, latitude, longitude, created_at, ' +
-      'catalogues, images, logo, wechat_qr'
+      'catalogues, images, logo, wechat_qr, agreements, quotations'
     );
     if (year) {
       query = query.eq('year', year);
@@ -133,6 +133,8 @@ export const fetchCantonFairSuppliers = async (year?: number) => {
       comments: s.comments,
       images: s.images,
       logo: s.logo,
+      agreements: s.agreements || [],
+      quotations: s.quotations || [],
       phone: s.phone,
       email: s.email,
       wechatQr: s.wechat_qr,
@@ -180,6 +182,8 @@ export const saveCantonFairSupplier = async (supplier: any) => {
       comments: supplierData.comments,
       images: supplierData.images,
       logo: supplierData.logo,
+      agreements: supplierData.agreements || [],
+      quotations: supplierData.quotations || [],
       phone: supplierData.phone,
       email: supplierData.email,
       wechat_qr: supplierData.wechatQr,
@@ -243,6 +247,8 @@ export const updateCantonFairSupplier = async (id: string, supplier: any) => {
       comments: supplierData.comments,
       images: supplierData.images,
       logo: supplierData.logo,
+      agreements: supplierData.agreements || [],
+      quotations: supplierData.quotations || [],
       phone: supplierData.phone,
       email: supplierData.email,
       wechat_qr: supplierData.wechatQr,
