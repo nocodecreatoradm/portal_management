@@ -425,11 +425,17 @@ const CantonFair: React.FC = () => {
     }
   };
 
-  const filteredSuppliers = suppliers.filter(s => 
-    s.year === selectedYear && 
-    (s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-     s.featuredProducts.some(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.category.toLowerCase().includes(searchQuery.toLowerCase())))
-  );
+  const filteredSuppliers = suppliers
+    .filter(s => 
+      s.year === selectedYear && 
+      (s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+       s.featuredProducts.some(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.category.toLowerCase().includes(searchQuery.toLowerCase())))
+    )
+    .sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
 
   const renderStars = (rating: number, interactive = false, field?: 'innovationRating' | 'priceRating' | 'manufacturingRating') => {
     return (
@@ -2100,9 +2106,9 @@ const CantonFair: React.FC = () => {
                     </button>
                   </div>
                   <input type="file" ref={fileInputRef} hidden multiple accept="image/*" onChange={(e) => handleFileUpload(e, 'image')} />
-                  <input type="file" ref={catalogueInputRef} hidden multiple accept=".pdf,.doc,.docx" onChange={(e) => handleFileUpload(e, 'catalogue')} />
-                  <input type="file" ref={agreementInputRef} hidden multiple accept=".pdf,.doc,.docx" onChange={(e) => handleFileUpload(e, 'agreement')} />
-                  <input type="file" ref={quotationInputRef} hidden multiple accept=".pdf,.doc,.docx" onChange={(e) => handleFileUpload(e, 'quotation')} />
+                  <input type="file" ref={catalogueInputRef} hidden multiple accept=".pdf,.doc,.docx,.zip,.rar,.7z" onChange={(e) => handleFileUpload(e, 'catalogue')} />
+                  <input type="file" ref={agreementInputRef} hidden multiple accept=".pdf,.doc,.docx,.zip,.rar,.7z" onChange={(e) => handleFileUpload(e, 'agreement')} />
+                  <input type="file" ref={quotationInputRef} hidden multiple accept=".pdf,.doc,.docx,.zip,.rar,.7z" onChange={(e) => handleFileUpload(e, 'quotation')} />
                 </div>
 
                 <div className="pt-8 flex gap-4">
@@ -2199,7 +2205,7 @@ const CantonFair: React.FC = () => {
                         </div>
                         <div className="text-center">
                           <p className="text-sm font-black text-slate-600">Subir Banner</p>
-                          <p className="text-[10px] font-medium text-slate-400">JPG, PNG o WEBP (Máx. 25 MB)</p>
+                          <p className="text-[10px] font-medium text-slate-400">JPG, PNG o WEBP (Máx. 500 MB)</p>
                         </div>
                       </>
                     )}

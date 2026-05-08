@@ -237,6 +237,12 @@ export default function UserManagement() {
         if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
+    } else {
+      result.sort((a, b) => {
+        const dateA = new Date(a.created_at || 0).getTime();
+        const dateB = new Date(b.created_at || 0).getTime();
+        return dateB - dateA;
+      });
     }
 
     return result;

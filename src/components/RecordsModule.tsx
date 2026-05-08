@@ -145,6 +145,8 @@ export default function RecordsModule({ onLoadRecord }: RecordsModuleProps) {
         if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
+    } else {
+      result.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     }
 
     return result;

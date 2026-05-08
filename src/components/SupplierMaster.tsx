@@ -874,7 +874,7 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
                       onChange={handleQuotationUpload}
                       className="hidden"
                       multiple
-                      accept=".pdf,.xlsx,.xls"
+                      accept=".pdf,.xlsx,.xls,.zip,.rar,.7z"
                     />
                     
                     <button
@@ -896,7 +896,7 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
                           <Upload className="w-5 h-5 text-slate-400" />
                           <div className="text-left">
                             <span className="block text-xs font-black text-slate-500 uppercase tracking-widest">Adjuntar Cotizaciones</span>
-                            <span className="block text-[10px] font-medium text-slate-400 uppercase tracking-tighter mt-0.5">Formatos aceptados: PDF, Excel (Máx. 25MB)</span>
+                            <span className="block text-[10px] font-medium text-slate-400 uppercase tracking-tighter mt-0.5">Formatos aceptados: PDF, Excel, ZIP (Máx. 500 MB)</span>
                           </div>
                         </>
                       )}

@@ -6,6 +6,7 @@ import { SupabaseService } from '../lib/SupabaseService';
 interface UserSelectProps {
   value: string;
   onChange: (value: string) => void;
+  onSelect?: (user: any) => void;
   placeholder?: string;
   label?: string;
   name?: string;
@@ -16,6 +17,7 @@ interface UserSelectProps {
 export default function UserSelect({ 
   value, 
   onChange, 
+  onSelect,
   placeholder = 'Seleccionar usuario...', 
   label,
   name,
@@ -153,6 +155,7 @@ export default function UserSelect({
                           type="button"
                           onClick={() => {
                             onChange(user.full_name);
+                            if (onSelect) onSelect(user);
                             setIsOpen(false);
                             setSearchTerm('');
                           }}

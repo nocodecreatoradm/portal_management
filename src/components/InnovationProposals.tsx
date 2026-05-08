@@ -154,12 +154,14 @@ export default function InnovationProposals() {
   };
 
 
-  const filteredProposals = proposals.filter(p => {
-    const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         p.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'Todas' || p.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProposals = proposals
+    .filter(p => {
+      const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           p.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === 'Todas' || p.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <div className="space-y-8 pb-20">

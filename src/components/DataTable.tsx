@@ -86,7 +86,7 @@ export default function DataTable({
         return 0;
       });
     } else {
-      result.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
+      result.sort((a, b) => b.correlativeId.localeCompare(a.correlativeId, undefined, { numeric: true }));
     }
 
     return result;

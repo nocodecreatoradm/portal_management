@@ -14,6 +14,7 @@ interface AssignmentModalProps {
 
 export default function AssignmentModal({ isOpen, onClose, record, type, onSave }: AssignmentModalProps) {
   const [designer, setDesigner] = useState('');
+  const [designerEmail, setDesignerEmail] = useState('');
   const [plannedStartDate, setPlannedStartDate] = useState('');
   const [plannedEndDate, setPlannedEndDate] = useState('');
 
@@ -27,12 +28,13 @@ export default function AssignmentModal({ isOpen, onClose, record, type, onSave 
     e.preventDefault();
     onSave({
       designer,
+      designerEmail,
       assignmentDate: new Date().toISOString().split('T')[0],
       plannedStartDate,
       plannedEndDate,
       infoRequests: []
     });
-    outlookService.sendAssignmentEmail(record, designer, type === 'artwork' ? 'Artes' : 'Fichas');
+    outlookService.sendAssignmentEmail(record, designerEmail || designer, type === 'artwork' ? 'Artes' : 'Fichas');
     onClose();
   };
 
@@ -60,6 +62,7 @@ export default function AssignmentModal({ isOpen, onClose, record, type, onSave 
             placeholder={type === 'artwork' ? 'Seleccionar diseñador...' : 'Seleccionar técnico...'}
             value={designer}
             onChange={setDesigner}
+            onSelect={(u) => setDesignerEmail(u.email)}
             required
           />
 

@@ -217,7 +217,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
         return 0;
       });
     } else {
-      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      result.sort((a, b) => b.correlativeId.localeCompare(a.correlativeId, undefined, { numeric: true }));
     }
 
     return result;
@@ -1004,7 +1004,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
         type="file" 
         ref={fileInputRef} 
         className="hidden" 
-        accept=".pdf,.ppt,.pptx"
+        accept=".pdf,.ppt,.pptx,.zip,.rar,.7z"
         onChange={(e) => selectedSample && handleReportUpload(e, selectedSample.id)}
       />
 

@@ -90,7 +90,10 @@ export const outlookService = {
   sendObservationEmail: async (record: ProductRecord, stage: string, comments: string, type: string) => {
     // Usually notify the designer or the person who uploaded it.
     // For now, let's notify a default coordination email or the designer if assigned.
-    const designerEmail = record.artworkAssignment?.designer || 'coordinacion_id@sole.com.pe';
+    const designerEmail = record.artworkAssignment?.designerEmail || 
+                          record.technicalAssignment?.designerEmail || 
+                          record.commercialAssignment?.designerEmail || 
+                          'coordinacion_id@sole.com.pe';
     
     const subject = `[OBSERVACIÓN] - ${record.codigoSAP} - ${stage}`;
     const title = 'Documento con Observaciones';

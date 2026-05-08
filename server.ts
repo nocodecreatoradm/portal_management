@@ -159,7 +159,8 @@ async function startServer() {
             emailAddress: { address: email },
           })),
           ccRecipients: [
-            { emailAddress: { address: 'onunez@sole.com.pe' } }
+            { emailAddress: { address: 'onunez@sole.com.pe' } },
+            { emailAddress: { address: 'RyD_GrupoSole@sole.com.pe' } }
           ],
           attachments: (attachments || []).map((file: any) => ({
             "@odata.type": "#microsoft.graph.fileAttachment",

@@ -217,7 +217,7 @@ export default function CommercialArtworks({
         return 0;
       });
     } else {
-      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      result.sort((a, b) => b.correlativeId.localeCompare(a.correlativeId, undefined, { numeric: true }));
     }
 
     return result;

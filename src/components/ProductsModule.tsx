@@ -214,6 +214,12 @@ export default function ProductsModule({
         if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
+    } else {
+      result.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
     }
 
     return result;
@@ -1308,7 +1314,7 @@ export default function ProductsModule({
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <ImageIcon size={18} className="text-indigo-500" />
-                    Galería de Inspección I+D (Máx. 50 MB)
+                    Galería de Inspección I+D (Máx. 500 MB)
                   </h4>
                   <div className="flex items-center gap-3">
                     {isAddingNewCategory ? (
@@ -1481,7 +1487,7 @@ export default function ProductsModule({
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                       <Box size={18} className="text-blue-500" />
-                      Explode (Vista Explosiva) (Máx. 50 MB)
+                      Explode (Vista Explosiva) (Máx. 500 MB)
                     </h4>
                     <button 
                       type="button"
@@ -1489,7 +1495,7 @@ export default function ProductsModule({
                       className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
                     >
                       <Plus size={18} />
-                      <input id="explode-upload" type="file" multiple className="hidden" onChange={handleExplodeUpload} />
+                      <input id="explode-upload" type="file" multiple className="hidden" accept=".pdf,.doc,.docx,.zip,.rar,.7z" onChange={handleExplodeUpload} />
                     </button>
                   </div>
                   <div className="space-y-2">
@@ -1521,7 +1527,7 @@ export default function ProductsModule({
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                       <Files size={18} className="text-amber-500" />
-                      Documentos Adicionales (Máx. 50 MB)
+                      Documentos Adicionales (Máx. 500 MB)
                     </h4>
                     <button 
                       type="button"
@@ -1529,7 +1535,7 @@ export default function ProductsModule({
                       className="p-2 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 transition-colors"
                     >
                       <Plus size={18} />
-                      <input id="extra-docs-upload" type="file" multiple className="hidden" onChange={handleAdditionalDocsUpload} />
+                      <input id="extra-docs-upload" type="file" multiple className="hidden" accept=".pdf,.doc,.docx,.zip,.rar,.7z" onChange={handleAdditionalDocsUpload} />
                     </button>
                   </div>
                   <div className="space-y-2">

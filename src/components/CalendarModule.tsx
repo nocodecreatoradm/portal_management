@@ -33,6 +33,8 @@ export default function CalendarModule() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [showHistory, setShowHistory] = useState<CalendarTask | null>(null);
   const [entryType, setEntryType] = useState<CalendarTask['type']>('work');
+  const [requester, setRequester] = useState('');
+  const [assignee, setAssignee] = useState('');
 
   useEffect(() => {
     loadTasks();
@@ -218,9 +220,11 @@ export default function CalendarModule() {
               className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all w-64"
             />
           </div>
-          <button 
             onClick={() => {
               setEditingTask(null);
+              setRequester('');
+              setAssignee('');
+              setEntryType('work');
               setIsModalOpen(true);
             }}
             className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
@@ -362,6 +366,9 @@ export default function CalendarModule() {
                     <button 
                       onClick={() => {
                         setEditingTask(task);
+                        setRequester(task.requester || '');
+                        setAssignee(task.assignee || '');
+                        setEntryType(task.type);
                         setIsModalOpen(true);
                       }}
                       className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all"
@@ -555,16 +562,16 @@ export default function CalendarModule() {
                     <UserSelect
                       label="Solicitante"
                       name="requester"
-                      value={editingTask?.requester || ''}
-                      onChange={() => {}}
+                      value={requester}
+                      onChange={setRequester}
                       required={entryType === 'work'}
                     />
                 ) : (
                   <UserSelect
                     label="Responsable / Persona"
                     name="assignee"
-                    value={editingTask?.assignee || ''}
-                    onChange={() => {}}
+                    value={assignee}
+                    onChange={setAssignee}
                     placeholder="Nombre de la persona"
                     className="col-span-2"
                   />

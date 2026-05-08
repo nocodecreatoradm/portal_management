@@ -662,7 +662,7 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
                     <input 
                       type="file" 
                       className="absolute inset-0 opacity-0 cursor-pointer" 
-                      accept=".pdf,.doc,.docx"
+                      accept=".pdf,.doc,.docx,.zip,.rar,.7z"
                       onChange={handleManualAdd}
                     />
                     <div className="p-4 bg-slate-50 border border-slate-200 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 transition-all group">

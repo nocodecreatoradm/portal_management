@@ -101,6 +101,7 @@ export interface InfoRequest {
 
 export interface AssignmentInfo {
   designer?: string;
+  designerEmail?: string;
   plannedStartDate?: string;
   plannedEndDate?: string;
   assignmentDate?: string;
