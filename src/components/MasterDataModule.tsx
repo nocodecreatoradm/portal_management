@@ -479,9 +479,9 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
               </div>
               <div className="space-y-1">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoría</label>
-                <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl font-bold text-sm text-slate-700">
+                <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl font-bold text-sm text-slate-700 uppercase">
                   <option value="">Seleccionar...</option>
-                  {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name.toUpperCase()}</option>)}
                 </select>
               </div>
 
