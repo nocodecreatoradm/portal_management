@@ -220,6 +220,7 @@ export default function CalendarModule() {
               className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all w-64"
             />
           </div>
+          <button 
             onClick={() => {
               setEditingTask(null);
               setRequester('');
