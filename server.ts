@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import Database from "better-sqlite3";
 import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
 
@@ -11,6 +12,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const db = new Database("records.db");
+
+// Initialize Supabase
+const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Initialize database
 db.exec(`
@@ -158,10 +164,30 @@ async function startServer() {
           toRecipients: (Array.isArray(to) ? to : [to]).map((email: string) => ({
             emailAddress: { address: email },
           })),
-          ccRecipients: [
-            { emailAddress: { address: 'onunez@sole.com.pe' } },
-            { emailAddress: { address: 'RyD_GrupoSole@sole.com.pe' } }
-          ],
+          ccRecipients: await (async () => {
+            try {
+              // Dynamically fetch all users with 'admin' role
+              const { data: admins } = await supabase
+                .from('profiles')
+                .select('email')
+                .eq('role', 'admin')
+                .eq('is_active', true);
+              
+              const adminEmails = (admins || []).map(a => a.email).filter(Boolean);
+              
+              // Ensure onunez@sole.com.pe is always included as safety
+              if (!adminEmails.includes('onunez@sole.com.pe')) {
+                adminEmails.push('onunez@sole.com.pe');
+              }
+
+              return adminEmails.map(email => ({
+                emailAddress: { address: email }
+              }));
+            } catch (err) {
+              console.error("Error fetching admins for CC:", err);
+              return [{ emailAddress: { address: 'onunez@sole.com.pe' } }];
+            }
+          })(),
           attachments: (attachments || []).map((file: any) => ({
             "@odata.type": "#microsoft.graph.fileAttachment",
             name: file.name,

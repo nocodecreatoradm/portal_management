@@ -88,12 +88,10 @@ export const outlookService = {
    * Notifies an observation/rejection.
    */
   sendObservationEmail: async (record: ProductRecord, stage: string, comments: string, type: string) => {
-    // Usually notify the designer or the person who uploaded it.
-    // For now, let's notify a default coordination email or the designer if assigned.
     const designerEmail = record.artworkAssignment?.designerEmail || 
                           record.technicalAssignment?.designerEmail || 
                           record.commercialAssignment?.designerEmail || 
-                          'coordinacion_id@sole.com.pe';
+                          '';
     
     const subject = `[OBSERVACIÓN] - ${record.codigoSAP} - ${stage}`;
     const title = 'Documento con Observaciones';
@@ -108,8 +106,14 @@ export const outlookService = {
     `;
 
     try {
-      await outlookService.send(designerEmail, subject, outlookService.wrapInTemplate(title, content));
-      toast.info('Notificación de observación enviada al responsable');
+      if (designerEmail) {
+        await outlookService.send(designerEmail, subject, outlookService.wrapInTemplate(title, content));
+        toast.info('Notificación de observación enviada al responsable');
+      } else {
+        // Only admins get it via CC
+        await outlookService.send([], subject, outlookService.wrapInTemplate(title, content));
+        toast.info('Notificación enviada a coordinación');
+      }
     } catch (e) {
       console.error(e);
     }
@@ -119,7 +123,6 @@ export const outlookService = {
    * Notifies a new info request.
    */
   sendInfoRequestEmail: async (record: ProductRecord, request: InfoRequest, type: string) => {
-    // Notify the product manager or purchaser (usually the one who can provide info)
     const subject = `[SOLICITUD DE INFO] - ${record.codigoSAP}`;
     const title = 'Nueva Solicitud de Información';
     const content = `
@@ -132,7 +135,7 @@ export const outlookService = {
     `;
 
     try {
-      await outlookService.send(['coordinacion_id@sole.com.pe', 'onunez@sole.com.pe'], subject, outlookService.wrapInTemplate(title, content));
+      await outlookService.send([], subject, outlookService.wrapInTemplate(title, content));
     } catch (e) {
       console.error(e);
     }
@@ -156,9 +159,8 @@ export const outlookService = {
     `;
 
     try {
-      // Map name to email if possible, or use the name if it's already an email
-      const targetEmail = assignee.includes('@') ? assignee : 'coordinacion_id@sole.com.pe';
-      await outlookService.send([targetEmail, 'onunez@sole.com.pe'], subject, outlookService.wrapInTemplate(title, content));
+      const targetEmail = assignee.includes('@') ? assignee : [];
+      await outlookService.send(targetEmail, subject, outlookService.wrapInTemplate(title, content));
       toast.success('Notificación de asignación enviada');
     } catch (e) {
       console.error(e);
@@ -183,7 +185,7 @@ export const outlookService = {
     `;
 
     try {
-      await outlookService.send(['coordinacion_id@sole.com.pe', 'onunez@sole.com.pe'], subject, outlookService.wrapInTemplate(title, content));
+      await outlookService.send([], subject, outlookService.wrapInTemplate(title, content));
       toast.info('Notificación de inicio de flujo enviada');
     } catch (e) {
       console.error(e);
@@ -209,7 +211,7 @@ export const outlookService = {
     `;
 
     try {
-      await outlookService.send(['coordinacion_id@sole.com.pe', 'onunez@sole.com.pe'], subject, outlookService.wrapInTemplate(title, content));
+      await outlookService.send([], subject, outlookService.wrapInTemplate(title, content));
     } catch (e) {
       console.error(e);
     }
@@ -235,8 +237,7 @@ export const outlookService = {
     `;
 
     try {
-      // Notify coordination and the admin
-      await outlookService.send(['coordinacion_id@sole.com.pe', 'onunez@sole.com.pe'], subject, outlookService.wrapInTemplate(title, content));
+      await outlookService.send([], subject, outlookService.wrapInTemplate(title, content));
       if (isNew) toast.success('Notificación de calendario enviada');
     } catch (e) {
       console.error('Error sending calendar notification:', e);
