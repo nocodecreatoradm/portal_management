@@ -154,6 +154,50 @@ async function startServer() {
       const accessToken = await getAzureAccessToken();
       const url = `https://graph.microsoft.com/v1.0/users/${userEmail}/sendMail`;
 
+      const recipientsData = await (async () => {
+          try {
+            // Dynamically fetch all users with 'admin' role
+            const { data: admins } = await supabase
+              .from('profiles')
+              .select('email')
+              .eq('role', 'admin')
+              .eq('is_active', true);
+            
+            const adminEmails = (admins || []).map(a => a.email).filter(Boolean);
+            
+            // Ensure onunez@sole.com.pe is at least in the pool
+            if (!adminEmails.includes('onunez@sole.com.pe')) {
+              adminEmails.push('onunez@sole.com.pe');
+            }
+
+            // If 'to' is empty, we must put at least one recipient in 'to' 
+            // for the email to be valid. We'll use the first admin.
+            let finalTo = Array.isArray(to) ? [...to] : [to ? to : []];
+            // Ensure finalTo is an array of strings
+            finalTo = (Array.isArray(finalTo) ? finalTo : [finalTo]).filter(e => typeof e === 'string' && e.length > 0);
+            
+            let finalCc = adminEmails;
+
+            if (finalTo.length === 0) {
+              const primaryAdmin = 'onunez@sole.com.pe';
+              finalTo = [primaryAdmin];
+              // Remove from CC if it's already in 'to'
+              finalCc = finalCc.filter(e => e !== primaryAdmin);
+            }
+
+            return {
+              toRecipients: finalTo.map(email => ({ emailAddress: { address: email } })),
+              ccRecipients: finalCc.map(email => ({ emailAddress: { address: email } }))
+            };
+          } catch (err) {
+            console.error("Error fetching admins for CC:", err);
+            return {
+              toRecipients: [{ emailAddress: { address: 'onunez@sole.com.pe' } }],
+              ccRecipients: []
+            };
+          }
+        })();
+
       const emailPayload = {
         message: {
           subject: subject,
@@ -161,33 +205,8 @@ async function startServer() {
             contentType: "HTML",
             content: body,
           },
-          toRecipients: (Array.isArray(to) ? to : [to]).map((email: string) => ({
-            emailAddress: { address: email },
-          })),
-          ccRecipients: await (async () => {
-            try {
-              // Dynamically fetch all users with 'admin' role
-              const { data: admins } = await supabase
-                .from('profiles')
-                .select('email')
-                .eq('role', 'admin')
-                .eq('is_active', true);
-              
-              const adminEmails = (admins || []).map(a => a.email).filter(Boolean);
-              
-              // Ensure onunez@sole.com.pe is always included as safety
-              if (!adminEmails.includes('onunez@sole.com.pe')) {
-                adminEmails.push('onunez@sole.com.pe');
-              }
-
-              return adminEmails.map(email => ({
-                emailAddress: { address: email }
-              }));
-            } catch (err) {
-              console.error("Error fetching admins for CC:", err);
-              return [{ emailAddress: { address: 'onunez@sole.com.pe' } }];
-            }
-          })(),
+          toRecipients: recipientsData.toRecipients,
+          ccRecipients: recipientsData.ccRecipients,
           attachments: (attachments || []).map((file: any) => ({
             "@odata.type": "#microsoft.graph.fileAttachment",
             name: file.name,
