@@ -684,7 +684,12 @@ export default function App() {
           } as any);
           
           setData(prev => [result, ...prev.filter(r => r.id !== result.id)]);
-          outlookService.sendNewTrackingEmail(result, activeModule === 'artwork_followup' ? 'Artes' : 
+          outlookService.sendNewTrackingEmail({
+            code: result.codigoSAP,
+            description: result.descripcionSAP,
+            supplier: result.proveedor,
+            brand: result.marca
+          }, activeModule === 'artwork_followup' ? 'Artes' : 
             activeModule === 'technical_datasheet' ? 'Ficha Técnica' : 'Ficha Comercial');
           toast.success(`Nueva solicitud creada en el módulo de ${
             activeModule === 'artwork_followup' ? 'Artes' : 
@@ -693,7 +698,12 @@ export default function App() {
         } else {
           const result = await SupabaseService.createProduct(resolvedNewRecord as any);
           setData(prev => [result, ...prev.filter(r => r.id !== result.id)]);
-          outlookService.sendNewTrackingEmail(result, 'General');
+          outlookService.sendNewTrackingEmail({
+            code: result.codigoSAP,
+            description: result.descripcionSAP,
+            supplier: result.proveedor,
+            brand: result.marca
+          }, 'General');
           toast.success('Nueva solicitud registrada');
         }
       }

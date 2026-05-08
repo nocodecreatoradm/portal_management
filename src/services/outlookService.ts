@@ -132,8 +132,7 @@ export const outlookService = {
     `;
 
     try {
-      // In a real scenario, we'd have the PM's email. Using buzon as fallback.
-      await outlookService.send('coordinacion_id@sole.com.pe', subject, outlookService.wrapInTemplate(title, content));
+      await outlookService.send(['coordinacion_id@sole.com.pe', 'onunez@sole.com.pe'], subject, outlookService.wrapInTemplate(title, content));
     } catch (e) {
       console.error(e);
     }
@@ -184,7 +183,7 @@ export const outlookService = {
     `;
 
     try {
-      await outlookService.send('coordinacion_id@sole.com.pe', subject, outlookService.wrapInTemplate(title, content));
+      await outlookService.send(['coordinacion_id@sole.com.pe', 'onunez@sole.com.pe'], subject, outlookService.wrapInTemplate(title, content));
       toast.info('Notificación de inicio de flujo enviada');
     } catch (e) {
       console.error(e);

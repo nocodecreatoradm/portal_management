@@ -34,7 +34,11 @@ export default function AssignmentModal({ isOpen, onClose, record, type, onSave 
       plannedEndDate,
       infoRequests: []
     });
-    outlookService.sendAssignmentEmail(record, designerEmail || designer, type === 'artwork' ? 'Artes' : 'Fichas');
+    outlookService.sendAssignmentEmail({
+      code: record.codigoSAP,
+      description: record.descripcionSAP,
+      brand: record.marca
+    }, designerEmail || designer, type === 'artwork' ? 'Artes' : 'Fichas');
     onClose();
   };
 
