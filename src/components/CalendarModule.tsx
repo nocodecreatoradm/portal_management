@@ -13,6 +13,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInte
 import { es } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { outlookService } from '../services/outlookService';
 
 const parseLocalISO = (dateStr: string) => {
   if (!dateStr) return new Date();
@@ -165,10 +166,16 @@ export default function CalendarModule() {
         
         setTasks(prev => prev.map(t => t.id === editingTask.id ? result : t));
         toast.success('Tarea actualizada');
+        
+        // Notify of update
+        outlookService.sendCalendarNotification(result, false);
       } else {
         const result = await SupabaseService.createCalendarTask(taskData);
         setTasks(prev => [result, ...prev]);
         toast.success('Tarea creada');
+        
+        // Notify of new task
+        outlookService.sendCalendarNotification(result, true);
       }
       setIsModalOpen(false);
       setEditingTask(null);

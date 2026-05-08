@@ -20,6 +20,7 @@ import { useSamples } from '../context/SamplesContext';
 import { SupabaseService } from '../lib/SupabaseService';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { outlookService } from '../services/outlookService';
 
 interface SamplesProps {
   samples: SampleRecord[];
@@ -320,6 +321,14 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
     };
     addSample(newSample);
     setIsNewSampleModalOpen(false);
+    
+    // Notify admin
+    outlookService.sendNewTrackingEmail({
+      code: newSample.correlativeId,
+      description: newSample.descripcionSAP,
+      supplier: selectedSupplierName,
+      brand: brand?.name
+    }, 'Muestras');
   };
 
   const handleAssign = (e: React.FormEvent<HTMLFormElement>) => {
@@ -335,6 +344,13 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
       ]
     });
     setIsAssignModalOpen(false);
+
+    // Notify assignment
+    outlookService.sendAssignmentEmail({
+      code: selectedSample.correlativeId,
+      description: selectedSample.descripcionSAP,
+      brand: selectedSample.marca
+    }, formData.get('technician') as string, 'Muestras');
   };
 
   const handleStartInspection = (sample: SampleRecord) => {

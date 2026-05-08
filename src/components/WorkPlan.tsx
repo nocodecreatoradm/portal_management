@@ -45,6 +45,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { exportToExcel, generateReportPDF } from '../lib/exportUtils';
 import { saveCalculationRecord } from '../lib/api';
+import { outlookService } from '../services/outlookService';
 
 
 interface WorkPlanProps {
@@ -307,6 +308,13 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
           }
           
           toast.success('Proyecto guardado correctamente');
+
+          // Notify admin of new project
+          outlookService.sendNewTrackingEmail({
+            code: `P-${result.number}`,
+            description: name,
+            brand: 'I+D'
+          }, 'Plan de Trabajo');
         } else {
           console.error('Creation failed: result is missing ID', result);
           toast.error('Error al guardar el proyecto: No se recibió un ID válido');
@@ -450,6 +458,15 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
           return p;
         }));
         toast.success(isNew ? 'Actividad creada' : 'Actividad actualizada');
+        
+        // Notify assignment/creation
+        if (isNew || result.responsible.join(',') !== editingActivity.activity.responsible.join(',')) {
+          outlookService.sendAssignmentEmail({
+            code: result.number ? `ACT-${result.number}` : undefined,
+            description: name
+          }, result.responsible.join(', '), 'Plan de Trabajo');
+        }
+
         setIsActivityModalOpen(false);
         setEditingActivity(null);
       } catch (error: any) {

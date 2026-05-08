@@ -1,6 +1,6 @@
 
 import { toast } from 'sonner';
-import { ProductRecord, DocumentVersion, AssignmentInfo, InfoRequest } from '../types';
+import { ProductRecord, DocumentVersion, AssignmentInfo, InfoRequest, CalendarTask } from '../types';
 
 /**
  * Service to send emails using Microsoft Graph API through our backend.
@@ -142,24 +142,24 @@ export const outlookService = {
   /**
    * Notifies an assignment.
    */
-  sendAssignmentEmail: async (record: ProductRecord, designer: string, type: string) => {
-    const subject = `[ASIGNACIÓN] - Nuevo proyecto asignado: ${record.codigoSAP}`;
+  sendAssignmentEmail: async (info: { code?: string; description: string; brand?: string }, assignee: string, type: string) => {
+    const subject = `[ASIGNACIÓN] - Nuevo pendiente asignado: ${info.code || ''} ${info.description}`;
     const title = 'Nueva Tarea Asignada';
     const content = `
-      <p>Hola <strong>${designer}</strong>,</p>
-      <p>Se te ha asignado un nuevo proyecto en el módulo de <strong>${type}</strong>.</p>
+      <p>Hola <strong>${assignee}</strong>,</p>
+      <p>Se te ha asignado un nuevo pendiente en el módulo de <strong>${type}</strong>.</p>
       <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px; margin: 16px 0;">
-        <p style="margin: 0;"><strong>Código SAP:</strong> ${record.codigoSAP}</p>
-        <p style="margin: 4px 0;"><strong>Descripción:</strong> ${record.descripcionSAP}</p>
-        <p style="margin: 4px 0;"><strong>Marca:</strong> ${record.marca}</p>
+        ${info.code ? `<p style="margin: 0;"><strong>Código/ID:</strong> ${info.code}</p>` : ''}
+        <p style="margin: 4px 0;"><strong>Descripción:</strong> ${info.description}</p>
+        ${info.brand ? `<p style="margin: 4px 0;"><strong>Marca:</strong> ${info.brand}</p>` : ''}
       </div>
-      <p>Por favor, revisa el cronograma y los documentos adjuntos en el portal.</p>
+      <p>Por favor, revisa los detalles en el portal.</p>
     `;
 
     try {
       // Map name to email if possible, or use the name if it's already an email
-      const targetEmail = designer.includes('@') ? designer : 'diseño_grafico@sole.com.pe';
-      await outlookService.send(targetEmail, subject, outlookService.wrapInTemplate(title, content));
+      const targetEmail = assignee.includes('@') ? assignee : 'coordinacion_id@sole.com.pe';
+      await outlookService.send([targetEmail, 'onunez@sole.com.pe'], subject, outlookService.wrapInTemplate(title, content));
       toast.success('Notificación de asignación enviada');
     } catch (e) {
       console.error(e);
@@ -194,23 +194,53 @@ export const outlookService = {
   /**
    * Notifies that a new tracking record has been created.
    */
-  sendNewTrackingEmail: async (record: ProductRecord, type: string) => {
-    const subject = `[NUEVO SEGUIMIENTO] - ${record.codigoSAP} creado`;
-    const title = 'Nuevo Seguimiento Registrado';
+  sendNewTrackingEmail: async (info: { code?: string; description: string; supplier?: string; brand?: string }, type: string) => {
+    const subject = `[NUEVO REGISTRO] - ${info.code || ''} ${info.description} creado`;
+    const title = 'Nuevo Registro en el Sistema';
     const content = `
-      <p>Se ha registrado un nuevo seguimiento en el sistema para el producto <strong>${record.codigoSAP} - ${record.descripcionSAP}</strong>.</p>
+      <p>Se ha registrado un nuevo elemento en el sistema en el módulo de <strong>${type}</strong>.</p>
       <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
         <p style="margin: 0;"><strong>Módulo:</strong> ${type}</p>
-        <p style="margin: 4px 0;"><strong>Proveedor:</strong> ${record.proveedor}</p>
-        <p style="margin: 4px 0;"><strong>Marca:</strong> ${record.marca}</p>
+        ${info.code ? `<p style="margin: 4px 0;"><strong>Código/ID:</strong> ${info.code}</p>` : ''}
+        <p style="margin: 4px 0;"><strong>Descripción:</strong> ${info.description}</p>
+        ${info.supplier ? `<p style="margin: 4px 0;"><strong>Proveedor:</strong> ${info.supplier}</p>` : ''}
+        ${info.brand ? `<p style="margin: 4px 0;"><strong>Marca:</strong> ${info.brand}</p>` : ''}
       </div>
-      <p>El siguiente paso es asignar un responsable o cargar los documentos iniciales.</p>
+      <p>El siguiente paso es realizar las asignaciones correspondientes o cargar documentación.</p>
     `;
 
     try {
-      await outlookService.send('coordinacion_id@sole.com.pe', subject, outlookService.wrapInTemplate(title, content));
+      await outlookService.send(['coordinacion_id@sole.com.pe', 'onunez@sole.com.pe'], subject, outlookService.wrapInTemplate(title, content));
     } catch (e) {
       console.error(e);
+    }
+  },
+
+  /**
+   * Notifies about calendar tasks.
+   */
+  sendCalendarNotification: async (task: Partial<CalendarTask>, isNew: boolean = true) => {
+    const subject = `[CALENDARIO] - ${isNew ? 'Nueva Tarea' : 'Tarea Actualizada'}: ${task.title}`;
+    const title = isNew ? 'Nueva Actividad en Calendario' : 'Actividad Actualizada';
+    
+    const content = `
+      <p>Se ha ${isNew ? 'registrado' : 'actualizado'} una actividad en el calendario de I+D.</p>
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <p style="margin: 0;"><strong>Título:</strong> ${task.title}</p>
+        <p style="margin: 4px 0;"><strong>Tipo:</strong> ${task.type}</p>
+        <p style="margin: 4px 0;"><strong>Responsable/Asignado:</strong> ${task.assignee || task.requester || 'Sin asignar'}</p>
+        ${task.deadline ? `<p style="margin: 4px 0;"><strong>Fecha Límite:</strong> ${task.deadline}</p>` : ''}
+        ${task.description ? `<p style="margin: 12px 0 0; font-style: italic;">"${task.description}"</p>` : ''}
+      </div>
+      <p>Por favor, revise los detalles en el módulo de Calendario del portal.</p>
+    `;
+
+    try {
+      // Notify coordination and the admin
+      await outlookService.send(['coordinacion_id@sole.com.pe', 'onunez@sole.com.pe'], subject, outlookService.wrapInTemplate(title, content));
+      if (isNew) toast.success('Notificación de calendario enviada');
+    } catch (e) {
+      console.error('Error sending calendar notification:', e);
     }
   }
 };
