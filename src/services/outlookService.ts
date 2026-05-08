@@ -186,5 +186,28 @@ export const outlookService = {
     } catch (e) {
       console.error(e);
     }
+  },
+
+  /**
+   * Notifies that a new tracking record has been created.
+   */
+  sendNewTrackingEmail: async (record: ProductRecord, type: string) => {
+    const subject = `[NUEVO SEGUIMIENTO] - ${record.codigoSAP} creado`;
+    const title = 'Nuevo Seguimiento Registrado';
+    const content = `
+      <p>Se ha registrado un nuevo seguimiento en el sistema para el producto <strong>${record.codigoSAP} - ${record.descripcionSAP}</strong>.</p>
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <p style="margin: 0;"><strong>Módulo:</strong> ${type}</p>
+        <p style="margin: 4px 0;"><strong>Proveedor:</strong> ${record.proveedor}</p>
+        <p style="margin: 4px 0;"><strong>Marca:</strong> ${record.marca}</p>
+      </div>
+      <p>El siguiente paso es asignar un responsable o cargar los documentos iniciales.</p>
+    `;
+
+    try {
+      await outlookService.send('coordinacion_id@sole.com.pe', subject, outlookService.wrapInTemplate(title, content));
+    } catch (e) {
+      console.error(e);
+    }
   }
 };

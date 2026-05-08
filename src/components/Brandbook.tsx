@@ -756,7 +756,7 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
         ref={fileInputRef}
         onChange={handleFileChange}
         className="hidden"
-        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z"
       />
       <input 
         type="file"
