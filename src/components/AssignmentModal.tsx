@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Calendar, User } from 'lucide-react';
 import { ProductRecord, AssignmentInfo } from '../types';
 import UserSelect from './UserSelect';
+import { outlookService } from '../services/outlookService';
 
 interface AssignmentModalProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export default function AssignmentModal({ isOpen, onClose, record, type, onSave 
       plannedEndDate,
       infoRequests: []
     });
+    outlookService.sendAssignmentEmail(record, designer, type === 'artwork' ? 'Artes' : 'Fichas');
     onClose();
   };
 

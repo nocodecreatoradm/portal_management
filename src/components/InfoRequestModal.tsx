@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, MessageSquare, Send, Paperclip, CheckCircle2, Clock } from 'lucide-react';
 import { ProductRecord, InfoRequest, AssignmentInfo } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { outlookService } from '../services/outlookService';
 
 interface InfoRequestModalProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export default function InfoRequestModal({ isOpen, onClose, record, type, onSave
     };
 
     onSave([...requests, newRequest]);
+    outlookService.sendInfoRequestEmail(record, newRequest, title);
     setNewRequestText('');
   };
 

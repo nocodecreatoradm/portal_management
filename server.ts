@@ -3,6 +3,9 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import Database from "better-sqlite3";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -108,7 +111,87 @@ async function startServer() {
 
   app.use(express.json({ limit: '50mb' }));
 
+  // Helper to get Microsoft Graph Access Token
+  async function getAzureAccessToken() {
+    const tenantId = process.env.AZURE_TENANT_ID;
+    const clientId = process.env.AZURE_CLIENT_ID;
+    const clientSecret = process.env.AZURE_CLIENT_SECRET;
+
+    const url = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+    const params = new URLSearchParams();
+    params.append('client_id', clientId!);
+    params.append('scope', 'https://graph.microsoft.com/.default');
+    params.append('client_secret', clientSecret!);
+    params.append('grant_type', 'client_credentials');
+
+    const response = await fetch(url, {
+      method: 'POST',
+      body: params,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    const data = await response.json() as any;
+    if (!response.ok) {
+      throw new Error(`Failed to get access token: ${data.error_description || data.error}`);
+    }
+    return data.access_token;
+  }
+
   // API Routes
+  app.post("/api/send-email", async (req, res) => {
+    const { to, subject, body, attachments } = req.body;
+    const userEmail = process.env.AZURE_MAIL_USER;
+
+    try {
+      const accessToken = await getAzureAccessToken();
+      const url = `https://graph.microsoft.com/v1.0/users/${userEmail}/sendMail`;
+
+      const emailPayload = {
+        message: {
+          subject: subject,
+          body: {
+            contentType: "HTML",
+            content: body,
+          },
+          toRecipients: (Array.isArray(to) ? to : [to]).map((email: string) => ({
+            emailAddress: { address: email },
+          })),
+          ccRecipients: [
+            { emailAddress: { address: 'onunez@sole.com.pe' } }
+          ],
+          attachments: (attachments || []).map((file: any) => ({
+            "@odata.type": "#microsoft.graph.fileAttachment",
+            name: file.name,
+            contentBytes: file.content, // base64
+          })),
+        },
+        saveToSentItems: "true",
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(emailPayload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json() as any;
+        console.error("Graph API Error:", errorData);
+        throw new Error(errorData.error?.message || "Failed to send email");
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Email error:", error);
+      res.status(500).json({ error: error.message || "Failed to send email" });
+    }
+  });
+
   app.post("/api/records", (req, res) => {
     const { moduleId, actionType, data, userEmail, projectName, sampleId, description } = req.body;
     

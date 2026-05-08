@@ -433,6 +433,8 @@ export default function App() {
               } else {
                 toast.info(`Informando sobre la aprobación de ${modalConfig.type}`);
               }
+            } else if (actionData.status === 'rejected') {
+              outlookService.sendObservationEmail(record, modalConfig.stage || '', actionData.comments, modalConfig.type || 'artwork');
             }
             toast.success('Estado actualizado correctamente');
           }
@@ -484,6 +486,10 @@ export default function App() {
           } else if (updatedRecord.codigoSAP) {
             await SupabaseService.updateProductBySAP(updatedRecord.codigoSAP, { [docArrayKey]: updatedRecord[docArrayKey] });
           }
+          
+          // Notify flow start
+          outlookService.sendFlowStartEmail(updatedRecord, version, activeModule === 'artwork_followup' ? 'Artes' : 'Fichas');
+          
         } catch (error) {
           console.error('Error persisting flow start:', error);
           toast.error('Error al guardar inicio de flujo en la nube');
