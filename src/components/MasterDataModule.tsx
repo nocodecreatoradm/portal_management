@@ -146,15 +146,20 @@ export default function MasterDataModule() {
           />
         ))}
 
-        {activeTab === 'categories' && categories.map(cat => (
-          <MasterCard 
-            key={cat.id}
-            title={cat.name}
-            subtitle={lines.find(l => l.id === cat.productLineId)?.name || 'Sin Línea'}
-            onEdit={() => handleOpenModal('categories', cat)}
-            onDelete={() => handleDelete('categories', cat.id)}
-          />
-        ))}
+        {activeTab === 'categories' && categories.map(cat => {
+          const hasTemplate = templates.find(t => t.categoryId === cat.id);
+          return (
+            <MasterCard 
+              key={cat.id}
+              title={cat.name}
+              subtitle={lines.find(l => l.id === cat.productLineId)?.name || 'Sin Línea'}
+              onEdit={() => handleOpenModal('categories', cat)}
+              onDelete={() => handleDelete('categories', cat.id)}
+              hasTemplate={!!hasTemplate}
+              onManageTemplate={() => handleOpenModal('builder', hasTemplate || { categoryId: cat.id, name: `PLANTILLA ${cat.name}` })}
+            />
+          );
+        })}
 
         {activeTab === 'templates' && templates.map(template => (
           <MasterCard 
@@ -186,9 +191,16 @@ export default function MasterDataModule() {
   );
 }
 
-function MasterCard({ title, subtitle, image, icon, onEdit, onDelete }: any) {
+function MasterCard({ title, subtitle, image, icon, onEdit, onDelete, hasTemplate, onManageTemplate }: any) {
   return (
-    <div className="group bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300">
+    <div className="group bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 relative">
+      {hasTemplate !== undefined && (
+        <div className={`absolute top-3 left-6 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest z-20 ${
+          hasTemplate ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-slate-100 text-slate-400'
+        }`}>
+          {hasTemplate ? 'Con Plantilla' : 'Sin Plantilla'}
+        </div>
+      )}
       <div className="flex items-start justify-between mb-4">
         <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center overflow-hidden border border-slate-100">
           {image ? (
@@ -200,6 +212,15 @@ function MasterCard({ title, subtitle, image, icon, onEdit, onDelete }: any) {
           )}
         </div>
         <div className="flex gap-1">
+          {onManageTemplate && (
+            <button 
+              onClick={onManageTemplate}
+              className={`p-2 rounded-xl transition-all ${hasTemplate ? 'text-indigo-600 hover:bg-indigo-50' : 'text-slate-300 hover:text-indigo-600 hover:bg-indigo-50'}`}
+              title="Gestionar Plantilla de Inspección"
+            >
+              <ClipboardList size={16} />
+            </button>
+          )}
           <button onClick={onEdit} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
             <Edit2 size={16} />
           </button>
@@ -408,7 +429,7 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
         procedureFile
       };
 
-      if (template) await SupabaseService.updateInspectionTemplate(template.id, payload);
+      if (template?.id) await SupabaseService.updateInspectionTemplate(template.id, payload);
       else await SupabaseService.createInspectionTemplate(payload);
 
       toast.success('Plantilla guardada');
