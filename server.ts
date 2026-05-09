@@ -154,9 +154,8 @@ async function startServer() {
       const accessToken = await getAzureAccessToken();
       const url = `https://graph.microsoft.com/v1.0/users/${userEmail}/sendMail`;
 
-      const recipientsData = await (async () => {
+        const recipientsData = await (async () => {
           try {
-            // Dynamically fetch all users with 'admin' role
             const { data: admins } = await supabase
               .from('profiles')
               .select('email')
@@ -164,26 +163,31 @@ async function startServer() {
               .eq('is_active', true);
             
             const adminEmails = (admins || []).map(a => a.email).filter(Boolean);
-            
-            // Ensure onunez@sole.com.pe is at least in the pool
-            if (!adminEmails.includes('onunez@sole.com.pe')) {
-              adminEmails.push('onunez@sole.com.pe');
+            if (!adminEmails.includes('onunez@sole.com.pe')) adminEmails.push('onunez@sole.com.pe');
+
+            // Normalize 'to' to a flat array of strings
+            let requestedTo: string[] = [];
+            if (Array.isArray(to)) {
+              requestedTo = to.filter(e => typeof e === 'string' && e.length > 0);
+            } else if (typeof to === 'string' && to.length > 0) {
+              requestedTo = [to];
             }
 
-            // If 'to' is empty, we must put at least one recipient in 'to' 
-            // for the email to be valid. We'll use the first admin.
-            let finalTo = Array.isArray(to) ? [...to] : [to ? to : []];
-            // Ensure finalTo is an array of strings
-            finalTo = (Array.isArray(finalTo) ? finalTo : [finalTo]).filter(e => typeof e === 'string' && e.length > 0);
-            
-            let finalCc = adminEmails;
+            let finalTo: string[] = [];
+            let finalCc: string[] = [];
 
-            if (finalTo.length === 0) {
-              const primaryAdmin = 'onunez@sole.com.pe';
-              finalTo = [primaryAdmin];
-              // Remove from CC if it's already in 'to'
-              finalCc = finalCc.filter(e => e !== primaryAdmin);
+            if (requestedTo.length > 0) {
+              // We have specific recipients
+              finalTo = requestedTo;
+              // CC all admins who are NOT already in the 'To' list
+              finalCc = adminEmails.filter(email => !finalTo.includes(email));
+            } else {
+              // No specific recipients: All admins go to the 'To' field
+              finalTo = adminEmails;
+              finalCc = [];
             }
+
+            console.log(`Sending email to: ${finalTo.join(', ')} | CC: ${finalCc.join(', ')}`);
 
             return {
               toRecipients: finalTo.map(email => ({ emailAddress: { address: email } })),

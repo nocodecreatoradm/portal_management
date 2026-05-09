@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Search } from 'lucide-react';
 import { ProductRecord, SampleRecord } from '../types';
 import { useSamples } from '../context/SamplesContext';
@@ -32,25 +32,61 @@ export default function NewRequestModal({
   isSubmitting = false
 }: Omit<NewRequestModalProps, 'samples'>) {
   const { samples } = useSamples();
-  const [step, setStep] = React.useState<1 | 2>(initialData ? 2 : 1);
-  const [artworkType, setArtworkType] = React.useState<'local' | 'imported' | null>(initialData ? (initialData.proveedor === 'LOCAL' ? 'local' : 'imported') : null);
-  const [sampleSearch, setSampleSearch] = React.useState('');
-  const [isSampleDropdownOpen, setIsSampleDropdownOpen] = React.useState(false);
-  const [formData, setFormData] = React.useState({
-    codigoEAN: initialData?.codigoEAN || '',
-    codigoSAP: initialData?.codigoSAP || '',
-    descripcionSAP: initialData?.descripcionSAP || '',
-    codProv: initialData?.codProv || '',
-    proveedor: initialData?.proveedor || '',
-    correoProveedor: initialData?.correoProveedor || [] as string[],
-    marca: initialData?.marca || (brands[0]?.name || 'SOLE'),
-    brandId: initialData?.brandId || (brands[0]?.id || ''),
-    linea: initialData?.linea || (productLines[0]?.name || 'LÍNEA BLANCA'),
-    lineId: initialData?.lineId || (productLines[0]?.id || ''),
-    categoria: initialData?.categoria || '',
-    categoryId: initialData?.categoryId || '',
-    sampleId: initialData?.sampleId || '',
-    correlativeId: initialData?.correlativeId || '',
+  const [step, setStep] = useState<1 | 2>(initialData ? 2 : 1);
+  const [artworkType, setArtworkType] = useState<'local' | 'imported' | null>(initialData ? (initialData.proveedor === 'LOCAL' ? 'local' : 'imported') : null);
+  const [sampleSearch, setSampleSearch] = useState('');
+  const [isSampleDropdownOpen, setIsSampleDropdownOpen] = useState(false);
+  const isFirstOpen = useRef(true);
+  const prevIsOpen = useRef(isOpen);
+
+  const [formData, setFormData] = useState(() => {
+    if (initialData) {
+      return {
+        codigoEAN: initialData.codigoEAN || '',
+        codigoSAP: initialData.codigoSAP || '',
+        descripcionSAP: initialData.descripcionSAP || '',
+        codProv: initialData.codProv || '',
+        proveedor: initialData.proveedor || '',
+        correoProveedor: Array.isArray(initialData.correoProveedor) ? [...initialData.correoProveedor] : [],
+        marca: initialData.marca || (brands[0]?.name || 'SOLE'),
+        brandId: (initialData as any).brandId || (brands.find(b => b.name === initialData.marca)?.id || ''),
+        linea: initialData.linea || (productLines[0]?.name || 'LÍNEA BLANCA'),
+        lineId: (initialData as any).lineId || (productLines.find(l => l.name === initialData.linea)?.id || ''),
+        categoria: (initialData as any).categoria || '',
+        categoryId: (initialData as any).categoryId || '',
+        sampleId: initialData.sampleId || '',
+        correlativeId: initialData.correlativeId || '',
+      };
+    }
+
+    // Try to load from session storage if not editing
+    try {
+      const saved = sessionStorage.getItem('new_request_draft');
+      if (saved) {
+        const draft = JSON.parse(saved);
+        // Only restore if it matches the current mode (optional, but safer)
+        return draft;
+      }
+    } catch (e) {
+      console.error('Error loading draft:', e);
+    }
+
+    return {
+      codigoEAN: '',
+      codigoSAP: '',
+      descripcionSAP: '',
+      codProv: '',
+      proveedor: '',
+      correoProveedor: [] as string[],
+      marca: brands[0]?.name || 'SOLE',
+      brandId: brands[0]?.id || '',
+      linea: productLines[0]?.name || 'LÍNEA BLANCA',
+      lineId: productLines[0]?.id || '',
+      categoria: '',
+      categoryId: '',
+      sampleId: '',
+      correlativeId: '',
+    };
   });
 
   const generateNextCorrelativeId = (data: ProductRecord[]) => {
@@ -70,62 +106,94 @@ export default function NewRequestModal({
     return `${prefix}${(maxNumber + 1).toString().padStart(3, '0')}`;
   };
 
-  React.useEffect(() => {
+  // Auto-save draft
+  useEffect(() => {
+    if (!initialData && isOpen) {
+      sessionStorage.setItem('new_request_draft', JSON.stringify(formData));
+    }
+  }, [formData, isOpen, initialData]);
+
+  // Handle modal open/close transitions
+  useEffect(() => {
+    const wasClosed = !prevIsOpen.current && isOpen;
+    prevIsOpen.current = isOpen;
+
+    if (wasClosed) {
+      if (initialData) {
+        setFormData({
+          codigoEAN: initialData.codigoEAN || '',
+          codigoSAP: initialData.codigoSAP || '',
+          descripcionSAP: initialData.descripcionSAP || '',
+          codProv: initialData.codProv || '',
+          proveedor: initialData.proveedor || '',
+          correoProveedor: Array.isArray(initialData.correoProveedor) ? [...initialData.correoProveedor] : [],
+          marca: initialData.marca || (brands[0]?.name || 'SOLE'),
+          brandId: (initialData as any).brandId || (brands.find(b => b.name === initialData.marca)?.id || ''),
+          linea: initialData.linea || (productLines[0]?.name || 'LÍNEA BLANCA'),
+          lineId: (initialData as any).lineId || (productLines.find(l => l.name === initialData.linea)?.id || ''),
+          categoria: (initialData as any).categoria || '',
+          categoryId: (initialData as any).categoryId || '',
+          sampleId: initialData.sampleId || '',
+          correlativeId: initialData.correlativeId || '',
+        });
+        setArtworkType(initialData.proveedor === 'LOCAL' ? 'local' : 'imported');
+        setStep(2);
+      } else {
+        // Check for existing draft first
+        const saved = sessionStorage.getItem('new_request_draft');
+        if (saved) {
+          try {
+            const draft = JSON.parse(saved);
+            setFormData(draft);
+            if (draft.proveedor) {
+              setArtworkType(draft.proveedor === 'LOCAL' ? 'local' : 'imported');
+              setStep(2);
+            } else {
+              setStep(1);
+              setArtworkType(null);
+            }
+          } catch (e) {
+            console.error('Error parsing draft:', e);
+          }
+        } else {
+          // No draft, reset to defaults
+          const nextId = generateNextCorrelativeId(existingData);
+          const defaultBrand = brands[0];
+          const defaultLine = productLines[0];
+          
+          setFormData({
+            codigoEAN: '',
+            codigoSAP: '',
+            descripcionSAP: '',
+            codProv: '',
+            proveedor: '',
+            correoProveedor: [],
+            marca: defaultBrand?.name || 'SOLE',
+            brandId: defaultBrand?.id || '',
+            linea: defaultLine?.name || 'LÍNEA BLANCA',
+            lineId: defaultLine?.id || '',
+            categoria: '',
+            categoryId: '',
+            sampleId: '',
+            correlativeId: nextId,
+          });
+          setStep(1);
+          setArtworkType(null);
+        }
+      }
+    }
+  }, [isOpen, initialData, brands, productLines, existingData]);
+
+  // Keep correlative ID updated if no ID exists yet
+  useEffect(() => {
     if (isOpen && !initialData && !formData.correlativeId) {
       const nextId = generateNextCorrelativeId(existingData);
       setFormData(prev => ({ ...prev, correlativeId: nextId }));
     }
-  }, [isOpen, initialData, existingData]);
+  }, [isOpen, initialData, existingData, formData.correlativeId]);
 
-  React.useEffect(() => {
-    if (initialData) {
-      setFormData({
-        codigoEAN: initialData.codigoEAN || '',
-        codigoSAP: initialData.codigoSAP || '',
-        descripcionSAP: initialData.descripcionSAP || '',
-        codProv: initialData.codProv || '',
-        proveedor: initialData.proveedor || '',
-        correoProveedor: Array.isArray(initialData.correoProveedor) ? [...initialData.correoProveedor] : [],
-        marca: initialData.marca || (brands[0]?.name || 'SOLE'),
-        brandId: (initialData as any).brandId || (brands.find(b => b.name === initialData.marca)?.id || ''),
-        linea: initialData.linea || (productLines[0]?.name || 'LÍNEA BLANCA'),
-        lineId: (initialData as any).lineId || (productLines.find(l => l.name === initialData.linea)?.id || ''),
-        categoria: (initialData as any).categoria || '',
-        categoryId: (initialData as any).categoryId || '',
-        sampleId: initialData.sampleId || '',
-        correlativeId: initialData.correlativeId || '',
-      });
-      setArtworkType(initialData.proveedor === 'LOCAL' ? 'local' : 'imported');
-      setStep(2);
-    } else if (isOpen) {
-      // Reset and generate new ID when opening for new request
-      const nextId = generateNextCorrelativeId(existingData);
-      const defaultBrand = brands[0];
-      const defaultLine = productLines[0];
-      
-      setFormData({
-        codigoEAN: '',
-        codigoSAP: '',
-        descripcionSAP: '',
-        codProv: '',
-        proveedor: '',
-        correoProveedor: [],
-        marca: defaultBrand?.name || 'SOLE',
-        brandId: defaultBrand?.id || '',
-        linea: defaultLine?.name || 'LÍNEA BLANCA',
-        lineId: defaultLine?.id || '',
-        categoria: '',
-        categoryId: '',
-        sampleId: '',
-        correlativeId: nextId,
-      });
-      setStep(1);
-      setArtworkType(null);
-    }
-  }, [initialData, isOpen, brands, productLines, existingData]);
-
-  const [newEmail, setNewEmail] = React.useState('');
-  const [autoFilled, setAutoFilled] = React.useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [autoFilled, setAutoFilled] = useState(false);
 
   if (!isOpen) return null;
 
@@ -273,6 +341,16 @@ export default function NewRequestModal({
     } as ProductRecord;
 
     onSubmit(updatedRecord);
+    sessionStorage.removeItem('new_request_draft');
+    onClose();
+  };
+
+  const handleCancel = () => {
+    if (!initialData && (formData.codigoSAP || formData.descripcionSAP || formData.proveedor)) {
+      if (confirm('¿Deseas descartar el borrador actual?')) {
+        sessionStorage.removeItem('new_request_draft');
+      }
+    }
     onClose();
   };
 
@@ -293,7 +371,7 @@ export default function NewRequestModal({
               {step === 1 ? `Nueva Solicitud de ${modeLabel}` : `Nueva Solicitud: ${modeLabel} ${artworkType === 'local' ? 'Local' : 'Importado'}`}
             </h3>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={handleCancel} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -584,7 +662,7 @@ export default function NewRequestModal({
         </div>
 
         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 rounded-md transition-colors">
+          <button onClick={handleCancel} className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 rounded-md transition-colors">
             Cancelar
           </button>
           {step === 2 && (
