@@ -428,10 +428,22 @@ export default function App() {
             setData(newData);
 
             if (actionData.status === 'approved' || actionData.status === 'approved_with_observation') {
+              // Always send an email on approval, but use specific template for final PLAN stage
               if (modalConfig.stage === 'PLAN') {
                 outlookService.sendApprovalEmail(record, updatedVersion, modalConfig.type || 'artwork');
               } else {
-                toast.info(`Informando sobre la aprobación de ${modalConfig.type}`);
+                // For intermediate stages, send a flow update or generic approval
+                const stageName = modalConfig.stage === 'I+D' ? 'Aprobación Técnica' : 
+                                 modalConfig.stage === 'MKT' ? 'Aprobación Marketing' : 'Aprobación Proveedor';
+
+                outlookService.sendStageApprovalEmail(
+                  record, 
+                  updatedVersion, 
+                  modalConfig.stage || '', 
+                  stageName, 
+                  actionData.comments || '', 
+                  user?.name || 'Sistema'
+                );
               }
             } else if (actionData.status === 'rejected') {
               outlookService.sendObservationEmail(record, modalConfig.stage || '', actionData.comments, modalConfig.type || 'artwork');

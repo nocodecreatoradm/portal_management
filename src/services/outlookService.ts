@@ -57,10 +57,52 @@ export const outlookService = {
   },
 
   /**
+   * Helper to resolve a name to an email using Supabase profiles.
+   */
+  resolveEmail: async (nameOrEmail: string): Promise<string[]> => {
+    if (!nameOrEmail) return [];
+    if (nameOrEmail.includes('@')) return [nameOrEmail];
+
+    try {
+      const { data: profiles } = await SupabaseService.getProfiles();
+      const profile = profiles?.find(p => p.full_name?.toLowerCase() === nameOrEmail.toLowerCase());
+      return profile?.email ? [profile.email] : [];
+    } catch (e) {
+      console.error('Error resolving email:', e);
+      return [];
+    }
+  },
+
+  /**
+   * Helper to get all emails for a specific department/stage.
+   */
+  getDepartmentEmails: async (department: string): Promise<string[]> => {
+    try {
+      const { data: profiles } = await SupabaseService.getProfiles();
+      return (profiles || [])
+        .filter(p => p.department?.toLowerCase() === department.toLowerCase() && p.is_active)
+        .map(p => p.email)
+        .filter(Boolean);
+    } catch (e) {
+      console.error('Error getting department emails:', e);
+      return [];
+    }
+  },
+
+  /**
    * Notifies final approval (Planning).
    */
   sendApprovalEmail: async (record: ProductRecord, version: DocumentVersion, moduleType: string) => {
-    const recipients = record.correoProveedor || [];
+    const providerRecipients = record.correoProveedor || [];
+    
+    // Also notify the designer/technical responsible
+    const designerEmail = record.artworkAssignment?.designerEmail || 
+                          record.technicalAssignment?.designerEmail || 
+                          record.commercialAssignment?.designerEmail || 
+                          '';
+    
+    const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+    const recipients = [...new Set([...providerRecipients, designerEmail, ...adminEmails].filter(Boolean))];
     if (recipients.length === 0) return;
 
     const subject = `[APROBACIÓN FINAL] - ${record.codigoSAP} - ${record.descripcionSAP}`;
@@ -81,6 +123,33 @@ export const outlookService = {
       toast.success('Notificación de aprobación enviada');
     } catch (e) {
       toast.error('Error al enviar notificación de aprobación');
+    }
+  },
+
+  /**
+   * Notifies an intermediate stage approval.
+   */
+  sendStageApprovalEmail: async (record: ProductRecord, version: DocumentVersion, stage: string, stageName: string, comments: string, user: string) => {
+    const subject = `[APROBACIÓN ${stage}] - ${record.codigoSAP} - ${record.descripcionSAP}`;
+    const title = `Documento Aprobado (${stage})`;
+    const content = `
+      <p>Se ha registrado la <strong>${stageName}</strong> para el producto <strong>${record.codigoSAP}</strong>.</p>
+      <p><strong>Versión:</strong> V${version.version}</p>
+      <p><strong>Aprobado por:</strong> ${user}</p>
+      ${comments ? `<p><strong>Comentarios:</strong> ${comments}</p>` : ''}
+      <p>El flujo continuará a la siguiente etapa de revisión.</p>
+    `;
+
+    try {
+      const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+      const designerEmail = record.artworkAssignment?.designerEmail || 
+                            record.technicalAssignment?.designerEmail || 
+                            record.commercialAssignment?.designerEmail || 
+                            '';
+      const recipients = [...new Set([designerEmail, ...adminEmails])].filter(Boolean);
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
+    } catch (e) {
+      console.error(e);
     }
   },
 
@@ -106,14 +175,12 @@ export const outlookService = {
     `;
 
     try {
-      if (designerEmail) {
-        await outlookService.send(designerEmail, subject, outlookService.wrapInTemplate(title, content));
-        toast.info('Notificación de observación enviada al responsable');
-      } else {
-        // Only admins get it via CC
-        await outlookService.send([], subject, outlookService.wrapInTemplate(title, content));
-        toast.info('Notificación enviada a coordinación');
-      }
+      const resolvedDesigner = await outlookService.resolveEmail(designerEmail);
+      const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+      const recipients = [...new Set([...resolvedDesigner, ...adminEmails])].filter(Boolean);
+      
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
+      toast.success('Notificación de observación enviada');
     } catch (e) {
       console.error(e);
     }
@@ -135,7 +202,15 @@ export const outlookService = {
     `;
 
     try {
-      await outlookService.send([], subject, outlookService.wrapInTemplate(title, content));
+      const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+      const designerEmail = record.artworkAssignment?.designerEmail || 
+                            record.technicalAssignment?.designerEmail || 
+                            record.commercialAssignment?.designerEmail || 
+                            '';
+      const resolvedProvider = await outlookService.resolveEmail(record.correoProveedor?.[0] || record.proveedor);
+      const recipients = [...new Set([...resolvedProvider, ...adminEmails, designerEmail])].filter(Boolean);
+      
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
     } catch (e) {
       console.error(e);
     }
@@ -159,8 +234,11 @@ export const outlookService = {
     `;
 
     try {
-      const targetEmail = assignee.includes('@') ? assignee : [];
-      await outlookService.send(targetEmail, subject, outlookService.wrapInTemplate(title, content));
+      const assigneeEmails = await outlookService.resolveEmail(assignee);
+      const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+      const recipients = [...new Set([...assigneeEmails, ...adminEmails])].filter(Boolean);
+      
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
       toast.success('Notificación de asignación enviada');
     } catch (e) {
       console.error(e);
@@ -185,7 +263,17 @@ export const outlookService = {
     `;
 
     try {
-      await outlookService.send([], subject, outlookService.wrapInTemplate(title, content));
+      // Find recipients for the first stage (usually I+D)
+      const idEmails = await outlookService.getDepartmentEmails('I+D');
+      // Also notify the assignee if any
+      const designerEmail = record.artworkAssignment?.designerEmail || 
+                            record.technicalAssignment?.designerEmail || 
+                            record.commercialAssignment?.designerEmail || 
+                            '';
+      
+      const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+      const recipients = [...new Set([...idEmails, designerEmail, ...adminEmails].filter(Boolean))];
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
       toast.info('Notificación de inicio de flujo enviada');
     } catch (e) {
       console.error(e);
@@ -211,7 +299,10 @@ export const outlookService = {
     `;
 
     try {
-      await outlookService.send([], subject, outlookService.wrapInTemplate(title, content));
+      const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+      const idEmails = await outlookService.getDepartmentEmails('I+D');
+      const recipients = [...new Set([...adminEmails, ...idEmails])].filter(Boolean);
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
     } catch (e) {
       console.error(e);
     }
@@ -237,7 +328,10 @@ export const outlookService = {
     `;
 
     try {
-      await outlookService.send([], subject, outlookService.wrapInTemplate(title, content));
+      const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+      const idEmails = await outlookService.getDepartmentEmails('I+D');
+      const recipients = [...new Set([...adminEmails, ...idEmails])].filter(Boolean);
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
       if (isNew) toast.success('Notificación de calendario enviada');
     } catch (e) {
       console.error('Error sending calendar notification:', e);

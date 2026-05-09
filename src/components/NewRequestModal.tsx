@@ -197,7 +197,14 @@ export default function NewRequestModal({
       // Recover lineId if we have the name but no ID (common after loading or drafts)
       if (formData.linea && !formData.lineId && productLines.length > 0) {
         const line = productLines.find(l => l.name === formData.linea);
-        if (line) updates.lineId = line.id;
+        if (line) {
+          updates.lineId = line.id;
+          // If we also have a category name but no ID, recover it too
+          if (formData.categoria && !formData.categoryId && categories.length > 0) {
+            const cat = categories.find(c => c.name === formData.categoria && c.productLineId === line.id);
+            if (cat) updates.categoryId = cat.id;
+          }
+        }
       }
 
       // Recover brandId if we have the name but no ID
@@ -293,7 +300,8 @@ export default function NewRequestModal({
     }
 
     if (name === 'categoria') {
-      const cat = categories.find(c => c.name === value);
+      const currentLineId = formData.lineId || productLines.find(l => l.name === formData.linea)?.id;
+      const cat = categories.find(c => c.name === value && c.productLineId === currentLineId);
       setFormData(prev => ({ ...prev, categoria: value, categoryId: cat?.id || '' }));
       return;
     }
@@ -521,8 +529,8 @@ export default function NewRequestModal({
                       name="categoria"
                       value={formData.categoria}
                       onChange={handleChange}
-                      disabled={!formData.lineId}
-                      className={`w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none ${!formData.lineId ? 'bg-gray-100 cursor-not-allowed border-gray-300' : 'border-blue-200 bg-blue-50/20 font-medium'}`}
+                      disabled={!formData.linea}
+                      className={`w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none ${!formData.linea ? 'bg-gray-100 cursor-not-allowed border-gray-300' : 'border-blue-200 bg-blue-50/20 font-medium'}`}
                     >
                       <option value="">-- SELECCIONAR CATEGORÍA --</option>
                       {categories
