@@ -184,13 +184,33 @@ export default function NewRequestModal({
     }
   }, [isOpen, initialData, brands, productLines, existingData]);
 
-  // Keep correlative ID updated if no ID exists yet
+  // Keep IDs and correlative ID updated
   useEffect(() => {
-    if (isOpen && !initialData && !formData.correlativeId) {
-      const nextId = generateNextCorrelativeId(existingData);
-      setFormData(prev => ({ ...prev, correlativeId: nextId }));
+    if (isOpen) {
+      let updates: any = {};
+      
+      // Update correlative if missing
+      if (!initialData && !formData.correlativeId) {
+        updates.correlativeId = generateNextCorrelativeId(existingData);
+      }
+
+      // Recover lineId if we have the name but no ID (common after loading or drafts)
+      if (formData.linea && !formData.lineId && productLines.length > 0) {
+        const line = productLines.find(l => l.name === formData.linea);
+        if (line) updates.lineId = line.id;
+      }
+
+      // Recover brandId if we have the name but no ID
+      if (formData.marca && !formData.brandId && brands.length > 0) {
+        const brand = brands.find(b => b.name === formData.marca);
+        if (brand) updates.brandId = brand.id;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        setFormData(prev => ({ ...prev, ...updates }));
+      }
     }
-  }, [isOpen, initialData, existingData, formData.correlativeId]);
+  }, [isOpen, initialData, existingData, formData.linea, formData.marca, productLines, brands]);
 
   const [newEmail, setNewEmail] = useState('');
   const [autoFilled, setAutoFilled] = useState(false);
@@ -506,7 +526,10 @@ export default function NewRequestModal({
                     >
                       <option value="">-- SELECCIONAR CATEGORÍA --</option>
                       {categories
-                        .filter(c => c.productLineId === formData.lineId)
+                        .filter(c => {
+                          const currentLineId = formData.lineId || productLines.find(l => l.name === formData.linea)?.id;
+                          return c.productLineId === currentLineId;
+                        })
                         .map(c => (
                           <option key={c.id} value={c.name}>{c.name.toUpperCase()}</option>
                         ))
