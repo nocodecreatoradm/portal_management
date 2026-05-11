@@ -1,6 +1,7 @@
 
 import { toast } from 'sonner';
 import { ProductRecord, DocumentVersion, AssignmentInfo, InfoRequest, CalendarTask } from '../types';
+import { SupabaseService } from '../lib/SupabaseService';
 
 /**
  * Service to send emails using Microsoft Graph API through our backend.

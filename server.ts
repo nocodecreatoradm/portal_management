@@ -156,13 +156,18 @@ async function startServer() {
 
         const recipientsData = await (async () => {
           try {
-            const { data: admins } = await supabase
+            const { data: admins, error: adminError } = await supabase
               .from('profiles')
               .select('email')
               .eq('role', 'admin')
               .eq('is_active', true);
             
+            if (adminError) {
+              console.error("[EMAIL] Error fetching admins from Supabase:", adminError);
+            }
+
             const adminEmails = (admins || []).map(a => a.email).filter(Boolean);
+            console.log(`[EMAIL] Found ${adminEmails.length} active admins: ${adminEmails.join(', ')}`);
 
             // Normalize 'to' to a flat array of strings
             let requestedTo: string[] = [];
