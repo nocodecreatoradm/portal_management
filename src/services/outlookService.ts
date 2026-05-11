@@ -90,6 +90,22 @@ export const outlookService = {
   },
 
   /**
+   * Helper to get all administrator emails.
+   */
+  getAdminEmails: async (): Promise<string[]> => {
+    try {
+      const { data: profiles } = await SupabaseService.getProfiles();
+      return (profiles || [])
+        .filter(p => p.role?.toLowerCase() === 'admin' && p.is_active)
+        .map(p => p.email)
+        .filter(Boolean);
+    } catch (e) {
+      console.error('Error getting admin emails:', e);
+      return [];
+    }
+  },
+
+  /**
    * Notifies final approval (Planning).
    */
   sendApprovalEmail: async (record: ProductRecord, version: DocumentVersion, moduleType: string) => {
@@ -101,7 +117,7 @@ export const outlookService = {
                           record.commercialAssignment?.designerEmail || 
                           '';
     
-    const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+    const adminEmails = await outlookService.getAdminEmails();
     const recipients = [...new Set([...providerRecipients, designerEmail, ...adminEmails].filter(Boolean))];
     if (recipients.length === 0) return;
 
@@ -141,7 +157,7 @@ export const outlookService = {
     `;
 
     try {
-      const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+      const adminEmails = await outlookService.getAdminEmails();
       const designerEmail = record.artworkAssignment?.designerEmail || 
                             record.technicalAssignment?.designerEmail || 
                             record.commercialAssignment?.designerEmail || 
@@ -176,7 +192,7 @@ export const outlookService = {
 
     try {
       const resolvedDesigner = await outlookService.resolveEmail(designerEmail);
-      const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+      const adminEmails = await outlookService.getAdminEmails();
       const recipients = [...new Set([...resolvedDesigner, ...adminEmails])].filter(Boolean);
       
       await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
@@ -202,7 +218,7 @@ export const outlookService = {
     `;
 
     try {
-      const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+      const adminEmails = await outlookService.getAdminEmails();
       const designerEmail = record.artworkAssignment?.designerEmail || 
                             record.technicalAssignment?.designerEmail || 
                             record.commercialAssignment?.designerEmail || 
@@ -235,7 +251,7 @@ export const outlookService = {
 
     try {
       const assigneeEmails = await outlookService.resolveEmail(assignee);
-      const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+      const adminEmails = await outlookService.getAdminEmails();
       const recipients = [...new Set([...assigneeEmails, ...adminEmails])].filter(Boolean);
       
       await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
@@ -271,7 +287,7 @@ export const outlookService = {
                             record.commercialAssignment?.designerEmail || 
                             '';
       
-      const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+      const adminEmails = await outlookService.getAdminEmails();
       const recipients = [...new Set([...idEmails, designerEmail, ...adminEmails].filter(Boolean))];
       await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
       toast.info('Notificación de inicio de flujo enviada');
@@ -299,7 +315,7 @@ export const outlookService = {
     `;
 
     try {
-      const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+      const adminEmails = await outlookService.getAdminEmails();
       const idEmails = await outlookService.getDepartmentEmails('I+D');
       const recipients = [...new Set([...adminEmails, ...idEmails])].filter(Boolean);
       await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
@@ -328,7 +344,7 @@ export const outlookService = {
     `;
 
     try {
-      const adminEmails = await outlookService.getDepartmentEmails('ADMIN');
+      const adminEmails = await outlookService.getAdminEmails();
       const idEmails = await outlookService.getDepartmentEmails('I+D');
       const recipients = [...new Set([...adminEmails, ...idEmails])].filter(Boolean);
       await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));

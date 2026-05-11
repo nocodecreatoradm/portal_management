@@ -163,7 +163,6 @@ async function startServer() {
               .eq('is_active', true);
             
             const adminEmails = (admins || []).map(a => a.email).filter(Boolean);
-            if (!adminEmails.includes('onunez@sole.com.pe')) adminEmails.push('onunez@sole.com.pe');
 
             // Normalize 'to' to a flat array of strings
             let requestedTo: string[] = [];
@@ -187,7 +186,7 @@ async function startServer() {
               finalCc = [];
             }
 
-            console.log(`Sending email to: ${finalTo.join(', ')} | CC: ${finalCc.join(', ')}`);
+            console.log(`[EMAIL] Sending to: ${finalTo.join(', ')} | CC admins: ${finalCc.join(', ')}`);
 
             return {
               toRecipients: finalTo.map(email => ({ emailAddress: { address: email } })),
@@ -195,8 +194,10 @@ async function startServer() {
             };
           } catch (err) {
             console.error("Error fetching admins for CC:", err);
+            // Fallback to avoid complete failure
+            const fallbackTo = Array.isArray(to) ? to : [to];
             return {
-              toRecipients: [{ emailAddress: { address: 'onunez@sole.com.pe' } }],
+              toRecipients: (fallbackTo || []).map((email: any) => ({ emailAddress: { address: email } })),
               ccRecipients: []
             };
           }
