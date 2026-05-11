@@ -756,14 +756,14 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
         ref={fileInputRef}
         onChange={handleFileChange}
         className="hidden"
-        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z"
+        accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z"
       />
       <input 
         type="file"
         ref={imageInputRef}
         onChange={handleImageUpload}
         className="hidden"
-        accept="image/*"
+        accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z"
       />
     </div>
   );

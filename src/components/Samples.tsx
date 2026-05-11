@@ -1020,7 +1020,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
         type="file" 
         ref={fileInputRef} 
         className="hidden" 
-        accept=".pdf,.ppt,.pptx,.zip,.rar,.7z"
+        accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z"
         onChange={(e) => selectedSample && handleReportUpload(e, selectedSample.id)}
       />
 
@@ -2221,7 +2221,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                     id="gallery-file-input"
                     type="file"
                     multiple
-                    accept="image/*"
+                    accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z"
                     onChange={handleGalleryPhotoSelect}
                     className="hidden"
                   />

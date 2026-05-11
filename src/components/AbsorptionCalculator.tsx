@@ -361,7 +361,7 @@ const AbsorptionCalculator: React.FC<{ initialData?: any; onExportPPT?: () => vo
                   id="product-image-upload"
                   type="file"
                   className="hidden"
-                  accept="image/*"
+                  accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z"
                   onChange={handleImageUpload}
                 />
                 

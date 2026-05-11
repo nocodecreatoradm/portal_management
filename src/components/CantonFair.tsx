@@ -1562,7 +1562,7 @@ const CantonFair: React.FC = () => {
                         </>
                       )}
                     </div>
-                    <input type="file" ref={logoInputRef} hidden accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} />
+                    <input type="file" ref={logoInputRef} hidden accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" onChange={(e) => handleFileUpload(e, 'logo')} />
                     {formData.logo && (
                       <button 
                         type="button"
@@ -1665,7 +1665,7 @@ const CantonFair: React.FC = () => {
                         </button>
                       )}
                     </div>
-                    <input type="file" ref={wechatQrInputRef} hidden accept="image/*" onChange={(e) => handleFileUpload(e, 'wechatQr')} />
+                    <input type="file" ref={wechatQrInputRef} hidden accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" onChange={(e) => handleFileUpload(e, 'wechatQr')} />
                   </div>
                 </div>
 
@@ -2105,10 +2105,10 @@ const CantonFair: React.FC = () => {
                       <span className="text-xs font-black uppercase tracking-widest text-center">Cotiz.<br/>({formData.quotations?.length || 0})</span>
                     </button>
                   </div>
-                  <input type="file" ref={fileInputRef} hidden multiple accept="image/*" onChange={(e) => handleFileUpload(e, 'image')} />
-                  <input type="file" ref={catalogueInputRef} hidden multiple accept=".pdf,.doc,.docx,.zip,.rar,.7z" onChange={(e) => handleFileUpload(e, 'catalogue')} />
-                  <input type="file" ref={agreementInputRef} hidden multiple accept=".pdf,.doc,.docx,.zip,.rar,.7z" onChange={(e) => handleFileUpload(e, 'agreement')} />
-                  <input type="file" ref={quotationInputRef} hidden multiple accept=".pdf,.doc,.docx,.zip,.rar,.7z" onChange={(e) => handleFileUpload(e, 'quotation')} />
+                  <input type="file" ref={fileInputRef} hidden multiple accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" onChange={(e) => handleFileUpload(e, 'image')} />
+                  <input type="file" ref={catalogueInputRef} hidden multiple accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" onChange={(e) => handleFileUpload(e, 'catalogue')} />
+                  <input type="file" ref={agreementInputRef} hidden multiple accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" onChange={(e) => handleFileUpload(e, 'agreement')} />
+                  <input type="file" ref={quotationInputRef} hidden multiple accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" onChange={(e) => handleFileUpload(e, 'quotation')} />
                 </div>
 
                 <div className="pt-8 flex gap-4">
@@ -2205,7 +2205,7 @@ const CantonFair: React.FC = () => {
                         </div>
                         <div className="text-center">
                           <p className="text-sm font-black text-slate-600">Subir Banner</p>
-                          <p className="text-[10px] font-medium text-slate-400">JPG, PNG o WEBP (Máx. 500 MB)</p>
+                          <p className="text-[10px] font-medium text-slate-400">JPG, PNG o WEBP (Máx. 1 GB)</p>
                         </div>
                       </>
                     )}
@@ -2214,7 +2214,7 @@ const CantonFair: React.FC = () => {
                     type="file" 
                     ref={bannerInputRef} 
                     hidden 
-                    accept="image/*" 
+                    accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" 
                     onChange={handleSettingsBannerUpload} 
                   />
                 </div>

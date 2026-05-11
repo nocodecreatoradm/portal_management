@@ -504,7 +504,7 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
                   </div>
                 ) : (
                   <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50/30 transition-all cursor-pointer group">
-                    <input type="file" className="hidden" accept=".pdf,.doc,.docx,.zip,.rar,.7z" onChange={handleFileUpload} disabled={uploading} />
+                    <input type="file" className="hidden" accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" onChange={handleFileUpload} disabled={uploading} />
                     <Upload size={20} className="text-slate-300 group-hover:text-indigo-400 mb-2" />
                     <p className="text-[10px] font-black text-slate-400 uppercase group-hover:text-indigo-600">
                       {uploading ? 'Cargando...' : 'Subir Archivo'}

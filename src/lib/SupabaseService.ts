@@ -1052,8 +1052,8 @@ export const SupabaseService = {
   },
 
   // STORAGE HELPERS
-  // Max file size: 500 MB
-  MAX_FILE_SIZE: 500 * 1024 * 1024,
+  // Max file size: 1024 MB (1 GB)
+  MAX_FILE_SIZE: 1024 * 1024 * 1024,
 
   async uploadFile(bucket: string, path: string, file: File) {
     // Sanitize path to avoid "Invalid key" errors with special characters or spaces
@@ -1069,12 +1069,14 @@ export const SupabaseService = {
 
     // Validate file size before uploading
     if (file.size > this.MAX_FILE_SIZE) {
-      throw new Error(`El archivo "${file.name}" excede el tamaño máximo permitido (${500} MB). Tamaño actual: ${(file.size / (1024 * 1024)).toFixed(1)} MB`);
+      throw new Error(`El archivo "${file.name}" excede el tamaño máximo permitido (${1024} MB). Tamaño actual: ${(file.size / (1024 * 1024)).toFixed(1)} MB`);
     }
 
     // Compress images before uploading if they are larger than 500KB
     let fileToUpload: File | Blob = file;
-    if (file.type.startsWith('image/') && file.size > 500 * 1024) {
+    // Compress images before uploading if they are larger than 500KB and are standard web formats
+    const webImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (webImageTypes.includes(file.type) && file.size > 500 * 1024) {
       try {
         fileToUpload = await this._compressImage(file, 0.8, 1920);
       } catch (compressErr) {

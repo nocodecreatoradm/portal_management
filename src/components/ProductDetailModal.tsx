@@ -481,7 +481,7 @@ export default function ProductDetailModal({
             <div className="flex items-center justify-between">
               <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
                 <ImageIcon size={20} className="text-indigo-500" />
-                Galería de Imágenes de Inspección I+D
+                Galería de Imágenes de Inspección I+D (Máx. 1 GB)
               </h4>
               {onUpdateRecord && (
                 <button 
@@ -606,7 +606,7 @@ export default function ProductDetailModal({
                       id="gallery-file-input-product"
                       type="file"
                       multiple
-                      accept="image/*"
+                      accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z"
                       onChange={handleGalleryPhotoSelect}
                       className="hidden"
                     />

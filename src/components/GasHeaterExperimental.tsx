@@ -833,7 +833,7 @@ export default function GasHeaterExperimental({ initialData, onExportPPT, onLoad
                 id="heater-image-upload"
                 type="file" 
                 className="hidden" 
-                accept="image/*"
+                accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z"
                 onChange={handleImageUpload}
               />
               

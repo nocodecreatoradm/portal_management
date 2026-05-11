@@ -568,27 +568,27 @@ export default function EnergyEfficiency({
             
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Certificado (PDF/JPG/ZIP) (Máx. 500 MB)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Certificado (PDF/JPG/ZIP) (Máx. 1 GB)</label>
                 <label className={`w-full p-4 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${certificado ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-indigo-200 hover:text-indigo-600'}`}>
                   {certificado ? <FileText size={24} /> : <Upload size={24} />}
                   <span className="text-[10px] font-black uppercase text-center line-clamp-1">{certificado ? certificado.name : 'Subir Certificado'}</span>
-                  <input type="file" className="hidden" accept=".pdf,image/*,.zip,.rar,.7z" onChange={(e) => handleFileUpload('certificado', e)} />
+                  <input type="file" className="hidden" accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" onChange={(e) => handleFileUpload('certificado', e)} />
                 </label>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Etiqueta (PDF/JPG/ZIP) (Máx. 500 MB)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Etiqueta (PDF/JPG/ZIP) (Máx. 1 GB)</label>
                 <label className={`w-full p-4 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${etiqueta ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-indigo-200 hover:text-indigo-600'}`}>
                   {etiqueta ? <ImageIcon size={24} /> : <Upload size={24} />}
                   <span className="text-[10px] font-black uppercase text-center line-clamp-1">{etiqueta ? etiqueta.name : 'Subir Etiqueta'}</span>
-                  <input type="file" className="hidden" accept=".pdf,image/*,.zip,.rar,.7z" onChange={(e) => handleFileUpload('etiqueta', e)} />
+                  <input type="file" className="hidden" accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" onChange={(e) => handleFileUpload('etiqueta', e)} />
                 </label>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Test Report (PDF/JPG/ZIP) (Máx. 500 MB)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Test Report (PDF/JPG/ZIP) (Máx. 1 GB)</label>
                 <label className={`w-full p-4 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${testReport ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-indigo-200 hover:text-indigo-600'}`}>
                   {testReport ? <ClipboardList size={24} /> : <Upload size={24} />}
                   <span className="text-[10px] font-black uppercase text-center line-clamp-1">{testReport ? testReport.name : 'Subir Test Report'}</span>
-                  <input type="file" className="hidden" accept=".pdf,image/*,.zip,.rar,.7z" onChange={(e) => handleFileUpload('testReport', e)} />
+                  <input type="file" className="hidden" accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" onChange={(e) => handleFileUpload('testReport', e)} />
                 </label>
               </div>
             </div>
@@ -705,7 +705,7 @@ export default function EnergyEfficiency({
                           <input 
                             type="file" 
                             multiple 
-                            accept="image/*"
+                            accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z"
                             className="hidden" 
                             onChange={(e) => handlePhotoUpload(group.id, e)}
                           />
@@ -1411,12 +1411,12 @@ export default function EnergyEfficiency({
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-black text-slate-600 uppercase tracking-tight">Haz clic para subir fotos</p>
-                    <p className="text-[10px] font-medium text-slate-400 uppercase mt-1">JPG, PNG (Máx. 500 MB)</p>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase mt-1">Formatos de diseño y web (Máx. 1 GB)</p>
                   </div>
                   <input 
                     type="file" 
                     multiple 
-                    accept="image/*" 
+                    accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" 
                     className="hidden" 
                     onChange={handleGalleryPhotoSelect}
                   />

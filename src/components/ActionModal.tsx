@@ -155,7 +155,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const acceptedTypes = '.jpg,.jpeg,.pdf,.ai,.zip,.rar,.7z';
+  const acceptedTypes = '.jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z';
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -253,7 +253,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                 >
                   <UploadCloud size={32} className="mx-auto text-gray-400 mb-3" />
                   <p className="text-sm font-medium text-gray-700">Haz clic para seleccionar o arrastra los archivos aquí</p>
-                  <p className="text-xs text-gray-500 mt-1">Formatos permitidos: {acceptedTypes} (Máx. 500 MB)</p>
+                  <p className="text-xs text-gray-500 mt-1">Formatos permitidos: {acceptedTypes} (Máx. 1 GB)</p>
                   <input 
                     type="file" 
                     ref={fileInputRef}

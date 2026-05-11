@@ -294,7 +294,7 @@ export default function CrNiCoatingAnalysis({ initialData, onExportPPT, onLoadRe
                 <label className="flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-sm font-bold cursor-pointer hover:bg-blue-100 transition-all">
                   <Upload size={18} />
                   Subir Foto
-                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                  <input type="file" accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" onChange={handleImageUpload} className="hidden" />
                 </label>
               )}
               {image && (
@@ -355,7 +355,7 @@ export default function CrNiCoatingAnalysis({ initialData, onExportPPT, onLoadRe
                   <label className="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold cursor-pointer hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">
                     <Upload size={20} />
                     Seleccionar Archivo
-                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    <input type="file" accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" onChange={handleImageUpload} className="hidden" />
                   </label>
                 </div>
               )}

@@ -391,7 +391,7 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                     {editingReg ? 'Actualizar Archivo (PDF, ZIP, etc.)' : 'Archivo (PDF, ZIP, etc.)'}
                   </label>
-                  <input type="file" name="file" className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" accept=".pdf,.zip,.rar,.7z" />
+                  <input type="file" name="file" className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" />
                 </div>
               </div>
               

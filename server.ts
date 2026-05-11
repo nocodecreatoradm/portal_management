@@ -115,7 +115,7 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json({ limit: '500mb' }));
+  app.use(express.json({ limit: '1024mb' }));
 
   // Helper to get Microsoft Graph Access Token
   async function getAzureAccessToken() {

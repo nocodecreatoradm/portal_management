@@ -432,7 +432,7 @@ export default function OvenExperimental({ initialData, onExportPPT }: OvenExper
                   ref={fileInputRef} 
                   onChange={handleImageUpload} 
                   className="hidden" 
-                  accept="image/*" 
+                  accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z" 
                 />
                 <button 
                   onClick={() => fileInputRef.current?.click()}
