@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
+import ErrorBoundary from './components/ErrorBoundary';
 import { Plus, Settings, FileText, ArrowLeft, Beaker } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { format } from 'date-fns';
@@ -102,6 +103,7 @@ export default function App() {
   
   // Filtered data
   const filteredData = data.filter(record => {
+    if (!record) return false;
     // Tracking type filter for followup modules
     const isFollowupModule = ['artwork_followup', 'technical_datasheet', 'commercial_datasheet'].includes(activeModule);
     if (isFollowupModule) {
@@ -318,10 +320,12 @@ export default function App() {
     if (modalConfig.record && modalConfig.type) {
       try {
         const newData = [...data];
-        const recordIndex = newData.findIndex(r => r.id === modalConfig.record?.id);
+        const recordId = modalConfig.record?.id;
+        const recordIndex = newData.findIndex(r => r.id === recordId);
         
         if (recordIndex > -1) {
           const record = { ...newData[recordIndex] };
+
           const docArrayKey = modalConfig.type === 'artwork' ? 'artworks' : 
                             modalConfig.type === 'technical_sheet' ? 'technicalSheets' : 'commercialSheets';
           
@@ -1317,7 +1321,9 @@ export default function App() {
             
             <main className="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar">
               <div className="w-full">
-                {renderModuleContent()}
+                <ErrorBoundary>
+                  {renderModuleContent()}
+                </ErrorBoundary>
               </div>
             </main>
           </div>

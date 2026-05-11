@@ -90,22 +90,23 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const uploadAndSave = async () => {
+      const toastId = toast.loading('Procesando solicitud...');
       setIsUploading(true);
       try {
         let fileInfos: FileInfo[] = [];
         
         if (action === 'upload' && files.length > 0) {
-          toast.loading(`Subiendo ${files.length} archivos...`);
+          toast.loading(`Subiendo ${files.length} archivos...`, { id: toastId });
           const uploadPromises = files.map(f => {
             const path = `products/${record.id}/${type}/${Date.now()}_${f.name}`;
             return SupabaseService.uploadFile('rd-files', path, f);
           });
           fileInfos = await Promise.all(uploadPromises);
-          toast.dismiss();
-          toast.success('Archivos subidos');
+          toast.success('Archivos subidos con éxito', { id: toastId });
         }
 
-        onSave({ 
+        // Importante: esperar a que onSave termine antes de cerrar
+        await onSave({ 
           comments, 
           changeDescription,
           files: fileInfos, 
@@ -131,14 +132,15 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
         setEstimatedShipmentDate('');
         setSelectedStatus(null);
         setError(null);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error during upload/save:', err);
-        toast.error('Error al procesar archivos');
+        toast.error(err.message || 'Error al procesar archivos', { id: toastId });
       } finally {
         setIsUploading(false);
-        toast.dismiss();
+        // No llamamos a toast.dismiss() global aquí para no borrar el toast.error
       }
     };
+
 
     uploadAndSave();
   };

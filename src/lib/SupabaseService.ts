@@ -1096,12 +1096,12 @@ export const SupabaseService = {
 
         if (error) {
           lastError = error;
-          console.warn(`Upload attempt ${attempt}/3 failed:`, error.message);
+          console.error(`Error en intento ${attempt}/3 de subida a "${bucket}":`, error);
           if (attempt < 3) {
             await new Promise(r => setTimeout(r, 1000 * attempt)); // Backoff: 1s, 2s
             continue;
           }
-          throw new Error(`Error al subir archivo "${file.name}" después de 3 intentos: ${error.message}`);
+          throw error;
         }
 
         const { data: { publicUrl } } = supabase.storage
@@ -1111,16 +1111,18 @@ export const SupabaseService = {
         return { name: file.name, url: publicUrl, type: file.type };
       } catch (err: any) {
         lastError = err;
+        console.error(`Excepción en intento ${attempt}/3 de subida:`, err);
         if (attempt < 3) {
-          console.warn(`Upload attempt ${attempt}/3 threw error:`, err.message);
           await new Promise(r => setTimeout(r, 1000 * attempt));
           continue;
         }
       }
     }
 
-    // All retries failed — throw clear error instead of falling back to base64
-    throw new Error(`No se pudo subir el archivo "${file.name}". Verifique su conexión a internet e intente nuevamente. Detalle: ${lastError?.message || 'Error desconocido'}`);
+    const errorDetail = lastError?.message || 'Error desconocido';
+    console.error('La subida de archivo falló definitivamente:', lastError);
+    throw new Error(`Error al subir el archivo "${file.name}" después de 3 intentos. Detalle: ${errorDetail}`);
+
   },
 
   // Compress images client-side before uploading

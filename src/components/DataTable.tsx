@@ -70,6 +70,7 @@ export default function DataTable({
       if (!value) return;
       const lowerValue = value.toLowerCase();
       result = result.filter(item => {
+        if (!item) return false;
         const itemValue = String((item as any)[key] || '').toLowerCase();
         return itemValue.includes(lowerValue);
       });
@@ -86,7 +87,11 @@ export default function DataTable({
         return 0;
       });
     } else {
-      result.sort((a, b) => b.correlativeId.localeCompare(a.correlativeId, undefined, { numeric: true }));
+      result.sort((a, b) => {
+        const idA = a.correlativeId || '';
+        const idB = b.correlativeId || '';
+        return idB.localeCompare(idA, undefined, { numeric: true });
+      });
     }
 
     return result;
@@ -147,18 +152,20 @@ export default function DataTable({
       {/* Cards for Mobile (lg:hidden) */}
       <div className="lg:hidden divide-y divide-slate-100">
         {filteredAndSortedData.map((record) => {
-          const currentVersions = mode === 'artwork' ? record.artworks : 
+          const currentVersions = mode === 'artwork' ? (record.artworks || []) : 
                                  mode === 'technical_sheet' ? (record.technicalSheets || []) : 
                                  (record.commercialSheets || []);
 
           const latestByCategory = mode === 'artwork' ? Object.values(
-            currentVersions.reduce((acc, v) => {
+            (currentVersions || []).reduce((acc, v) => {
+              if (!v) return acc;
               const key = v.category || 'Others';
               if (!acc[key] || acc[key].version < v.version) acc[key] = v;
               return acc;
             }, {} as Record<string, DocumentVersion>)
           ).sort((a: any, b: any) => (a.category || '').localeCompare(b.category || '')) as DocumentVersion[]
-          : (currentVersions.length > 0 ? [currentVersions.sort((a, b) => b.version - a.version)[0]] : []);
+          : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => b.version - a.version)[0]] : []);
+
 
           return (
             <div key={record.id} className="p-4 space-y-4">
@@ -394,18 +401,20 @@ export default function DataTable({
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filteredAndSortedData.map((record) => {
-              const currentVersions = mode === 'artwork' ? record.artworks : 
+              const currentVersions = mode === 'artwork' ? (record.artworks || []) : 
                                      mode === 'technical_sheet' ? (record.technicalSheets || []) : 
                                      (record.commercialSheets || []);
 
               const latestByCategory = mode === 'artwork' ? Object.values(
-                currentVersions.reduce((acc, v) => {
+                (currentVersions || []).reduce((acc, v) => {
+                  if (!v) return acc;
                   const key = v.category || 'Others';
                   if (!acc[key] || acc[key].version < v.version) acc[key] = v;
                   return acc;
                 }, {} as Record<string, DocumentVersion>)
               ).sort((a: any, b: any) => (a.category || '').localeCompare(b.category || '')) as DocumentVersion[]
-              : (currentVersions.length > 0 ? [currentVersions.sort((a, b) => b.version - a.version)[0]] : []);
+              : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => b.version - a.version)[0]] : []);
+
 
               return (
                 <tr 
