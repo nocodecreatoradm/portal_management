@@ -192,57 +192,76 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
           </div>
 
           <form id="action-form" onSubmit={handleSubmit} className="space-y-4">
-            {action === 'upload' && type === 'artwork' && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-gray-700">Categoría</label>
-                    <select 
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value as ArtworkCategory)}
-                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#52627e] outline-none"
-                    >
-                      {ARTWORK_CATEGORIES.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-gray-700">Subcategoría</label>
-                    <select 
-                      value={subcategory}
-                      onChange={(e) => setSubcategory(e.target.value as ArtworkSubcategory)}
-                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#52627e] outline-none"
-                    >
-                      {ARTWORK_SUBCATEGORIES.map(sub => (
-                        <option key={sub} value={sub}>{sub}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Show history for selected category */}
-                {docArray.filter(v => v.category === category && v.subcategory === subcategory).length > 0 && (
-                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1">
-                      <Clock size={12} />
-                      Última versión de esta categoría: V{Math.max(...docArray.filter(v => v.category === category && v.subcategory === subcategory).map(v => v.version))}
-                    </p>
-                    <div className="space-y-2">
-                      {docArray
-                        .filter(v => v.category === category && v.subcategory === subcategory)
-                        .sort((a, b) => b.version - a.version)
-                        .slice(0, 1)
-                        .map((v, i) => (
-                          <div key={i} className="text-xs text-slate-600 italic leading-relaxed">
-                            "{v.changeDescription || 'Sin descripción de cambios'}"
-                          </div>
-                        ))
-                      }
+            {action === 'upload' && (
+              <div className="space-y-4">
+                {type === 'artwork' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-semibold text-gray-700">Categoría</label>
+                      <select 
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value as ArtworkCategory)}
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#52627e] outline-none"
+                      >
+                        {ARTWORK_CATEGORIES.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-semibold text-gray-700">Subcategoría</label>
+                      <select 
+                        value={subcategory}
+                        onChange={(e) => setSubcategory(e.target.value as ArtworkSubcategory)}
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#52627e] outline-none"
+                      >
+                        {ARTWORK_SUBCATEGORIES.map(sub => (
+                          <option key={sub} value={sub}>{sub}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 )}
-              </>
+
+                {/* Show history/version preview */}
+                {(() => {
+                  const filteredDocs = type === 'artwork' 
+                    ? docArray.filter(v => v.category === category && v.subcategory === subcategory)
+                    : docArray;
+                  
+                  if (filteredDocs.length > 0) {
+                    const lastVersion = Math.max(...filteredDocs.map(v => v.version));
+                    const lastDoc = filteredDocs.find(v => v.version === lastVersion);
+                    return (
+                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <div className="flex justify-between items-center mb-2">
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                            <Clock size={12} />
+                            Última versión: V{lastVersion}
+                          </p>
+                          <span className="bg-indigo-100 text-indigo-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
+                            Nueva será V{lastVersion + 1}
+                          </span>
+                        </div>
+                        {lastDoc?.changeDescription && (
+                          <p className="text-xs text-slate-600 italic leading-relaxed">
+                            "{lastDoc.changeDescription}"
+                          </p>
+                        )}
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
+                          <CheckCircle size={12} />
+                          Esta será la Versión V1
+                        </p>
+                      </div>
+                    );
+                  }
+                })()}
+              </div>
             )}
 
             {action === 'upload' && (

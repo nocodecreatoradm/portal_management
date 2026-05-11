@@ -14,6 +14,7 @@ import { es } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { outlookService } from '../services/outlookService';
+import { getLimaNow } from '../lib/dateUtils';
 
 const parseLocalISO = (dateStr: string) => {
   if (!dateStr) return new Date();
@@ -27,7 +28,7 @@ export default function CalendarModule() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<CalendarTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(getLimaNow());
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<CalendarTask | null>(null);
@@ -97,7 +98,7 @@ export default function CalendarModule() {
 
   const handlePrevMonth = () => setCurrentDate(subMonths(currentDate, 1));
   const handleNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
-  const handleToday = () => setCurrentDate(new Date());
+  const handleToday = () => setCurrentDate(getLimaNow());
 
   const getStatusColor = (task: CalendarTask) => {
     if (task.type === 'holiday') return 'bg-rose-100 text-rose-700 border-rose-200';
@@ -145,7 +146,7 @@ export default function CalendarModule() {
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(editingTask.id);
         const change: ChangeLog = {
           id: `LOG-${Date.now()}`,
-          timestamp: new Date().toISOString(),
+          timestamp: getLimaNow().toISOString(),
           user: user?.name || 'Sistema',
           action: 'Actualización',
           details: `Se actualizó la tarea: ${taskData.title}`
@@ -277,7 +278,7 @@ export default function CalendarModule() {
             {calendarDays.map((day, idx) => {
               const dayStr = format(day, 'yyyy-MM-dd');
               const dayTasks = tasksByDay[dayStr] || [];
-              const isToday = isSameDay(day, new Date());
+              const isToday = isSameDay(day, getLimaNow());
               const isCurrentMonth = isSameMonth(day, currentDate);
 
               return (
@@ -534,7 +535,7 @@ export default function CalendarModule() {
                     <input 
                       type="datetime-local" 
                       name="deadline" 
-                      defaultValue={editingTask?.deadline || (selectedDay ? format(selectedDay, "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"))}
+                      defaultValue={editingTask?.deadline || (selectedDay ? format(selectedDay, "yyyy-MM-dd'T'HH:mm") : format(getLimaNow(), "yyyy-MM-dd'T'HH:mm"))}
                       required 
                       className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" 
                     />
@@ -546,7 +547,7 @@ export default function CalendarModule() {
                       <input 
                         type="date" 
                         name="startDate" 
-                        defaultValue={editingTask?.startDate || (selectedDay ? format(selectedDay, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"))}
+                        defaultValue={editingTask?.startDate || (selectedDay ? format(selectedDay, "yyyy-MM-dd") : format(getLimaNow(), "yyyy-MM-dd"))}
                         required 
                         className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" 
                       />
@@ -556,7 +557,7 @@ export default function CalendarModule() {
                       <input 
                         type="date" 
                         name="endDate" 
-                        defaultValue={editingTask?.endDate || (selectedDay ? format(selectedDay, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"))}
+                        defaultValue={editingTask?.endDate || (selectedDay ? format(selectedDay, "yyyy-MM-dd") : format(getLimaNow(), "yyyy-MM-dd"))}
                         required 
                         className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" 
                       />

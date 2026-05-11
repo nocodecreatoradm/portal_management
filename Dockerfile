@@ -20,6 +20,9 @@ FROM node:20-slim
 WORKDIR /app
 COPY --from=build /app ./
 
+# Set timezone to Lima, Peru
+ENV TZ=America/Lima
+
 # Install only production dependencies if needed, 
 # but since we need tsx to run server.ts, we'll keep all for now 
 # or ensure tsx is available.

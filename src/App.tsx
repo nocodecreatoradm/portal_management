@@ -332,8 +332,12 @@ export default function App() {
           const currentDocs = [...(record[docArrayKey] || [])];
 
           if (modalConfig.action === 'upload') {
-            const nextVersionNumber = currentDocs.length > 0 
-              ? Math.max(...currentDocs.map(v => v.version)) + 1 
+            const categoryDocs = modalConfig.type === 'artwork'
+              ? currentDocs.filter(v => v.category === actionData.category && v.subcategory === actionData.subcategory)
+              : currentDocs;
+            
+            const nextVersionNumber = categoryDocs.length > 0 
+              ? Math.max(...categoryDocs.map(v => v.version)) + 1 
               : 1;
 
             const standardizedFiles = actionData.files.map((f: any, index: number) => {

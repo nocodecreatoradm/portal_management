@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { toast } from 'sonner';
 import { CalculationRecord } from '../types';
+import { getLimaCorrelativeDate } from './dateUtils';
 
 export const saveCalculationRecord = async (
   moduleId: string, 
@@ -77,7 +78,7 @@ export const generateModuleCorrelative = async (moduleId: string, projectName: s
   try {
     const records = await fetchCalculationRecords(moduleId);
     const count = records.length + 1;
-    const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const date = getLimaCorrelativeDate();
     const prefixMap: Record<string, string> = {
       'water_demand': 'WD',
       'gas_heater_experimental': 'GH',

@@ -3,6 +3,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import pptxgen from 'pptxgenjs';
+import { getLimaNow } from './dateUtils';
 
 export const exportToExcel = (data: any[], fileName: string, sheetName: string = 'Datos') => {
   const ws = XLSX.utils.json_to_sheet(data);
@@ -35,7 +36,7 @@ const addHeader = (pdf: jsPDF, title: string, metadata?: { engineer?: string, pr
   }
   
   // Date
-  const dateStr = new Date().toLocaleDateString('es-PE', { 
+  const dateStr = getLimaNow().toLocaleDateString('es-PE', { 
     year: 'numeric', month: 'long', day: 'numeric',
     hour: '2-digit', minute: '2-digit'
   });
@@ -292,7 +293,7 @@ export const exportToPPT = async (
       x: 0, y: '40%', w: '100%', h: 1, 
       align: 'center', fontSize: 36, color: '1E293B', bold: true 
     });
-    titleSlide.addText(`Generado el ${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' })}`, { 
+    titleSlide.addText(`Generado el ${getLimaNow().toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' })}`, { 
       x: 0, y: '55%', w: '100%', h: 0.5, 
       align: 'center', fontSize: 14, color: '64748B' 
     });

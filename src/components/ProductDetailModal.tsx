@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, FileText, CheckCircle, ThumbsDown, Clock, Minus, Eye, Image as ImageIcon, Tag, Plus, Upload, Beaker, Wind, FlaskConical, Droplets, Thermometer, Flame, Database, ChevronRight, MessageSquare } from 'lucide-react';
+import { X, FileText, CheckCircle, ThumbsDown, Clock, Minus, Eye, Image as ImageIcon, Tag, Plus, Upload, Beaker, Wind, FlaskConical, Droplets, Thermometer, Flame, Database, ChevronRight, MessageSquare, Trash2 } from 'lucide-react';
 import { ProductRecord, DocumentVersion, Approval, Supplier, SampleRecord, FileInfo, CalculationRecord, ModuleId, PDFComment } from '../types';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
@@ -62,6 +62,52 @@ export default function ProductDetailModal({
     onUpdateRecord(record.id, { [listKey]: updatedList });
   };
 
+  const handleDeleteFileFromVersion = (version: DocumentVersion, fileIndex: number, type: string) => {
+    if (!record || !onUpdateRecord) return;
+    
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar el archivo "${version.files[fileIndex].name}"?`)) {
+      return;
+    }
+
+    const listKey = type === 'artwork' ? 'artworks' : 
+                    type === 'technical_sheet' ? 'technicalSheets' : 
+                    'commercialSheets';
+
+    const currentList = (record as any)[listKey] as DocumentVersion[];
+    const updatedList = currentList.map(v => {
+      if (v.version === version.version) {
+        const updatedFiles = v.files.filter((_, i) => i !== fileIndex);
+        return { ...v, files: updatedFiles };
+      }
+      return v;
+    });
+
+    onUpdateRecord(record.id, { [listKey]: updatedList });
+    toast.success('Archivo eliminado de la versión');
+  };
+
+  const handleDeleteVersion = async (version: DocumentVersion, type: string) => {
+    if (!record || !onUpdateRecord) return;
+    
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar la Versión V${version.version}? Esta acción no se puede deshacer y reiniciará el flujo si es la única versión.`)) {
+      return;
+    }
+
+    const listKey = type === 'artwork' ? 'artworks' : 
+                    type === 'technical_sheet' ? 'technicalSheets' : 
+                    'commercialSheets';
+
+    const currentList = (record as any)[listKey] as DocumentVersion[];
+    const updatedList = currentList.filter(v => v.version !== version.version);
+
+    try {
+      onUpdateRecord(record.id, { [listKey]: updatedList });
+      toast.success('Versión eliminada correctamente');
+    } catch (error) {
+      toast.error('Error al eliminar la versión');
+    }
+  };
+
   const handleGalleryPhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
@@ -83,6 +129,18 @@ export default function ProductDetailModal({
         toast.error('Error al subir fotos');
       }
     }
+  };
+
+  const handleDeleteGalleryItem = (itemId: string) => {
+    if (!record || !onUpdateRecord) return;
+    
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este grupo de imágenes de la galería?')) {
+      return;
+    }
+
+    const updatedGallery = (record.gallery || []).filter(item => item.id !== itemId);
+    onUpdateRecord(record.id, { gallery: updatedGallery });
+    toast.success('Grupo de imágenes eliminado');
   };
 
   const handleConfirmGalleryUpload = () => {
@@ -231,6 +289,13 @@ export default function ProductDetailModal({
                         Aplica a: {v.aplicaA}
                       </span>
                     )}
+                    <button
+                      onClick={() => handleDeleteVersion(v, type)}
+                      className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                      title="Eliminar esta versión"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
 
                   {v.changeDescription && (
@@ -259,14 +324,27 @@ export default function ProductDetailModal({
                   <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-50 items-center justify-between">
                     <div className="flex flex-wrap gap-2">
                       {v.files.map((f, fIdx) => (
-                        <a 
-                          key={fIdx}
-                          href={f.url}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 transition-colors group"
-                        >
-                          <FileText size={14} className="text-slate-400 group-hover:text-indigo-500" />
-                          <span className="text-[11px] font-bold truncate max-w-[150px]">{f.name}</span>
-                        </a>
+                        <div key={fIdx} className="flex items-center gap-1 group/file">
+                          <a 
+                            href={f.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 transition-colors group"
+                          >
+                            <FileText size={14} className="text-slate-400 group-hover:text-indigo-500" />
+                            <span className="text-[11px] font-bold truncate max-w-[150px]">{f.name}</span>
+                          </a>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleDeleteFileFromVersion(v, fIdx, type);
+                            }}
+                            className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg opacity-0 group-hover/file:opacity-100 transition-all"
+                            title="Eliminar archivo"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
                       ))}
                     </div>
 
@@ -499,8 +577,17 @@ export default function ProductDetailModal({
                 record.gallery.map((item) => (
                   <div key={item.id} className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm group">
                     <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                      <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{item.category}</span>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase">{format(parseISO(item.uploadDate), 'dd/MM/yyyy HH:mm')}</span>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{item.category}</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">{format(parseISO(item.uploadDate), 'dd/MM/yyyy HH:mm')}</span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteGalleryItem(item.id)}
+                        className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-white rounded-lg transition-all"
+                        title="Eliminar este grupo"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                     <div className="p-4 grid grid-cols-3 gap-2">
                       {item.photos.map((photo, idx) => (

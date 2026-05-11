@@ -46,6 +46,7 @@ import { toast } from 'sonner';
 import { exportToExcel, generateReportPDF } from '../lib/exportUtils';
 import { saveCalculationRecord } from '../lib/api';
 import { outlookService } from '../services/outlookService';
+import { getLimaNow } from '../lib/dateUtils';
 
 
 interface WorkPlanProps {
@@ -68,7 +69,7 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewDate, setViewDate] = useState(new Date());
+  const [viewDate, setViewDate] = useState(getLimaNow());
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   
@@ -126,7 +127,7 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
       });
     });
 
-    exportToExcel(exportData, `Plan_Trabajo_RD_${format(new Date(), 'yyyyMMdd')}`);
+    exportToExcel(exportData, `Plan_Trabajo_RD_${format(getLimaNow(), 'yyyyMMdd')}`);
     saveCalculationRecord('work_plan', 'export_excel', exportData, user?.email || 'unknown');
   };
 
@@ -137,7 +138,7 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
       { contentId: 'workplan-audit', title: 'Historial de Auditoría' }
     ];
 
-    await generateReportPDF(sections, `Informe_Plan_Trabajo_${format(new Date(), 'yyyyMMdd')}`, 'Informe de Plan de Trabajo R&D');
+    await generateReportPDF(sections, `Informe_Plan_Trabajo_${format(getLimaNow(), 'yyyyMMdd')}`, 'Informe de Plan de Trabajo R&D');
     saveCalculationRecord('work_plan', 'export_pdf', { sections }, user?.email || 'unknown');
   };
 
@@ -392,8 +393,8 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
         name: '',
         progress: 0,
         status: 'NO INICIADO',
-        plannedStartDate: format(new Date(), 'yyyy-MM-dd'),
-        plannedEndDate: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
+        plannedStartDate: format(getLimaNow(), 'yyyy-MM-dd'),
+        plannedEndDate: format(addMonths(getLimaNow(), 1), 'yyyy-MM-dd'),
         responsible: ['Carlos Hoyos'],
         classification: 'Plan inicial'
       }
