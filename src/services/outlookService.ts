@@ -65,7 +65,7 @@ export const outlookService = {
     if (nameOrEmail.includes('@')) return [nameOrEmail];
 
     try {
-      const { data: profiles } = await SupabaseService.getProfiles();
+      const profiles = await SupabaseService.getProfiles();
       const profile = profiles?.find(p => p.full_name?.toLowerCase() === nameOrEmail.toLowerCase());
       return profile?.email ? [profile.email] : [];
     } catch (e) {
@@ -79,7 +79,7 @@ export const outlookService = {
    */
   getDepartmentEmails: async (department: string): Promise<string[]> => {
     try {
-      const { data: profiles } = await SupabaseService.getProfiles();
+      const profiles = await SupabaseService.getProfiles();
       return (profiles || [])
         .filter(p => p.department?.toLowerCase() === department.toLowerCase() && p.is_active)
         .map(p => p.email)
@@ -95,7 +95,7 @@ export const outlookService = {
    */
   getAdminEmails: async (): Promise<string[]> => {
     try {
-      const { data: profiles } = await SupabaseService.getProfiles();
+      const profiles = await SupabaseService.getProfiles();
       return (profiles || [])
         .filter(p => p.role?.toLowerCase() === 'admin' && p.is_active)
         .map(p => p.email)

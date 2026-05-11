@@ -4,6 +4,7 @@ import { ProductRecord, DocumentVersion, Supplier, SampleRecord } from '../types
 import StatusIcon from './StatusIcon';
 import HeaderFilterPopover from './HeaderFilterPopover';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../contexts/PermissionsContext';
 
 interface DataTableProps {
   data: ProductRecord[];
@@ -38,11 +39,12 @@ export default function DataTable({
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const { profile } = useAuth();
+  const { hasPermission } = usePermissions();
 
   const hasScope = (record: ProductRecord) => {
     if (!profile) return false;
     if (profile.role === 'admin') return true;
-    if (!profile.scopes || profile.scopes.length === 0) return false;
+    if (!profile.scopes || profile.scopes.length === 0) return true; // Global access if no scopes defined
     
     return profile.scopes.some(scope => {
       const matchBrand = !scope.brand || scope.brand === record.marca;
@@ -121,8 +123,19 @@ export default function DataTable({
                              stage === 'PLAN' ? v.planApproval : v.provApproval;
             
             // Permisos basados en departamento y alcance de marca/línea
-            const isConfiguredArea = profile?.department === (approvers?.[stage] || stage);
-            const canApprove = profile?.role === 'admin' || (isConfiguredArea && hasScope(record));
+            const isConfiguredApprover = profile?.full_name === approvers?.[stage];
+            const normalizedDept = profile?.department?.toLowerCase() || '';
+            const isCorrectDepartment = 
+              (stage === 'I+D' && (normalizedDept.includes('i+d') || normalizedDept.includes('innovación'))) ||
+              (stage === 'MKT' && (normalizedDept.includes('mkt') || normalizedDept.includes('marketing'))) ||
+              (stage === 'PLAN' && (normalizedDept.includes('plan') || normalizedDept.includes('planeamiento'))) ||
+              (stage === 'PROV' && (normalizedDept.includes('prov') || normalizedDept.includes('proveedor')));
+
+            const requiredPermission = type === 'artwork' ? 'artwork:approve' : 'technical_sheets:approve';
+            const hasPerm = hasPermission(requiredPermission);
+
+            const canApprove = profile?.role === 'admin' || 
+                              ((isConfiguredApprover || (isCorrectDepartment && hasPerm)) && hasScope(record));
 
             return (
               <div key={idx} className="h-8 flex items-center justify-center">
