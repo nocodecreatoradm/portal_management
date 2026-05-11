@@ -149,6 +149,17 @@ export const outlookService = {
   sendStageApprovalEmail: async (record: ProductRecord, version: DocumentVersion, stage: string, stageName: string, comments: string, user: string) => {
     const subject = `[APROBACIÓN ${stage}] - ${record.codigoSAP} - ${record.descripcionSAP}`;
     const title = `Documento Aprobado (${stage})`;
+    
+    // Determine the next stage and its recipients
+    let nextRecipients: string[] = [];
+    if (stage === 'I+D') {
+      nextRecipients = await outlookService.getDepartmentEmails('Marketing');
+    } else if (stage === 'MKT') {
+      nextRecipients = record.correoProveedor || [];
+    } else if (stage === 'PROV') {
+      nextRecipients = await outlookService.getDepartmentEmails('Planeamiento');
+    }
+
     const content = `
       <p>Se ha registrado la <strong>${stageName}</strong> para el producto <strong>${record.codigoSAP}</strong>.</p>
       <p><strong>Versión:</strong> V${version.version}</p>
@@ -163,10 +174,11 @@ export const outlookService = {
                             record.technicalAssignment?.designerEmail || 
                             record.commercialAssignment?.designerEmail || 
                             '';
-      const recipients = [...new Set([designerEmail, ...adminEmails])].filter(Boolean);
+      
+      const recipients = [...new Set([designerEmail, ...adminEmails, ...nextRecipients])].filter(Boolean);
       await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
     } catch (e) {
-      console.error(e);
+      console.error('Error sending stage approval email:', e);
     }
   },
 

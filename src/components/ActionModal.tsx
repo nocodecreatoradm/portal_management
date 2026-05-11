@@ -102,7 +102,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
             return SupabaseService.uploadFile('rd-files', path, f);
           });
           fileInfos = await Promise.all(uploadPromises);
-          toast.success('Archivos subidos con éxito', { id: toastId });
+          toast.loading('Archivos subidos. Guardando cambios...', { id: toastId });
         }
 
         // Importante: esperar a que onSave termine antes de cerrar
@@ -123,6 +123,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
           userId: user?.id
         });
         
+        toast.dismiss(toastId);
         onClose();
         setFiles([]);
         setComments('');
@@ -137,7 +138,6 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
         toast.error(err.message || 'Error al procesar archivos', { id: toastId });
       } finally {
         setIsUploading(false);
-        // No llamamos a toast.dismiss() global aquí para no borrar el toast.error
       }
     };
 
