@@ -5,6 +5,8 @@ import { fileURLToPath } from "url";
 import Database from "better-sqlite3";
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
+import { generateBlobSASQueryParameters, BlobSASPermissions, StorageSharedKeyCredential } from "@azure/storage-blob";
+import { runFullAzureMigration } from "./src/lib/azureMigrationHelper.ts";
 
 dotenv.config();
 
@@ -145,7 +147,94 @@ async function startServer() {
     return data.access_token;
   }
 
+  function parseAzureConnectionString(connStr: string) {
+    const parts = connStr.split(';');
+    let accountName = '';
+    let accountKey = '';
+    for (const part of parts) {
+      if (part.startsWith('AccountName=')) {
+        accountName = part.split('=')[1];
+      } else if (part.startsWith('AccountKey=')) {
+        accountKey = part.substring('AccountKey='.length);
+      }
+    }
+    return { accountName, accountKey };
+  }
+
   // API Routes
+  
+  // Endpoint to generate temporary Azure SAS Upload URLs
+  app.post("/api/azure-sas-upload", async (req, res) => {
+    const { fileName, fileType } = req.body;
+    if (!fileName) {
+      return res.status(400).json({ error: "fileName is required" });
+    }
+
+    try {
+      const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+      const containerName = process.env.AZURE_STORAGE_CONTAINER;
+
+      if (!connectionString || !containerName) {
+        return res.status(500).json({ error: "Azure Storage is not configured on the server" });
+      }
+
+      const { accountName, accountKey } = parseAzureConnectionString(connectionString);
+      if (!accountName || !accountKey) {
+        return res.status(500).json({ error: "Invalid Azure Storage connection string" });
+      }
+
+      const credential = new StorageSharedKeyCredential(accountName, accountKey);
+      
+      // Standardize the blob name / path
+      const blobName = fileName;
+      
+      const expiresOn = new Date();
+      expiresOn.setMinutes(expiresOn.getMinutes() + 15); // 15 mins expiry
+      
+      const sasToken = generateBlobSASQueryParameters({
+        containerName,
+        blobName,
+        permissions: BlobSASPermissions.parse("cw"), // create + write
+        startsOn: new Date(new Date().valueOf() - 5 * 60 * 1000), // clock skew buffer
+        expiresOn,
+      }, credential).toString();
+
+      const sasUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}?${sasToken}`;
+      const publicUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}`;
+
+      res.json({ sasUrl, publicUrl });
+    } catch (error: any) {
+      console.error("Error generating Azure SAS URL:", error);
+      res.status(500).json({ error: error.message || "Failed to generate SAS URL" });
+    }
+  });
+
+  // Endpoint to migrate existing files from Supabase to Azure via Server-Sent Events (SSE)
+  app.get("/api/azure-migrate", async (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    
+    const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING || "";
+    const containerName = process.env.AZURE_STORAGE_CONTAINER || "";
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
+    const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "";
+    
+    const sendLog = (message: string) => {
+      res.write(`data: ${JSON.stringify({ message })}\n\n`);
+    };
+
+    try {
+      await runFullAzureMigration(connectionString, containerName, supabaseUrl, supabaseKey, sendLog);
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      res.end();
+    } catch (err: any) {
+      sendLog(`❌ Fatal Migration Error: ${err.message || err}`);
+      res.write(`data: ${JSON.stringify({ error: err.message || err })}\n\n`);
+      res.end();
+    }
+  });
+
   app.post("/api/send-email", async (req, res) => {
     const { to, subject, body, attachments } = req.body;
     const userEmail = process.env.AZURE_MAIL_USER;

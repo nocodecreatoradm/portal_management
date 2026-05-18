@@ -1089,31 +1089,43 @@ export const SupabaseService = {
     let lastError: any = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        const { data, error } = await supabase.storage
-          .from(bucket)
-          .upload(sanitizedPath, fileToUpload, {
-            cacheControl: '3600',
-            upsert: true
-          });
+        // 1. Get the dynamic SAS url from our backend
+        const sasResponse = await fetch('/api/azure-sas-upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fileName: sanitizedPath,
+            fileType: file.type
+          })
+        });
 
-        if (error) {
-          lastError = error;
-          console.error(`Error en intento ${attempt}/3 de subida a "${bucket}":`, error);
-          if (attempt < 3) {
-            await new Promise(r => setTimeout(r, 1000 * attempt)); // Backoff: 1s, 2s
-            continue;
-          }
-          throw error;
+        if (!sasResponse.ok) {
+          const errData = await sasResponse.json();
+          throw new Error(errData.error || `Failed to fetch SAS URL (HTTP ${sasResponse.status})`);
         }
 
-        const { data: { publicUrl } } = supabase.storage
-          .from(bucket)
-          .getPublicUrl(data.path);
+        const { sasUrl, publicUrl } = await sasResponse.json() as { sasUrl: string; publicUrl: string };
+
+        // 2. Perform direct PUT upload to Azure Blob Storage
+        const uploadResponse = await fetch(sasUrl, {
+          method: 'PUT',
+          headers: {
+            'x-ms-blob-type': 'BlockBlob',
+            'Content-Type': file.type
+          },
+          body: fileToUpload
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Azure Blob Storage upload failed (HTTP ${uploadResponse.status})`);
+        }
 
         return { name: file.name, url: publicUrl, type: file.type };
       } catch (err: any) {
         lastError = err;
-        console.error(`Excepción en intento ${attempt}/3 de subida:`, err);
+        console.error(`Excepción en intento ${attempt}/3 de subida a Azure:`, err);
         if (attempt < 3) {
           await new Promise(r => setTimeout(r, 1000 * attempt));
           continue;
