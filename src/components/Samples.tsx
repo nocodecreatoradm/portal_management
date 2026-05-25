@@ -839,7 +839,12 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                             <ImageIcon className="w-3 h-3 text-slate-300" />
                           )}
                         </div>
-                        <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">{sample.proveedor}</span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">
+                            {suppliers.find(s => s.id === sample.proveedor || s.legalName === sample.proveedor || s.erpCode === sample.codProv)?.commercialAlias || sample.proveedor}
+                          </span>
+                          <span className="text-[9px] font-medium text-slate-400">Cod: {sample.codProv || '-'}</span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-5">
@@ -1326,7 +1331,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Proveedor</label>
-                      <input type="text" readOnly value={selectedSample.proveedor} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 outline-none" />
+                      <input type="text" readOnly value={suppliers.find(s => s.id === selectedSample.proveedor || s.legalName === selectedSample.proveedor || s.erpCode === selectedSample.codProv)?.commercialAlias || selectedSample.proveedor} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 outline-none" />
                     </div>
                   </div>
 
@@ -1500,7 +1505,9 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                         <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
                           <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest block mb-1">Muestra Actual</span>
                           <p className="text-sm font-black text-blue-900 uppercase">{selectedSample.descripcionSAP}</p>
-                          <p className="text-[10px] font-bold text-blue-600">{selectedSample.proveedor}</p>
+                          <p className="text-[10px] font-bold text-blue-600">
+                            {suppliers.find(s => s.id === selectedSample.proveedor || s.legalName === selectedSample.proveedor || s.erpCode === selectedSample.codProv)?.commercialAlias || selectedSample.proveedor}
+                          </p>
                         </div>
                         {selectedSample.inspectionForm?.map(section => (
                           <div key={section.id} className="space-y-4">
@@ -1562,7 +1569,9 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                               </button>
                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Comparativa</span>
                               <p className="text-sm font-black text-slate-800 uppercase">{compSample.descripcionSAP}</p>
-                              <p className="text-[10px] font-bold text-slate-500">{compSample.proveedor}</p>
+                              <p className="text-[10px] font-bold text-slate-500">
+                                {suppliers.find(s => s.id === compSample.proveedor || s.legalName === compSample.proveedor || s.erpCode === compSample.codProv)?.commercialAlias || compSample.proveedor}
+                              </p>
                             </div>
                             {compSample.inspectionForm?.map(section => (
                               <div key={section.id} className="space-y-4">
@@ -1683,7 +1692,9 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Proveedor</span>
-                  <p className="text-sm font-black text-slate-800 uppercase">{selectedSampleForDetail.proveedor}</p>
+                  <p className="text-sm font-black text-slate-800 uppercase">
+                    {suppliers.find(s => s.id === selectedSampleForDetail.proveedor || s.legalName === selectedSampleForDetail.proveedor || s.erpCode === selectedSampleForDetail.codProv)?.commercialAlias || selectedSampleForDetail.proveedor}
+                  </p>
                   <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">Código: {selectedSampleForDetail.codProv || '-'}</p>
                 </div>
                 <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
@@ -2023,11 +2034,15 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                   </tr>
                   <tr>
                     <td className="p-6 text-xs font-bold text-slate-500 uppercase bg-slate-50/30 sticky left-0 z-10 border-r border-slate-100">Proveedor</td>
-                    {comparisonIds.map(id => (
-                      <td key={id} className="p-6 text-xs font-bold text-slate-700 uppercase text-center border-r border-slate-100">
-                        {samples.find(s => s.id === id)?.proveedor}
-                      </td>
-                    ))}
+                    {comparisonIds.map(id => {
+                      const foundSample = samples.find(s => s.id === id);
+                      const provName = foundSample ? (suppliers.find(s => s.id === foundSample.proveedor || s.legalName === foundSample.proveedor || s.erpCode === foundSample.codProv)?.commercialAlias || foundSample.proveedor) : '';
+                      return (
+                        <td key={id} className="p-6 text-xs font-bold text-slate-700 uppercase text-center border-r border-slate-100">
+                          {provName}
+                        </td>
+                      );
+                    })}
                   </tr>
                   <tr>
                     <td className="p-6 text-xs font-bold text-slate-500 uppercase bg-slate-50/30 sticky left-0 z-10 border-r border-slate-100">Marca</td>

@@ -26,6 +26,7 @@ export interface PDFComment {
   user: string;
   date: string;
   resolved?: boolean;
+  fileIndex?: number;
 }
 
 export interface DocumentVersion {

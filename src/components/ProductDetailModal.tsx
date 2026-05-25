@@ -55,7 +55,7 @@ export default function ProductDetailModal({
 
     const currentList = (record as any)[listKey] as DocumentVersion[];
     const updatedList = currentList.map(v => 
-      v.version === reviewingVersion.version.version ? { ...v, pdfComments: newComments } : v
+      v.version === reviewingVersion.version.version && v.category === reviewingVersion.version.category && v.subcategory === reviewingVersion.version.subcategory ? { ...v, pdfComments: newComments } : v
     );
 
     // Update the parent/database
@@ -75,7 +75,7 @@ export default function ProductDetailModal({
 
     const currentList = (record as any)[listKey] as DocumentVersion[];
     const updatedList = currentList.map(v => {
-      if (v.version === version.version) {
+      if (v.version === version.version && v.category === version.category && v.subcategory === version.subcategory) {
         const updatedFiles = v.files.filter((_, i) => i !== fileIndex);
         return { ...v, files: updatedFiles };
       }
@@ -98,7 +98,7 @@ export default function ProductDetailModal({
                     'commercialSheets';
 
     const currentList = (record as any)[listKey] as DocumentVersion[];
-    const updatedList = currentList.filter(v => v.version !== version.version);
+    const updatedList = currentList.filter(v => !(v.version === version.version && v.category === version.category && v.subcategory === version.subcategory));
 
     try {
       onUpdateRecord(record.id, { [listKey]: updatedList });
@@ -446,18 +446,22 @@ export default function ProductDetailModal({
                         alt={record.proveedor}
                         className="max-w-full max-h-full object-contain"
                         referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(record.proveedor)}&background=f1f5f9&color=64748b&bold=true`;
-                        }}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            const provName = suppliers.find(s => s.id === record.proveedor || s.legalName === record.proveedor || s.erpCode === record.codProv)?.commercialAlias || record.proveedor;
+                            target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(provName)}&background=f1f5f9&color=64748b&bold=true`;
+                          }}
                       />
                     ) : (
                       <ImageIcon className="w-8 h-8 text-slate-300" />
                     )}
                   </div>
-                  <div>
-                    <p className="text-sm font-black text-slate-900 uppercase">{record.proveedor}</p>
-                    <p className="text-xs font-bold text-red-600">{record.codProv}</p>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Proveedor</span>
+                    <p className="text-sm font-black text-slate-900 uppercase">
+                      {suppliers.find(s => s.id === record.proveedor || s.legalName === record.proveedor || s.erpCode === record.codProv)?.commercialAlias || record.proveedor}
+                    </p>
+                    <p className="text-xs font-bold text-slate-500 uppercase">Cod: {record.codProv}</p>
                   </div>
                 </div>
               </div>

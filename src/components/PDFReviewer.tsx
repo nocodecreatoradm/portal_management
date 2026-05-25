@@ -43,6 +43,8 @@ export default function PDFReviewer({
                   activeFile?.url.match(/\.(jpg|jpeg|png|webp|gif|avif)$/i) ||
                   (activeFile?.url.includes('unsplash.com') && !activeFile?.url.includes('.pdf'));
 
+  const activeComments = comments.filter(c => c.fileIndex === undefined ? activeFileIndex === 0 : c.fileIndex === activeFileIndex);
+
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
     setPageNumber(1);
@@ -70,7 +72,8 @@ export default function PDFReviewer({
       text: newComment,
       user: user?.name || 'Sistema',
       date: new Date().toISOString(),
-      resolved: false
+      resolved: false,
+      fileIndex: activeFileIndex
     };
 
     onSaveComment(comment);
@@ -231,7 +234,7 @@ export default function PDFReviewer({
             )}
 
             {/* Comments Indicators - Logic Updated to handle scaling */}
-            {comments.map((comment, index) => (
+            {activeComments.map((comment, index) => (
               <motion.div 
                 key={comment.id}
                 initial={{ scale: 0, opacity: 0 }}
@@ -310,14 +313,14 @@ export default function PDFReviewer({
                   <p className="text-[10px] font-black text-rose-400 uppercase tracking-[0.2em]">Pendientes</p>
                   <Clock size={14} className="text-rose-400 opacity-40" />
                 </div>
-                <p className="text-4xl font-black text-white">{comments.filter(c => !c.resolved).length}</p>
+                <p className="text-4xl font-black text-white">{activeComments.filter(c => !c.resolved).length}</p>
               </div>
               <div className="bg-white/5 border border-white/5 rounded-3xl p-5 transition-all hover:bg-white/10 group/stat">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">Atendidos</p>
                   <CheckCircle size={14} className="text-emerald-400 opacity-40" />
                 </div>
-                <p className="text-4xl font-black text-white">{comments.filter(c => c.resolved).length}</p>
+                <p className="text-4xl font-black text-white">{activeComments.filter(c => c.resolved).length}</p>
               </div>
             </div>
           </div>
@@ -373,7 +376,7 @@ export default function PDFReviewer({
             </AnimatePresence>
 
             <div className="space-y-6">
-              {comments.length === 0 && !isAddingComment ? (
+              {activeComments.length === 0 && !isAddingComment ? (
                 <div className="py-32 text-center px-12 opacity-30">
                   <div className="w-24 h-24 bg-white/5 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-white/5">
                     <MessageSquare size={32} className="text-slate-500" />
@@ -384,7 +387,7 @@ export default function PDFReviewer({
                   </p>
                 </div>
               ) : (
-                comments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((comment, i) => (
+                activeComments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((comment, i) => (
                   <motion.div 
                     key={comment.id}
                     layout
@@ -399,7 +402,7 @@ export default function PDFReviewer({
                     <div className="flex items-center justify-between mb-8">
                       <div className="flex items-center gap-5">
                         <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 flex items-center justify-center text-indigo-400 font-black text-xs border border-indigo-500/20">
-                          #{comments.length - i}
+                          #{activeComments.length - i}
                         </div>
                         <div>
                           <p className="text-[13px] font-black text-white uppercase tracking-widest leading-none">{comment.user}</p>
