@@ -1226,7 +1226,7 @@ export default function EnergyEfficiency({
                   <td className="px-6 py-5">
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-slate-700 uppercase">
-                        {suppliers.find(s => s.id === record.proveedor || s.legalName === record.proveedor)?.commercialAlias || record.proveedor}
+                        {suppliers.find(s => record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor))?.commercialAlias || record.proveedor}
                       </span>
                       <span className="text-[10px] text-slate-400 font-medium uppercase">{record.ocp}</span>
                     </div>

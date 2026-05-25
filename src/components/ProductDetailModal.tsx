@@ -448,7 +448,7 @@ export default function ProductDetailModal({
                         referrerPolicy="no-referrer"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            const provName = suppliers.find(s => s.id === record.proveedor || s.legalName === record.proveedor || s.erpCode === record.codProv)?.commercialAlias || record.proveedor;
+                            const provName = suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor;
                             target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(provName)}&background=f1f5f9&color=64748b&bold=true`;
                           }}
                       />
@@ -459,7 +459,7 @@ export default function ProductDetailModal({
                   <div className="flex-1 min-w-0">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Proveedor</span>
                     <p className="text-sm font-black text-slate-900 uppercase">
-                      {suppliers.find(s => s.id === record.proveedor || s.legalName === record.proveedor || s.erpCode === record.codProv)?.commercialAlias || record.proveedor}
+                      {suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor}
                     </p>
                     <p className="text-xs font-bold text-slate-500 uppercase">Cod: {record.codProv}</p>
                   </div>

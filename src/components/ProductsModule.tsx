@@ -893,7 +893,7 @@ export default function ProductsModule({
                     <td className="px-6 py-4">
                       <p className="text-sm font-bold text-slate-900">{record.descripcionSAP}</p>
                       <p className="text-xs text-slate-500 font-medium">
-                        {suppliers.find(s => s.id === record.proveedor || s.legalName === record.proveedor || s.erpCode === record.codProv)?.commercialAlias || record.proveedor}
+                        {suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor}
                       </p>
                     </td>
                     <td className="px-6 py-4">
@@ -991,7 +991,7 @@ export default function ProductsModule({
                     </span>
                     <h3 className="text-lg font-bold text-slate-900 mt-2 line-clamp-1">{record.descripcionSAP}</h3>
                     <p className="text-sm text-slate-500 font-medium">
-                      {suppliers.find(s => s.id === record.proveedor || s.legalName === record.proveedor || s.erpCode === record.codProv)?.commercialAlias || record.proveedor}
+                      {suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor}
                     </p>
                   </div>
                   <div className="flex gap-1">

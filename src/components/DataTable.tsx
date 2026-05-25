@@ -225,7 +225,7 @@ export default function DataTable({
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-xs font-black text-slate-900 uppercase truncate">
-                    {suppliers.find(s => s.id === record.proveedor || s.legalName === record.proveedor || s.erpCode === record.codProv)?.commercialAlias || record.proveedor}
+                    {suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor}
                   </h4>
                   <p className="text-[10px] font-bold text-slate-400 mt-0.5">{record.codigoSAP} / {record.codigoEAN}</p>
                   <p className="text-[11px] font-bold text-slate-600 mt-1 uppercase line-clamp-2 leading-tight">
@@ -473,7 +473,7 @@ export default function DataTable({
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-4 border-r border-gray-100 text-[10px] text-slate-500 uppercase whitespace-normal min-w-[150px]" title={suppliers.find(s => s.id === record.proveedor || s.legalName === record.proveedor || s.erpCode === record.codProv)?.commercialAlias || record.proveedor}>
+                  <td className="px-4 py-4 border-r border-gray-100 text-[10px] text-slate-500 uppercase whitespace-normal min-w-[150px]" title={suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor}>
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center p-1 border border-slate-100 shrink-0">
                         {getSupplierLogo(record.codProv) ? (
@@ -484,7 +484,7 @@ export default function DataTable({
                             referrerPolicy="no-referrer"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
-                              const displayName = suppliers.find(s => s.id === record.proveedor || s.legalName === record.proveedor || s.erpCode === record.codProv)?.commercialAlias || record.proveedor;
+                              const displayName = suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor;
                               target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=f1f5f9&color=64748b&bold=true`;
                             }}
                           />
@@ -494,7 +494,7 @@ export default function DataTable({
                       </div>
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-700">
-                          {suppliers.find(s => s.id === record.proveedor || s.legalName === record.proveedor || s.erpCode === record.codProv)?.commercialAlias || record.proveedor}
+                          {suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor}
                         </span>
                         <span className="text-[9px] text-slate-400">{record.codProv}</span>
                       </div>
