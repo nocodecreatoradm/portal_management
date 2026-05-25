@@ -216,7 +216,7 @@ export const SupabaseService = {
       .select(`
         *,
         brand:brands(name),
-        supplier:suppliers(legal_name),
+        supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         line:product_lines(name),
         category:categories(name)
       `)
@@ -243,7 +243,7 @@ export const SupabaseService = {
       .insert(dbSample)
       .select(`
         *,
-        supplier:suppliers(legal_name, erp_code),
+        supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         brand:brands(name),
         line:product_lines(name)
       `)
@@ -270,7 +270,7 @@ export const SupabaseService = {
       .eq('id', id)
       .select(`
         *,
-        supplier:suppliers(legal_name, erp_code),
+        supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         brand:brands(name),
         line:product_lines(name)
       `)
@@ -303,7 +303,7 @@ export const SupabaseService = {
         additional_provider_documents, created_at, updated_at, 
         artwork_assignment, technical_assignment, commercial_assignment, tracking_type, linked_group_id,
         brand:brands(name),
-        supplier:suppliers(legal_name),
+        supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         line:product_lines(name),
         sample:samples(correlative_id)
       `);
@@ -332,7 +332,7 @@ export const SupabaseService = {
       .select(`
         *,
         brand:brands(name),
-        supplier:suppliers(legal_name),
+        supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         line:product_lines(name),
         sample:samples(correlative_id)
       `)
@@ -372,7 +372,7 @@ export const SupabaseService = {
       .select(`
         *,
         brand:brands(name),
-        supplier:suppliers(legal_name),
+        supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         line:product_lines(name),
         sample:samples(correlative_id)
       `)
@@ -411,7 +411,7 @@ export const SupabaseService = {
       .select(`
         *,
         brand:brands(name),
-        supplier:suppliers(legal_name),
+        supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         line:product_lines(name),
         sample:samples(correlative_id)
       `)
@@ -449,7 +449,7 @@ export const SupabaseService = {
         fob_price, fob_price_history, explode_files, additional_provider_documents, gallery, 
         approved_documents, created_at, updated_at,
         brand:brands(name),
-        supplier:suppliers(legal_name),
+        supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         line:product_lines(name)
       `)
       .order('created_at', { ascending: false });
@@ -465,7 +465,7 @@ export const SupabaseService = {
       .select(`
         *,
         brand:brands(name),
-        supplier:suppliers(legal_name),
+        supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         line:product_lines(name)
       `)
       .single();
@@ -483,7 +483,7 @@ export const SupabaseService = {
       .select(`
         *,
         brand:brands(name),
-        supplier:suppliers(legal_name),
+        supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         line:product_lines(name)
       `)
       .single();

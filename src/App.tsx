@@ -654,12 +654,15 @@ export default function App() {
             resolved.proveedor = supplier.id;
             // UPDATE supplier's email if provided
             if (record.correoProveedor && record.correoProveedor.length > 0) {
-              const currentEmails = Array.isArray(supplier.email) ? supplier.email : (supplier.email ? [supplier.email] : []);
+              const currentEmails = Array.isArray(supplier.email) 
+                ? supplier.email 
+                : (supplier.email ? supplier.email.split(',').map((e: string) => e.trim()).filter(Boolean) : []);
               const mergedEmails = Array.from(new Set([...currentEmails, ...record.correoProveedor]));
               if (mergedEmails.length !== currentEmails.length || !currentEmails.every(e => mergedEmails.includes(e))) {
                 try {
-                  await SupabaseService.updateSupplier(supplier.id, { email: mergedEmails as any });
-                  setSuppliers(prev => prev.map(s => s.id === supplier.id ? { ...s, email: mergedEmails as any } : s));
+                  const newEmailString = mergedEmails.join(', ');
+                  await SupabaseService.updateSupplier(supplier.id, { email: newEmailString });
+                  setSuppliers(prev => prev.map(s => s.id === supplier.id ? { ...s, email: newEmailString } : s));
                 } catch (err) { console.warn('Error updating supplier emails:', err); }
               }
             }
@@ -670,7 +673,7 @@ export default function App() {
                 legalName: record.proveedor,
                 commercialAlias: record.proveedor,
                 erpCode: record.codProv || 'NEW',
-                email: record.correoProveedor || []
+                email: record.correoProveedor ? record.correoProveedor.join(', ') : ''
               });
               resolved.proveedor = newSupplier.id;
               setSuppliers(prev => [...prev, newSupplier]);

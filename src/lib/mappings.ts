@@ -331,7 +331,11 @@ export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
   proveedor: dbProduct.supplier?.commercial_alias || dbProduct.supplier?.legal_name || dbProduct.supplier_id || 'Desconocido',
   linea: dbProduct.line?.name || dbProduct.line_id || 'AGUA CALIENTE',
   codProv: dbProduct.supplier?.erp_code || '',
-  correoProveedor: dbProduct.supplier?.email ? (Array.isArray(dbProduct.supplier.email) ? dbProduct.supplier.email : [dbProduct.supplier.email]) : [],
+  correoProveedor: dbProduct.supplier?.email 
+    ? (Array.isArray(dbProduct.supplier.email) 
+        ? dbProduct.supplier.email 
+        : dbProduct.supplier.email.split(',').map((e: string) => e.trim()).filter(Boolean))
+    : [],
   artworks: dbProduct.explode_files ? dbProduct.explode_files.filter((d: any) => d.category !== 'Technical Sheet' && d.category !== 'Commercial Sheet') : [],
   technicalSheets: dbProduct.explode_files ? dbProduct.explode_files.filter((d: any) => d.category === 'Technical Sheet') : [],
   commercialSheets: dbProduct.explode_files ? dbProduct.explode_files.filter((d: any) => d.category === 'Commercial Sheet') : [],
