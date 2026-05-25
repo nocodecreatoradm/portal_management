@@ -36,6 +36,20 @@ export const outlookService = {
   },
 
   /**
+   * Helper to generate a deep link to the portal
+   */
+  getModuleUrl: (type: string) => {
+    const t = type?.toLowerCase() || '';
+    let moduleParam = 'artwork_followup'; // default
+    if (t.includes('technical') || t.includes('fichas') || t.includes('técnica')) moduleParam = 'technical_datasheet';
+    if (t.includes('commercial') || t.includes('comercial')) moduleParam = 'commercial_sheet';
+    
+    // In browser context
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://portal-management.mtindustrial.com.pe';
+    return `${origin}?module=${moduleParam}`;
+  },
+
+  /**
    * Generic send method
    */
   send: async (to: string | string[], subject: string, htmlBody: string) => {
@@ -162,7 +176,8 @@ export const outlookService = {
     `;
 
     try {
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
+      const actionUrl = outlookService.getModuleUrl(moduleType);
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
       toast.success('Notificación de aprobación enviada');
     } catch (e) {
       toast.error('Error al enviar notificación de aprobación');
@@ -172,7 +187,7 @@ export const outlookService = {
   /**
    * Notifies an intermediate stage approval.
    */
-  sendStageApprovalEmail: async (record: ProductRecord, version: DocumentVersion, stage: string, stageName: string, comments: string, user: string) => {
+  sendStageApprovalEmail: async (record: ProductRecord, version: DocumentVersion, stage: string, stageName: string, comments: string, user: string, moduleType: string = 'artwork') => {
     const subject = `[APROBACIÓN ${stage}] - ${record.codigoSAP} - ${record.descripcionSAP}`;
     const title = `Documento Aprobado (${stage})`;
     
@@ -202,7 +217,8 @@ export const outlookService = {
                             '';
       
       const recipients = [...new Set([designerEmail, ...adminEmails, ...nextRecipients])].filter(Boolean);
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
+      const actionUrl = outlookService.getModuleUrl(moduleType);
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
     } catch (e) {
       console.error('Error sending stage approval email:', e);
     }
@@ -234,7 +250,8 @@ export const outlookService = {
       const adminEmails = await outlookService.getAdminEmails();
       const recipients = [...new Set([...resolvedDesigner, ...adminEmails])].filter(Boolean);
       
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
+      const actionUrl = outlookService.getModuleUrl(type);
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
       toast.success('Notificación de observación enviada');
     } catch (e) {
       console.error(e);
@@ -265,7 +282,8 @@ export const outlookService = {
       const resolvedProvider = await outlookService.resolveEmail(record.correoProveedor?.[0] || record.proveedor);
       const recipients = [...new Set([...resolvedProvider, ...adminEmails, designerEmail])].filter(Boolean);
       
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
+      const actionUrl = outlookService.getModuleUrl(type);
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
     } catch (e) {
       console.error(e);
     }
@@ -293,7 +311,8 @@ export const outlookService = {
       const adminEmails = await outlookService.getAdminEmails();
       const recipients = [...new Set([...assigneeEmails, ...adminEmails])].filter(Boolean);
       
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
+      const actionUrl = outlookService.getModuleUrl(type);
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
       toast.success('Notificación de asignación enviada');
     } catch (e) {
       console.error(e);
@@ -328,7 +347,9 @@ export const outlookService = {
       
       const adminEmails = await outlookService.getAdminEmails();
       const recipients = [...new Set([...idEmails, designerEmail, ...adminEmails].filter(Boolean))];
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
+      
+      const actionUrl = outlookService.getModuleUrl(type);
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
       toast.info('Notificación de inicio de flujo enviada');
     } catch (e) {
       console.error(e);
@@ -355,9 +376,11 @@ export const outlookService = {
 
     try {
       const adminEmails = await outlookService.getAdminEmails();
-      const idEmails = await outlookService.getDepartmentEmails('I+D');
+      const idEmails = await outlookService.getDepartmentEmailsForRecord('I+D', null as any); // fallback
       const recipients = [...new Set([...adminEmails, ...idEmails])].filter(Boolean);
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
+      
+      const actionUrl = outlookService.getModuleUrl(type);
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
     } catch (e) {
       console.error(e);
     }
@@ -384,9 +407,13 @@ export const outlookService = {
 
     try {
       const adminEmails = await outlookService.getAdminEmails();
-      const idEmails = await outlookService.getDepartmentEmails('I+D');
+      const idEmails = await outlookService.getDepartmentEmailsForRecord('I+D', null as any); // fallback
       const recipients = [...new Set([...adminEmails, ...idEmails])].filter(Boolean);
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content));
+      
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://portal-management.mtindustrial.com.pe';
+      const actionUrl = `${origin}?module=calendar`;
+      
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
       if (isNew) toast.success('Notificación de calendario enviada');
     } catch (e) {
       console.error('Error sending calendar notification:', e);

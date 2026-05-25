@@ -178,6 +178,15 @@ export default function App() {
     type: null,
   });
 
+  // Parse query parameters for deep linking
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const moduleParam = params.get('module') as ModuleId;
+    if (moduleParam) {
+      setActiveModule(moduleParam);
+    }
+  }, []);
+
   // Load core data from Supabase (lightweight initial load)
   useEffect(() => {
     const loadCoreData = async () => {
