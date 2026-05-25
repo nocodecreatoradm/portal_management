@@ -162,8 +162,8 @@ export default function ProductDetailModal({
     setGalleryCategory('');
   };
 
-  const getSupplierLogo = (codProv: string) => {
-    const supplier = suppliers.find(s => s.erpCode === codProv);
+  const getSupplierLogo = (recordObj: ProductRecord) => {
+    const supplier = suppliers.find(s => (recordObj.proveedor && (s.id === recordObj.proveedor || s.legalName === recordObj.proveedor)) || (recordObj.codProv && s.erpCode === recordObj.codProv));
     return supplier?.logoUrl;
   };
 
@@ -440,9 +440,9 @@ export default function ProductDetailModal({
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Proveedor</p>
                 <div className="flex items-center gap-4 bg-white p-3 rounded-xl border border-slate-200">
                   <div className="w-16 h-16 bg-slate-50 rounded-lg flex items-center justify-center p-2 border border-slate-100 shrink-0">
-                    {getSupplierLogo(record.codProv) ? (
+                    {getSupplierLogo(record) ? (
                       <img 
-                        src={getSupplierLogo(record.codProv)} 
+                        src={getSupplierLogo(record)} 
                         alt={record.proveedor}
                         className="max-w-full max-h-full object-contain"
                         referrerPolicy="no-referrer"
@@ -461,7 +461,7 @@ export default function ProductDetailModal({
                     <p className="text-sm font-black text-slate-900 uppercase">
                       {suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor}
                     </p>
-                    <p className="text-xs font-bold text-slate-500 uppercase">Cod: {record.codProv}</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase">Cod: {record.codProv || suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)))?.erpCode || 'N/A'}</p>
                   </div>
                 </div>
               </div>

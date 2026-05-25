@@ -172,6 +172,14 @@ export const outlookService = {
         <p style="margin: 4px 0;"><strong>Descripción:</strong> ${record.descripcionSAP}</p>
         <p style="margin: 4px 0;"><strong>Versión:</strong> V${version.version}</p>
       </div>
+      ${version.files && version.files.length > 0 ? `
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Archivos Aprobados (Enlaces de Descarga):</p>
+        <ul style="margin: 0; padding-left: 20px;">
+          ${version.files.map(f => `<li style="margin-bottom: 8px;"><a href="${f.url}" target="_blank" style="color: #2563eb; text-decoration: underline;">${f.name || f.originalName || 'Archivo'}</a></li>`).join('')}
+        </ul>
+      </div>
+      ` : ''}
       <p>Ya pueden proceder con el siguiente paso del proceso.</p>
     `;
 
@@ -206,6 +214,14 @@ export const outlookService = {
       <p><strong>Versión:</strong> V${version.version}</p>
       <p><strong>Aprobado por:</strong> ${user}</p>
       ${comments ? `<p><strong>Comentarios:</strong> ${comments}</p>` : ''}
+      ${version.files && version.files.length > 0 ? `
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Archivos (Enlaces de Descarga):</p>
+        <ul style="margin: 0; padding-left: 20px;">
+          ${version.files.map(f => `<li style="margin-bottom: 8px;"><a href="${f.url}" target="_blank" style="color: #2563eb; text-decoration: underline;">${f.name || f.originalName || 'Archivo'}</a></li>`).join('')}
+        </ul>
+      </div>
+      ` : ''}
       <p>El flujo continuará a la siguiente etapa de revisión.</p>
     `;
 
@@ -333,6 +349,14 @@ export const outlookService = {
         <p style="margin: 4px 0;"><strong>Subido por:</strong> ${version.uploadedBy}</p>
         <p style="margin: 4px 0;"><strong>Descripción:</strong> ${version.changeDescription || 'Sin descripción'}</p>
       </div>
+      ${version.files && version.files.length > 0 ? `
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Archivos Adjuntos (Enlaces de Descarga):</p>
+        <ul style="margin: 0; padding-left: 20px;">
+          ${version.files.map(f => `<li style="margin-bottom: 8px;"><a href="${f.url}" target="_blank" style="color: #2563eb; text-decoration: underline;">${f.name || f.originalName || 'Archivo'}</a></li>`).join('')}
+        </ul>
+      </div>
+      ` : ''}
       <p>Por favor, ingrese al portal para realizar la aprobación técnica o de marketing según corresponda.</p>
     `;
 

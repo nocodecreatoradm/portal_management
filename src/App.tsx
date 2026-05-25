@@ -650,13 +650,27 @@ export default function App() {
         }
         if (record.proveedor) {
           const supplier = suppliers.find(s => s.legalName === record.proveedor || s.commercialAlias === record.proveedor);
-          if (supplier) resolved.proveedor = supplier.id;
+          if (supplier) {
+            resolved.proveedor = supplier.id;
+            // UPDATE supplier's email if provided
+            if (record.correoProveedor && record.correoProveedor.length > 0) {
+              const currentEmails = Array.isArray(supplier.email) ? supplier.email : (supplier.email ? [supplier.email] : []);
+              const mergedEmails = Array.from(new Set([...currentEmails, ...record.correoProveedor]));
+              if (mergedEmails.length !== currentEmails.length || !currentEmails.every(e => mergedEmails.includes(e))) {
+                try {
+                  await SupabaseService.updateSupplier(supplier.id, { email: mergedEmails as any });
+                  setSuppliers(prev => prev.map(s => s.id === supplier.id ? { ...s, email: mergedEmails as any } : s));
+                } catch (err) { console.warn('Error updating supplier emails:', err); }
+              }
+            }
+          }
           else if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record.proveedor)) {
             try {
               const newSupplier = await SupabaseService.createSupplier({
                 legalName: record.proveedor,
                 commercialAlias: record.proveedor,
-                erpCode: record.codProv || 'NEW'
+                erpCode: record.codProv || 'NEW',
+                email: record.correoProveedor || []
               });
               resolved.proveedor = newSupplier.id;
               setSuppliers(prev => [...prev, newSupplier]);
@@ -668,18 +682,7 @@ export default function App() {
 
       if (existingIndex > -1) {
         const existingRecord = data[existingIndex];
-        const resolvedUpdates = await resolveMetadata({
-          codigoSAP: newRecord.codigoSAP,
-          codigoEAN: newRecord.codigoEAN,
-          descripcionSAP: newRecord.descripcionSAP,
-          proveedor: newRecord.proveedor,
-          codProv: newRecord.codProv,
-          correoProveedor: newRecord.correoProveedor,
-          marca: newRecord.marca,
-          linea: newRecord.linea,
-          correlativeId: newRecord.correlativeId,
-          sampleId: newRecord.sampleId,
-        });
+        const resolvedUpdates = await resolveMetadata(newRecord);
 
         if (isFollowupModule && existingRecord.linkedGroupId) {
           // Update all records in the same group
