@@ -18,7 +18,6 @@ interface DataTableProps {
   onEdit?: (record: ProductRecord) => void;
   onDelete?: (record: ProductRecord) => void;
   mode?: 'artwork' | 'technical_sheet' | 'commercial_sheet';
-  approvers?: { [key: string]: string };
 }
 
 export default function DataTable({ 
@@ -32,8 +31,7 @@ export default function DataTable({
   onStartFlow,
   onEdit,
   onDelete,
-  mode = 'artwork',
-  approvers
+  mode = 'artwork'
 }: DataTableProps) {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
@@ -123,7 +121,6 @@ export default function DataTable({
                              stage === 'PLAN' ? v.planApproval : v.provApproval;
             
             // Permisos basados en departamento y alcance de marca/línea
-            const isConfiguredApprover = profile?.full_name === approvers?.[stage];
             const normalizedDept = profile?.department?.toLowerCase() || '';
             const isCorrectDepartment = 
               (stage === 'I+D' && (normalizedDept.includes('i+d') || normalizedDept.includes('innovación'))) ||
@@ -135,7 +132,7 @@ export default function DataTable({
             const hasPerm = hasPermission(requiredPermission);
 
             const canApprove = profile?.role === 'admin' || 
-                              ((isConfiguredApprover || (isCorrectDepartment && hasPerm)) && hasScope(record));
+                              (isCorrectDepartment && hasPerm && hasScope(record));
 
             return (
               <div key={idx} className="h-8 flex items-center justify-center">

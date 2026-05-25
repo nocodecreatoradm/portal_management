@@ -17,7 +17,7 @@ import DataTable from './components/DataTable';
 import ActionModal from './components/ActionModal';
 import ProductDetailModal from './components/ProductDetailModal';
 import NewRequestModal from './components/NewRequestModal';
-import ApproverConfigModal from './components/ApproverConfigModal';
+
 import AssignmentModal from './components/AssignmentModal';
 import InfoRequestModal from './components/InfoRequestModal';
 import CommercialArtworks from './components/CommercialArtworks';
@@ -48,7 +48,7 @@ import ModuleActions from './components/ModuleActions';
 import { exportToExcel, generateReportPDF, exportToPPT } from './lib/exportUtils';
 import { saveCalculationRecord, fetchCalculationRecords } from './lib/api';
 import { outlookService } from './services/outlookService';
-import { initialApprovers } from './data/mockData';
+
 
 import { LandingPage } from './components/LandingPage';
 import { 
@@ -86,11 +86,9 @@ export default function App() {
   const [loadingData, setLoadingData] = useState(true);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [calculationRecords, setCalculationRecords] = useState<CalculationRecord[]>([]);
-  const [approvers, setApprovers] = useState(initialApprovers);
   const [brands, setBrands] = useState<any[]>([]);
   const [productLines, setProductLines] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
-  const [isApproverModalOpen, setIsApproverModalOpen] = useState(false);
   const [moduleInitialData, setModuleInitialData] = useState<Record<ModuleId, any>>({} as any);
   const [energyEfficiency, setEnergyEfficiency] = useState<any[]>([]);
   const [productManagement, setProductManagement] = useState<any[]>([]);
@@ -193,8 +191,7 @@ export default function App() {
           SupabaseService.getSuppliers(),
           SupabaseService.getSamples(),
           SupabaseService.getBrands(),
-          SupabaseService.getProductLines(),
-          SupabaseService.getApprovers()
+          SupabaseService.getProductLines()
         ]);
 
         const [
@@ -202,8 +199,7 @@ export default function App() {
           suppliersRes,
           samplesRes,
           brandsRes,
-          linesRes,
-          approversRes
+          linesRes
         ] = results;
 
         if (productsRes.status === 'fulfilled') setData(productsRes.value);
@@ -229,8 +225,7 @@ export default function App() {
           console.error('Error loading categories:', e);
         }
 
-        if (approversRes.status === 'fulfilled') setApprovers(approversRes.value);
-        else console.error('Error loading approvers:', approversRes.reason);
+
 
         // Load calculations lazily (non-blocking)
         fetchCalculationRecords()
@@ -1104,13 +1099,6 @@ export default function App() {
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
               <button 
-                onClick={() => setIsApproverModalOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-600 hover:text-blue-600 hover:bg-white rounded-lg transition-all"
-              >
-                <Settings size={16} />
-                <span className="hidden sm:inline">Aprobadores</span>
-              </button>
-              <button 
                 onClick={() => setShowReport(true)}
                 className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-600 hover:text-blue-600 hover:bg-white rounded-lg transition-all"
               >
@@ -1173,7 +1161,6 @@ export default function App() {
               }
             }}
             mode={mode}
-            approvers={approvers}
           />
         </div>
       </div>
@@ -1367,30 +1354,7 @@ export default function App() {
             initialData={editingProduct}
           />
 
-          <ApproverConfigModal
-            isOpen={isApproverModalOpen}
-            onClose={() => setIsApproverModalOpen(false)}
-            currentApprovers={approvers}
-            onSave={async (newApprovers, reason) => {
-              try {
-                const dbApprover = {
-                  id_approver: newApprovers['I+D'],
-                  mkt_approver: newApprovers['MKT'],
-                  plan_approver: newApprovers['PLAN'],
-                  prov_approver: newApprovers['PROV'],
-                  reason: reason,
-                  is_active: true
-                };
-                
-                await SupabaseService.createApprover(dbApprover);
-                setApprovers(newApprovers);
-                toast.success('Configuración de aprobadores actualizada');
-              } catch (error) {
-                console.error('Error saving approvers:', error);
-                toast.error('Error al guardar aprobadores');
-              }
-            }}
-          />
+
 
           <AssignmentModal
             isOpen={isAssignmentModalOpen}

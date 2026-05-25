@@ -7,6 +7,7 @@ interface Profile {
   email: string;
   full_name: string;
   role: string;
+  department?: string;
   avatar_url?: string;
   scopes?: { brand: string; line: string }[];
 }
@@ -58,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name, role, avatar_url, scopes')
+        .select('id, email, full_name, role, department, avatar_url, scopes')
         .eq('id', userId)
         .single();
 
