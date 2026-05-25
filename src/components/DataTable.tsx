@@ -209,25 +209,9 @@ export default function DataTable({
                 </div>
               </div>
 
-              {/* Card Content: Provider and Product */}
               <div className="flex items-start gap-3">
-                <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center p-1 border border-slate-100 shrink-0">
-                  {getSupplierLogo(record.codProv) ? (
-                    <img 
-                      src={getSupplierLogo(record.codProv)} 
-                      alt={record.proveedor}
-                      className="max-w-full max-h-full object-contain"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <ImageIcon className="w-6 h-6 text-slate-300" />
-                  )}
-                </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-xs font-black text-slate-900 uppercase truncate">
-                    {suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor}
-                  </h4>
-                  <p className="text-[10px] font-bold text-slate-400 mt-0.5">{record.codigoSAP} / {record.codigoEAN}</p>
+                  <p className="text-[10px] font-bold text-slate-400 mt-0.5">{record.codigoSAP}</p>
                   <p className="text-[11px] font-bold text-slate-600 mt-1 uppercase line-clamp-2 leading-tight">
                     {record.descripcionSAP}
                   </p>
@@ -306,28 +290,7 @@ export default function DataTable({
                   onSortChange={handleSortChange} 
                 />
               </th>
-              <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100">
-                Proveedor
-                <HeaderFilterPopover 
-                  column="proveedor" 
-                  label="Proveedor" 
-                  currentFilter={columnFilters.proveedor || ''} 
-                  onFilterChange={handleFilterChange} 
-                  currentSort={sortConfig} 
-                  onSortChange={handleSortChange} 
-                />
-              </th>
-              <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100 whitespace-nowrap">
-                Código EAN
-                <HeaderFilterPopover 
-                  column="codigoEAN" 
-                  label="Código EAN" 
-                  currentFilter={columnFilters.codigoEAN || ''} 
-                  onFilterChange={handleFilterChange} 
-                  currentSort={sortConfig} 
-                  onSortChange={handleSortChange} 
-                />
-              </th>
+
               <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100 whitespace-nowrap">
                 Código SAP
                 <HeaderFilterPopover 
@@ -473,34 +436,7 @@ export default function DataTable({
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-4 border-r border-gray-100 text-[10px] text-slate-500 uppercase whitespace-normal min-w-[150px]" title={suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center p-1 border border-slate-100 shrink-0">
-                        {getSupplierLogo(record.codProv) ? (
-                          <img 
-                            src={getSupplierLogo(record.codProv)} 
-                            alt={record.proveedor}
-                            className="max-w-full max-h-full object-contain"
-                            referrerPolicy="no-referrer"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              const displayName = suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor;
-                              target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=f1f5f9&color=64748b&bold=true`;
-                            }}
-                          />
-                        ) : (
-                          <ImageIcon className="w-5 h-5 text-slate-300" />
-                        )}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-slate-700">
-                          {suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor}
-                        </span>
-                        <span className="text-[9px] text-slate-400">{record.codProv}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 border-r border-gray-100 font-mono text-xs text-slate-600">{record.codigoEAN}</td>
+
                   <td className="px-4 py-4 border-r border-gray-100 font-mono text-xs text-slate-600 font-bold">{record.codigoSAP}</td>
                   <td className="px-4 py-4 border-r border-gray-100 text-slate-700 font-bold uppercase text-[11px] leading-tight max-w-[200px]">
                     {record.descripcionSAP}

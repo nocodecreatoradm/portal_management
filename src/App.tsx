@@ -122,11 +122,18 @@ export default function App() {
 
   // Extract unique providers for the dropdown in NewRequestModal
   const uniqueProviders: { name: string; emails: string[]; code: string }[] = useMemo(() => {
-    const fromData = data.map(item => ({
-      name: item.proveedor,
-      emails: item.correoProveedor,
-      code: item.codProv
-    }));
+    const fromData = data.map(item => {
+      let resolvedName = item.proveedor;
+      const s = suppliers.find(sup => sup.id === item.proveedor || sup.legalName === item.proveedor);
+      if (s) {
+        resolvedName = s.commercialAlias || s.legalName || item.proveedor;
+      }
+      return {
+        name: resolvedName,
+        emails: item.correoProveedor,
+        code: item.codProv || (s ? s.erpCode : '')
+      };
+    });
     const fromSuppliers = suppliers.map(sup => ({
       name: sup.commercialAlias || sup.legalName,
       emails: Array.isArray(sup.email) ? sup.email : (sup.email ? [sup.email] : []),

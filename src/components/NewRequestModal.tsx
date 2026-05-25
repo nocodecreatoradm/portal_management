@@ -349,7 +349,7 @@ export default function NewRequestModal({
       setFormData(prev => ({
         ...prev,
         proveedor: provider.name,
-        correoProveedor: [...provider.emails],
+        correoProveedor: Array.isArray(provider.emails) ? [...provider.emails] : [],
         codProv: provider.code
       }));
     }
