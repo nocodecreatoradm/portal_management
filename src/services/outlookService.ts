@@ -91,6 +91,32 @@ export const outlookService = {
   },
 
   /**
+   * Helper to get all emails for a specific department/stage filtered by record's brand/line scopes.
+   */
+  getDepartmentEmailsForRecord: async (department: string, record: ProductRecord): Promise<string[]> => {
+    try {
+      const profiles = await SupabaseService.getProfiles();
+      return (profiles || [])
+        .filter(p => {
+          if (p.department?.toLowerCase() !== department.toLowerCase() || !p.is_active) return false;
+          // Global access if no scopes defined or admin
+          if (p.role === 'admin' || !p.scopes || p.scopes.length === 0) return true;
+          
+          return p.scopes.some((scope: any) => {
+            const matchBrand = !scope.brand || scope.brand === record.marca;
+            const matchLine = !scope.line || scope.line === record.linea;
+            return matchBrand && matchLine;
+          });
+        })
+        .map(p => p.email)
+        .filter(Boolean);
+    } catch (e) {
+      console.error('Error getting scoped department emails:', e);
+      return [];
+    }
+  },
+
+  /**
    * Helper to get all administrator emails.
    */
   getAdminEmails: async (): Promise<string[]> => {
@@ -153,11 +179,11 @@ export const outlookService = {
     // Determine the next stage and its recipients
     let nextRecipients: string[] = [];
     if (stage === 'I+D') {
-      nextRecipients = await outlookService.getDepartmentEmails('Marketing');
+      nextRecipients = await outlookService.getDepartmentEmailsForRecord('Marketing', record);
     } else if (stage === 'MKT') {
       nextRecipients = record.correoProveedor || [];
     } else if (stage === 'PROV') {
-      nextRecipients = await outlookService.getDepartmentEmails('Planeamiento');
+      nextRecipients = await outlookService.getDepartmentEmailsForRecord('Planeamiento', record);
     }
 
     const content = `
@@ -293,7 +319,7 @@ export const outlookService = {
 
     try {
       // Find recipients for the first stage (usually I+D)
-      const idEmails = await outlookService.getDepartmentEmails('I+D');
+      const idEmails = await outlookService.getDepartmentEmailsForRecord('I+D', record);
       // Also notify the assignee if any
       const designerEmail = record.artworkAssignment?.designerEmail || 
                             record.technicalAssignment?.designerEmail || 
