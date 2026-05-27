@@ -256,6 +256,13 @@ export default function NewRequestModal({
     if (initialData) return; // Prevent going back if editing
     setStep(1);
     setArtworkType(null);
+    setFormData(prev => ({
+      ...prev,
+      proveedor: '',
+      codProv: '',
+      correoProveedor: [],
+      sampleId: ''
+    }));
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -385,10 +392,13 @@ export default function NewRequestModal({
   };
 
   const handleCancel = () => {
-    if (!initialData && (formData.codigoSAP || formData.descripcionSAP || formData.proveedor)) {
+    // Only ask to keep draft if they actually typed something meaningful, not just selecting type
+    if (!initialData && (formData.codigoSAP || formData.descripcionSAP)) {
       if (confirm('¿Deseas descartar el borrador actual?')) {
         sessionStorage.removeItem('new_request_draft');
       }
+    } else if (!initialData) {
+      sessionStorage.removeItem('new_request_draft');
     }
     onClose();
   };
