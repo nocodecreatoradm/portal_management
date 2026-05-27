@@ -1,12 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Eye, Edit2, Trash2, FileText, Upload, Image as ImageIcon, UserPlus, HelpCircle, AlertCircle, Beaker, Search, X, Clock, Send } from 'lucide-react';
+import { Eye, Edit2, Trash2, FileText, Upload, Image as ImageIcon, UserPlus, HelpCircle, AlertCircle, Beaker, Search, X, Clock, Send, Calendar } from 'lucide-react';
 import { ProductRecord, DocumentVersion, Supplier, SampleRecord } from '../types';
 import StatusIcon from './StatusIcon';
 import HeaderFilterPopover from './HeaderFilterPopover';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../contexts/PermissionsContext';
 import { format, parseISO, differenceInDays } from 'date-fns';
-import { usePermissions } from '../contexts/PermissionsContext';
 
 interface DataTableProps {
   data: ProductRecord[];
