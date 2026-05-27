@@ -100,6 +100,16 @@ export interface InfoRequest {
   };
 }
 
+export interface DateChangeHistory {
+  date: string;
+  user: string;
+  previousStartDate?: string;
+  newStartDate?: string;
+  previousEndDate?: string;
+  newEndDate?: string;
+  reason: string;
+}
+
 export interface AssignmentInfo {
   designer?: string;
   designerEmail?: string;
@@ -108,6 +118,7 @@ export interface AssignmentInfo {
   assignmentDate?: string;
   actualCompletionDate?: string;
   infoRequests?: InfoRequest[];
+  dateChangeHistory?: DateChangeHistory[];
 }
 
 export interface ProductRecord {

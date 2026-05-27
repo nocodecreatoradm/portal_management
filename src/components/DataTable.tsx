@@ -5,6 +5,8 @@ import StatusIcon from './StatusIcon';
 import HeaderFilterPopover from './HeaderFilterPopover';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../contexts/PermissionsContext';
+import { format, parseISO, differenceInDays } from 'date-fns';
+import { usePermissions } from '../contexts/PermissionsContext';
 
 interface DataTableProps {
   data: ProductRecord[];
@@ -16,6 +18,7 @@ interface DataTableProps {
   onInfoRequest?: (record: ProductRecord, type: 'artwork' | 'technical_sheet' | 'commercial_sheet') => void;
   onStartFlow?: (record: ProductRecord, version: DocumentVersion) => void;
   onEdit?: (record: ProductRecord) => void;
+  onEditDates?: (record: ProductRecord, type: 'artwork' | 'technical_sheet' | 'commercial_sheet') => void;
   onDelete?: (record: ProductRecord) => void;
   mode?: 'artwork' | 'technical_sheet' | 'commercial_sheet';
 }
@@ -30,6 +33,7 @@ export default function DataTable({
   onInfoRequest,
   onStartFlow,
   onEdit,
+  onEditDates,
   onDelete,
   mode = 'artwork'
 }: DataTableProps) {
@@ -61,6 +65,67 @@ export default function DataTable({
     if (!sampleId) return null;
     const sample = samples.find(s => s.id === sampleId);
     return sample?.correlativeId;
+  };
+
+  const isNearDeadline = (dateStr?: string) => {
+    if (!dateStr) return false;
+    try {
+      const daysDiff = differenceInDays(parseISO(dateStr), new Date());
+      return daysDiff <= 2;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const getRecordStatus = (record: ProductRecord, currentMode: 'artwork' | 'technical_sheet' | 'commercial_sheet', latestVersions: DocumentVersion[]) => {
+    const assignment = currentMode === 'artwork' ? record.artworkAssignment : currentMode === 'technical_sheet' ? record.technicalAssignment : record.commercialAssignment;
+    
+    if (!assignment?.designer) {
+      return { label: 'Sin Asignar', color: 'bg-slate-100 text-slate-600 border-slate-200' };
+    }
+    
+    if (latestVersions.length === 0) {
+      return { label: 'Pendiente de Arte', color: 'bg-blue-100 text-blue-700 border-blue-200' };
+    }
+
+    // Check if any is rejected
+    const hasRejected = latestVersions.some(v => 
+      v.idApproval.status === 'rejected' || 
+      (currentMode === 'artwork' && (v.mktApproval.status === 'rejected' || v.provApproval.status === 'rejected' || v.planApproval.status === 'rejected'))
+    );
+    if (hasRejected) {
+      return { label: 'Observado', color: 'bg-red-100 text-red-700 border-red-200' };
+    }
+
+    // Check if all approved
+    const allApproved = latestVersions.every(v => {
+      const idOk = v.idApproval.status === 'approved';
+      if (currentMode !== 'artwork') return idOk;
+      return idOk && v.mktApproval.status === 'approved' && v.provApproval.status === 'approved' && v.planApproval.status === 'approved';
+    });
+    if (allApproved) {
+      return { label: 'Aprobado Final', color: 'bg-green-100 text-green-700 border-green-200' };
+    }
+
+    // Determine pending stages
+    const hasIdPending = latestVersions.some(v => v.idApproval.status === 'pending');
+    if (hasIdPending) {
+      return { label: 'En Revisión I+D', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
+    }
+
+    if (currentMode === 'artwork') {
+      const hasMktPending = latestVersions.some(v => v.mktApproval.status === 'pending');
+      if (hasMktPending) {
+        return { label: 'En Revisión MKT', color: 'bg-orange-100 text-orange-700 border-orange-200' };
+      }
+      
+      const hasProvPending = latestVersions.some(v => v.provApproval.status === 'pending');
+      if (hasProvPending) {
+        return { label: 'En Revisión PROV', color: 'bg-purple-100 text-purple-700 border-purple-200' };
+      }
+    }
+
+    return { label: 'En Proceso', color: 'bg-slate-100 text-slate-700 border-slate-200' };
   };
 
   const filteredAndSortedData = useMemo(() => {
@@ -191,6 +256,8 @@ export default function DataTable({
           const isExpanded = expandedRows[record.id];
           const hasMore = latestByCategory.length > 1;
           const displayCategories = isExpanded ? latestByCategory : latestByCategory.slice(0, 1);
+          const generalStatus = getRecordStatus(record, mode, latestByCategory);
+          const assignment = mode === 'artwork' ? record.artworkAssignment : mode === 'technical_sheet' ? record.technicalAssignment : record.commercialAssignment;
 
           return (
             <div key={record.id} className="p-4 space-y-4">
@@ -206,6 +273,9 @@ export default function DataTable({
                       : 'bg-slate-100 text-slate-600 border border-slate-200'
                   }`}>
                     {record.marca}
+                  </span>
+                  <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-wider border ${generalStatus.color}`}>
+                    {generalStatus.label}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 flex-wrap justify-end max-w-[50%]">
@@ -235,6 +305,29 @@ export default function DataTable({
                   <p className="text-[11px] font-bold text-slate-600 mt-1 uppercase line-clamp-2 leading-tight">
                     {record.descripcionSAP}
                   </p>
+                  {assignment && (
+                    <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
+                      <div className="flex items-center gap-2">
+                        {isNearDeadline(assignment.plannedEndDate) ? (
+                          <div className="flex items-center gap-1 text-red-500 bg-red-50 px-1.5 py-0.5 rounded" title="Vencido o próximo a vencer">
+                            <AlertCircle size={10} className="animate-pulse" />
+                            <span className="text-[9px] font-bold">Vence: {format(parseISO(assignment.plannedEndDate!), 'dd/MM/yy')}</span>
+                          </div>
+                        ) : assignment.plannedEndDate ? (
+                          <span className="text-[9px] text-slate-400 font-medium bg-slate-50 px-1.5 py-0.5 rounded">
+                            Vence: {format(parseISO(assignment.plannedEndDate), 'dd/MM/yy')}
+                          </span>
+                        ) : null}
+                      </div>
+                      <button 
+                        onClick={() => onEditDates?.(record, mode)}
+                        className="text-slate-400 hover:text-blue-500 bg-slate-50 hover:bg-blue-50 p-1.5 rounded transition-colors"
+                        title="Editar fechas planificadas"
+                      >
+                        <Calendar size={12} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -295,11 +388,11 @@ export default function DataTable({
       {/* Table for Desktop (hidden lg:block) */}
       <div className="hidden lg:flex lg:flex-col">
         <div ref={tableContainerRef} className="overflow-x-auto min-h-[420px]">
-          <table className="w-full text-sm text-left border-collapse" style={{ minWidth: '1800px' }}>
+          <table className="w-full text-sm text-left border-collapse min-w-max">
           <thead className="bg-[#f8fafc] text-slate-500 uppercase text-[10px] font-bold border-b border-gray-200 sticky top-0 z-20">
             <tr>
-              <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100 w-20">Acciones</th>
-              <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100 whitespace-nowrap">
+              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100 w-20">Acciones</th>
+              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100 whitespace-nowrap">
                 ID
                 <HeaderFilterPopover 
                   column="correlativeId" 
@@ -311,7 +404,7 @@ export default function DataTable({
                 />
               </th>
 
-              <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100 whitespace-nowrap">
+              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100 whitespace-nowrap">
                 Código SAP
                 <HeaderFilterPopover 
                   column="codigoSAP" 
@@ -322,7 +415,7 @@ export default function DataTable({
                   onSortChange={handleSortChange} 
                 />
               </th>
-              <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100">
+              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100">
                 Descripción SAP
                 <HeaderFilterPopover 
                   column="descripcionSAP" 
@@ -333,7 +426,7 @@ export default function DataTable({
                   onSortChange={handleSortChange} 
                 />
               </th>
-              <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100">
+              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100">
                 Línea
                 <HeaderFilterPopover 
                   column="linea" 
@@ -344,7 +437,7 @@ export default function DataTable({
                   onSortChange={handleSortChange} 
                 />
               </th>
-              <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100">
+              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100">
                 Marca
                 <HeaderFilterPopover 
                   column="marca" 
@@ -355,7 +448,8 @@ export default function DataTable({
                   onSortChange={handleSortChange} 
                 />
               </th>
-              <th rowSpan={2} className="px-4 py-4 text-center border-r border-gray-100 min-w-[120px]">Asignación</th>
+              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100 min-w-[100px]">Estado</th>
+              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100 min-w-[120px]">Asignación</th>
               <th colSpan={mode === 'artwork' ? 6 : 3} className={`px-4 py-2 text-center ${
                 mode === 'artwork' ? 'bg-indigo-50/50 text-indigo-600' : 
                 mode === 'technical_sheet' ? 'bg-emerald-50/50 text-emerald-600' : 
@@ -365,7 +459,7 @@ export default function DataTable({
                  mode === 'technical_sheet' ? 'Fichas Técnicas' : 
                  'Fichas Comerciales'}
               </th>
-              <th rowSpan={2} className="px-4 py-4 text-center border-l border-gray-100">
+              <th rowSpan={2} className="px-3 py-3 text-center border-l border-gray-100">
                 Muestra
                 <HeaderFilterPopover 
                   column="sampleId" 
@@ -413,13 +507,15 @@ export default function DataTable({
               const isExpanded = expandedRows[record.id];
               const hasMore = latestByCategory.length > 1;
               const displayCategories = isExpanded ? latestByCategory : latestByCategory.slice(0, 1);
+              const generalStatus = getRecordStatus(record, mode, latestByCategory);
+              const assignment = mode === 'artwork' ? record.artworkAssignment : mode === 'technical_sheet' ? record.technicalAssignment : record.commercialAssignment;
 
               return (
                 <tr 
                   key={record.id} 
                   className="hover:bg-blue-50/30 transition-colors group"
                 >
-                  <td className="px-4 py-4 border-r border-gray-100">
+                  <td className="px-3 py-3 border-r border-gray-100">
                     <div className="flex items-center justify-center gap-2">
                       <button 
                         onClick={() => onViewDetail(record)} 
@@ -444,7 +540,7 @@ export default function DataTable({
                       </button>
                     </div>
                   </td>
-                  <td className="px-4 py-4 border-r border-gray-100">
+                  <td className="px-3 py-3 border-r border-gray-100">
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
                         {record.correlativeId || '-'}
@@ -460,14 +556,14 @@ export default function DataTable({
                     </div>
                   </td>
 
-                  <td className="px-4 py-4 border-r border-gray-100 font-mono text-xs text-slate-600 font-bold">{record.codigoSAP}</td>
-                  <td className="px-4 py-4 border-r border-gray-100 text-slate-700 font-bold uppercase text-[11px] leading-tight max-w-[200px]">
+                  <td className="px-3 py-3 border-r border-gray-100 font-mono text-xs text-slate-600 font-bold">{record.codigoSAP}</td>
+                  <td className="px-3 py-3 border-r border-gray-100 text-slate-700 font-bold uppercase text-[11px] leading-tight max-w-[200px]">
                     {record.descripcionSAP}
                   </td>
-                  <td className="px-4 py-4 border-r border-gray-100 text-[10px] text-slate-500 font-medium uppercase tracking-tight text-center">
+                  <td className="px-3 py-3 border-r border-gray-100 text-[10px] text-slate-500 font-medium uppercase tracking-tight text-center">
                     {record.linea}
                   </td>
-                  <td className="px-4 py-4 border-r border-gray-100 text-center">
+                  <td className="px-3 py-3 border-r border-gray-100 text-center">
                     <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
                       record.marca === 'SOLE' 
                         ? 'bg-orange-50 text-orange-600 border border-orange-100' 
@@ -476,23 +572,22 @@ export default function DataTable({
                       {record.marca}
                     </span>
                   </td>
-                  <td className="px-4 py-4 border-r border-gray-100">
+                  <td className="px-3 py-3 border-r border-gray-100 text-center">
+                    <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-wider border whitespace-nowrap inline-block ${generalStatus.color}`}>
+                      {generalStatus.label}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 border-r border-gray-100">
                     <div className="flex flex-col gap-2">
                       {/* Assignment */}
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-[9px] font-bold text-indigo-600">
                           {mode === 'artwork' ? 'ART:' : mode === 'technical_sheet' ? 'TEC:' : 'COM:'}
                         </span>
-                        {(mode === 'artwork' ? record.artworkAssignment : 
-                          mode === 'technical_sheet' ? record.technicalAssignment : 
-                          record.commercialAssignment) ? (
+                        {assignment ? (
                           <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-slate-600 truncate max-w-[60px]" title={(mode === 'artwork' ? record.artworkAssignment : 
-                              mode === 'technical_sheet' ? record.technicalAssignment : 
-                              record.commercialAssignment)?.designer}>
-                              {(mode === 'artwork' ? record.artworkAssignment : 
-                                mode === 'technical_sheet' ? record.technicalAssignment : 
-                                record.commercialAssignment)?.designer.split(' ')[0]}
+                            <span className="text-[10px] text-slate-600 truncate max-w-[60px]" title={assignment.designer}>
+                              {assignment.designer.split(' ')[0]}
                             </span>
                             <button 
                               onClick={() => onInfoRequest?.(record, mode)} 
@@ -511,6 +606,31 @@ export default function DataTable({
                           </button>
                         )}
                       </div>
+                      
+                      {/* Deadline & Edit */}
+                      {assignment && (
+                        <div className="flex items-center justify-between gap-1 pt-1 border-t border-slate-50 mt-1">
+                          <div className="flex items-center">
+                            {isNearDeadline(assignment.plannedEndDate) ? (
+                              <div className="flex items-center gap-1 text-red-500" title="Vencido o próximo a vencer">
+                                <AlertCircle size={10} className="animate-pulse shrink-0" />
+                                <span className="text-[9px] font-bold">Vence: {format(parseISO(assignment.plannedEndDate!), 'dd/MM')}</span>
+                              </div>
+                            ) : assignment.plannedEndDate ? (
+                              <span className="text-[9px] text-slate-400">Vence: {format(parseISO(assignment.plannedEndDate), 'dd/MM')}</span>
+                            ) : (
+                              <span className="text-[9px] text-slate-300 italic">Sin fecha</span>
+                            )}
+                          </div>
+                          <button 
+                            onClick={() => onEditDates?.(record, mode)}
+                            className="text-slate-300 hover:text-blue-500 transition-colors"
+                            title="Editar fechas planificadas"
+                          >
+                            <Calendar size={12} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </td>
 
@@ -616,7 +736,7 @@ export default function DataTable({
                       </div>
                     </td>
                   )}
-                  <td className="px-4 py-4 border-l border-gray-100 text-center">
+                  <td className="px-3 py-3 border-l border-gray-100 text-center">
                     {record.sampleId ? (
                       <div className="flex flex-col items-center gap-1">
                         <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 flex items-center gap-1">

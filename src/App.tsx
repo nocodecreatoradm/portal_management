@@ -19,6 +19,7 @@ import ProductDetailModal from './components/ProductDetailModal';
 import NewRequestModal from './components/NewRequestModal';
 
 import AssignmentModal from './components/AssignmentModal';
+import DateEditModal from './components/DateEditModal';
 import InfoRequestModal from './components/InfoRequestModal';
 import CommercialArtworks from './components/CommercialArtworks';
 import Applications from './components/Applications';
@@ -167,13 +168,15 @@ export default function App() {
 
   // Assignment Modal state
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
+  const [isDateEditModalOpen, setIsDateEditModalOpen] = useState(false);
   const [assignmentConfig, setAssignmentConfig] = useState<{
     record: ProductRecord | null;
     type: 'artwork' | 'technical_sheet' | 'commercial_sheet' | null;
-  }>({
-    record: null,
-    type: null,
-  });
+  }>({ record: null, type: null });
+  const [dateEditConfig, setDateEditConfig] = useState<{
+    record: ProductRecord | null;
+    mode: 'artwork' | 'technical_sheet' | 'commercial_sheet' | null;
+  }>({ record: null, mode: null });
 
   // Info Request Modal state
   const [isInfoRequestModalOpen, setIsInfoRequestModalOpen] = useState(false);
@@ -537,6 +540,11 @@ export default function App() {
   const handleInfoRequestClick = (record: ProductRecord, type: 'artwork' | 'technical_sheet' | 'commercial_sheet') => {
     setInfoRequestConfig({ record, type });
     setIsInfoRequestModalOpen(true);
+  };
+
+  const handleEditDatesClick = (record: ProductRecord, mode: 'artwork' | 'technical_sheet' | 'commercial_sheet') => {
+    setDateEditConfig({ record, mode });
+    setIsDateEditModalOpen(true);
   };
 
   const handleSaveAssignment = async (assignment: AssignmentInfo) => {
@@ -1176,6 +1184,7 @@ export default function App() {
             onAssign={handleAssignClick}
             onInfoRequest={handleInfoRequestClick}
             onStartFlow={handleStartFlow}
+            onEditDates={handleEditDatesClick}
             onEdit={(record) => {
               setEditingProduct(record);
               setIsNewRequestModalOpen(true);
@@ -1398,7 +1407,13 @@ export default function App() {
             initialData={editingProduct}
           />
 
-
+          <DateEditModal
+            isOpen={isDateEditModalOpen}
+            onClose={() => setIsDateEditModalOpen(false)}
+            record={dateEditConfig.record}
+            mode={dateEditConfig.mode}
+            onSave={handleSaveDateEdit}
+          />
 
           <AssignmentModal
             isOpen={isAssignmentModalOpen}
