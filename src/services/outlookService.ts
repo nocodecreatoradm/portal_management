@@ -163,24 +163,27 @@ export const outlookService = {
     if (recipients.length === 0) return;
 
     const subject = `[APROBACIÓN FINAL] - ${record.codigoSAP} - ${record.descripcionSAP}`;
-    const title = 'Documento Aprobado';
+    const title = 'Approved Artworks Released';
     const content = `
-      <p>Estimados,</p>
-      <p>Se les informa que el documento de <strong>${moduleType}</strong> para el producto <strong>${record.codigoSAP}</strong> ha sido aprobado por todas las áreas correspondientes.</p>
-      <div style="background-color: #f0fdf4; border-left: 4px solid #22c55e; padding: 12px; margin: 16px 0;">
-        <p style="margin: 0;"><strong>Código SAP:</strong> ${record.codigoSAP}</p>
-        <p style="margin: 4px 0;"><strong>Descripción:</strong> ${record.descripcionSAP}</p>
-        <p style="margin: 4px 0;"><strong>Versión:</strong> V${version.version}</p>
-      </div>
+      <p>Dear Supplier,</p>
+      <p>Good day.</p>
+      <p>The approved artworks for <strong>${record.codigoSAP} – ${record.descripcionSAP}</strong>, version <strong>V${version.version}</strong>, have been released and are available for download through the links below:</p>
       ${version.files && version.files.length > 0 ? `
       <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
-        <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Archivos Aprobados (Enlaces de Descarga):</p>
+        <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Artwork download links:</p>
         <ul style="margin: 0; padding-left: 20px;">
           ${version.files.map(f => `<li style="margin-bottom: 8px;"><a href="${f.url}" target="_blank" style="color: #2563eb; text-decoration: underline;">${f.name || f.originalName || 'Archivo'}</a></li>`).join('')}
         </ul>
       </div>
       ` : ''}
-      <p>Ya pueden proceder con el siguiente paso del proceso.</p>
+      <p>Please carefully review all the documents before production and confirm that the files are correct and complete.</p>
+      <p>If you have any observation, discrepancy, missing document, printing limitation or technical concern, please inform us immediately before proceeding.</p>
+      <p>If everything is correct and there are no observations, you may proceed with production using only the approved files. Previous versions must be deleted or replaced to avoid mistakes. No change, adjustment or redesign is allowed without prior written approval from Grupo Sole.</p>
+      <p>Before starting production, please confirm by email your acceptance of the approved artworks, always copying <strong>planeamientomt@sole.com.pe</strong>.</p>
+      <br/>
+      <p style="margin: 0;">Best regards,</p>
+      <p style="margin: 0;"><strong>Grupo Sole – Rinnai Corporation</strong></p>
+      <p style="margin: 0;">R&D / Artwork Management Team</p>
     `;
 
     try {
