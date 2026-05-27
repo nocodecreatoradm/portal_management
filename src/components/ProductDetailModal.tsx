@@ -859,7 +859,7 @@ export default function ProductDetailModal({
             <div className="flex items-center justify-between">
               <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
                 <ImageIcon size={20} className="text-indigo-500" />
-                Galería de Archivos de Inspección I+D (Máx. 1 GB)
+                Galería documentaria
               </h4>
               {onUpdateRecord && (
                 <button 
