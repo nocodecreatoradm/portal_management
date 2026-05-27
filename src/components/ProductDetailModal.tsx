@@ -32,6 +32,55 @@ export default function ProductDetailModal({
   // State for Reviewer
   const [reviewingVersion, setReviewingVersion] = useState<{version: DocumentVersion, type: string} | null>(null);
 
+  const isImageFile = (photo: FileInfo) => {
+    if (!photo.type && !photo.name) return false;
+    
+    if (photo.type && photo.type.startsWith('image/')) {
+      return true;
+    }
+    
+    const ext = photo.name.split('.').pop()?.toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext || '');
+  };
+
+  const getFileIcon = (photo: FileInfo) => {
+    const ext = photo.name.split('.').pop()?.toLowerCase();
+    
+    if (ext === 'pdf') {
+      return {
+        icon: <FileText size={28} className="text-red-500" />,
+        bg: 'bg-red-50 border-red-100',
+        label: 'PDF'
+      };
+    }
+    if (['zip', 'rar', '7z'].includes(ext || '')) {
+      return {
+        icon: <FileText size={28} className="text-amber-500" />,
+        bg: 'bg-amber-50 border-amber-100',
+        label: 'ZIP/RAR'
+      };
+    }
+    if (['xlsx', 'xls', 'csv'].includes(ext || '')) {
+      return {
+        icon: <FileText size={28} className="text-emerald-500" />,
+        bg: 'bg-emerald-50 border-emerald-100',
+        label: 'Excel'
+      };
+    }
+    if (['doc', 'docx'].includes(ext || '')) {
+      return {
+        icon: <FileText size={28} className="text-blue-500" />,
+        bg: 'bg-blue-50 border-blue-100',
+        label: 'Word'
+      };
+    }
+    return {
+      icon: <FileText size={28} className="text-slate-500" />,
+      bg: 'bg-slate-50 border-slate-100',
+      label: 'Archivo'
+    };
+  };
+
   if (!record) return null;
 
   const handleUpdateComments = (newComments: PDFComment[]) => {
@@ -111,7 +160,7 @@ export default function ProductDetailModal({
   const handleGalleryPhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      toast.loading('Subiendo fotos...');
+      toast.loading('Subiendo archivos...');
       try {
         const uploadedPhotos: FileInfo[] = [];
         for (const f of Array.from(files) as File[]) {
@@ -126,7 +175,7 @@ export default function ProductDetailModal({
         toast.dismiss();
       } catch (err) {
         toast.dismiss();
-        toast.error('Error al subir fotos');
+        toast.error('Error al subir archivos');
       }
     }
   };
@@ -563,7 +612,7 @@ export default function ProductDetailModal({
             <div className="flex items-center justify-between">
               <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
                 <ImageIcon size={20} className="text-indigo-500" />
-                Galería de Imágenes de Inspección I+D (Máx. 1 GB)
+                Galería de Archivos de Inspección I+D (Máx. 1 GB)
               </h4>
               {onUpdateRecord && (
                 <button 
@@ -571,7 +620,7 @@ export default function ProductDetailModal({
                   className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-xs font-black hover:bg-indigo-100 transition-all border border-indigo-100"
                 >
                   <Plus size={16} className="text-indigo-500" />
-                  Añadir a Galería
+                  Añadir Archivo
                 </button>
               )}
             </div>
@@ -594,21 +643,38 @@ export default function ProductDetailModal({
                       </button>
                     </div>
                     <div className="p-4 grid grid-cols-3 gap-2">
-                      {item.photos.map((photo, idx) => (
-                        <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-100 group/photo">
-                          <img 
-                            src={photo.url} 
-                            alt={photo.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover/photo:scale-110"
-                            referrerPolicy="no-referrer"
-                          />
-                          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center">
-                            <a href={photo.url} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-white/40 transition-all">
-                              <Eye size={16} />
-                            </a>
+                      {item.photos.map((photo, idx) => {
+                        const isImg = isImageFile(photo);
+                        const fileMeta = getFileIcon(photo);
+
+                        return (
+                          <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-100 group/photo bg-slate-50 flex flex-col items-center justify-center p-2">
+                            {isImg ? (
+                              <img 
+                                src={photo.url} 
+                                alt={photo.name}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover/photo:scale-110 absolute inset-0"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <div className={`w-full h-full rounded-lg border flex flex-col items-center justify-center gap-1 p-1 ${fileMeta.bg}`}>
+                                {fileMeta.icon}
+                                <span className="text-[9px] font-bold text-slate-700 text-center truncate w-full px-1" title={photo.name}>
+                                  {photo.name}
+                                </span>
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider leading-none">
+                                  {fileMeta.label}
+                                </span>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center z-10">
+                              <a href={photo.url} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-white/40 transition-all">
+                                <Eye size={16} />
+                              </a>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))
@@ -617,8 +683,8 @@ export default function ProductDetailModal({
                   <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4">
                     <ImageIcon className="text-slate-300" size={32} />
                   </div>
-                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No hay imágenes en la galería</p>
-                  <p className="text-[10px] font-medium text-slate-400 mt-1">Añade imágenes para documentar visualmente la inspección</p>
+                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No hay archivos en la galería</p>
+                  <p className="text-[10px] font-medium text-slate-400 mt-1">Añade archivos para documentar la inspección</p>
                 </div>
               )}
             </div>
@@ -631,8 +697,8 @@ export default function ProductDetailModal({
             <div className="bg-white rounded-[32px] w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
               <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Añadir a Galería</h3>
-                  <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Sube fotos y asígnalas a una categoría</p>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Añadir Archivos</h3>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Sube archivos o imágenes y asígnalos a una categoría</p>
                 </div>
                 <button 
                   onClick={() => {
@@ -681,7 +747,7 @@ export default function ProductDetailModal({
 
                 {/* Photo Upload Area */}
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fotos para subir</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Archivos para subir</label>
                   <div 
                     onClick={() => document.getElementById('gallery-file-input-product')?.click()}
                     className="border-2 border-dashed border-slate-200 rounded-[32px] p-10 flex flex-col items-center justify-center gap-4 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer group"
@@ -690,14 +756,14 @@ export default function ProductDetailModal({
                       <Upload size={32} />
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-black text-slate-900 uppercase tracking-tight">Seleccionar fotos</p>
+                      <p className="text-sm font-black text-slate-900 uppercase tracking-tight">Seleccionar archivos</p>
                       <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Puedes subir múltiples archivos a la vez</p>
                     </div>
                     <input
                       id="gallery-file-input-product"
                       type="file"
                       multiple
-                      accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z"
+                      accept=".jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
                       onChange={handleGalleryPhotoSelect}
                       className="hidden"
                     />
@@ -717,17 +783,31 @@ export default function ProductDetailModal({
                       </button>
                     </div>
                     <div className="grid grid-cols-4 gap-4 max-h-[240px] overflow-y-auto p-1 pr-2 scrollbar-thin scrollbar-thumb-slate-200">
-                      {tempGalleryPhotos.map((photo, idx) => (
-                        <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200 shadow-sm group">
-                          <img src={photo.url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                          <button 
-                            onClick={() => setTempGalleryPhotos(prev => prev.filter((_, i) => i !== idx))}
-                            className="absolute top-1 right-1 p-1.5 bg-rose-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      ))}
+                      {tempGalleryPhotos.map((photo, idx) => {
+                        const isImg = isImageFile(photo);
+                        const fileMeta = getFileIcon(photo);
+
+                        return (
+                          <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200 shadow-sm group bg-slate-50 flex flex-col items-center justify-center p-2">
+                            {isImg ? (
+                              <img src={photo.url} className="w-full h-full object-cover absolute inset-0" referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className={`w-full h-full rounded-xl border flex flex-col items-center justify-center gap-1.5 p-1 ${fileMeta.bg}`}>
+                                {fileMeta.icon}
+                                <span className="text-[9px] font-bold text-slate-700 text-center truncate w-full px-1" title={photo.name}>
+                                  {photo.name}
+                                </span>
+                              </div>
+                            )}
+                            <button 
+                              onClick={() => setTempGalleryPhotos(prev => prev.filter((_, i) => i !== idx))}
+                              className="absolute top-1 right-1 p-1.5 bg-rose-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
