@@ -342,6 +342,7 @@ export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
   commercialStatus: dbProduct.commercial_status,
   qualityInspectionDate: dbProduct.quality_inspection_date,
   createdAt: dbProduct.created_at || new Date().toISOString(),
+  gallery: dbProduct.gallery || [],
   artworkAssignment: dbProduct.artwork_assignment,
   technicalAssignment: dbProduct.technical_assignment,
   commercialAssignment: dbProduct.commercial_assignment,

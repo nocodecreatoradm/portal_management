@@ -866,6 +866,9 @@ export default function App() {
         result = await SupabaseService.createProduct(recordToCreate as any);
         setData(prev => prev.map(r => r.id === id ? result : r));
       }
+      if (detailRecord?.id === id && result) {
+        setDetailRecord(result);
+      }
       toast.success('Datos actualizados correctamente');
     } catch (error) {
       console.error('Error updating record:', error);
