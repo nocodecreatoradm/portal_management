@@ -227,6 +227,17 @@ export default function NewRequestModal({
   const modeLabel = mode === 'artwork' ? 'Artwork' : 
                     mode === 'technical_sheet' ? 'Ficha Técnica' : 'Ficha Comercial';
 
+  const targetTrackingType = mode === 'artwork' ? 'artwork' : 
+                             mode === 'technical_sheet' ? 'technical' : 'commercial';
+  const typeLabel = mode === 'artwork' ? 'Artes' : 
+                    mode === 'technical_sheet' ? 'Ficha Técnica' : 'Ficha Comercial';
+
+  const duplicateRecord = formData.codigoSAP.trim() !== '' && existingData?.find(p => 
+    p.codigoSAP.toLowerCase() === formData.codigoSAP.trim().toLowerCase() &&
+    p.trackingType === targetTrackingType &&
+    (!initialData || p.id !== initialData.id)
+  );
+
   const handleTypeSelect = (type: 'local' | 'imported') => {
     setArtworkType(type);
     if (type === 'local') {
@@ -473,9 +484,14 @@ export default function NewRequestModal({
                       required
                       value={formData.codigoSAP}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      className={`w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none ${duplicateRecord ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-gray-300'}`}
                       placeholder="Ej. 3120TURE83CO"
                     />
+                    {duplicateRecord && (
+                      <p className="text-red-500 text-xs mt-1 font-semibold animate-pulse">
+                        Este código SAP ya está registrado en el seguimiento de {typeLabel}.
+                      </p>
+                    )}
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Descripción SAP</label>
@@ -700,7 +716,7 @@ export default function NewRequestModal({
             <button 
               type="submit" 
               form="new-request-form" 
-              disabled={isSubmitting}
+              disabled={isSubmitting || !!duplicateRecord}
               className="px-4 py-2 text-sm font-medium text-white bg-[#52627e] hover:bg-[#3d4a60] rounded-md transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Creando...' : 'Crear Solicitud'}

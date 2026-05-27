@@ -35,6 +35,7 @@ export default function DataTable({
 }: DataTableProps) {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const { profile } = useAuth();
   const { hasPermission } = usePermissions();
@@ -105,12 +106,20 @@ export default function DataTable({
     setSortConfig({ column, direction });
   };
 
-  const renderApprovalCell = (record: ProductRecord, type: 'artwork' | 'technical_sheet' | 'commercial_sheet', versions: DocumentVersion[], stage: string) => {
+  const toggleRow = (id: string) => {
+    setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const renderApprovalCell = (record: ProductRecord, type: 'artwork' | 'technical_sheet' | 'commercial_sheet', versions: DocumentVersion[], stage: string, isExpanded: boolean, hasMore: boolean) => {
     if (versions.length === 0) return <td className="px-2 py-3 border-r border-gray-100 text-center">-</td>;
     
     // Para Planeamiento, solo mostramos una aprobación global (la última versión)
     const isPlan = stage === 'PLAN';
-    const displayVersions = isPlan ? [versions[versions.length - 1]] : versions;
+    let displayVersions = isPlan ? [versions[versions.length - 1]] : versions;
+    
+    if (!isExpanded && !isPlan) {
+      displayVersions = displayVersions.slice(0, 1);
+    }
 
     return (
       <td className="px-2 py-3 border-r border-gray-100 text-center">
@@ -151,6 +160,9 @@ export default function DataTable({
               </div>
             );
           })}
+          {hasMore && !isPlan && (
+            <div className="h-[22px] mt-1"></div>
+          )}
         </div>
       </td>
     );
@@ -176,6 +188,9 @@ export default function DataTable({
           ).sort((a: any, b: any) => (a.category || '').localeCompare(b.category || '')) as DocumentVersion[]
           : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => b.version - a.version)[0]] : []);
 
+          const isExpanded = expandedRows[record.id];
+          const hasMore = latestByCategory.length > 1;
+          const displayCategories = isExpanded ? latestByCategory : latestByCategory.slice(0, 1);
 
           return (
             <div key={record.id} className="p-4 space-y-4">
@@ -193,9 +208,9 @@ export default function DataTable({
                     {record.marca}
                   </span>
                 </div>
-                <div className="flex items-center gap-1">
-                  {latestByCategory.map((v, idx) => (
-                    <div key={idx} className="flex gap-1">
+                <div className="flex items-center gap-1 flex-wrap justify-end max-w-[50%]">
+                  {displayCategories.map((v, idx) => (
+                    <div key={idx} className="flex gap-1 mb-1">
                       <StatusIcon status={v.idApproval.status} label="I+D" size={12} />
                       {mode === 'artwork' && (
                         <>
@@ -206,6 +221,11 @@ export default function DataTable({
                       )}
                     </div>
                   ))}
+                  {hasMore && (
+                    <button onClick={() => toggleRow(record.id)} className="text-[10px] text-blue-600 font-bold ml-1 bg-blue-50 px-1.5 py-0.5 rounded">
+                      {isExpanded ? 'Contraer' : `+${latestByCategory.length - 1}`}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -228,7 +248,7 @@ export default function DataTable({
                     <Eye size={14} />
                     Detalle
                   </button>
-                  {latestByCategory.map((v, idx) => (
+                  {displayCategories.map((v, idx) => (
                     <button 
                       key={idx}
                       onClick={() => onActionClick(record, mode, 'view', v)}
@@ -390,6 +410,9 @@ export default function DataTable({
               ).sort((a: any, b: any) => (a.category || '').localeCompare(b.category || '')) as DocumentVersion[]
               : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => b.version - a.version)[0]] : []);
 
+              const isExpanded = expandedRows[record.id];
+              const hasMore = latestByCategory.length > 1;
+              const displayCategories = isExpanded ? latestByCategory : latestByCategory.slice(0, 1);
 
               return (
                 <tr 
@@ -494,8 +517,8 @@ export default function DataTable({
                   {/* Document Cells */}
                   <td className="px-2 py-3 border-r border-gray-100 text-center">
                     <div className="flex flex-col gap-2 items-center">
-                      {latestByCategory.length > 0 ? (
-                        latestByCategory.map((v, idx) => (
+                      {displayCategories.length > 0 ? (
+                        displayCategories.map((v, idx) => (
                           <div key={idx} className="flex items-center justify-center gap-2 h-8">
                             <button 
                               onClick={() => onActionClick(record, mode, 'view', v)}
@@ -536,17 +559,25 @@ export default function DataTable({
                           <Upload size={18} />
                         </button>
                       )}
+                      {hasMore && (
+                        <button 
+                          onClick={() => toggleRow(record.id)} 
+                          className="text-[9px] font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded w-full mt-1 transition-colors h-[22px]"
+                        >
+                          {isExpanded ? 'Contraer' : `+${latestByCategory.length - 1}`}
+                        </button>
+                      )}
                     </div>
                   </td>
-                  {renderApprovalCell(record, mode, latestByCategory, 'I+D')}
+                  {renderApprovalCell(record, mode, latestByCategory, 'I+D', isExpanded, hasMore)}
                   {mode === 'artwork' ? (
                     <>
-                      {renderApprovalCell(record, mode, latestByCategory, 'MKT')}
-                      {renderApprovalCell(record, mode, latestByCategory, 'PROV')}
+                      {renderApprovalCell(record, mode, latestByCategory, 'MKT', isExpanded, hasMore)}
+                      {renderApprovalCell(record, mode, latestByCategory, 'PROV', isExpanded, hasMore)}
                       <td className="px-2 py-3 border-r border-gray-100">
                         <div className="flex flex-col gap-2 items-center">
-                          {latestByCategory.length > 0 ? (
-                            latestByCategory.map((v, idx) => (
+                          {displayCategories.length > 0 ? (
+                            displayCategories.map((v, idx) => (
                               <div key={idx} className="h-8 flex flex-col justify-center items-center leading-none">
                                 {v.category && <span className="text-[8px] text-slate-400 uppercase font-black">{v.category}:</span>}
                                 <span className="text-[10px] text-indigo-600 font-black">V{v.version}</span>
@@ -555,15 +586,20 @@ export default function DataTable({
                           ) : (
                             <span className="text-slate-300 text-[10px]">-</span>
                           )}
+                          {hasMore && (
+                            <div className="h-[22px] mt-1 flex items-center justify-center">
+                              <span className="text-[9px] font-bold text-slate-400">...</span>
+                            </div>
+                          )}
                         </div>
                       </td>
-                      {renderApprovalCell(record, mode, latestByCategory, 'PLAN')}
+                      {renderApprovalCell(record, mode, latestByCategory, 'PLAN', isExpanded, hasMore)}
                     </>
                   ) : (
                     <td className="px-2 py-3 border-r border-gray-100">
                       <div className="flex flex-col gap-2 items-center">
-                        {latestByCategory.length > 0 ? (
-                          latestByCategory.map((v, idx) => (
+                        {displayCategories.length > 0 ? (
+                          displayCategories.map((v, idx) => (
                             <div key={idx} className="h-8 flex flex-col justify-center items-center leading-none">
                               {v.category && <span className="text-[8px] text-slate-400 uppercase font-black">{v.category}:</span>}
                               <span className="text-[10px] text-indigo-600 font-black">V{v.version}</span>
@@ -571,6 +607,11 @@ export default function DataTable({
                           ))
                         ) : (
                           <span className="text-slate-300 text-[10px]">-</span>
+                        )}
+                        {hasMore && (
+                          <div className="h-[22px] mt-1 flex items-center justify-center">
+                            <span className="text-[9px] font-bold text-slate-400">...</span>
+                          </div>
                         )}
                       </div>
                     </td>

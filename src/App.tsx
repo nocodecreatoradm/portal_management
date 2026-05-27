@@ -617,11 +617,30 @@ export default function App() {
     setIsSubmitting(true);
     try {
       const isFollowupModule = ['artwork_followup', 'technical_datasheet', 'commercial_datasheet'].includes(activeModule);
-      
-      const existingIndex = data.findIndex(r => 
-        (r.id === newRecord.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(r.id)) || 
-        r.codigoSAP.toLowerCase() === newRecord.codigoSAP.toLowerCase()
-      );
+      const targetType = activeModule === 'artwork_followup' ? 'artwork' : 
+                         activeModule === 'technical_datasheet' ? 'technical' : 'commercial';
+
+      const existingIndex = data.findIndex(r => {
+        if (r.id === newRecord.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(r.id)) {
+          return true;
+        }
+        if (r.codigoSAP && newRecord.codigoSAP && r.codigoSAP.toLowerCase() === newRecord.codigoSAP.toLowerCase()) {
+          if (isFollowupModule) {
+            return r.trackingType === targetType;
+          } else {
+            return !r.trackingType;
+          }
+        }
+        return false;
+      });
+
+      if (existingIndex > -1 && data[existingIndex].id !== newRecord.id) {
+        const typeLabel = activeModule === 'artwork_followup' ? 'Artes' : 
+                          activeModule === 'technical_datasheet' ? 'Ficha Técnica' : 'Ficha Comercial';
+        toast.error(`El código SAP "${newRecord.codigoSAP}" ya está registrado en el seguimiento de ${typeLabel}.`);
+        setIsSubmitting(false);
+        return;
+      }
       
       // Helper to resolve master data names to IDs
       const resolveMetadata = async (record: any) => {
