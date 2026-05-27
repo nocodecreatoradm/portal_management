@@ -81,6 +81,80 @@ export default function ProductDetailModal({
     };
   };
 
+  const getTrackingDates = (
+    type: 'artwork' | 'technical' | 'commercial', 
+    assignment?: any, 
+    versions: DocumentVersion[] = []
+  ) => {
+    if (!assignment) return null;
+    
+    const sortedVersions = [...versions].sort((a, b) => a.version - b.version);
+    const firstVer = sortedVersions[0];
+    const latestVer = [...versions].sort((a, b) => b.version - a.version)[0];
+    
+    const plannedStart = assignment.plannedStartDate;
+    const plannedEnd = assignment.plannedEndDate;
+    
+    const realStart = firstVer ? firstVer.uploadDate : null;
+    
+    let realEnd = null;
+    let isCompleted = false;
+    if (latestVer) {
+      if (type === 'artwork') {
+        if (latestVer.planApproval?.status === 'approved') {
+          realEnd = latestVer.planApproval.date;
+          isCompleted = true;
+        }
+      } else {
+        if (latestVer.idApproval?.status === 'approved') {
+          realEnd = latestVer.idApproval.date;
+          isCompleted = true;
+        }
+      }
+    }
+    
+    let deviationDays = null;
+    if (plannedEnd) {
+      try {
+        const pEnd = new Date(plannedEnd);
+        const endToCompare = realEnd ? new Date(realEnd) : new Date();
+        
+        pEnd.setHours(0, 0, 0, 0);
+        endToCompare.setHours(0, 0, 0, 0);
+        
+        const diffTime = endToCompare.getTime() - pEnd.getTime();
+        deviationDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      } catch (e) {
+        console.warn('Error calculating deviation:', e);
+      }
+    }
+    
+    const formatDateStr = (dateStr?: string | null) => {
+      if (!dateStr) return null;
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+      } catch (e) {
+        return dateStr;
+      }
+    };
+    
+    return {
+      designer: assignment.designer || 'No asignado',
+      plannedStart: formatDateStr(plannedStart) || 'No establecida',
+      plannedEnd: formatDateStr(plannedEnd) || 'No establecida',
+      realStart: formatDateStr(realStart) || 'No iniciado',
+      realEnd: formatDateStr(realEnd) || (isCompleted ? 'Finalizado (Fecha N/A)' : 'En proceso'),
+      isCompleted,
+      deviationDays,
+      hasRealDates: !!realStart
+    };
+  };
+
   if (!record) return null;
 
   const handleUpdateComments = (newComments: PDFComment[]) => {
@@ -419,6 +493,12 @@ export default function ProductDetailModal({
     );
   };
 
+  const artworkDates = getTrackingDates('artwork', record.artworkAssignment, record.artworks);
+  const technicalDates = getTrackingDates('technical', record.technicalAssignment, record.technicalSheets);
+  const commercialDates = getTrackingDates('commercial', record.commercialAssignment, record.commercialSheets);
+  
+  const hasAnyAssignment = artworkDates || technicalDates || commercialDates;
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
@@ -526,6 +606,173 @@ export default function ProductDetailModal({
               </div>
             </div>
           </div>
+
+          {/* Planificación y Tiempos de Ejecución */}
+          {hasAnyAssignment && (
+            <div className="bg-white border border-slate-200 rounded-xl p-5 mb-8 shadow-sm">
+              <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <Clock size={18} className="text-slate-400 animate-pulse" />
+                Planificación y Tiempos de Ejecución (Planeado vs. Real)
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {artworkDates && (
+                  <div className="bg-slate-50/50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Seguimiento de Artes</span>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
+                          artworkDates.isCompleted 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : (artworkDates.hasRealDates ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500')
+                        }`}>
+                          {artworkDates.isCompleted ? 'Completado' : (artworkDates.hasRealDates ? 'En Proceso' : 'Pendiente')}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 font-bold mb-3">
+                        Asignado a: <span className="text-slate-900 font-black">{artworkDates.designer}</span>
+                      </p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs border-t border-slate-100 pt-3">
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Inicio Planeado</p>
+                          <p className="font-semibold text-slate-700">{artworkDates.plannedStart}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Fin Planeado</p>
+                          <p className="font-semibold text-slate-700">{artworkDates.plannedEnd}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Inicio Real</p>
+                          <p className={`font-semibold ${artworkDates.hasRealDates ? 'text-slate-800' : 'text-slate-400 font-medium'}`}>{artworkDates.realStart}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Fin Real</p>
+                          <p className={`font-semibold ${artworkDates.isCompleted ? 'text-slate-800' : 'text-slate-400 font-medium'}`}>{artworkDates.realEnd}</p>
+                        </div>
+                      </div>
+                    </div>
+                    {artworkDates.deviationDays !== null && (
+                      <div className={`mt-4 pt-3 border-t border-slate-100 text-xs font-black flex items-center justify-between ${
+                        artworkDates.deviationDays > 0 
+                          ? 'text-rose-600' 
+                          : 'text-emerald-600'
+                      }`}>
+                        <span>Desviación:</span>
+                        <span>
+                          {artworkDates.deviationDays > 0 
+                            ? `+${artworkDates.deviationDays} días de retraso` 
+                            : `${Math.abs(artworkDates.deviationDays)} días antes/a tiempo`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {technicalDates && (
+                  <div className="bg-slate-50/50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ficha Técnica</span>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
+                          technicalDates.isCompleted 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : (technicalDates.hasRealDates ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500')
+                        }`}>
+                          {technicalDates.isCompleted ? 'Completado' : (technicalDates.hasRealDates ? 'En Proceso' : 'Pendiente')}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 font-bold mb-3">
+                        Asignado a: <span className="text-slate-900 font-black">{technicalDates.designer}</span>
+                      </p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs border-t border-slate-100 pt-3">
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Inicio Planeado</p>
+                          <p className="font-semibold text-slate-700">{technicalDates.plannedStart}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Fin Planeado</p>
+                          <p className="font-semibold text-slate-700">{technicalDates.plannedEnd}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Inicio Real</p>
+                          <p className={`font-semibold ${technicalDates.hasRealDates ? 'text-slate-800' : 'text-slate-400 font-medium'}`}>{technicalDates.realStart}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Fin Real</p>
+                          <p className={`font-semibold ${technicalDates.isCompleted ? 'text-slate-800' : 'text-slate-400 font-medium'}`}>{technicalDates.realEnd}</p>
+                        </div>
+                      </div>
+                    </div>
+                    {technicalDates.deviationDays !== null && (
+                      <div className={`mt-4 pt-3 border-t border-slate-100 text-xs font-black flex items-center justify-between ${
+                        technicalDates.deviationDays > 0 
+                          ? 'text-rose-600' 
+                          : 'text-emerald-600'
+                      }`}>
+                        <span>Desviación:</span>
+                        <span>
+                          {technicalDates.deviationDays > 0 
+                            ? `+${technicalDates.deviationDays} días de retraso` 
+                            : `${Math.abs(technicalDates.deviationDays)} días antes/a tiempo`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {commercialDates && (
+                  <div className="bg-slate-50/50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ficha Comercial</span>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
+                          commercialDates.isCompleted 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : (commercialDates.hasRealDates ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500')
+                        }`}>
+                          {commercialDates.isCompleted ? 'Completado' : (commercialDates.hasRealDates ? 'En Proceso' : 'Pendiente')}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 font-bold mb-3">
+                        Asignado a: <span className="text-slate-900 font-black">{commercialDates.designer}</span>
+                      </p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs border-t border-slate-100 pt-3">
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Inicio Planeado</p>
+                          <p className="font-semibold text-slate-700">{commercialDates.plannedStart}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Fin Planeado</p>
+                          <p className="font-semibold text-slate-700">{commercialDates.plannedEnd}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Inicio Real</p>
+                          <p className={`font-semibold ${commercialDates.hasRealDates ? 'text-slate-800' : 'text-slate-400 font-medium'}`}>{commercialDates.realStart}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Fin Real</p>
+                          <p className={`font-semibold ${commercialDates.isCompleted ? 'text-slate-800' : 'text-slate-400 font-medium'}`}>{commercialDates.realEnd}</p>
+                        </div>
+                      </div>
+                    </div>
+                    {commercialDates.deviationDays !== null && (
+                      <div className={`mt-4 pt-3 border-t border-slate-100 text-xs font-black flex items-center justify-between ${
+                        commercialDates.deviationDays > 0 
+                          ? 'text-rose-600' 
+                          : 'text-emerald-600'
+                      }`}>
+                        <span>Desviación:</span>
+                        <span>
+                          {commercialDates.deviationDays > 0 
+                            ? `+${commercialDates.deviationDays} días de retraso` 
+                            : `${Math.abs(commercialDates.deviationDays)} días antes/a tiempo`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Related Calculations Section */}
           {relatedCalculations.length > 0 && (
