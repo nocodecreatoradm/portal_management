@@ -547,6 +547,14 @@ export default function App() {
     setIsDateEditModalOpen(true);
   };
 
+  const handleSaveDateEdit = async (recordId: string, updatedAssignment: AssignmentInfo) => {
+    if (dateEditConfig.mode) {
+      const updateField = dateEditConfig.mode === 'artwork' ? 'artworkAssignment' : 
+                         dateEditConfig.mode === 'technical_sheet' ? 'technicalAssignment' : 'commercialAssignment';
+      await handleUpdateRecord(recordId, { [updateField]: updatedAssignment });
+    }
+  };
+
   const handleSaveAssignment = async (assignment: AssignmentInfo) => {
     if (assignmentConfig.record && assignmentConfig.type) {
       const assignmentKey = assignmentConfig.type === 'artwork' ? 'artworkAssignment' : 
