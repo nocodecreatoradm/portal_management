@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, FileText, CheckCircle, ThumbsDown, Clock, Minus, Eye, Image as ImageIcon, Tag, Plus, Upload, Beaker, Wind, FlaskConical, Droplets, Thermometer, Flame, Database, ChevronRight, MessageSquare, Trash2 } from 'lucide-react';
+import { X, FileText, CheckCircle, ThumbsDown, Clock, Minus, Eye, Image as ImageIcon, Tag, Plus, Upload, Beaker, Wind, FlaskConical, Droplets, Thermometer, Flame, Database, ChevronRight, ChevronDown, MessageSquare, Trash2 } from 'lucide-react';
 import { ProductRecord, DocumentVersion, Approval, Supplier, SampleRecord, FileInfo, CalculationRecord, ModuleId, PDFComment } from '../types';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
@@ -31,6 +31,9 @@ export default function ProductDetailModal({
   
   // State for Reviewer
   const [reviewingVersion, setReviewingVersion] = useState<{version: DocumentVersion, type: string} | null>(null);
+
+  // State to track collapsed/expanded status of artwork/document groups
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
   const isImageFile = (photo: FileInfo) => {
     if (!photo.type && !photo.name) return false;
@@ -372,132 +375,149 @@ export default function ProductDetailModal({
           {title}
         </h4>
         
-        {Object.entries(groupedVersions).map(([groupName, groupVersions]) => (
-          <div key={groupName} className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Tag size={16} className="text-indigo-500" />
-              <h5 className="text-sm font-black text-slate-700 uppercase tracking-wider">{groupName}</h5>
-              <div className="h-px flex-1 bg-slate-100"></div>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-4">
-              {groupVersions.sort((a, b) => b.version - a.version).map((v, idx) => (
-                <div key={idx} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-indigo-50 text-indigo-600 p-2.5 rounded-xl border border-indigo-100">
-                        <FileText size={24} />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h6 className="font-black text-slate-900">Versión V{v.version}</h6>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-500 uppercase">
-                            {v.uploadDate}
+        {Object.entries(groupedVersions).map(([groupName, groupVersions]) => {
+          const isCollapsed = collapsedGroups[groupName] || false;
+
+          return (
+            <div key={groupName} className="space-y-4">
+              <div 
+                onClick={() => setCollapsedGroups(prev => ({ ...prev, [groupName]: !isCollapsed }))}
+                className="flex items-center gap-2 cursor-pointer select-none group/header hover:opacity-85 transition-opacity"
+              >
+                <Tag size={16} className="text-indigo-500 group-hover/header:text-indigo-600 transition-colors" />
+                <h5 className="text-sm font-black text-slate-700 uppercase tracking-wider group-hover/header:text-slate-900 transition-colors">
+                  {groupName}
+                </h5>
+                <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full uppercase tracking-tight">
+                  {groupVersions.length} {groupVersions.length === 1 ? 'Versión' : 'Versiones'}
+                </span>
+                <div className="h-px flex-1 bg-slate-100"></div>
+                <div className="text-slate-400 group-hover/header:text-slate-600 transition-colors">
+                  {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
+                </div>
+              </div>
+              
+              {!isCollapsed && (
+                <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                  {groupVersions.sort((a, b) => b.version - a.version).map((v, idx) => (
+                    <div key={idx} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-4">
+                          <div className="bg-indigo-50 text-indigo-600 p-2.5 rounded-xl border border-indigo-100">
+                            <FileText size={24} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h6 className="font-black text-slate-900">Versión V{v.version}</h6>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-500 uppercase">
+                                {v.uploadDate}
+                              </span>
+                              {v.commercialStatus && (
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
+                                  v.commercialStatus === 'A la venta'
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-slate-200 text-slate-600'
+                                }`}>
+                                  {v.commercialStatus}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500 font-medium">Subido por <span className="text-slate-700 font-bold">{v.uploadedBy}</span></p>
+                          </div>
+                        </div>
+                        {v.aplicaA && (
+                          <span className="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter">
+                            Aplica a: {v.aplicaA}
                           </span>
-                          {v.commercialStatus && (
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
-                              v.commercialStatus === 'A la venta'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-slate-200 text-slate-600'
-                            }`}>
-                              {v.commercialStatus}
+                        )}
+                        <button
+                          onClick={() => handleDeleteVersion(v, type)}
+                          className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                          title="Eliminar esta versión"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+
+                      {v.changeDescription && (
+                        <div className="mb-4 bg-blue-50/50 p-3 rounded-lg border border-blue-100/50">
+                          <p className="text-[10px] font-black text-blue-800 uppercase tracking-widest mb-1 flex items-center gap-1">
+                            <Eye size={12} />
+                            Cambios realizados:
+                          </p>
+                          <p className="text-xs text-blue-700 font-medium leading-relaxed">
+                            {v.changeDescription}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className={`grid grid-cols-1 gap-3 mb-4 ${isArtwork ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-1'}`}>
+                        {renderApprovalStatus(v.idApproval, 'I+D', isArtwork)}
+                        {isArtwork && (
+                          <>
+                            {renderApprovalStatus(v.mktApproval, 'Marketing', true)}
+                            {renderApprovalStatus(v.planApproval, 'Planeamiento', true)}
+                            {renderApprovalStatus(v.provApproval, 'Proveedor', true)}
+                          </>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-50 items-center justify-between">
+                        <div className="flex flex-wrap gap-2">
+                          {v.files.map((f, fIdx) => (
+                            <div key={fIdx} className="flex items-center gap-1 group/file">
+                              <a 
+                                href={f.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 transition-colors group"
+                              >
+                                <FileText size={14} className="text-slate-400 group-hover:text-indigo-500" />
+                                <span className="text-[11px] font-bold truncate max-w-[150px]">{f.name}</span>
+                                {type === 'commercial_sheet' && f.commercialType && (
+                                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                    f.commercialType === 'provisional' 
+                                      ? 'bg-amber-50 text-amber-600 border border-amber-100' 
+                                      : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                  }`}>
+                                    {f.commercialType === 'provisional' ? 'Provisional' : 'Final'}
+                                  </span>
+                                )}
+                              </a>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleDeleteFileFromVersion(v, fIdx, type);
+                                }}
+                                className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg opacity-0 group-hover/file:opacity-100 transition-all"
+                                title="Eliminar archivo"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <button 
+                          onClick={() => setReviewingVersion({ version: v, type: type })}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl border border-blue-100 transition-all text-[11px] font-black uppercase tracking-tighter shadow-sm"
+                        >
+                          <MessageSquare size={14} />
+                          Revisar y Comentar
+                          {v.pdfComments && v.pdfComments.length > 0 && (
+                            <span className="bg-white text-blue-600 w-5 h-5 rounded-full flex items-center justify-center text-[10px] ml-1 shadow-sm font-black">
+                              {v.pdfComments.filter(c => !c.resolved).length}
                             </span>
                           )}
-                        </div>
-                        <p className="text-xs text-slate-500 font-medium">Subido por <span className="text-slate-700 font-bold">{v.uploadedBy}</span></p>
+                        </button>
                       </div>
                     </div>
-                    {v.aplicaA && (
-                      <span className="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter">
-                        Aplica a: {v.aplicaA}
-                      </span>
-                    )}
-                    <button
-                      onClick={() => handleDeleteVersion(v, type)}
-                      className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-                      title="Eliminar esta versión"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-
-                  {v.changeDescription && (
-                    <div className="mb-4 bg-blue-50/50 p-3 rounded-lg border border-blue-100/50">
-                      <p className="text-[10px] font-black text-blue-800 uppercase tracking-widest mb-1 flex items-center gap-1">
-                        <Eye size={12} />
-                        Cambios realizados:
-                      </p>
-                      <p className="text-xs text-blue-700 font-medium leading-relaxed">
-                        {v.changeDescription}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className={`grid grid-cols-1 gap-3 mb-4 ${isArtwork ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-1'}`}>
-                    {renderApprovalStatus(v.idApproval, 'I+D', isArtwork)}
-                    {isArtwork && (
-                      <>
-                        {renderApprovalStatus(v.mktApproval, 'Marketing', true)}
-                        {renderApprovalStatus(v.planApproval, 'Planeamiento', true)}
-                        {renderApprovalStatus(v.provApproval, 'Proveedor', true)}
-                      </>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-50 items-center justify-between">
-                    <div className="flex flex-wrap gap-2">
-                      {v.files.map((f, fIdx) => (
-                        <div key={fIdx} className="flex items-center gap-1 group/file">
-                          <a 
-                            href={f.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 transition-colors group"
-                          >
-                            <FileText size={14} className="text-slate-400 group-hover:text-indigo-500" />
-                            <span className="text-[11px] font-bold truncate max-w-[150px]">{f.name}</span>
-                            {type === 'commercial_sheet' && f.commercialType && (
-                              <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                                f.commercialType === 'provisional' 
-                                  ? 'bg-amber-50 text-amber-600 border border-amber-100' 
-                                  : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                              }`}>
-                                {f.commercialType === 'provisional' ? 'Provisional' : 'Final'}
-                              </span>
-                            )}
-                          </a>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleDeleteFileFromVersion(v, fIdx, type);
-                            }}
-                            className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg opacity-0 group-hover/file:opacity-100 transition-all"
-                            title="Eliminar archivo"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-
-                    <button 
-                      onClick={() => setReviewingVersion({ version: v, type: type })}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl border border-blue-100 transition-all text-[11px] font-black uppercase tracking-tighter shadow-sm"
-                    >
-                      <MessageSquare size={14} />
-                      Revisar y Comentar
-                      {v.pdfComments && v.pdfComments.length > 0 && (
-                        <span className="bg-white text-blue-600 w-5 h-5 rounded-full flex items-center justify-center text-[10px] ml-1 shadow-sm font-black">
-                          {v.pdfComments.filter(c => !c.resolved).length}
-                        </span>
-                      )}
-                    </button>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
