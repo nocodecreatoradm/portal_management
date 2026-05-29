@@ -136,6 +136,7 @@ export interface ProductRecord {
   linea: 'LÍNEA BLANCA' | 'AGUA CALIENTE' | 'CLIMATIZACIÓN' | 'PURIFICACIÓN';
   lineId?: string;
   categoryId?: string;
+  categoria?: string;
   artworks: DocumentVersion[];
   technicalSheets?: DocumentVersion[];
   commercialSheets?: DocumentVersion[];

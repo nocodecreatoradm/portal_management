@@ -298,14 +298,15 @@ export const SupabaseService = {
     let query = supabase
       .from('products')
       .select(`
-        id, correlative_id, sap_code, ean_code, sap_description, brand_id, supplier_id, line_id, sample_id, 
+        id, correlative_id, sap_code, ean_code, sap_description, brand_id, supplier_id, line_id, sample_id, category_id,
         commercial_status, quality_inspection_date, fob_price, fob_price_history, explode_files, 
         additional_provider_documents, gallery, created_at, updated_at, 
         artwork_assignment, technical_assignment, commercial_assignment, tracking_type, linked_group_id,
         brand:brands(name),
         supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         line:product_lines(name),
-        sample:samples(correlative_id)
+        category:categories(name),
+        sample:samples(correlative_id, category_id, category:categories(name))
       `);
     
     if (trackingType) {
@@ -334,7 +335,8 @@ export const SupabaseService = {
         brand:brands(name),
         supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         line:product_lines(name),
-        sample:samples(correlative_id)
+        category:categories(name),
+        sample:samples(correlative_id, category_id, category:categories(name))
       `)
       .single();
     if (error) throw error;
@@ -374,7 +376,8 @@ export const SupabaseService = {
         brand:brands(name),
         supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         line:product_lines(name),
-        sample:samples(correlative_id)
+        category:categories(name),
+        sample:samples(correlative_id, category_id, category:categories(name))
       `)
       .single();
     if (error) throw error;
@@ -413,7 +416,8 @@ export const SupabaseService = {
         brand:brands(name),
         supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         line:product_lines(name),
-        sample:samples(correlative_id)
+        category:categories(name),
+        sample:samples(correlative_id, category_id, category:categories(name))
       `)
       .single();
     if (error) throw error;
@@ -445,12 +449,13 @@ export const SupabaseService = {
     const { data, error } = await supabase
       .from('product_management')
       .select(`
-        id, correlative_id, sap_code, ean_code, sap_description, brand_id, supplier_id, line_id, sample_id, 
+        id, correlative_id, sap_code, ean_code, sap_description, brand_id, supplier_id, line_id, sample_id, category_id,
         fob_price, fob_price_history, explode_files, additional_provider_documents, gallery, 
         approved_documents, created_at, updated_at,
         brand:brands(name),
         supplier:suppliers(legal_name, commercial_alias, erp_code, email),
-        line:product_lines(name)
+        line:product_lines(name),
+        category:categories(name)
       `)
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -466,7 +471,8 @@ export const SupabaseService = {
         *,
         brand:brands(name),
         supplier:suppliers(legal_name, commercial_alias, erp_code, email),
-        line:product_lines(name)
+        line:product_lines(name),
+        category:categories(name)
       `)
       .single();
     if (error) throw error;
@@ -484,7 +490,8 @@ export const SupabaseService = {
         *,
         brand:brands(name),
         supplier:suppliers(legal_name, commercial_alias, erp_code, email),
-        line:product_lines(name)
+        line:product_lines(name),
+        category:categories(name)
       `)
       .single();
     if (error) throw error;

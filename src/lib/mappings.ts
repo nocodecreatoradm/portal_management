@@ -291,6 +291,8 @@ export const mapProductToDB = (product: Partial<ProductRecord & ProductManagemen
   if (product.approvedDocuments !== undefined) dbProduct.approved_documents = product.approvedDocuments;
   if (product.trackingType !== undefined) dbProduct.tracking_type = product.trackingType;
   if (product.linkedGroupId !== undefined) dbProduct.linked_group_id = product.linkedGroupId;
+  if (product.categoryId !== undefined) dbProduct.category_id = isUUID(product.categoryId) ? product.categoryId : null;
+  else if (product.categoria !== undefined && isUUID(product.categoria)) dbProduct.category_id = product.categoria;
   return dbProduct;
 };
 
@@ -316,6 +318,8 @@ export const mapPMRecordToDB = (record: Partial<ProductManagementRecord>) => {
   if (record.artworkAssignment !== undefined) dbRecord.artwork_assignment = record.artworkAssignment;
   if (record.technicalAssignment !== undefined) dbRecord.technical_assignment = record.technicalAssignment;
   if (record.commercialAssignment !== undefined) dbRecord.commercial_assignment = record.commercialAssignment;
+  if (record.categoryId !== undefined) dbRecord.category_id = isUUID(record.categoryId) ? record.categoryId : null;
+  else if (record.categoria !== undefined && isUUID(record.categoria)) dbRecord.category_id = record.categoria;
   
   return dbRecord;
 };
@@ -347,7 +351,9 @@ export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
   technicalAssignment: dbProduct.technical_assignment,
   commercialAssignment: dbProduct.commercial_assignment,
   trackingType: dbProduct.tracking_type,
-  linkedGroupId: dbProduct.linked_group_id
+  linkedGroupId: dbProduct.linked_group_id,
+  categoryId: dbProduct.category_id || dbProduct.sample?.category_id || '',
+  categoria: dbProduct.category?.name || dbProduct.sample?.category?.name || ''
 });
 
 export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
@@ -373,6 +379,8 @@ export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
   artworkAssignment: dbRecord.artwork_assignment,
   technicalAssignment: dbRecord.technical_assignment,
   commercialAssignment: dbRecord.commercial_assignment,
+  categoryId: dbRecord.category_id || '',
+  categoria: dbRecord.category?.name || '',
   createdAt: dbRecord.created_at || new Date().toISOString()
 });
 
