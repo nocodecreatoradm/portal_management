@@ -376,7 +376,7 @@ export default function ProductDetailModal({
         </h4>
         
         {Object.entries(groupedVersions).map(([groupName, groupVersions]) => {
-          const isCollapsed = collapsedGroups[groupName] || false;
+          const isCollapsed = collapsedGroups[groupName] !== undefined ? collapsedGroups[groupName] : true;
 
           return (
             <div key={groupName} className="space-y-4">
