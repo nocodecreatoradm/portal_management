@@ -158,6 +158,74 @@ export const outlookService = {
   },
 
   /**
+   * Helper to generate a clean HTML table summarizing the status of all current artwork files
+   */
+  generateStatusTableHTML: (record: ProductRecord) => {
+    const currentVersions = record.artworks || [];
+    const latestByCategory = Object.values(
+      currentVersions.reduce((acc, v) => {
+        if (!v) return acc;
+        const key = v.category || 'Others';
+        if (!acc[key] || acc[key].version < v.version) acc[key] = v;
+        return acc;
+      }, {} as Record<string, DocumentVersion>)
+    ).sort((a: any, b: any) => (a.category || '').localeCompare(b.category || '')) as DocumentVersion[];
+
+    if (latestByCategory.length === 0) return '';
+
+    const getStatusBadge = (status: string) => {
+      switch (status) {
+        case 'approved':
+          return '<span style="color: #10b981; font-weight: bold; background-color: #ecfdf5; padding: 4px 8px; border-radius: 6px; border: 1px solid #a7f3d0; font-size: 11px; display: inline-block;">Aprobado</span>';
+        case 'approved_with_observation':
+          return '<span style="color: #3b82f6; font-weight: bold; background-color: #eff6ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #bfdbfe; font-size: 11px; display: inline-block;">Aprobado c/ Obs.</span>';
+        case 'rejected':
+          return '<span style="color: #ef4444; font-weight: bold; background-color: #fef2f2; padding: 4px 8px; border-radius: 6px; border: 1px solid #fca5a5; font-size: 11px; display: inline-block;">Rechazado</span>';
+        case 'pending':
+          return '<span style="color: #f59e0b; font-weight: bold; background-color: #fffbeb; padding: 4px 8px; border-radius: 6px; border: 1px solid #fde68a; font-size: 11px; display: inline-block;">Pendiente</span>';
+        case 'not_started':
+          return '<span style="color: #6b7280; background-color: #f3f4f6; padding: 4px 8px; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 11px; font-style: italic; display: inline-block;">No iniciado</span>';
+        case 'not_required':
+          return '<span style="color: #9ca3af; background-color: #f9fafb; padding: 4px 8px; border-radius: 6px; border: 1px solid #f3f4f6; font-size: 11px; display: inline-block;">No requerido</span>';
+        default:
+          return `<span style="font-size: 11px; display: inline-block;">${status || '-'}</span>`;
+      }
+    };
+
+    let rows = '';
+    latestByCategory.forEach(v => {
+      rows += `
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 12px 10px; font-weight: bold; color: #334155; font-size: 13px;">${v.category || 'Otros'} (V${v.version})</td>
+          <td style="padding: 12px 10px; text-align: center;">${getStatusBadge(v.idApproval?.status || 'not_started')}</td>
+          <td style="padding: 12px 10px; text-align: center;">${getStatusBadge(v.mktApproval?.status || 'not_started')}</td>
+          <td style="padding: 12px 10px; text-align: center;">${getStatusBadge(v.provApproval?.status || 'not_started')}</td>
+          <td style="padding: 12px 10px; text-align: center;">${getStatusBadge(v.planApproval?.status || 'not_started')}</td>
+        </tr>
+      `;
+    });
+
+    return `
+      <div style="margin: 24px 0; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; min-width: 500px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: left; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #cbd5e1;">
+              <th style="padding: 12px 10px; color: #475569; font-size: 11px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Componente / Archivo</th>
+              <th style="padding: 12px 10px; color: #475569; font-size: 11px; text-transform: uppercase; font-weight: bold; text-align: center; letter-spacing: 0.5px; width: 100px;">I+D</th>
+              <th style="padding: 12px 10px; color: #475569; font-size: 11px; text-transform: uppercase; font-weight: bold; text-align: center; letter-spacing: 0.5px; width: 100px;">MKT</th>
+              <th style="padding: 12px 10px; color: #475569; font-size: 11px; text-transform: uppercase; font-weight: bold; text-align: center; letter-spacing: 0.5px; width: 100px;">PROV</th>
+              <th style="padding: 12px 10px; color: #475569; font-size: 11px; text-transform: uppercase; font-weight: bold; text-align: center; letter-spacing: 0.5px; width: 100px;">PLAN</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  /**
    * Notifies final approval (Planning).
    */
   sendApprovalEmail: async (record: ProductRecord, version: DocumentVersion, moduleType: string) => {
@@ -175,6 +243,9 @@ export const outlookService = {
 
     const subject = `[APROBACIÓN FINAL] - ${record.codigoSAP} - ${record.descripcionSAP}`;
     const title = 'Approved Artworks Released';
+    
+    const statusTable = moduleType === 'artwork' ? outlookService.generateStatusTableHTML(record) : '';
+
     const content = `
       <p>Dear Supplier,</p>
       <p>Good day.</p>
@@ -187,6 +258,12 @@ export const outlookService = {
         </ul>
       </div>
       ` : ''}
+
+      ${statusTable ? `
+      <p style="margin-top: 24px; font-weight: bold; color: #1e293b;">Resumen de Aprobaciones del Sistema / Artwork Status Summary:</p>
+      ${statusTable}
+      ` : ''}
+
       <p>Please carefully review all the documents before production and confirm that the files are correct and complete.</p>
       <p>If you have any observation, discrepancy, missing document, printing limitation or technical concern, please inform us immediately before proceeding.</p>
       <p>If everything is correct and there are no observations, you may proceed with production using only the approved files. Previous versions must be deleted or replaced to avoid mistakes. No change, adjustment or redesign is allowed without prior written approval from Grupo Sole.</p>
@@ -223,13 +300,26 @@ export const outlookService = {
       nextRecipients = await outlookService.getDepartmentEmailsForRecord('Planeamiento', record);
     }
 
+    const statusTable = moduleType === 'artwork' ? outlookService.generateStatusTableHTML(record) : '';
+
+    if (stage === 'I+D') {
+      subject = `[FLUJO DE ARTE] - Listo para revisión de Marketing - ${record.codigoSAP} - ${record.descripcionSAP}`;
+      title = `Pendiente de Aprobación por Marketing`;
+    } else if (stage === 'MKT') {
+      subject = `[ARTWORK APPROVAL] - Pending Provider Review - ${record.codigoSAP} - ${record.descripcionSAP}`;
+      title = `Pending Artwork Review and Acceptance`;
+    } else if (stage === 'PROV') {
+      subject = `[FLUJO DE ARTE] - Listo para liberación de Planeamiento - ${record.codigoSAP} - ${record.descripcionSAP}`;
+      title = `Pendiente de Liberación y Aprobación Final`;
+    }
+
     let content = '';
     if (stage === 'MKT') {
-      title = 'Approved Artworks Released';
       content = `
         <p>Dear Supplier,</p>
         <p>Good day.</p>
-        <p>The approved artworks for <strong>${record.codigoSAP} – ${record.descripcionSAP}</strong>, version <strong>V${version.version}</strong>, have been released and are available for download through the links below:</p>
+        <p>The artworks for <strong>${record.codigoSAP} – ${record.descripcionSAP}</strong> have been reviewed and approved by our Marketing department.</p>
+        <p>They are now ready for your final review and verification in the portal.</p>
         ${version.files && version.files.length > 0 ? `
         <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
           <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Artwork download links:</p>
@@ -238,10 +328,13 @@ export const outlookService = {
           </ul>
         </div>
         ` : ''}
-        <p>Please carefully review all the documents before production and confirm that the files are correct and complete.</p>
-        <p>If you have any observation, discrepancy, missing document, printing limitation or technical concern, please inform us immediately before proceeding.</p>
-        <p>If everything is correct and there are no observations, you may proceed with production using only the approved files. Previous versions must be deleted or replaced to avoid mistakes. No change, adjustment or redesign is allowed without prior written approval from Grupo Sole.</p>
-        <p>Before starting production, please confirm by email your acceptance of the approved artworks, always copying <strong>planeamientomt@sole.com.pe</strong>.</p>
+
+        ${statusTable ? `
+        <p style="margin-top: 24px; font-weight: bold; color: #1e293b;">Resumen de Aprobaciones del Sistema / Artwork Status Summary:</p>
+        ${statusTable}
+        ` : ''}
+
+        <p>Please enter the portal to review and approve the files as a provider. If everything is correct, click approve to proceed to the Planning stage.</p>
         <br/>
         <p style="margin: 0;">Best regards,</p>
         <p style="margin: 0;"><strong>Grupo Sole – Rinnai Corporation</strong></p>
@@ -249,19 +342,16 @@ export const outlookService = {
       `;
     } else {
       content = `
-        <p>Se ha registrado la <strong>${stageName}</strong> para el producto <strong>${record.codigoSAP}</strong>.</p>
-        <p><strong>Versión:</strong> V${version.version}</p>
+        <p>Se ha completado y aprobado la etapa de <strong>${stageName}</strong> para el producto <strong>${record.codigoSAP} - ${record.descripcionSAP}</strong>.</p>
         <p><strong>Aprobado por:</strong> ${user}</p>
-        ${comments ? `<p><strong>Comentarios:</strong> ${comments}</p>` : ''}
-        ${version.files && version.files.length > 0 ? `
-        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Archivos (Enlaces de Descarga):</p>
-          <ul style="margin: 0; padding-left: 20px;">
-            ${version.files.map(f => `<li style="margin-bottom: 8px;"><a href="${f.url}" target="_blank" style="color: #2563eb; text-decoration: underline;">${f.name || f.originalName || 'Archivo'}</a></li>`).join('')}
-          </ul>
-        </div>
+        ${comments ? `<p><strong>Comentarios de la etapa:</strong> ${comments}</p>` : ''}
+        
+        ${statusTable ? `
+        <p style="margin-top: 24px; font-weight: bold; color: #1e293b;">Estado Actual de Aprobaciones:</p>
+        ${statusTable}
         ` : ''}
-        <p>El flujo continuará a la siguiente etapa de revisión.</p>
+        
+        <p>El flujo ha avanzado automáticamente y requiere su revisión en la siguiente fase.</p>
       `;
     }
 
@@ -291,14 +381,23 @@ export const outlookService = {
     
     const subject = `[OBSERVACIÓN] - ${record.codigoSAP} - ${stage}`;
     const title = 'Documento con Observaciones';
+    
+    const statusTable = type === 'artwork' || type === 'Artes' ? outlookService.generateStatusTableHTML(record) : '';
+
     const content = `
       <p>Hola,</p>
-      <p>Se han registrado observaciones en el flujo de <strong>${type}</strong> para el producto <strong>${record.codigoSAP}</strong> durante la etapa de <strong>${stage}</strong>.</p>
+      <p>Se han registrado observaciones en el flujo de <strong>${type}</strong> para el producto <strong>${record.codigoSAP} - ${record.descripcionSAP}</strong> durante la etapa de <strong>${stage}</strong>.</p>
       <div style="background-color: #fff7ed; border-left: 4px solid #ea580c; padding: 16px; margin: 16px 0;">
-        <p style="margin: 0; font-weight: bold; color: #9a3412;">Comentarios:</p>
+        <p style="margin: 0; font-weight: bold; color: #9a3412;">Comentarios/Observaciones:</p>
         <p style="margin: 8px 0 0; font-style: italic;">"${comments || 'Sin comentarios adicionales'}"</p>
       </div>
-      <p>Por favor, revisar y subir una nueva versión corregida.</p>
+
+      ${statusTable ? `
+      <p style="margin-top: 24px; font-weight: bold; color: #1e293b;">Resumen de Aprobaciones del Sistema:</p>
+      ${statusTable}
+      ` : ''}
+
+      <p>Por favor, ingresar al portal para revisar y subir una nueva versión corregida.</p>
     `;
 
     try {
@@ -381,6 +480,9 @@ export const outlookService = {
   sendFlowStartEmail: async (record: ProductRecord, version: DocumentVersion, type: string) => {
     const subject = `[NUEVA VERSIÓN] - ${record.codigoSAP} lista para revisión`;
     const title = 'Nuevo Documento para Revisar';
+    
+    const statusTable = type === 'artwork' || type === 'Artes' ? outlookService.generateStatusTableHTML(record) : '';
+
     const content = `
       <p>Se ha iniciado un nuevo flujo de revisión para el producto <strong>${record.codigoSAP} - ${record.descripcionSAP}</strong>.</p>
       <div style="background-color: #f1f5f9; border-radius: 8px; padding: 16px; margin: 16px 0;">
@@ -389,6 +491,12 @@ export const outlookService = {
         <p style="margin: 4px 0;"><strong>Subido por:</strong> ${version.uploadedBy}</p>
         <p style="margin: 4px 0;"><strong>Descripción:</strong> ${version.changeDescription || 'Sin descripción'}</p>
       </div>
+
+      ${statusTable ? `
+      <p style="margin-top: 24px; font-weight: bold; color: #1e293b;">Detalle de Archivos en este Flujo:</p>
+      ${statusTable}
+      ` : ''}
+
       ${version.files && version.files.length > 0 ? `
       <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
         <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Archivos Adjuntos (Enlaces de Descarga):</p>
@@ -397,7 +505,7 @@ export const outlookService = {
         </ul>
       </div>
       ` : ''}
-      <p>Por favor, ingrese al portal para realizar la aprobación técnica o de marketing según corresponda.</p>
+      <p>Por favor, ingrese al portal para realizar la aprobación técnica de I+D.</p>
     `;
 
     try {

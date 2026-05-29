@@ -437,6 +437,80 @@ export default function App() {
               currentDocs[versionIndex] = updatedVersion;
               record[docArrayKey] = currentDocs;
             }
+
+            // Sequential multi-stage flow logic for artworks
+            const isArtwork = modalConfig.type === 'artwork';
+            let allEvaluated = false;
+            let hasRejections = false;
+
+            if (isArtwork && modalConfig.stage) {
+              const stage = modalConfig.stage; // 'I+D' | 'MKT' | 'PROV' | 'PLAN'
+              const stageKey = stage === 'I+D' ? 'idApproval' : 
+                               stage === 'MKT' ? 'mktApproval' : 
+                               stage === 'PROV' ? 'provApproval' : 'planApproval';
+              
+              const newlyUpdatedDocs = record[docArrayKey] || [];
+              const latestByCategory = Object.values(
+                newlyUpdatedDocs.reduce((acc: any, v: any) => {
+                  if (!v) return acc;
+                  const key = v.category || 'Others';
+                  if (!acc[key] || acc[key].version < v.version) acc[key] = v;
+                  return acc;
+                }, {} as Record<string, DocumentVersion>)
+              ) as DocumentVersion[];
+
+              allEvaluated = latestByCategory.every((v: any) => 
+                ['approved', 'approved_with_observation', 'rejected'].includes(v[stageKey]?.status)
+              );
+
+              hasRejections = latestByCategory.some((v: any) => 
+                v[stageKey]?.status === 'rejected'
+              );
+
+              if (allEvaluated) {
+                if (hasRejections) {
+                  // Stop flow and reset subsequent stages to not_started
+                  latestByCategory.forEach((latestV: any) => {
+                    const idx = newlyUpdatedDocs.findIndex((v: any) => 
+                      v.version === latestV.version && 
+                      v.category === latestV.category && 
+                      v.subcategory === latestV.subcategory
+                    );
+                    if (idx > -1) {
+                      const v = newlyUpdatedDocs[idx];
+                      if (stage === 'I+D') {
+                        newlyUpdatedDocs[idx] = { ...v, mktApproval: { status: 'not_started' }, provApproval: { status: 'not_started' }, planApproval: { status: 'not_started' } };
+                      } else if (stage === 'MKT') {
+                        newlyUpdatedDocs[idx] = { ...v, provApproval: { status: 'not_started' }, planApproval: { status: 'not_started' } };
+                      } else if (stage === 'PROV') {
+                        newlyUpdatedDocs[idx] = { ...v, planApproval: { status: 'not_started' } };
+                      }
+                    }
+                  });
+                  record[docArrayKey] = newlyUpdatedDocs;
+                } else {
+                  // Advance active documents to the next stage ('pending')
+                  latestByCategory.forEach((latestV: any) => {
+                    const idx = newlyUpdatedDocs.findIndex((v: any) => 
+                      v.version === latestV.version && 
+                      v.category === latestV.category && 
+                      v.subcategory === latestV.subcategory
+                    );
+                    if (idx > -1) {
+                      const v = newlyUpdatedDocs[idx];
+                      if (stage === 'I+D') {
+                        newlyUpdatedDocs[idx] = { ...v, mktApproval: { status: 'pending' } };
+                      } else if (stage === 'MKT') {
+                        newlyUpdatedDocs[idx] = { ...v, provApproval: { status: 'pending' } };
+                      } else if (stage === 'PROV') {
+                        newlyUpdatedDocs[idx] = { ...v, planApproval: { status: 'pending' } };
+                      }
+                    }
+                  });
+                  record[docArrayKey] = newlyUpdatedDocs;
+                }
+              }
+            }
             
             newData[recordIndex] = record;
             
@@ -449,26 +523,43 @@ export default function App() {
             
             setData(newData);
 
-            if (actionData.status === 'approved' || actionData.status === 'approved_with_observation') {
-              // Always send an email on approval, but use specific template for final PLAN stage
-              if (modalConfig.stage === 'PLAN') {
-                outlookService.sendApprovalEmail(record, updatedVersion, modalConfig.type || 'artwork');
-              } else {
-                // For intermediate stages, send a flow update or generic approval
-                const stageName = modalConfig.stage === 'I+D' ? 'Aprobación Técnica' : 
-                                 modalConfig.stage === 'MKT' ? 'Aprobación Marketing' : 'Aprobación Proveedor';
-
+            // Trigger notification emails
+            if (isArtwork && modalConfig.stage) {
+              if (allEvaluated) {
+                if (hasRejections) {
+                  outlookService.sendObservationEmail(record, modalConfig.stage, actionData.comments || 'Se registraron observaciones en la revisión.', 'Artes');
+                } else {
+                  if (modalConfig.stage === 'PLAN') {
+                    outlookService.sendApprovalEmail(record, updatedVersion, 'artwork');
+                  } else {
+                    const nextStageName = modalConfig.stage === 'I+D' ? 'Aprobación Técnica' : 
+                                         modalConfig.stage === 'MKT' ? 'Aprobación Marketing' : 'Aprobación Proveedor';
+                    outlookService.sendStageApprovalEmail(
+                      record, 
+                      updatedVersion, 
+                      modalConfig.stage, 
+                      nextStageName, 
+                      actionData.comments || '', 
+                      user?.name || 'Sistema'
+                    );
+                  }
+                }
+              }
+            } else {
+              // Non-artworks evaluation notification logic
+              if (actionData.status === 'approved' || actionData.status === 'approved_with_observation') {
                 outlookService.sendStageApprovalEmail(
                   record, 
                   updatedVersion, 
                   modalConfig.stage || '', 
-                  stageName, 
+                  'Aprobación Técnica', 
                   actionData.comments || '', 
-                  user?.name || 'Sistema'
+                  user?.name || 'Sistema',
+                  modalConfig.type || 'technical_sheet'
                 );
+              } else if (actionData.status === 'rejected') {
+                outlookService.sendObservationEmail(record, modalConfig.stage || '', actionData.comments, modalConfig.type || 'technical_sheet');
               }
-            } else if (actionData.status === 'rejected') {
-              outlookService.sendObservationEmail(record, modalConfig.stage || '', actionData.comments, modalConfig.type || 'artwork');
             }
             toast.success('Estado actualizado correctamente');
           }
@@ -487,47 +578,77 @@ export default function App() {
     
     if (recordIndex > -1) {
       const updatedRecord = { ...newData[recordIndex] };
+      const isArtwork = activeModule === 'artwork_followup';
       // Determine which array to use based on activeModule
       const docArrayKey = activeModule === 'artwork_followup' ? 'artworks' : 
                           activeModule === 'technical_datasheet' ? 'technicalSheets' : 'commercialSheets';
       
       const docArray = [...(updatedRecord[docArrayKey] || [])];
-      const versionIndex = docArray.findIndex(v => 
-        v.version === version.version &&
-        v.category === version.category &&
-        v.subcategory === version.subcategory
-      );
       
-      if (versionIndex > -1) {
-        const v = docArray[versionIndex];
-        const isArtwork = activeModule === 'artwork_followup';
-        
-        docArray[versionIndex] = {
-          ...v,
-          idApproval: v.idApproval.status === 'not_started' ? { status: 'pending' } : v.idApproval,
-          mktApproval: isArtwork && v.mktApproval.status === 'not_started' ? { status: 'pending' } : v.mktApproval,
-          provApproval: isArtwork && v.provApproval.status === 'not_started' ? { status: 'pending' } : v.provApproval,
-          planApproval: isArtwork && v.planApproval.status === 'not_started' ? { status: 'pending' } : v.planApproval,
-        };
-        updatedRecord[docArrayKey] = docArray;
-        newData[recordIndex] = updatedRecord;
-        setData(newData);
+      if (isArtwork) {
+        // Find latest version of each category (active files list)
+        const latestByCategory = Object.values(
+          docArray.reduce((acc, v) => {
+            if (!v) return acc;
+            const key = v.category || 'Others';
+            if (!acc[key] || acc[key].version < v.version) acc[key] = v;
+            return acc;
+          }, {} as Record<string, DocumentVersion>)
+        ) as DocumentVersion[];
 
-        // Persist to Supabase
-        try {
-          if (updatedRecord.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(updatedRecord.id)) {
-            await SupabaseService.updateProduct(updatedRecord.id, { [docArrayKey]: updatedRecord[docArrayKey] });
-          } else if (updatedRecord.codigoSAP) {
-            await SupabaseService.updateProductBySAP(updatedRecord.codigoSAP, { [docArrayKey]: updatedRecord[docArrayKey] });
+        // Update all active files to have idApproval = 'pending' (if not_started)
+        // and others = 'not_started'
+        latestByCategory.forEach(latestV => {
+          const idx = docArray.findIndex(v => 
+            v.version === latestV.version && 
+            v.category === latestV.category && 
+            v.subcategory === latestV.subcategory
+          );
+          if (idx > -1) {
+            const v = docArray[idx];
+            docArray[idx] = {
+              ...v,
+              idApproval: v.idApproval.status === 'not_started' ? { status: 'pending' } : v.idApproval,
+              mktApproval: { status: 'not_started' },
+              provApproval: { status: 'not_started' },
+              planApproval: { status: 'not_started' }
+            };
           }
-          
-          // Notify flow start
-          outlookService.sendFlowStartEmail(updatedRecord, version, activeModule === 'artwork_followup' ? 'Artes' : 'Fichas');
-          
-        } catch (error) {
-          console.error('Error persisting flow start:', error);
-          toast.error('Error al guardar inicio de flujo en la nube');
+        });
+      } else {
+        const versionIndex = docArray.findIndex(v => 
+          v.version === version.version &&
+          v.category === version.category &&
+          v.subcategory === version.subcategory
+        );
+        
+        if (versionIndex > -1) {
+          const v = docArray[versionIndex];
+          docArray[versionIndex] = {
+            ...v,
+            idApproval: v.idApproval.status === 'not_started' ? { status: 'pending' } : v.idApproval,
+          };
         }
+      }
+
+      updatedRecord[docArrayKey] = docArray;
+      newData[recordIndex] = updatedRecord;
+      setData(newData);
+
+      // Persist to Supabase
+      try {
+        if (updatedRecord.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(updatedRecord.id)) {
+          await SupabaseService.updateProduct(updatedRecord.id, { [docArrayKey]: updatedRecord[docArrayKey] });
+        } else if (updatedRecord.codigoSAP) {
+          await SupabaseService.updateProductBySAP(updatedRecord.codigoSAP, { [docArrayKey]: updatedRecord[docArrayKey] });
+        }
+        
+        // Notify flow start
+        outlookService.sendFlowStartEmail(updatedRecord, version, activeModule === 'artwork_followup' ? 'Artes' : 'Fichas');
+        toast.success('Flujo de aprobaciones iniciado para todos los archivos activos');
+      } catch (error) {
+        console.error('Error persisting flow start:', error);
+        toast.error('Error al guardar inicio de flujo en la nube');
       }
     }
   };
