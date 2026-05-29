@@ -163,12 +163,17 @@ export const initialProductManagement: ProductManagementRecord[] = [
     sampleId: 'S1',
     approvedDocuments: [
       {
-        id: 'DOC-1',
-        name: 'Ficha Técnica Aprobada.pdf',
-        type: 'application/pdf',
-        url: '#',
+        id: 'CAT-1',
         category: 'Ficha Técnica',
-        approvalDate: '2026-02-10'
+        documents: [
+          {
+            id: 'DOC-1',
+            name: 'Ficha Técnica Aprobada.pdf',
+            type: 'application/pdf',
+            url: '#',
+            approvalDate: '2026-02-10'
+          }
+        ]
       }
     ],
     gallery: [

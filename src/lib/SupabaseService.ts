@@ -50,6 +50,7 @@ import {
   mapDBToSample,
   mapDBToRDProject,
   mapRDProjectToDB,
+  mapBrandToDB,
   mapDBToBrand,
   mapBrandDocumentToDB,
   mapDBToBrandDocument,
@@ -245,7 +246,8 @@ export const SupabaseService = {
         *,
         supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         brand:brands(name),
-        line:product_lines(name)
+        line:product_lines(name),
+        category:categories(name)
       `)
       .single();
     if (error) throw error;
@@ -272,7 +274,8 @@ export const SupabaseService = {
         *,
         supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         brand:brands(name),
-        line:product_lines(name)
+        line:product_lines(name),
+        category:categories(name)
       `)
       .single();
     if (error) throw error;
@@ -1096,12 +1099,22 @@ export const SupabaseService = {
     let lastError: any = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json'
+        };
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData?.session?.access_token) {
+            headers['Authorization'] = `Bearer ${sessionData.session.access_token}`;
+          }
+        } catch (tokenErr) {
+          console.error('Error fetching token for SAS upload:', tokenErr);
+        }
+
         // 1. Get the dynamic SAS url from our backend
         const sasResponse = await fetch('/api/azure-sas-upload', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers,
           body: JSON.stringify({
             fileName: sanitizedPath,
             fileType: file.type

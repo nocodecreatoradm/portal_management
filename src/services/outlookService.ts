@@ -2,6 +2,7 @@
 import { toast } from 'sonner';
 import { ProductRecord, DocumentVersion, AssignmentInfo, InfoRequest, CalendarTask } from '../types';
 import { SupabaseService } from '../lib/SupabaseService';
+import { supabase } from '../lib/supabase';
 
 /**
  * Service to send emails using Microsoft Graph API through our backend.
@@ -54,9 +55,19 @@ export const outlookService = {
    */
   send: async (to: string | string[], subject: string, htmlBody: string) => {
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session?.access_token) {
+          headers['Authorization'] = `Bearer ${data.session.access_token}`;
+        }
+      } catch (tokenErr) {
+        console.error('Error retrieving active session for email send:', tokenErr);
+      }
+
       const response = await fetch('/api/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ to, subject, body: htmlBody }),
       });
 
@@ -107,7 +118,7 @@ export const outlookService = {
   /**
    * Helper to get all emails for a specific department/stage filtered by record's brand/line scopes.
    */
-  getDepartmentEmailsForRecord: async (department: string, record: ProductRecord): Promise<string[]> => {
+  getDepartmentEmailsForRecord: async (department: string, record: ProductRecord | null | undefined): Promise<string[]> => {
     try {
       const profiles = await SupabaseService.getProfiles();
       return (profiles || [])
@@ -117,8 +128,8 @@ export const outlookService = {
           if (p.role === 'admin' || !p.scopes || p.scopes.length === 0) return true;
           
           return p.scopes.some((scope: any) => {
-            const matchBrand = !scope.brand || scope.brand === record.marca;
-            const matchLine = !scope.line || scope.line === record.linea;
+            const matchBrand = !scope.brand || (record && scope.brand === record.marca);
+            const matchLine = !scope.line || (record && scope.line === record.linea);
             return matchBrand && matchLine;
           });
         })

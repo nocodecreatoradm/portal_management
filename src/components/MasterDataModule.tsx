@@ -363,12 +363,11 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
     try {
       setUploading(true);
       const filePath = `rd-files/procedures/${Date.now()}_${file.name}`;
-      const { data, error } = await SupabaseService.uploadFile('rd-files', filePath, file);
-      if (error) throw error;
+      const uploadedFile = await SupabaseService.uploadFile('rd-files', filePath, file);
 
       const fileInfo: FileInfo = {
         name: file.name,
-        url: data.publicUrl,
+        url: uploadedFile.url,
         type: file.type,
         size: file.size,
         uploadedAt: new Date().toISOString()

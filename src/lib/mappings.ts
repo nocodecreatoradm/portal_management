@@ -14,7 +14,10 @@ import {
   NTPRegulation, 
   Brand, 
   BrandDocument, 
-  SampleRecord 
+  SampleRecord,
+  ProductLine,
+  Category,
+  InspectionTemplate
 } from '../types';
 
 export const mapInventoryToDB = (item: Partial<RDInventoryItem>) => ({

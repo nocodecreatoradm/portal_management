@@ -16,6 +16,8 @@ export interface FileInfo {
   type: string;
   originalName?: string;
   commercialType?: 'provisional' | 'final';
+  size?: number;
+  uploadedAt?: string;
 }
 
 export interface PDFComment {
@@ -176,7 +178,9 @@ export interface InspectionSection {
 export interface WorkflowStage {
   id: string;
   stage: string;
-  status: 'pending' | 'approved' | 'observed';
+  name?: string;
+  role?: string;
+  status: 'pending' | 'approved' | 'observed' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   comment?: string;
   files?: FileInfo[];
 }
@@ -197,12 +201,20 @@ export interface InspectionTimer {
   firstStartTime?: string;
 }
 
+export interface InspectionFormField {
+  id: string;
+  label: string;
+  type: 'text' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'photo' | 'signature';
+  required: boolean;
+  options?: string[];
+}
+
 export interface InspectionTemplate {
   id: string;
   categoryId: string;
   name: string;
-  formStructure: InspectionSection[];
-  workflowStructure: WorkflowStage[];
+  formStructure: { sections: any[] };
+  workflowStructure: { stages: WorkflowStage[] };
   procedureFile?: FileInfo;
   createdAt?: string;
   updatedAt?: string;
@@ -394,6 +406,8 @@ export interface ProductManagementRecord {
   supplierId?: string;
   linea: string;
   lineId?: string;
+  categoryId?: string;
+  categoria?: string;
   sampleId?: string; // Linked sample
   approvedDocuments: {
     id: string;
@@ -421,9 +435,9 @@ export interface ProductManagementRecord {
   }[];
   explodeFiles?: FileInfo[];
   additionalProviderDocuments?: FileInfo[];
-  artworkAssignment?: string;
-  technicalAssignment?: string;
-  commercialAssignment?: string;
+  artworkAssignment?: AssignmentInfo;
+  technicalAssignment?: AssignmentInfo;
+  commercialAssignment?: AssignmentInfo;
   createdAt: string;
 }
 

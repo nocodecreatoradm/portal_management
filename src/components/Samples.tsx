@@ -313,6 +313,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
       codProv: selectedSupplier?.erpCode,
       linea: line?.name || '',
       categoria: category?.name || '',
+      inspectionDate: new Date().toISOString().split('T')[0],
       inspectionStatus: 'Inspeccionado sin informe',
       inspectionProgress: 'pending',
       history: [

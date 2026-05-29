@@ -118,8 +118,11 @@ export const fetchCantonFairSuppliers = async (year?: number) => {
       .select('id, category, name, fob_price, target_brand, comments, images, supplier_id');
     if (productsError) throw productsError;
     
+    const suppliers = (suppliersData as any[]) || [];
+    const products = (productsData as any[]) || [];
+    
     // Map snake_case to camelCase and link products
-    return (suppliersData || []).map(s => ({
+    return suppliers.map(s => ({
       id: s.id,
       year: s.year,
       name: s.name,
@@ -146,7 +149,7 @@ export const fetchCantonFairSuppliers = async (year?: number) => {
       lat: s.latitude ? parseFloat(s.latitude) : undefined,
       lng: s.longitude ? parseFloat(s.longitude) : undefined,
       createdAt: s.created_at,
-      featuredProducts: (productsData || [])
+      featuredProducts: products
         .filter(p => p.supplier_id === s.id)
         .map(p => ({
           id: p.id,
