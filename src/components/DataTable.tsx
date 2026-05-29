@@ -341,14 +341,25 @@ export default function DataTable({
                     Detalle
                   </button>
                   {displayCategories.map((v, idx) => (
-                    <button 
-                      key={idx}
-                      onClick={() => onActionClick(record, mode, 'view', v)}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest"
-                    >
-                      <ImageIcon size={14} />
-                      V{v.version}
-                    </button>
+                    <div key={idx} className="flex flex-col gap-1">
+                      <button 
+                        onClick={() => onActionClick(record, mode, 'view', v)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                      >
+                        <ImageIcon size={14} />
+                        V{v.version}
+                      </button>
+                      {mode === 'commercial_sheet' && v.files && v.files.map((f, fIdx) => (
+                        <div key={fIdx} className="flex items-center gap-1 mt-1 text-[10px]">
+                          <span className="truncate max-w-[80px] text-slate-500" title={f.name}>{f.name}</span>
+                          {f.commercialType === 'provisional' ? (
+                            <span className="px-1 py-0.2 rounded text-[7px] font-black uppercase bg-amber-50 text-amber-600 border border-amber-100">Prov</span>
+                          ) : f.commercialType === 'final' ? (
+                            <span className="px-1 py-0.2 rounded text-[7px] font-black uppercase bg-emerald-50 text-emerald-600 border border-emerald-100">Final</span>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
                   ))}
                   <button 
                     onClick={() => onDelete?.(record)}
@@ -638,34 +649,57 @@ export default function DataTable({
                     <div className="flex flex-col gap-2 items-center">
                       {displayCategories.length > 0 ? (
                         displayCategories.map((v, idx) => (
-                          <div key={idx} className="flex items-center justify-center gap-2 h-8">
-                            <button 
-                              onClick={() => onActionClick(record, mode, 'view', v)}
-                              className="text-indigo-500 hover:text-indigo-700 transition-colors"
-                              title={`Ver ${v.category || 'Documento'} V${v.version}`}
-                            >
-                              <ImageIcon size={18} />
-                            </button>
-                            <button 
-                              onClick={() => onActionClick(record, mode, 'upload')}
-                              className="text-slate-300 hover:text-indigo-500 transition-colors"
-                              title="Subir nueva versión"
-                            >
-                              <Upload size={14} />
-                            </button>
-                            {(v.idApproval.status === 'not_started' || 
-                              (mode === 'artwork' && (
-                                v.mktApproval.status === 'not_started' || 
-                                v.planApproval.status === 'not_started' || 
-                                v.provApproval.status === 'not_started'
-                              ))) && (
+                          <div key={idx} className="flex flex-col gap-1 items-start w-full px-2">
+                            <div className="flex items-center justify-center gap-2 h-8 w-full">
                               <button 
-                                onClick={() => onStartFlow?.(record, v)}
-                                className="text-blue-500 hover:text-blue-700 transition-colors animate-pulse"
-                                title="Iniciar flujo de aprobaciones"
+                                onClick={() => onActionClick(record, mode, 'view', v)}
+                                className="text-indigo-500 hover:text-indigo-700 transition-colors"
+                                title={`Ver ${v.category || 'Documento'} V${v.version}`}
                               >
-                                <Send size={14} />
+                                <ImageIcon size={18} />
                               </button>
+                              <button 
+                                onClick={() => onActionClick(record, mode, 'upload')}
+                                className="text-slate-300 hover:text-indigo-500 transition-colors"
+                                title="Subir nueva versión"
+                              >
+                                <Upload size={14} />
+                              </button>
+                              {(v.idApproval.status === 'not_started' || 
+                                (mode === 'artwork' && (
+                                  v.mktApproval.status === 'not_started' || 
+                                  v.planApproval.status === 'not_started' || 
+                                  v.provApproval.status === 'not_started'
+                                ))) && (
+                                <button 
+                                  onClick={() => onStartFlow?.(record, v)}
+                                  className="text-blue-500 hover:text-blue-700 transition-colors animate-pulse"
+                                  title="Iniciar flujo de aprobaciones"
+                                >
+                                  <Send size={14} />
+                                </button>
+                              )}
+                            </div>
+                            {mode === 'commercial_sheet' && v.files && v.files.length > 0 && (
+                              <div className="flex flex-col gap-1 mt-1 w-full text-left bg-slate-50 p-1.5 rounded border border-slate-100">
+                                {v.files.map((f, fIdx) => (
+                                  <div key={fIdx} className="flex items-center gap-1.5 flex-wrap">
+                                    <FileText size={12} className="text-slate-400 shrink-0" />
+                                    <a 
+                                      href={f.url}
+                                      className="text-[10px] text-blue-600 hover:underline truncate max-w-[100px]"
+                                      title={f.name}
+                                    >
+                                      {f.name}
+                                    </a>
+                                    {f.commercialType === 'provisional' ? (
+                                      <span className="px-1 py-0.2 rounded text-[7px] font-black uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-100 shrink-0">Prov</span>
+                                    ) : f.commercialType === 'final' ? (
+                                      <span className="px-1 py-0.2 rounded text-[7px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-100 shrink-0">Final</span>
+                                    ) : null}
+                                  </div>
+                                ))}
+                              </div>
                             )}
                           </div>
                         ))

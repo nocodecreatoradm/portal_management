@@ -15,6 +15,7 @@ export interface FileInfo {
   url: string;
   type: string;
   originalName?: string;
+  commercialType?: 'provisional' | 'final';
 }
 
 export interface PDFComment {

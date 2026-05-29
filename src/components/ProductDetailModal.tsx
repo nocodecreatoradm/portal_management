@@ -456,6 +456,15 @@ export default function ProductDetailModal({
                           >
                             <FileText size={14} className="text-slate-400 group-hover:text-indigo-500" />
                             <span className="text-[11px] font-bold truncate max-w-[150px]">{f.name}</span>
+                            {type === 'commercial_sheet' && f.commercialType && (
+                              <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                f.commercialType === 'provisional' 
+                                  ? 'bg-amber-50 text-amber-600 border border-amber-100' 
+                                  : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                              }`}>
+                                {f.commercialType === 'provisional' ? 'Provisional' : 'Final'}
+                              </span>
+                            )}
                           </a>
                           <button
                             onClick={(e) => {

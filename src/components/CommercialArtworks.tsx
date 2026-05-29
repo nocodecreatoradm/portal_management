@@ -372,16 +372,26 @@ export default function CommercialArtworks({
                         {record.linea}
                       </td>
                       <td className="px-4 py-4 border-r border-gray-100">
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1.5">
                           {currentVersion.files.map((f, i) => (
-                            <a 
-                              key={i} 
-                              href={f.url} 
-                              className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition-colors group"
-                            >
-                              <FileText size={14} className="group-hover:scale-110 transition-transform" />
-                              <span className="text-[10px] font-medium truncate max-w-[120px]" title={f.name}>{f.name}</span>
-                            </a>
+                            <div key={i} className="flex items-center gap-2 flex-wrap">
+                              <a 
+                                href={f.url} 
+                                className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition-colors group"
+                              >
+                                <FileText size={14} className="group-hover:scale-110 transition-transform" />
+                                <span className="text-[10px] font-medium truncate max-w-[120px]" title={f.name}>{f.name}</span>
+                              </a>
+                              {mode === 'commercial_sheet' && f.commercialType && (
+                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                  f.commercialType === 'provisional' 
+                                    ? 'bg-amber-50 text-amber-600 border border-amber-100' 
+                                    : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                }`}>
+                                  {f.commercialType === 'provisional' ? 'Provisional' : 'Final'}
+                                </span>
+                              )}
+                            </div>
                           ))}
                         </div>
                       </td>

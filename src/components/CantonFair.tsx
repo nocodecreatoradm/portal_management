@@ -1323,7 +1323,7 @@ const CantonFair: React.FC = () => {
                             <div className="flex gap-2">
                               {cat.type === 'application/pdf' && (
                                 <button 
-                                  onClick={() => setViewingCatalogue(cat)}
+                                  onClick={() => window.open(cat.url, '_blank')}
                                   className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                   title="Visualizar"
                                 >
@@ -1332,6 +1332,8 @@ const CantonFair: React.FC = () => {
                               )}
                               <a 
                                 href={cat.url} 
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 download={cat.name}
                                 className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
                                 title="Descargar"
@@ -1360,7 +1362,7 @@ const CantonFair: React.FC = () => {
                             <div className="flex gap-2">
                               {cat.type === 'application/pdf' && (
                                 <button 
-                                  onClick={() => setViewingCatalogue(cat)}
+                                  onClick={() => window.open(cat.url, '_blank')}
                                   className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                                   title="Visualizar"
                                 >
@@ -1369,6 +1371,8 @@ const CantonFair: React.FC = () => {
                               )}
                               <a 
                                 href={cat.url} 
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 download={cat.name}
                                 className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
                                 title="Descargar"
@@ -1397,7 +1401,7 @@ const CantonFair: React.FC = () => {
                             <div className="flex gap-2">
                               {cat.type === 'application/pdf' && (
                                 <button 
-                                  onClick={() => setViewingCatalogue(cat)}
+                                  onClick={() => window.open(cat.url, '_blank')}
                                   className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                                   title="Visualizar"
                                 >
@@ -1406,6 +1410,8 @@ const CantonFair: React.FC = () => {
                               )}
                               <a 
                                 href={cat.url} 
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 download={cat.name}
                                 className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
                                 title="Descargar"
@@ -2332,6 +2338,8 @@ const CantonFair: React.FC = () => {
                 <div className="flex gap-4">
                   <a 
                     href={viewingCatalogue.url} 
+                    target="_blank"
+                    rel="noopener noreferrer"
                     download={viewingCatalogue.name}
                     className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition-all"
                   >

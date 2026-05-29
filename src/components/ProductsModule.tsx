@@ -55,6 +55,7 @@ export default function ProductsModule({
     setSortConfig({ column, direction });
   };
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ProductManagementRecord | null>(null);
   const [editingRecord, setEditingRecord] = useState<ProductManagementRecord | null>(null);
@@ -1579,8 +1580,10 @@ export default function ProductsModule({
               </button>
               <button 
                 onClick={handleSubmit}
-                className="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+                disabled={isSubmitting}
+                className="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
+                {isSubmitting && <Loader2 size={16} className="animate-spin" />}
                 {editingRecord ? 'Guardar Cambios' : 'Registrar Producto'}
               </button>
             </div>

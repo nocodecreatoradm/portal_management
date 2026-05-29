@@ -22,7 +22,8 @@ import {
   DocumentVersion, 
   ArtworkCategory, 
   ArtworkSubcategory, 
-  FileInfo 
+  FileInfo,
+  ApprovalStatus
 } from '../types';
 
 interface ActionModalProps {
@@ -47,6 +48,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
   const [isUploading, setIsUploading] = useState(false);
   const [comments, setComments] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const [fileTypes, setFileTypes] = useState<Record<number, 'provisional' | 'final'>>({});
   const [category, setCategory] = useState<ArtworkCategory>('Manual');
   const [subcategory, setSubcategory] = useState<ArtworkSubcategory>('Printing');
   const [changeDescription, setChangeDescription] = useState('');
@@ -66,6 +68,8 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
       setSelectedStatus(null);
       setWithObservation(false);
       setError(null);
+      setFiles([]);
+      setFileTypes({});
       if (action === 'approve' && version) {
         setProformaNumber(version.proformaNumber || '');
         setSolpedNumber(version.solpedNumber || '');
@@ -97,9 +101,12 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
         
         if (action === 'upload' && files.length > 0) {
           toast.loading(`Subiendo ${files.length} archivos...`, { id: toastId });
-          const uploadPromises = files.map(f => {
+          const uploadPromises = files.map((f, idx) => {
             const path = `products/${record.id}/${type}/${Date.now()}_${f.name}`;
-            return SupabaseService.uploadFile('rd-files', path, f);
+            return SupabaseService.uploadFile('rd-files', path, f).then(fileInfo => ({
+              ...fileInfo,
+              commercialType: type === 'commercial_sheet' ? (fileTypes[idx] || 'provisional') : undefined
+            }));
           });
           fileInfos = await Promise.all(uploadPromises);
           toast.loading('Archivos subidos. Guardando cambios...', { id: toastId });
@@ -153,6 +160,16 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
 
   const removeFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
+    setFileTypes(prev => {
+      const next = { ...prev };
+      delete next[index];
+      const reindexed: Record<number, 'provisional' | 'final'> = {};
+      files.filter((_, i) => i !== index).forEach((_, newIdx) => {
+        const oldIdx = newIdx >= index ? newIdx + 1 : newIdx;
+        reindexed[newIdx] = next[oldIdx] || 'provisional';
+      });
+      return reindexed;
+    });
   };
 
   const acceptedTypes = '.jpg,.jpeg,.png,.pdf,.ai,.dwg,.dwg7,.html,.zip,.rar,.7z';
@@ -287,18 +304,33 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-gray-500 uppercase">Archivos seleccionados ({files.length})</p>
                     {files.map((f, i) => (
-                      <div key={i} className="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-200 text-sm">
-                        <div className="flex items-center gap-2 truncate">
-                          <FileText size={16} className="text-gray-400 shrink-0" />
-                          <span className="truncate">{f.name}</span>
+                      <div key={i} className="flex flex-col gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200 text-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 truncate">
+                            <FileText size={16} className="text-gray-400 shrink-0" />
+                            <span className="truncate font-medium">{f.name}</span>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={(e) => { e.stopPropagation(); removeFile(i); }}
+                            className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
-                        <button 
-                          type="button" 
-                          onClick={(e) => { e.stopPropagation(); removeFile(i); }}
-                          className="text-red-500 hover:text-red-700 p-1"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {type === 'commercial_sheet' && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-gray-500 font-semibold shrink-0">Tipo de Ficha:</span>
+                            <select
+                              value={fileTypes[i] || 'provisional'}
+                              onChange={(e) => setFileTypes(prev => ({ ...prev, [i]: e.target.value as 'provisional' | 'final' }))}
+                              className="border border-gray-300 rounded-md px-2 py-1 text-xs outline-none bg-white focus:ring-1 focus:ring-slate-500 flex-1 font-bold text-slate-700 cursor-pointer"
+                            >
+                              <option value="provisional">Ficha comercial provisional</option>
+                              <option value="final">Ficha comercial final</option>
+                            </select>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -538,7 +570,18 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                         <div className="flex items-center gap-3 truncate">
                           <FileText className="text-slate-400 group-hover:text-indigo-500 shrink-0" size={24} />
                           <div className="truncate">
-                            <p className="text-sm font-bold text-slate-800 truncate" title={f.name}>{f.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold text-slate-800 truncate" title={f.name}>{f.name}</p>
+                              {type === 'commercial_sheet' && f.commercialType && (
+                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                  f.commercialType === 'provisional' 
+                                    ? 'bg-amber-50 text-amber-600 border border-amber-100' 
+                                    : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                }`}>
+                                  {f.commercialType === 'provisional' ? 'Provisional' : 'Final'}
+                                </span>
+                              )}
+                            </div>
                             <p className="text-[10px] text-slate-500">Subido por {activeVersion.uploadedBy || 'Sistema'} el {activeVersion.uploadDate || 'N/A'}</p>
                           </div>
                         </div>
