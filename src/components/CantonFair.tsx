@@ -1320,22 +1320,24 @@ const CantonFair: React.FC = () => {
                               <FileIcon size={20} className="text-slate-400" />
                               <span className="text-sm font-bold text-slate-700 truncate max-w-[200px]">{cat.name}</span>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 relative z-30 pointer-events-auto">
                               {cat.type === 'application/pdf' && (
-                                <button 
-                                  onClick={() => window.open(cat.url, '_blank')}
-                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                <a 
+                                  href={cat.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors relative z-30 cursor-pointer pointer-events-auto"
                                   title="Visualizar"
                                 >
                                   <Eye size={18} />
-                                </button>
+                                </a>
                               )}
                               <a 
                                 href={cat.url} 
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 download={cat.name}
-                                className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
+                                className="p-2 text-slate-400 hover:text-slate-900 transition-colors relative z-30 cursor-pointer pointer-events-auto"
                                 title="Descargar"
                               >
                                 <Download size={18} />
@@ -1359,22 +1361,24 @@ const CantonFair: React.FC = () => {
                               <FileIcon size={20} className="text-slate-400" />
                               <span className="text-sm font-bold text-slate-700 truncate max-w-[200px]">{cat.name}</span>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 relative z-30 pointer-events-auto">
                               {cat.type === 'application/pdf' && (
-                                <button 
-                                  onClick={() => window.open(cat.url, '_blank')}
-                                  className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                <a 
+                                  href={cat.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors relative z-30 cursor-pointer pointer-events-auto"
                                   title="Visualizar"
                                 >
                                   <Eye size={18} />
-                                </button>
+                                </a>
                               )}
                               <a 
                                 href={cat.url} 
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 download={cat.name}
-                                className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
+                                className="p-2 text-slate-400 hover:text-slate-900 transition-colors relative z-30 cursor-pointer pointer-events-auto"
                                 title="Descargar"
                               >
                                 <Download size={18} />
@@ -1398,22 +1402,24 @@ const CantonFair: React.FC = () => {
                               <FileIcon size={20} className="text-slate-400" />
                               <span className="text-sm font-bold text-slate-700 truncate max-w-[200px]">{cat.name}</span>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 relative z-30 pointer-events-auto">
                               {cat.type === 'application/pdf' && (
-                                <button 
-                                  onClick={() => window.open(cat.url, '_blank')}
-                                  className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                <a 
+                                  href={cat.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors relative z-30 cursor-pointer pointer-events-auto"
                                   title="Visualizar"
                                 >
                                   <Eye size={18} />
-                                </button>
+                                </a>
                               )}
                               <a 
                                 href={cat.url} 
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 download={cat.name}
-                                className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
+                                className="p-2 text-slate-400 hover:text-slate-900 transition-colors relative z-30 cursor-pointer pointer-events-auto"
                                 title="Descargar"
                               >
                                 <Download size={18} />
