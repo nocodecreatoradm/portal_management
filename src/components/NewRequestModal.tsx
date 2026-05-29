@@ -145,13 +145,6 @@ export default function NewRequestModal({
           try {
             const draft = JSON.parse(saved);
             setFormData(draft);
-            if (draft.proveedor) {
-              setArtworkType(draft.proveedor === 'LOCAL' ? 'local' : 'imported');
-              setStep(2);
-            } else {
-              setStep(1);
-              setArtworkType(null);
-            }
           } catch (e) {
             console.error('Error parsing draft:', e);
           }
@@ -177,9 +170,9 @@ export default function NewRequestModal({
             sampleId: '',
             correlativeId: nextId,
           });
-          setStep(1);
-          setArtworkType(null);
         }
+        setStep(1);
+        setArtworkType(null);
       }
     }
   }, [isOpen, initialData, brands, productLines, existingData]);
