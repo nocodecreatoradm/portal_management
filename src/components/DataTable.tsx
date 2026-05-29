@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Eye, Edit2, Trash2, FileText, Upload, Image as ImageIcon, UserPlus, HelpCircle, AlertCircle, Beaker, Search, X, Clock, Send, Calendar } from 'lucide-react';
+import { Eye, Edit2, Trash2, FileText, Upload, Image as ImageIcon, UserPlus, HelpCircle, AlertCircle, Beaker, Search, X, Clock, Send, Calendar, Plus } from 'lucide-react';
 import { ProductRecord, DocumentVersion, Supplier, SampleRecord } from '../types';
 import StatusIcon from './StatusIcon';
 import HeaderFilterPopover from './HeaderFilterPopover';
@@ -20,6 +20,7 @@ interface DataTableProps {
   onEditDates?: (record: ProductRecord, type: 'artwork' | 'technical_sheet' | 'commercial_sheet') => void;
   onDelete?: (record: ProductRecord) => void;
   mode?: 'artwork' | 'technical_sheet' | 'commercial_sheet';
+  onUpdateRecord?: (id: string, updates: Partial<ProductRecord>) => Promise<void> | void;
 }
 
 export default function DataTable({ 
@@ -34,7 +35,8 @@ export default function DataTable({
   onEdit,
   onEditDates,
   onDelete,
-  mode = 'artwork'
+  mode = 'artwork',
+  onUpdateRecord
 }: DataTableProps) {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
@@ -42,6 +44,27 @@ export default function DataTable({
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const { profile } = useAuth();
   const { hasPermission } = usePermissions();
+
+  const [editingSampleRowId, setEditingSampleRowId] = useState<string | null>(null);
+  const [inlineSampleSearch, setInlineSampleSearch] = useState('');
+  const inlineDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (inlineDropdownRef.current && !inlineDropdownRef.current.contains(event.target as Node)) {
+        setEditingSampleRowId(null);
+        setInlineSampleSearch('');
+      }
+    }
+    if (editingSampleRowId !== null) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [editingSampleRowId]);
 
   const hasScope = (record: ProductRecord) => {
     if (!profile) return false;
@@ -378,11 +401,96 @@ export default function DataTable({
                     </button>
                   )}
                 </div>
-                {record.sampleId && (
-                  <div className="text-[10px] font-black text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100">
-                    <Beaker size={12} />
-                    {getSampleCorrelative(record.sampleId)}
+                {editingSampleRowId === record.id ? (
+                  <div className="relative inline-block text-left" ref={inlineDropdownRef}>
+                    <div className="flex items-center border border-blue-400 rounded-xl bg-white shadow-lg pr-2 max-w-[180px] relative z-30">
+                      <input 
+                        type="text"
+                        className="w-full px-2.5 py-1 text-xs outline-none bg-transparent font-medium border-0 focus:ring-0"
+                        placeholder="Buscar..."
+                        value={inlineSampleSearch}
+                        onChange={(e) => setInlineSampleSearch(e.target.value)}
+                        autoFocus
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation();
+                          setEditingSampleRowId(null); 
+                          setInlineSampleSearch(''); 
+                        }} 
+                        className="text-slate-400 hover:text-slate-600 shrink-0"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                    
+                    <div className="absolute z-50 right-0 mt-1.5 w-[240px] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-150 text-left">
+                      <div className="max-h-[180px] overflow-y-auto custom-scrollbar">
+                        <div 
+                          className="px-3 py-2 text-xs font-black text-red-500 hover:bg-red-50 cursor-pointer border-b border-slate-50 text-left transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateRecord?.(record.id, { sampleId: '', correlativeId: '' });
+                            setEditingSampleRowId(null);
+                            setInlineSampleSearch('');
+                          }}
+                        >
+                          Sin muestra vinculada
+                        </div>
+                        {samples
+                          .filter(s => 
+                            s.correlativeId.toLowerCase().includes(inlineSampleSearch.toLowerCase()) || 
+                            s.descripcionSAP.toLowerCase().includes(inlineSampleSearch.toLowerCase())
+                          )
+                          .map(s => (
+                            <div 
+                              key={s.id}
+                              className="px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0 text-left transition-colors flex flex-col gap-0.5"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdateRecord?.(record.id, { sampleId: s.id, correlativeId: s.correlativeId });
+                                setEditingSampleRowId(null);
+                                setInlineSampleSearch('');
+                              }}
+                            >
+                              <span className="font-bold text-blue-600">{s.correlativeId}</span>
+                              <span className="text-slate-600 truncate text-[10px]" title={s.descripcionSAP}>{s.descripcionSAP}</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    {record.sampleId ? (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingSampleRowId(record.id);
+                          setInlineSampleSearch('');
+                        }}
+                        className="text-[10px] font-black text-emerald-600 flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-100 transition-all active:scale-95 cursor-pointer"
+                        title="Click para cambiar muestra"
+                      >
+                        <Beaker size={12} className="text-emerald-500" />
+                        <span>{getSampleCorrelative(record.sampleId)}</span>
+                        <Edit2 size={8} className="text-emerald-400 ml-0.5" />
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingSampleRowId(record.id);
+                          setInlineSampleSearch('');
+                        }}
+                        className="text-[10px] font-semibold text-slate-400 flex items-center gap-1 bg-slate-50 hover:bg-slate-100 hover:text-blue-600 px-2 py-1 rounded-lg border border-dashed border-slate-200 hover:border-blue-200 transition-all active:scale-95 cursor-pointer"
+                      >
+                        <Plus size={10} />
+                        Vincular Muestra
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -769,16 +877,97 @@ export default function DataTable({
                       </div>
                     </td>
                   )}
-                  <td className="px-3 py-3 border-l border-gray-100 text-center">
-                    {record.sampleId ? (
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 flex items-center gap-1">
-                          <Beaker size={10} />
-                          {getSampleCorrelative(record.sampleId)}
-                        </span>
+                  <td className="px-3 py-3 border-l border-gray-100 text-center relative">
+                    {editingSampleRowId === record.id ? (
+                      <div className="relative inline-block text-left" ref={inlineDropdownRef}>
+                        <div className="flex items-center border border-blue-400 rounded-xl bg-white shadow-lg pr-2 max-w-[180px] relative z-30 mx-auto">
+                          <input 
+                            type="text"
+                            className="w-full px-2.5 py-1 text-xs outline-none bg-transparent font-medium border-0 focus:ring-0"
+                            placeholder="Buscar..."
+                            value={inlineSampleSearch}
+                            onChange={(e) => setInlineSampleSearch(e.target.value)}
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <button 
+                            onClick={(e) => { 
+                              e.stopPropagation();
+                              setEditingSampleRowId(null); 
+                              setInlineSampleSearch(''); 
+                            }} 
+                            className="text-slate-400 hover:text-slate-600 shrink-0"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                        
+                        <div className="absolute z-50 left-1/2 -translate-x-1/2 mt-1.5 w-[240px] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-150 text-left">
+                          <div className="max-h-[180px] overflow-y-auto custom-scrollbar">
+                            <div 
+                              className="px-3 py-2 text-xs font-black text-red-500 hover:bg-red-50 cursor-pointer border-b border-slate-50 text-left transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdateRecord?.(record.id, { sampleId: '', correlativeId: '' });
+                                setEditingSampleRowId(null);
+                                setInlineSampleSearch('');
+                              }}
+                            >
+                              Sin muestra vinculada
+                            </div>
+                            {samples
+                              .filter(s => 
+                                s.correlativeId.toLowerCase().includes(inlineSampleSearch.toLowerCase()) || 
+                                s.descripcionSAP.toLowerCase().includes(inlineSampleSearch.toLowerCase())
+                              )
+                              .map(s => (
+                                <div 
+                                  key={s.id}
+                                  className="px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0 text-left transition-colors flex flex-col gap-0.5"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onUpdateRecord?.(record.id, { sampleId: s.id, correlativeId: s.correlativeId });
+                                    setEditingSampleRowId(null);
+                                    setInlineSampleSearch('');
+                                  }}
+                                >
+                                  <span className="font-bold text-blue-600">{s.correlativeId}</span>
+                                  <span className="text-slate-600 truncate text-[10px]" title={s.descripcionSAP}>{s.descripcionSAP}</span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
                       </div>
                     ) : (
-                      <span className="text-slate-300 text-[10px]">-</span>
+                      <div className="flex items-center justify-center">
+                        {record.sampleId ? (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingSampleRowId(record.id);
+                              setInlineSampleSearch('');
+                            }}
+                            className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-100 font-black transition-all text-[10px] active:scale-95 cursor-pointer group/btn"
+                            title="Click para cambiar muestra"
+                          >
+                            <Beaker size={10} className="text-emerald-500" />
+                            <span>{getSampleCorrelative(record.sampleId)}</span>
+                            <Edit2 size={8} className="text-emerald-400 opacity-0 group-hover/btn:opacity-100 transition-opacity ml-0.5" />
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingSampleRowId(record.id);
+                              setInlineSampleSearch('');
+                            }}
+                            className="text-slate-400 hover:text-blue-600 hover:bg-slate-50 border border-dashed border-slate-200 hover:border-blue-200 px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 transition-all active:scale-95 cursor-pointer group/btn"
+                          >
+                            <Plus size={8} className="text-slate-400 group-hover/btn:text-blue-500" />
+                            <span>Vincular</span>
+                          </button>
+                        )}
+                      </div>
                     )}
                   </td>
                 </tr>

@@ -597,69 +597,6 @@ export default function NewRequestModal({
                         </div>
                       </div>
 
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Vincular con Muestra (Samples)</label>
-                        <div className="relative">
-                          <div 
-                            onClick={() => setIsSampleDropdownOpen(!isSampleDropdownOpen)}
-                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-blue-50/30 cursor-pointer flex justify-between items-center"
-                          >
-                            <span className={formData.sampleId ? 'text-slate-900 font-medium' : 'text-slate-400'}>
-                              {formData.sampleId 
-                                ? samples.find(s => s.id === formData.sampleId)?.correlativeId + ' - ' + samples.find(s => s.id === formData.sampleId)?.descripcionSAP
-                                : 'Buscar y vincular muestra...'}
-                            </span>
-                          </div>
-                          
-                          {isSampleDropdownOpen && (
-                            <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
-                              <div className="p-2 border-b border-slate-100 bg-slate-50">
-                                <div className="relative">
-                                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                                  <input 
-                                    type="text"
-                                    placeholder="Buscar por ID o descripción..."
-                                    className="w-full pl-9 pr-4 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={sampleSearch}
-                                    onChange={(e) => setSampleSearch(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                </div>
-                              </div>
-                              <div className="max-h-48 overflow-y-auto">
-                                <div 
-                                  className="p-2 text-xs hover:bg-slate-50 cursor-pointer text-slate-500 italic border-b border-slate-50"
-                                  onClick={() => {
-                                    setFormData(prev => ({ ...prev, sampleId: '' }));
-                                    setIsSampleDropdownOpen(false);
-                                  }}
-                                >
-                                  Sin muestra vinculada
-                                </div>
-                                {samples
-                                  .filter(s => 
-                                    s.correlativeId.toLowerCase().includes(sampleSearch.toLowerCase()) || 
-                                    s.descripcionSAP.toLowerCase().includes(sampleSearch.toLowerCase())
-                                  )
-                                  .map(s => (
-                                    <div 
-                                      key={s.id}
-                                      className="p-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0"
-                                      onClick={() => {
-                                        setFormData(prev => ({ ...prev, sampleId: s.id, correlativeId: s.correlativeId }));
-                                        setIsSampleDropdownOpen(false);
-                                        setSampleSearch('');
-                                      }}
-                                    >
-                                      <span className="font-bold text-blue-600">{s.correlativeId}</span>
-                                      <span className="ml-2 text-slate-600">{s.descripcionSAP}</span>
-                                    </div>
-                                  ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
 
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Correos de Proveedor</label>

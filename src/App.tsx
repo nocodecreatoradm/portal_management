@@ -1193,6 +1193,7 @@ export default function App() {
             onInfoRequest={handleInfoRequestClick}
             onStartFlow={handleStartFlow}
             onEditDates={handleEditDatesClick}
+            onUpdateRecord={handleUpdateRecord}
             onEdit={(record) => {
               setEditingProduct(record);
               setIsNewRequestModalOpen(true);
