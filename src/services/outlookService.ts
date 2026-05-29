@@ -199,8 +199,8 @@ export const outlookService = {
    * Notifies an intermediate stage approval.
    */
   sendStageApprovalEmail: async (record: ProductRecord, version: DocumentVersion, stage: string, stageName: string, comments: string, user: string, moduleType: string = 'artwork') => {
-    const subject = `[APROBACIÓN ${stage}] - ${record.codigoSAP} - ${record.descripcionSAP}`;
-    const title = `Documento Aprobado (${stage})`;
+    let subject = `[APROBACIÓN ${stage}] - ${record.codigoSAP} - ${record.descripcionSAP}`;
+    let title = `Documento Aprobado (${stage})`;
     
     // Determine the next stage and its recipients
     let nextRecipients: string[] = [];
@@ -212,21 +212,47 @@ export const outlookService = {
       nextRecipients = await outlookService.getDepartmentEmailsForRecord('Planeamiento', record);
     }
 
-    const content = `
-      <p>Se ha registrado la <strong>${stageName}</strong> para el producto <strong>${record.codigoSAP}</strong>.</p>
-      <p><strong>Versión:</strong> V${version.version}</p>
-      <p><strong>Aprobado por:</strong> ${user}</p>
-      ${comments ? `<p><strong>Comentarios:</strong> ${comments}</p>` : ''}
-      ${version.files && version.files.length > 0 ? `
-      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
-        <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Archivos (Enlaces de Descarga):</p>
-        <ul style="margin: 0; padding-left: 20px;">
-          ${version.files.map(f => `<li style="margin-bottom: 8px;"><a href="${f.url}" target="_blank" style="color: #2563eb; text-decoration: underline;">${f.name || f.originalName || 'Archivo'}</a></li>`).join('')}
-        </ul>
-      </div>
-      ` : ''}
-      <p>El flujo continuará a la siguiente etapa de revisión.</p>
-    `;
+    let content = '';
+    if (stage === 'MKT') {
+      title = 'Approved Artworks Released';
+      content = `
+        <p>Dear Supplier,</p>
+        <p>Good day.</p>
+        <p>The approved artworks for <strong>${record.codigoSAP} – ${record.descripcionSAP}</strong>, version <strong>V${version.version}</strong>, have been released and are available for download through the links below:</p>
+        ${version.files && version.files.length > 0 ? `
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Artwork download links:</p>
+          <ul style="margin: 0; padding-left: 20px;">
+            ${version.files.map(f => `<li style="margin-bottom: 8px;"><a href="${f.url}" target="_blank" style="color: #2563eb; text-decoration: underline;">${f.name || f.originalName || 'Archivo'}</a></li>`).join('')}
+          </ul>
+        </div>
+        ` : ''}
+        <p>Please carefully review all the documents before production and confirm that the files are correct and complete.</p>
+        <p>If you have any observation, discrepancy, missing document, printing limitation or technical concern, please inform us immediately before proceeding.</p>
+        <p>If everything is correct and there are no observations, you may proceed with production using only the approved files. Previous versions must be deleted or replaced to avoid mistakes. No change, adjustment or redesign is allowed without prior written approval from Grupo Sole.</p>
+        <p>Before starting production, please confirm by email your acceptance of the approved artworks, always copying <strong>planeamientomt@sole.com.pe</strong>.</p>
+        <br/>
+        <p style="margin: 0;">Best regards,</p>
+        <p style="margin: 0;"><strong>Grupo Sole – Rinnai Corporation</strong></p>
+        <p style="margin: 0;">R&D / Artwork Management Team</p>
+      `;
+    } else {
+      content = `
+        <p>Se ha registrado la <strong>${stageName}</strong> para el producto <strong>${record.codigoSAP}</strong>.</p>
+        <p><strong>Versión:</strong> V${version.version}</p>
+        <p><strong>Aprobado por:</strong> ${user}</p>
+        ${comments ? `<p><strong>Comentarios:</strong> ${comments}</p>` : ''}
+        ${version.files && version.files.length > 0 ? `
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Archivos (Enlaces de Descarga):</p>
+          <ul style="margin: 0; padding-left: 20px;">
+            ${version.files.map(f => `<li style="margin-bottom: 8px;"><a href="${f.url}" target="_blank" style="color: #2563eb; text-decoration: underline;">${f.name || f.originalName || 'Archivo'}</a></li>`).join('')}
+          </ul>
+        </div>
+        ` : ''}
+        <p>El flujo continuará a la siguiente etapa de revisión.</p>
+      `;
+    }
 
     try {
       const adminEmails = await outlookService.getAdminEmails();

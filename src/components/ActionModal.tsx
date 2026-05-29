@@ -37,7 +37,7 @@ interface ActionModalProps {
 }
 
 const ARTWORK_CATEGORIES: ArtworkCategory[] = [
-  'Manual', 'Carton box', 'Product Label', 'Carton Label', 'Logo Placement', 'Serial Number', 'Others'
+  'Manual', 'Carton box', 'Product Label', 'Carton Label', 'Logo Placement', 'Serial Number', 'Energy Efficiency Label', 'Installation Label', 'Label positioning', 'Others'
 ];
 
 const ARTWORK_SUBCATEGORIES: ArtworkSubcategory[] = ['Printing', 'Editable'];

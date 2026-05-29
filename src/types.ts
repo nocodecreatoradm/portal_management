@@ -7,7 +7,7 @@ export interface Approval {
   comments?: string;
 }
 
-export type ArtworkCategory = 'Manual' | 'Carton box' | 'Product Label' | 'Carton Label' | 'Logo Placement' | 'Serial Number' | 'Others';
+export type ArtworkCategory = 'Manual' | 'Carton box' | 'Product Label' | 'Carton Label' | 'Logo Placement' | 'Serial Number' | 'Energy Efficiency Label' | 'Installation Label' | 'Label positioning' | 'Others';
 export type ArtworkSubcategory = 'Printing' | 'Editable';
 
 export interface FileInfo {
