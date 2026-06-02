@@ -323,12 +323,13 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
     addSample(newSample);
     setIsNewSampleModalOpen(false);
     
-    // Notify admin
+    // Notify admin and creator
     outlookService.sendNewTrackingEmail({
       code: newSample.correlativeId,
       description: newSample.descripcionSAP,
       supplier: selectedSupplierName,
-      brand: brand?.name
+      brand: brand?.name,
+      creatorEmail: user?.email
     }, 'Muestras');
   };
 

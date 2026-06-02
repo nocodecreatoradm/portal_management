@@ -881,7 +881,8 @@ export default function App() {
             code: result.codigoSAP,
             description: result.descripcionSAP,
             supplier: result.proveedor,
-            brand: result.marca
+            brand: result.marca,
+            creatorEmail: user?.email
           }, activeModule === 'artwork_followup' ? 'Artes' : 
             activeModule === 'technical_datasheet' ? 'Ficha Técnica' : 'Ficha Comercial');
           toast.success(`Nueva solicitud creada en el módulo de ${
@@ -895,7 +896,8 @@ export default function App() {
             code: result.codigoSAP,
             description: result.descripcionSAP,
             supplier: result.proveedor,
-            brand: result.marca
+            brand: result.marca,
+            creatorEmail: user?.email
           }, 'General');
           toast.success('Nueva solicitud registrada');
         }

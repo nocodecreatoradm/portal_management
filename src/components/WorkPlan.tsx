@@ -310,11 +310,13 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
           
           toast.success('Proyecto guardado correctamente');
 
-          // Notify admin of new project
+          // Notify admin of new project, creator, and assignee
           outlookService.sendNewTrackingEmail({
             code: `P-${result.number}`,
             description: name,
-            brand: 'I+D'
+            brand: 'I+D',
+            creatorEmail: user?.email,
+            assignee: responsible
           }, 'Plan de Trabajo');
         } else {
           console.error('Creation failed: result is missing ID', result);

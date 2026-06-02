@@ -533,7 +533,18 @@ export const outlookService = {
   /**
    * Notifies that a new tracking record has been created.
    */
-  sendNewTrackingEmail: async (info: { code?: string; description: string; supplier?: string; brand?: string }, type: string) => {
+  sendNewTrackingEmail: async (
+    info: { 
+      code?: string; 
+      description: string; 
+      supplier?: string; 
+      brand?: string;
+      creatorEmail?: string;
+      assignee?: string;
+      assigneeEmail?: string;
+    }, 
+    type: string
+  ) => {
     const subject = `[NUEVO REGISTRO] - ${info.code || ''} ${info.description} creado`;
     const title = 'Nuevo Registro en el Sistema';
     const content = `
@@ -544,6 +555,7 @@ export const outlookService = {
         <p style="margin: 4px 0;"><strong>Descripción:</strong> ${info.description}</p>
         ${info.supplier ? `<p style="margin: 4px 0;"><strong>Proveedor:</strong> ${info.supplier}</p>` : ''}
         ${info.brand ? `<p style="margin: 4px 0;"><strong>Marca:</strong> ${info.brand}</p>` : ''}
+        ${info.assignee ? `<p style="margin: 4px 0;"><strong>Asignado a:</strong> ${info.assignee}</p>` : ''}
       </div>
       <p>El siguiente paso es realizar las asignaciones correspondientes o cargar documentación.</p>
     `;
@@ -551,7 +563,16 @@ export const outlookService = {
     try {
       const adminEmails = await outlookService.getAdminEmails();
       const idEmails = await outlookService.getDepartmentEmailsForRecord('I+D', null as any); // fallback
-      const recipients = [...new Set([...adminEmails, ...idEmails])].filter(Boolean);
+      
+      const additionalRecipients: string[] = [];
+      if (info.creatorEmail) additionalRecipients.push(info.creatorEmail);
+      if (info.assigneeEmail) additionalRecipients.push(info.assigneeEmail);
+      if (info.assignee) {
+        const resolved = await outlookService.resolveEmail(info.assignee);
+        additionalRecipients.push(...resolved);
+      }
+
+      const recipients = [...new Set([...adminEmails, ...idEmails, ...additionalRecipients])].filter(Boolean);
       
       const actionUrl = outlookService.getModuleUrl(type);
       await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
