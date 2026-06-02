@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SupabaseService } from '../lib/SupabaseService';
+import { supabase } from '../lib/supabase';
 import { RolesService, Role, Permission } from '../services/RolesService';
 import { toast } from 'sonner';
 import UserEditModal from './UserEditModal';
@@ -176,6 +177,27 @@ export default function UserManagement() {
     } catch (error) {
       console.error('Error deleting role:', error);
       toast.error('Error al eliminar el rol');
+    }
+  };
+
+  const handlePasswordRecovery = async (user: any) => {
+    if (!confirm(`¿Estás seguro de enviar un correo de recuperación de contraseña a ${user.full_name || 'este usuario'} (${user.email})?`)) {
+      return;
+    }
+    
+    try {
+      setUpdatingId(user.id);
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: window.location.origin
+      });
+      if (error) throw error;
+      toast.success(`Se envió el correo de recuperación a ${user.email}`);
+    } catch (error: any) {
+      console.error('Error sending recovery email:', error);
+      toast.error(error.message || 'Error al enviar el correo de recuperación');
+    } finally {
+      setUpdatingId(null);
+      setOpenMenuId(null);
     }
   };
 
@@ -571,6 +593,13 @@ export default function UserManagement() {
                                       >
                                         <ExternalLink size={16} />
                                         Ver Actividad
+                                      </button>
+                                      <button 
+                                        onClick={() => handlePasswordRecovery(user)}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all"
+                                      >
+                                        <Lock size={16} />
+                                        Recuperar Contraseña
                                       </button>
                                       <div className="h-px bg-slate-100 my-1" />
                                       <button 

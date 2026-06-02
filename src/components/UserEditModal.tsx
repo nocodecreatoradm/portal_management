@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Building2, Shield, Save, Loader2 } from 'lucide-react';
+import { X, User, Building2, Shield, Save, Loader2, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SupabaseService } from '../lib/SupabaseService';
+import { supabase } from '../lib/supabase';
 import { Role } from '../services/RolesService';
 import { toast } from 'sonner';
 import { Brand, ProductLine } from '../types';
@@ -23,6 +24,7 @@ export default function UserEditModal({ isOpen, onClose, user, roles, onUpdate }
     scopes: [] as { brand: string; line: string }[]
   });
   const [saving, setSaving] = useState(false);
+  const [sendingRecovery, setSendingRecovery] = useState(false);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [lines, setLines] = useState<ProductLine[]>([]);
 
@@ -41,6 +43,22 @@ export default function UserEditModal({ isOpen, onClose, user, roles, onUpdate }
     };
     fetchData();
   }, []);
+
+  const handleSendRecovery = async () => {
+    try {
+      setSendingRecovery(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: window.location.origin
+      });
+      if (error) throw error;
+      toast.success(`Se envió el correo de recuperación a ${user.email}`);
+    } catch (error: any) {
+      console.error('Error sending recovery email:', error);
+      toast.error(error.message || 'Error al enviar el correo de recuperación');
+    } finally {
+      setSendingRecovery(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -162,6 +180,26 @@ export default function UserEditModal({ isOpen, onClose, user, roles, onUpdate }
                 className="w-full px-4 py-3 bg-slate-50 border-2 border-transparent rounded-2xl focus:bg-white focus:outline-none focus:border-blue-600 transition-all text-sm font-bold text-slate-700"
                 placeholder="https://ejemplo.com/foto.jpg"
               />
+            </div>
+
+            {/* Security Section */}
+            <div className="space-y-3 pt-4 border-t border-slate-100">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Seguridad</label>
+              <div className="flex items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-bold text-slate-700">Restablecer Contraseña</span>
+                  <span className="text-[10px] text-slate-500 font-medium leading-relaxed">Enviar enlace de recuperación por correo</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSendRecovery}
+                  disabled={sendingRecovery}
+                  className="px-4 py-2 text-xs font-black text-blue-600 hover:text-blue-700 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-blue-50 rounded-xl uppercase tracking-widest flex items-center gap-1.5"
+                >
+                  {sendingRecovery ? <Loader2 className="animate-spin" size={14} /> : <Mail size={14} />}
+                  Enviar
+                </button>
+              </div>
             </div>
 
             {/* Scopes Section */}

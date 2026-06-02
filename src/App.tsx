@@ -72,11 +72,12 @@ import UserManagement from './components/UserManagement';
 import { useSamples } from './context/SamplesContext';
 import { useAuth } from './contexts/AuthContext';
 import { LoginPage } from './components/LoginPage';
+import ResetPasswordPage from './components/ResetPasswordPage';
 import { useTranslation } from 'react-i18next';
 
 export default function App() {
   const { samples, setSamples } = useSamples();
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, isRecovery } = useAuth();
   const { t } = useTranslation();
   const [showLanding, setShowLanding] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
@@ -1407,7 +1408,17 @@ export default function App() {
 
   return (
     <AnimatePresence mode="wait">
-      {!user && !showLogin ? (
+      {isRecovery ? (
+        <motion.div
+          key="reset-password"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="min-h-screen"
+        >
+          <ResetPasswordPage />
+        </motion.div>
+      ) : !user && !showLogin ? (
         <motion.div
           key="landing"
           initial={{ opacity: 0 }}
