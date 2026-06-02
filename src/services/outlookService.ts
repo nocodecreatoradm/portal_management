@@ -290,14 +290,18 @@ export const outlookService = {
     let subject = `[APROBACIÓN ${stage}] - ${record.codigoSAP} - ${record.descripcionSAP}`;
     let title = `Documento Aprobado (${stage})`;
     
-    // Determine the next stage and its recipients
+    // Determine the next stage and its recipients, as well as the current stage (who just approved)
     let nextRecipients: string[] = [];
+    let currentStageRecipients: string[] = [];
     if (stage === 'I+D') {
       nextRecipients = await outlookService.getDepartmentEmailsForRecord('Marketing', record);
+      currentStageRecipients = await outlookService.getDepartmentEmailsForRecord('I+D', record);
     } else if (stage === 'MKT') {
       nextRecipients = record.correoProveedor || [];
+      currentStageRecipients = await outlookService.getDepartmentEmailsForRecord('Marketing', record);
     } else if (stage === 'PROV') {
       nextRecipients = await outlookService.getDepartmentEmailsForRecord('Planeamiento', record);
+      currentStageRecipients = record.correoProveedor || [];
     }
 
     const statusTable = moduleType === 'artwork' ? outlookService.generateStatusTableHTML(record) : '';
@@ -360,7 +364,7 @@ export const outlookService = {
                             record.commercialAssignment?.designerEmail || 
                             '';
       
-      const recipients = [...new Set([designerEmail, ...adminEmails, ...nextRecipients])].filter(Boolean);
+      const recipients = [...new Set([designerEmail, ...adminEmails, ...nextRecipients, ...currentStageRecipients])].filter(Boolean);
       const actionUrl = outlookService.getModuleUrl(moduleType);
       await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
     } catch (e) {
