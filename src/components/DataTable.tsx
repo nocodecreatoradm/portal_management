@@ -773,20 +773,6 @@ export default function DataTable({
                               >
                                 <Upload size={14} />
                               </button>
-                              {(v.idApproval.status === 'not_started' || 
-                                (mode === 'artwork' && (
-                                  v.mktApproval.status === 'not_started' || 
-                                  v.planApproval.status === 'not_started' || 
-                                  v.provApproval.status === 'not_started'
-                                ))) && (
-                                <button 
-                                  onClick={() => onStartFlow?.(record, v)}
-                                  className="text-blue-500 hover:text-blue-700 transition-colors animate-pulse"
-                                  title="Iniciar flujo de aprobaciones"
-                                >
-                                  <Send size={14} />
-                                </button>
-                              )}
                             </div>
                             {mode === 'commercial_sheet' && v.files && v.files.length > 0 && (
                               <div className="flex flex-col gap-1 mt-1 w-full text-left bg-slate-50 p-1.5 rounded border border-slate-100">
@@ -818,6 +804,19 @@ export default function DataTable({
                           title={`Subir ${mode === 'artwork' ? 'artwork' : 'ficha'}`}
                         >
                           <Upload size={18} />
+                        </button>
+                      )}
+                      {latestByCategory.some(v => v.idApproval?.status === 'not_started') && (
+                        <button 
+                          onClick={() => {
+                            const targetVersion = latestByCategory.find(v => v.idApproval?.status === 'not_started') || latestByCategory[0];
+                            onStartFlow?.(record, targetVersion);
+                          }}
+                          className="mt-2 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all animate-pulse w-full shadow-lg shadow-blue-600/10 active:scale-95 whitespace-nowrap"
+                          title="Iniciar flujo de aprobaciones para todos los archivos"
+                        >
+                          <Send size={10} />
+                          <span>INICIAR FLUJO</span>
                         </button>
                       )}
                       {hasMore && (
