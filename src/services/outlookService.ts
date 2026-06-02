@@ -238,40 +238,66 @@ export const outlookService = {
                           '';
     
     const adminEmails = await outlookService.getAdminEmails();
-    const recipients = [...new Set([...providerRecipients, designerEmail, ...adminEmails].filter(Boolean))];
+    const idEmails = await outlookService.getDepartmentEmailsForRecord('I+D', record);
+    const mktEmails = await outlookService.getDepartmentEmailsForRecord('Marketing', record);
+    const planEmails = await outlookService.getDepartmentEmailsForRecord('Planeamiento', record);
+
+    const recipients = [...new Set([
+      ...providerRecipients, 
+      designerEmail, 
+      ...adminEmails,
+      ...idEmails,
+      ...mktEmails,
+      ...planEmails
+    ].filter(Boolean))];
+
     if (recipients.length === 0) return;
 
-    const subject = `[APROBACIÓN FINAL] - ${record.codigoSAP} - ${record.descripcionSAP}`;
-    const title = 'Approved Artworks Released';
-    
-    const statusTable = moduleType === 'artwork' ? outlookService.generateStatusTableHTML(record) : '';
+    const proforma = version.proformaNumber || '-';
+    const solped = version.solpedNumber || '-';
+    const cargoReady = version.estimatedShipmentDate || '-';
+
+    const subject = `[APROBACIÓN FINAL] - Confirmación de Planificación - ${record.codigoSAP} - ${record.descripcionSAP}`;
+    const title = 'Final Approval and Planning Confirmed';
 
     const content = `
-      <p>Dear Supplier,</p>
+      <p>Dear Supplier and Team,</p>
       <p>Good day.</p>
-      <p>The approved artworks for <strong>${record.codigoSAP} – ${record.descripcionSAP}</strong>, version <strong>V${version.version}</strong>, have been released and are available for download through the links below:</p>
-      ${version.files && version.files.length > 0 ? `
-      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
-        <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Artwork download links:</p>
-        <ul style="margin: 0; padding-left: 20px;">
-          ${version.files.map(f => `<li style="margin-bottom: 8px;"><a href="${f.url}" target="_blank" style="color: #2563eb; text-decoration: underline;">${f.name || f.originalName || 'Archivo'}</a></li>`).join('')}
-        </ul>
+      <p>We would like to inform you that the planning data associated with the approved artwork/documents for <strong>${record.codigoSAP} – ${record.descripcionSAP}</strong> has been completed and confirmed in the portal.</p>
+      <p>The following information is shared for coordination and traceability purposes:</p>
+      
+      <div style="margin: 20px 0; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; text-align: left; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #cbd5e1;">
+              <th style="padding: 10px; color: #475569; font-weight: bold; width: 50%;">Field</th>
+              <th style="padding: 10px; color: #475569; font-weight: bold;">Confirmed Information</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 10px; font-weight: bold; color: #334155;">Proforma Invoice</td>
+              <td style="padding: 10px; color: #475569;">${proforma}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 10px; font-weight: bold; color: #334155;">Solped</td>
+              <td style="padding: 10px; color: #475569;">${solped}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 10px; font-weight: bold; color: #334155;">Cargo Ready</td>
+              <td style="padding: 10px; color: #0284c7; font-weight: bold;">${cargoReady}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      ` : ''}
-
-      ${statusTable ? `
-      <p style="margin-top: 24px; font-weight: bold; color: #1e293b;">Resumen de Aprobaciones del Sistema / Artwork Status Summary:</p>
-      ${statusTable}
-      ` : ''}
-
-      <p>Please carefully review all the documents before production and confirm that the files are correct and complete.</p>
-      <p>If you have any observation, discrepancy, missing document, printing limitation or technical concern, please inform us immediately before proceeding.</p>
-      <p>If everything is correct and there are no observations, you may proceed with production using only the approved files. Previous versions must be deleted or replaced to avoid mistakes. No change, adjustment or redesign is allowed without prior written approval from Grupo Sole.</p>
-      <p>Before starting production, please confirm by email your acceptance of the approved artworks, always copying <strong>planeamientomt@sole.com.pe</strong>.</p>
+      
+      <p>The <strong>Cargo Ready</strong> date should be considered as a reference for process follow-up and coordination with the involved areas.</p>
+      <p>This message is for informational purposes, in order to ensure that the supplier and internal teams are aligned with the confirmed planning information.</p>
+      <p>In case of any observation, discrepancy or pending information, please report it through the portal.</p>
       <br/>
       <p style="margin: 0;">Best regards,</p>
-      <p style="margin: 0;"><strong>Grupo Sole – Rinnai Corporation</strong></p>
-      <p style="margin: 0;">R&D / Artwork Management Team</p>
+      <p style="margin: 0;"><strong>R&D Management Portal</strong></p>
+      <p style="margin: 0;">Grupo Sole</p>
     `;
 
     try {
