@@ -301,7 +301,7 @@ export const outlookService = {
       currentStageRecipients = await outlookService.getDepartmentEmailsForRecord('Marketing', record);
     } else if (stage === 'PROV') {
       nextRecipients = await outlookService.getDepartmentEmailsForRecord('Planeamiento', record);
-      currentStageRecipients = record.correoProveedor || [];
+      currentStageRecipients = []; // Don't send this email to the provider
     }
 
     const statusTable = moduleType === 'artwork' ? outlookService.generateStatusTableHTML(record) : '';
@@ -313,8 +313,8 @@ export const outlookService = {
       subject = `[ARTWORK APPROVAL] - Pending Provider Review - ${record.codigoSAP} - ${record.descripcionSAP}`;
       title = `Pending Artwork Review and Acceptance`;
     } else if (stage === 'PROV') {
-      subject = `[FLUJO DE ARTE] - Listo para liberación de Planeamiento - ${record.codigoSAP} - ${record.descripcionSAP}`;
-      title = `Pendiente de Liberación y Aprobación Final`;
+      subject = `[PLANEAMIENTO] - Confirmación de Información pendiente - ${record.codigoSAP} - ${record.descripcionSAP}`;
+      title = `Confirmación de Información - Planeamiento`;
     }
 
     let content = '';
@@ -341,6 +341,41 @@ export const outlookService = {
         <p style="margin: 0;">Best regards,</p>
         <p style="margin: 0;"><strong>Grupo Sole – Rinnai Corporation</strong></p>
         <p style="margin: 0;">R&D / Artwork Management Team</p>
+      `;
+    } else if (stage === 'PROV') {
+      content = `
+        <p>Los documentos/artworks correspondientes al producto <strong>${record.codigoSAP} – ${record.descripcionSAP}</strong> han sido revisados y aprobados en las etapas previas del flujo.</p>
+        <p>Para continuar con la comunicación al proveedor y al equipo involucrado, agradeceremos confirmar la siguiente información en el portal:</p>
+        
+        <div style="margin: 20px 0; overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; text-align: left; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <thead>
+              <tr style="background-color: #f8fafc; border-bottom: 2px solid #cbd5e1;">
+                <th style="padding: 10px; color: #475569; font-weight: bold;">Campo en el portal</th>
+                <th style="padding: 10px; color: #475569; font-weight: bold;">Información a confirmar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px; font-weight: bold; color: #334155; width: 50%;">Número de Proforma</td>
+                <td style="padding: 10px; color: #475569;">Proforma Invoice</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px; font-weight: bold; color: #334155;">Número de Solped</td>
+                <td style="padding: 10px; color: #475569;">Solped</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px; font-weight: bold; color: #334155;">Fecha Estimada de Embarque</td>
+                <td style="padding: 10px; color: #0284c7; font-weight: bold;">Cargo Ready</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <p>La fecha <strong>Cargo Ready</strong> será considerada como referencia para el seguimiento del proceso.</p>
+        <p>Por favor, ingresar al portal y completar los campos indicados. En caso exista alguna observación, diferencia o información pendiente, marcar la opción <strong>“Con observación”</strong> y registrar el comentario correspondiente.</p>
+        <p>Una vez confirmada esta información, el sistema enviará la comunicación correspondiente al proveedor y al equipo involucrado.</p>
+        <p>Gracias por su apoyo.</p>
       `;
     } else {
       content = `
