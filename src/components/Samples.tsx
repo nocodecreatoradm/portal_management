@@ -11,6 +11,7 @@ import { es } from 'date-fns/locale';
 import HeaderFilterPopover from './HeaderFilterPopover';
 import * as XLSX from 'xlsx';
 import UserSelect from './UserSelect';
+import SearchableSelect from './SearchableSelect';
 import InspectionModal from './InspectionModal';
 import SamplesDashboard from './SamplesDashboard';
 import ModuleActions from './ModuleActions';
@@ -65,6 +66,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
   const [selectedBrandId, setSelectedBrandId] = useState('');
   const [selectedLineId, setSelectedLineId] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [selectedSupplierName, setSelectedSupplierName] = useState('');
 
   // Load calculations
   useEffect(() => {
@@ -589,6 +591,13 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
     return <SamplesDashboard samples={samples} onBack={() => setShowDashboard(false)} />;
   }
 
+  const supplierOptions = suppliers.map(s => ({ value: s.commercialAlias, label: s.commercialAlias }));
+  const brandOptions = brands.map(b => ({ value: b.id, label: b.name }));
+  const lineOptions = productLines.map(l => ({ value: l.id, label: l.name }));
+  const categoryOptions = categories
+    .filter(c => c.productLineId === selectedLineId)
+    .map(c => ({ value: c.id, label: c.name.toUpperCase() }));
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
@@ -631,7 +640,13 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
             </button>
           )}
           <button 
-            onClick={() => setIsNewSampleModalOpen(true)}
+            onClick={() => {
+              setSelectedBrandId('');
+              setSelectedLineId('');
+              setSelectedCategoryId('');
+              setSelectedSupplierName('');
+              setIsNewSampleModalOpen(true);
+            }}
             className="flex items-center gap-2 bg-[#1e293b] text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 active:scale-95"
           >
             <Plus size={20} />
@@ -1139,68 +1154,48 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Proveedor</label>
-                  <select 
-                    name="proveedor" 
-                    required 
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
-                  >
-                    <option value="">Seleccionar Proveedor</option>
-                    {suppliers.map(s => (
-                      <option key={s.id} value={s.commercialAlias}>{s.commercialAlias}</option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    options={supplierOptions}
+                    value={selectedSupplierName}
+                    onChange={(val) => setSelectedSupplierName(val)}
+                    placeholder="Seleccionar Proveedor"
+                    required
+                    name="proveedor"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Marca</label>
-                  <select 
-                    name="marca" 
-                    required 
+                  <SearchableSelect
+                    options={brandOptions}
                     value={selectedBrandId}
-                    onChange={(e) => setSelectedBrandId(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
-                  >
-                    <option value="">Seleccionar Marca</option>
-                    {brands.map(b => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setSelectedBrandId(val)}
+                    placeholder="Seleccionar Marca"
+                    required
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Línea</label>
-                  <select 
-                    name="linea" 
-                    required 
+                  <SearchableSelect
+                    options={lineOptions}
                     value={selectedLineId}
-                    onChange={(e) => {
-                      setSelectedLineId(e.target.value);
+                    onChange={(val) => {
+                      setSelectedLineId(val);
                       setSelectedCategoryId('');
                     }}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
-                  >
-                    <option value="">Seleccionar Línea</option>
-                    {productLines.map(l => (
-                      <option key={l.id} value={l.id}>{l.name}</option>
-                    ))}
-                  </select>
+                    placeholder="Seleccionar Línea"
+                    required
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoría</label>
-                  <select 
-                    name="categoria" 
-                    required 
+                  <SearchableSelect
+                    options={categoryOptions}
                     value={selectedCategoryId}
-                    onChange={(e) => setSelectedCategoryId(e.target.value)}
+                    onChange={(val) => setSelectedCategoryId(val)}
+                    placeholder="SELECCIONAR CATEGORÍA"
                     disabled={!selectedLineId}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all disabled:opacity-50"
-                  >
-                    <option value="">SELECCIONAR CATEGORÍA</option>
-                    {categories
-                      .filter(c => c.productLineId === selectedLineId)
-                      .map(c => (
-                        <option key={c.id} value={c.id}>{c.name.toUpperCase()}</option>
-                      ))
-                    }
-                  </select>
+                    required
+                  />
                 </div>
               </div>
 

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Search } from 'lucide-react';
 import { ProductRecord, SampleRecord } from '../types';
 import { useSamples } from '../context/SamplesContext';
+import SearchableSelect from './SearchableSelect';
+
 
 interface NewRequestModalProps {
   isOpen: boolean;
@@ -396,6 +398,25 @@ export default function NewRequestModal({
     onClose();
   };
 
+  const brandOptions = brands.length > 0
+    ? brands.map(b => ({ value: b.name, label: b.name }))
+    : [
+        { value: 'SOLE', label: 'SOLE' },
+        { value: 'S-Collection', label: 'S-Collection' }
+      ];
+
+  const lineOptions = productLines.map(l => ({ value: l.name, label: l.name }));
+
+  const currentLineId = formData.lineId || productLines.find(l => l.name === formData.linea)?.id;
+  const categoryOptions = categories
+    .filter(c => c.productLineId === currentLineId)
+    .map(c => ({ value: c.name, label: c.name.toUpperCase() }));
+
+  const providerOptions = existingProviders?.map(p => ({
+    value: p.name,
+    label: `${p.name} (${p.code})`
+  })) || [];
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -510,58 +531,47 @@ export default function NewRequestModal({
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Marca</label>
-                    <select 
-                      name="marca"
+                    <SearchableSelect
+                      options={brandOptions}
                       value={formData.marca}
-                      onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    >
-                      {brands.length > 0 ? (
-                        brands.map(b => (
-                          <option key={b.id} value={b.name}>{b.name}</option>
-                        ))
-                      ) : (
-                        <>
-                          <option value="SOLE">SOLE</option>
-                          <option value="S-Collection">S-Collection</option>
-                        </>
-                      )}
-                    </select>
+                      onChange={(val) => {
+                        const brand = brands.find(b => b.name === val);
+                        setFormData(prev => ({ ...prev, marca: val, brandId: brand?.id || '' }));
+                      }}
+                      placeholder="Seleccionar Marca"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Línea</label>
-                    <select 
-                      name="linea"
+                    <SearchableSelect
+                      options={lineOptions}
                       value={formData.linea}
-                      onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    >
-                      <option value="">Seleccionar Línea</option>
-                      {productLines.map(l => (
-                        <option key={l.id} value={l.name}>{l.name}</option>
-                      ))}
-                    </select>
+                      onChange={(val) => {
+                        const line = productLines.find(l => l.name === val);
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          linea: val, 
+                          lineId: line?.id || '',
+                          categoria: '',
+                          categoryId: ''
+                        }));
+                      }}
+                      placeholder="Seleccionar Línea"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-                    <select 
-                      name="categoria"
+                    <SearchableSelect
+                      options={categoryOptions}
                       value={formData.categoria}
-                      onChange={handleChange}
+                      onChange={(val) => {
+                        const currentLineId = formData.lineId || productLines.find(l => l.name === formData.linea)?.id;
+                        const cat = categories.find(c => c.name === val && c.productLineId === currentLineId);
+                        setFormData(prev => ({ ...prev, categoria: val, categoryId: cat?.id || '' }));
+                      }}
+                      placeholder="-- SELECCIONAR CATEGORÍA --"
                       disabled={!formData.linea}
-                      className={`w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none ${!formData.linea ? 'bg-gray-100 cursor-not-allowed border-gray-300' : 'border-blue-200 bg-blue-50/20 font-medium'}`}
-                    >
-                      <option value="">-- SELECCIONAR CATEGORÍA --</option>
-                      {categories
-                        .filter(c => {
-                          const currentLineId = formData.lineId || productLines.find(l => l.name === formData.linea)?.id;
-                          return c.productLineId === currentLineId;
-                        })
-                        .map(c => (
-                          <option key={c.id} value={c.name}>{c.name.toUpperCase()}</option>
-                        ))
-                      }
-                    </select>
+                    />
                   </div>
 
                   {artworkType === 'imported' && (
@@ -569,19 +579,38 @@ export default function NewRequestModal({
                       <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
-                          <select 
-                            name="proveedor"
-                            required
+                          <SearchableSelect
+                            options={providerOptions}
                             value={formData.proveedor}
-                            onChange={(e) => handleSelectProvider(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium shadow-sm"
-                          >
-                            <option value="">-- Seleccionar Proveedor --</option>
-                            {existingProviders?.map(p => (
-                              <option key={p.name + p.code} value={p.name}>{p.name} ({p.code})</option>
-                            ))}
-                            <option value="__custom__" className="text-blue-600 font-bold">+ Añadir Nuevo Proveedor...</option>
-                          </select>
+                            onChange={(val) => {
+                              const provider = existingProviders?.find(p => p.name === val);
+                              if (provider) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  proveedor: provider.name,
+                                  correoProveedor: Array.isArray(provider.emails) ? [...provider.emails] : [],
+                                  codProv: provider.code
+                                }));
+                              }
+                            }}
+                            placeholder="-- Seleccionar Proveedor --"
+                            required
+                            customAction={{
+                              value: '__custom__',
+                              label: '+ Añadir Nuevo Proveedor...',
+                              onClick: () => {
+                                const customName = prompt('Ingrese el nombre del nuevo proveedor:');
+                                if (customName) {
+                                  setFormData(prev => ({ 
+                                    ...prev, 
+                                    proveedor: customName,
+                                    codProv: '',
+                                    correoProveedor: []
+                                  }));
+                                }
+                              }
+                            }}
+                          />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Código de Proveedor</label>

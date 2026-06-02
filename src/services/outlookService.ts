@@ -571,17 +571,50 @@ export const outlookService = {
    * Notifies an assignment.
    */
   sendAssignmentEmail: async (info: { code?: string; description: string; brand?: string }, assignee: string, type: string) => {
-    const subject = `[ASIGNACIÓN] - Nuevo pendiente asignado: ${info.code || ''} ${info.description}`;
+    const subject = `[ASIGNACIÓN] - Nueva tarea asignada: ${info.code || ''} - ${info.description}`;
     const title = 'Nueva Tarea Asignada';
     const content = `
       <p>Hola <strong>${assignee}</strong>,</p>
-      <p>Se te ha asignado un nuevo pendiente en el módulo de <strong>${type}</strong>.</p>
-      <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px; margin: 16px 0;">
-        ${info.code ? `<p style="margin: 0;"><strong>Código/ID:</strong> ${info.code}</p>` : ''}
-        <p style="margin: 4px 0;"><strong>Descripción:</strong> ${info.description}</p>
-        ${info.brand ? `<p style="margin: 4px 0;"><strong>Marca:</strong> ${info.brand}</p>` : ''}
+      <p>Se te ha asignado una nueva tarea en el módulo de <strong>${type}</strong> correspondiente al siguiente registro:</p>
+      
+      <div style="margin: 20px 0; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; text-align: left; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #cbd5e1;">
+              <th style="padding: 10px; color: #475569; font-weight: bold; width: 40%;">Campo</th>
+              <th style="padding: 10px; color: #475569; font-weight: bold;">Información</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 10px; font-weight: bold; color: #334155;">Código/ID</td>
+              <td style="padding: 10px; color: #475569;">${info.code || '-'}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 10px; font-weight: bold; color: #334155;">Descripción</td>
+              <td style="padding: 10px; color: #475569;">${info.description || '-'}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 10px; font-weight: bold; color: #334155;">Marca</td>
+              <td style="padding: 10px; color: #475569;">${info.brand || '-'}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 10px; font-weight: bold; color: #334155;">Módulo</td>
+              <td style="padding: 10px; color: #475569;">${type}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <p>Por favor, revisa los detalles en el portal.</p>
+      
+      <p>Por favor, ingresa al portal para revisar el detalle de la solicitud y continuar con la gestión del artwork/documento asignado.</p>
+      <p>Es importante cumplir con los plazos establecidos en el flujo, a fin de asegurar la continuidad del proceso y evitar retrasos en las siguientes etapas.</p>
+      <p>En caso identifiques algún inconveniente, información incompleta, restricción técnica o cualquier observación que pueda afectar el avance de la solicitud, deberás registrarlo oportunamente a través del portal.</p>
+      <p>Una vez completada la gestión correspondiente, el flujo continuará según las etapas definidas.</p>
+      <p>Gracias por tu apoyo.</p>
+      <br/>
+      <p style="margin: 0;">Saludos,</p>
+      <p style="margin: 0;"><strong>Portal de Gestión I+D</strong></p>
+      <p style="margin: 0;">Grupo Sole</p>
     `;
 
     try {
