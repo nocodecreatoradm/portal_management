@@ -158,6 +158,63 @@ export const outlookService = {
   },
 
   /**
+   * Helper to get the latest file versions for each category.
+   */
+  getLatestFiles: (record: ProductRecord, docType: string = 'artwork') => {
+    const docArrayKey = docType === 'artwork' || docType === 'Artes' ? 'artworks' : 
+                        docType === 'technical' || docType === 'Fichas' ? 'technicalSheets' : 'commercialSheets';
+    const docs = record[docArrayKey] || [];
+    
+    // Group by category and find the latest version
+    const latestDocs = Object.values(
+      docs.reduce((acc: any, v: any) => {
+        if (!v) return acc;
+        const key = v.category || 'General';
+        if (!acc[key] || acc[key].version < v.version) {
+          acc[key] = v;
+        }
+        return acc;
+      }, {} as Record<string, DocumentVersion>)
+    ) as DocumentVersion[];
+
+    // Extract all files from these latest versions
+    const filesList: { name: string; url: string; category: string; version: number }[] = [];
+    latestDocs.forEach(d => {
+      if (d.files && Array.isArray(d.files)) {
+        d.files.forEach(f => {
+          filesList.push({
+            name: f.name || f.originalName || 'Archivo',
+            url: f.url,
+            category: d.category || 'General',
+            version: d.version
+          });
+        });
+      }
+    });
+    return filesList;
+  },
+
+  /**
+   * Helper to generate a clean HTML block with the latest active files
+   */
+  generateFilesListHTML: (files: { name: string; url: string; category: string; version: number }[]) => {
+    if (!files || files.length === 0) return '';
+    return `
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
+        <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Últimas versiones activas por categoría / Latest active versions by category:</p>
+        <ul style="margin: 0; padding-left: 20px;">
+          ${files.map(f => `
+            <li style="margin-bottom: 8px;">
+              <strong>[${f.category} - V${f.version}]</strong>: 
+              <a href="${f.url}" target="_blank" style="color: #2563eb; text-decoration: underline; font-weight: 500;">${f.name}</a>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    `;
+  },
+
+  /**
    * Helper to generate a clean HTML table summarizing the status of all current artwork files
    */
   generateStatusTableHTML: (record: ProductRecord) => {
@@ -331,6 +388,8 @@ export const outlookService = {
     }
 
     const statusTable = moduleType === 'artwork' ? outlookService.generateStatusTableHTML(record) : '';
+    const activeFiles = outlookService.getLatestFiles(record, moduleType === 'artwork' ? 'artwork' : 'technical');
+    const filesListHTML = outlookService.generateFilesListHTML(activeFiles);
 
     if (stage === 'I+D') {
       subject = `[FLUJO DE ARTE] - Listo para revisión de Marketing - ${record.codigoSAP} - ${record.descripcionSAP}`;
@@ -348,16 +407,9 @@ export const outlookService = {
       content = `
         <p>Dear Supplier,</p>
         <p>Good day.</p>
-        <p>The approved artworks for <strong>${record.codigoSAP} – ${record.descripcionSAP}</strong>, version <strong>V${version.version}</strong>, have been released and are available for download through the links below:</p>
+        <p>The approved artworks for <strong>${record.codigoSAP} – ${record.descripcionSAP}</strong> have been released and are available for download through the links below:</p>
         
-        ${version.files && version.files.length > 0 ? `
-        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Artwork download links:</p>
-          <ul style="margin: 0; padding-left: 20px;">
-            ${version.files.map(f => `<li style="margin-bottom: 8px;"><a href="${f.url}" target="_blank" style="color: #2563eb; text-decoration: underline;">${f.name || f.originalName || 'Archivo'}</a></li>`).join('')}
-          </ul>
-        </div>
-        ` : ''}
+        ${filesListHTML}
 
         <p>Please carefully review all the documents before production and confirm that the files are correct and complete.</p>
         <p>If you have any observation, discrepancy, missing document, printing limitation or technical concern, please inform us immediately before proceeding.</p>
@@ -373,6 +425,8 @@ export const outlookService = {
         <p>Los documentos/artworks correspondientes al producto <strong>${record.codigoSAP} – ${record.descripcionSAP}</strong> han sido revisados y aprobados en las etapas previas del flujo.</p>
         <p>Para continuar con la comunicación al proveedor y al equipo involucrado, agradeceremos confirmar la siguiente información en el portal:</p>
         
+        ${filesListHTML}
+
         <div style="margin: 20px 0; overflow-x: auto;">
           <table style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; text-align: left; border: 1px solid #e2e8f0; border-radius: 8px;">
             <thead>
@@ -409,6 +463,8 @@ export const outlookService = {
         <p><strong>Aprobado por:</strong> ${user}</p>
         ${comments ? `<p><strong>Comentarios de la etapa:</strong> ${comments}</p>` : ''}
         
+        ${filesListHTML}
+
         ${statusTable ? `
         <p style="margin-top: 24px; font-weight: bold; color: #1e293b;">Estado Actual de Aprobaciones:</p>
         ${statusTable}
@@ -446,6 +502,8 @@ export const outlookService = {
     const title = 'Documento con Observaciones';
     
     const statusTable = type === 'artwork' || type === 'Artes' ? outlookService.generateStatusTableHTML(record) : '';
+    const activeFiles = outlookService.getLatestFiles(record, type === 'artwork' || type === 'Artes' ? 'artwork' : 'technical');
+    const filesListHTML = outlookService.generateFilesListHTML(activeFiles);
 
     const content = `
       <p>Hola,</p>
@@ -454,6 +512,8 @@ export const outlookService = {
         <p style="margin: 0; font-weight: bold; color: #9a3412;">Comentarios/Observaciones:</p>
         <p style="margin: 8px 0 0; font-style: italic;">"${comments || 'Sin comentarios adicionales'}"</p>
       </div>
+
+      ${filesListHTML}
 
       ${statusTable ? `
       <p style="margin-top: 24px; font-weight: bold; color: #1e293b;">Resumen de Aprobaciones del Sistema:</p>
@@ -545,6 +605,8 @@ export const outlookService = {
     const title = 'Nuevo Documento para Revisar';
     
     const statusTable = type === 'artwork' || type === 'Artes' ? outlookService.generateStatusTableHTML(record) : '';
+    const activeFiles = outlookService.getLatestFiles(record, type === 'artwork' || type === 'Artes' ? 'artwork' : 'technical');
+    const filesListHTML = outlookService.generateFilesListHTML(activeFiles);
 
     const content = `
       <p>Se ha iniciado un nuevo flujo de revisión para el producto <strong>${record.codigoSAP} - ${record.descripcionSAP}</strong>.</p>
@@ -560,14 +622,8 @@ export const outlookService = {
       ${statusTable}
       ` : ''}
 
-      ${version.files && version.files.length > 0 ? `
-      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
-        <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Archivos Adjuntos (Enlaces de Descarga):</p>
-        <ul style="margin: 0; padding-left: 20px;">
-          ${version.files.map(f => `<li style="margin-bottom: 8px;"><a href="${f.url}" target="_blank" style="color: #2563eb; text-decoration: underline;">${f.name || f.originalName || 'Archivo'}</a></li>`).join('')}
-        </ul>
-      </div>
-      ` : ''}
+      ${filesListHTML}
+
       <p>Por favor, ingrese al portal para realizar la aprobación técnica de I+D.</p>
     `;
 
