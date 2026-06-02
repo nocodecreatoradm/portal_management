@@ -318,8 +318,8 @@ export const outlookService = {
       content = `
         <p>Dear Supplier,</p>
         <p>Good day.</p>
-        <p>The artworks for <strong>${record.codigoSAP} – ${record.descripcionSAP}</strong> have been reviewed and approved by our Marketing department.</p>
-        <p>They are now ready for your final review and verification in the portal.</p>
+        <p>The approved artworks for <strong>${record.codigoSAP} – ${record.descripcionSAP}</strong>, version <strong>V${version.version}</strong>, have been released and are available for download through the links below:</p>
+        
         ${version.files && version.files.length > 0 ? `
         <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin: 16px 0;">
           <p style="margin: 0 0 12px 0; font-weight: bold; color: #1e293b;">Artwork download links:</p>
@@ -329,12 +329,10 @@ export const outlookService = {
         </div>
         ` : ''}
 
-        ${statusTable ? `
-        <p style="margin-top: 24px; font-weight: bold; color: #1e293b;">Resumen de Aprobaciones del Sistema / Artwork Status Summary:</p>
-        ${statusTable}
-        ` : ''}
-
-        <p>Please enter the portal to review and approve the files as a provider. If everything is correct, click approve to proceed to the Planning stage.</p>
+        <p>Please carefully review all the documents before production and confirm that the files are correct and complete.</p>
+        <p>If you have any observation, discrepancy, missing document, printing limitation or technical concern, please inform us immediately before proceeding.</p>
+        <p>If everything is correct and there are no observations, you may proceed with production using only the approved files. Previous versions must be deleted or replaced to avoid mistakes. No change, adjustment or redesign is allowed without prior written approval from Grupo Sole.</p>
+        <p>Before starting production, please confirm by email your acceptance of the approved artworks, always copying <strong>planeamientomt@sole.com.pe</strong>.</p>
         <br/>
         <p style="margin: 0;">Best regards,</p>
         <p style="margin: 0;"><strong>Grupo Sole – Rinnai Corporation</strong></p>
