@@ -398,8 +398,8 @@ export const outlookService = {
       subject = `[ARTWORK APPROVAL] - Pending Provider Review - ${record.codigoSAP} - ${record.descripcionSAP}`;
       title = `Pending Artwork Review and Acceptance`;
     } else if (stage === 'PROV') {
-      subject = `[PLANEAMIENTO] - Confirmación de Información pendiente - ${record.codigoSAP} - ${record.descripcionSAP}`;
-      title = `Confirmación de Información - Planeamiento`;
+      subject = `[PLANEAMIENTO] - Supplier Approved Artwork - Pending Info - ${record.codigoSAP} - ${record.descripcionSAP}`;
+      title = `Supplier Approved Artwork - Planning Info Required`;
     }
 
     let content = '';
@@ -422,40 +422,47 @@ export const outlookService = {
       `;
     } else if (stage === 'PROV') {
       content = `
-        <p>Los documentos/artworks correspondientes al producto <strong>${record.codigoSAP} – ${record.descripcionSAP}</strong> han sido revisados y aprobados en las etapas previas del flujo.</p>
-        <p>Para continuar con la comunicación al proveedor y al equipo involucrado, agradeceremos confirmar la siguiente información en el portal:</p>
+        <p>Dear Planning Team,</p>
+        <p>Good day.</p>
+        <p>Please be informed that the supplier has approved the artwork for the following product:</p>
+        <p style="margin-left: 10px; line-height: 1.5; background-color: #f8fafc; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <strong>Product:</strong> ${record.codigoSAP} – ${record.descripcionSAP}<br/>
+          <strong>Brand:</strong> ${record.marca || '-'}<br/>
+          <strong>Line:</strong> ${record.linea || '-'}<br/>
+          <strong>Version:</strong> V${version.version}<br/>
+          <strong>Category/Subcategory:</strong> ${version.category || '-'} – ${version.subcategory || '-'}
+        </p>
         
-        ${filesListHTML}
+        ${filesListHTML ? `<div style="margin-top: 15px; margin-bottom: 20px;">${filesListHTML}</div>` : ''}
 
-        <div style="margin: 20px 0; overflow-x: auto;">
-          <table style="width: 100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; text-align: left; border: 1px solid #e2e8f0; border-radius: 8px;">
-            <thead>
-              <tr style="background-color: #f8fafc; border-bottom: 2px solid #cbd5e1;">
-                <th style="padding: 10px; color: #475569; font-weight: bold;">Campo en el portal</th>
-                <th style="padding: 10px; color: #475569; font-weight: bold;">Información a confirmar</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 10px; font-weight: bold; color: #334155; width: 50%;">Número de Proforma</td>
-                <td style="padding: 10px; color: #475569;">Proforma Invoice</td>
-              </tr>
-              <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 10px; font-weight: bold; color: #334155;">Número de Solped</td>
-                <td style="padding: 10px; color: #475569;">Solped</td>
-              </tr>
-              <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 10px; font-weight: bold; color: #334155;">Fecha Estimada de Embarque</td>
-                <td style="padding: 10px; color: #0284c7; font-weight: bold;">Cargo Ready</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <p>To continue with the approval flow and ensure the correct implementation of the change, please complete the following information for the order where the approved artwork will be applied:</p>
         
-        <p>La fecha <strong>Cargo Ready</strong> será considerada como referencia para el seguimiento del proceso.</p>
-        <p>Por favor, ingresar al portal y completar los campos indicados. En caso exista alguna observación, diferencia o información pendiente, marcar la opción <strong>“Con observación”</strong> y registrar el comentario correspondiente.</p>
-        <p>Una vez confirmada esta información, el sistema enviará la comunicación correspondiente al proveedor y al equipo involucrado.</p>
-        <p>Gracias por su apoyo.</p>
+        <ol style="margin-left: 20px; padding-left: 0; line-height: 1.6;">
+          <li style="margin-bottom: 12px;">
+            <strong>1. Cargo Ready</strong><br/>
+            <span style="color: #64748b; font-size: 13px; display: block; margin-top: 2px;">Estimated shipment date of the order where the change will be implemented.</span>
+          </li>
+          <li style="margin-bottom: 12px;">
+            <strong>2. Proforma Invoice Number</strong><br/>
+            <span style="color: #64748b; font-size: 13px; display: block; margin-top: 2px;">Proforma invoice related to the order where the approved artwork will be applied.</span>
+          </li>
+          <li style="margin-bottom: 12px;">
+            <strong>3. Solped Number</strong><br/>
+            <span style="color: #64748b; font-size: 13px; display: block; margin-top: 2px;">Solped related to the purchase/import request.</span>
+          </li>
+          <li style="margin-bottom: 12px;">
+            <strong>4. Comments or observations</strong><br/>
+            <span style="color: #64748b; font-size: 13px; display: block; margin-top: 2px;">Please include any relevant additional information regarding the implementation of this change.</span>
+          </li>
+        </ol>
+
+        <p style="background-color: #fff7ed; border-left: 4px solid #ea580c; padding: 14px; margin: 20px 0; font-size: 13px; color: #9a3412; border-radius: 4px;">
+          This information must be completed before closing the Planning approval stage, in order to ensure proper traceability and avoid applying the approved artwork to the wrong order or leaving the change without implementation.
+        </p>
+
+        <p style="margin-top: 24px; margin-bottom: 0;">Best regards,</p>
+        <p style="margin: 0;"><strong>R&D Team</strong></p>
+        <p style="margin: 0;">Grupo Sole</p>
       `;
     } else {
       content = `

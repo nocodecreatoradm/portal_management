@@ -481,7 +481,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                           </div>
                         </div>
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-sm font-semibold text-gray-700">Fecha Estimada de Embarque</label>
+                          <label className="text-sm font-semibold text-gray-700">Carga Ready</label>
                           <input 
                             type="date"
                             value={estimatedShipmentDate}
@@ -554,7 +554,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                       )}
                       {activeVersion.estimatedShipmentDate && (
                         <div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Est. Embarque</p>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Carga Ready</p>
                           <p className="text-sm font-bold text-slate-700">{activeVersion.estimatedShipmentDate}</p>
                         </div>
                       )}

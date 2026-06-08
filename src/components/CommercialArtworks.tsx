@@ -129,7 +129,21 @@ export default function CommercialArtworks({
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       let result;
       if (isUUID) {
-        result = await SupabaseService.updateProduct(id, updates);
+        const currentRecord = data.find(r => r.id === id);
+        if (updates.gallery !== undefined && currentRecord?.codigoSAP) {
+          const matchingRecords = data.filter(r => r.codigoSAP === currentRecord.codigoSAP);
+          const results = await Promise.all(matchingRecords.map(r => 
+            SupabaseService.updateProduct(r.id, { gallery: updates.gallery })
+          ));
+          setData(prev => prev.map(r => {
+            const updated = results.find(res => res.id === r.id);
+            return updated || r;
+          }));
+          result = results.find(res => res.id === id);
+        } else {
+          result = await SupabaseService.updateProduct(id, updates);
+          setData(prev => prev.map(p => p.id === id ? result : p));
+        }
       } else {
         const p = data.find(item => item.id === id);
         if (p && p.codigoSAP) {
@@ -137,7 +151,6 @@ export default function CommercialArtworks({
         }
       }
       if (result) {
-        setData(prev => prev.map(p => p.id === id ? result : p));
         if (selectedProduct?.id === id) {
           setSelectedProduct(result);
         }

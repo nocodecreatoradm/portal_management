@@ -35,6 +35,47 @@ export default function ProductDetailModal({
   // State to track collapsed/expanded status of artwork/document groups
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
+  const [sharedGallery, setSharedGallery] = useState<any[]>(record?.gallery || []);
+
+  React.useEffect(() => {
+    let active = true;
+    const syncSharedGallery = async () => {
+      if (!record || !record.codigoSAP) return;
+      try {
+        const allProducts = await SupabaseService.getProducts();
+        if (!active) return;
+        const related = allProducts.filter(p => p.codigoSAP === record.codigoSAP);
+        
+        // Merge gallery items by ID
+        const mergedMap = new Map<string, any>();
+        related.forEach(p => {
+          if (p.gallery && Array.isArray(p.gallery)) {
+            p.gallery.forEach(item => {
+              if (item && item.id) {
+                mergedMap.set(item.id, item);
+              }
+            });
+          }
+        });
+        
+        const mergedList = Array.from(mergedMap.values()).sort((a, b) => {
+          const dateA = a.uploadDate || '';
+          const dateB = b.uploadDate || '';
+          return dateB.localeCompare(dateA);
+        });
+        
+        setSharedGallery(mergedList);
+      } catch (err) {
+        console.error('Error syncing shared gallery:', err);
+      }
+    };
+
+    syncSharedGallery();
+    return () => {
+      active = false;
+    };
+  }, [record?.id, record?.codigoSAP]);
+
   const isImageFile = (photo: FileInfo) => {
     if (!photo.type && !photo.name) return false;
     
@@ -264,7 +305,8 @@ export default function ProductDetailModal({
       return;
     }
 
-    const updatedGallery = (record.gallery || []).filter(item => item.id !== itemId);
+    const updatedGallery = sharedGallery.filter(item => item.id !== itemId);
+    setSharedGallery(updatedGallery);
     onUpdateRecord(record.id, { gallery: updatedGallery });
     toast.success('Grupo de imágenes eliminado');
   };
@@ -279,9 +321,9 @@ export default function ProductDetailModal({
       uploadDate: new Date().toISOString()
     };
 
-    onUpdateRecord(record.id, {
-      gallery: [...(record.gallery || []), newGalleryItem]
-    });
+    const updatedGallery = [...sharedGallery, newGalleryItem];
+    setSharedGallery(updatedGallery);
+    onUpdateRecord(record.id, { gallery: updatedGallery });
 
     setIsGalleryUploadModalOpen(false);
     setTempGalleryPhotos([]);
@@ -902,8 +944,8 @@ export default function ProductDetailModal({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {record.gallery && record.gallery.length > 0 ? (
-                record.gallery.map((item) => (
+              {sharedGallery && sharedGallery.length > 0 ? (
+                sharedGallery.map((item) => (
                   <div key={item.id} className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm group">
                     <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                       <div className="flex flex-col">

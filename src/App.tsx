@@ -983,7 +983,17 @@ export default function App() {
         const hasMetadataUpdate = Object.keys(updates).some(key => metadataFields.includes(key));
         const currentRecord = data.find(r => r.id === id);
 
-        if (hasMetadataUpdate && currentRecord?.linkedGroupId) {
+        if (updates.gallery !== undefined && currentRecord?.codigoSAP) {
+          const matchingRecords = data.filter(r => r.codigoSAP === currentRecord.codigoSAP);
+          const results = await Promise.all(matchingRecords.map(r => 
+            SupabaseService.updateProduct(r.id, { gallery: updates.gallery })
+          ));
+          setData(prev => prev.map(r => {
+            const updated = results.find(res => res.id === r.id);
+            return updated || r;
+          }));
+          result = results.find(res => res.id === id);
+        } else if (hasMetadataUpdate && currentRecord?.linkedGroupId) {
           // Update all records in the group for metadata fields
           const metadataUpdates: any = {};
           metadataFields.forEach(f => { if ((resolvedUpdates as any)[f] !== undefined) metadataUpdates[f] = (resolvedUpdates as any)[f]; });
