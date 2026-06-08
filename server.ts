@@ -15,16 +15,25 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const sanitizeEnvVal = (val: string | undefined): string => {
+  if (!val) return "";
+  let clean = val.trim();
+  if ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'"))) {
+    clean = clean.substring(1, clean.length - 1);
+  }
+  return clean;
+};
+
 // SQL Server Connection Pool
 let pool: sql.ConnectionPool | null = null;
 
 async function getDBPool() {
   if (pool) return pool;
   const dbConfig: sql.config = {
-    user: process.env.DB_USER || 'soledbserveradmin',
-    password: process.env.DB_PASSWORD || '',
-    server: process.env.DB_SERVER || 'soledbserver.database.windows.net',
-    database: process.env.DB_NAME || 'soledb-puntoventa',
+    user: sanitizeEnvVal(process.env.DB_USER) || 'soledbserveradmin',
+    password: sanitizeEnvVal(process.env.DB_PASSWORD) || '',
+    server: sanitizeEnvVal(process.env.DB_SERVER) || 'soledbserver.database.windows.net',
+    database: sanitizeEnvVal(process.env.DB_NAME) || 'soledb-puntoventa',
     options: {
       encrypt: true,
       trustServerCertificate: true,
