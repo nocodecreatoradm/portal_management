@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const dbConfig: sql.config = {
@@ -24,6 +24,15 @@ const dbConfig: sql.config = {
     trustServerCertificate: true,
   },
 };
+
+const mapRoleIntToUUID = (id: number | string) => '00000000-0000-0000-0000-' + String(id).padStart(12, '0');
+
+const isValidUUID = (val: any): boolean => {
+  if (typeof val !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+};
+
+
 
 // Table order for deletion (reverse dependency order to avoid foreign key conflicts)
 const TABLES_TO_CLEAN = [
@@ -160,7 +169,14 @@ async function insertRow(pool: sql.ConnectionPool, table: string, data: Record<s
   if (keys.length === 0) return;
   const columns = keys.map(k => `[${k}]`).join(', ');
   const placeholders = keys.map((_, i) => `@param_${i}`).join(', ');
-  const query = `INSERT INTO ID_PORTAL.${table} (${columns}) VALUES (${placeholders})`;
+  
+  let query = `INSERT INTO ID_PORTAL.${table} (${columns}) VALUES (${placeholders})`;
+  
+  // Wrap with IDENTITY_INSERT if table has an IDENTITY column and we are providing 'id'
+  const useIdentityInsert = (table === 'permissions' || table === 'calculation_records') && data.id !== undefined && data.id !== null;
+  if (useIdentityInsert) {
+    query = `SET IDENTITY_INSERT ID_PORTAL.${table} ON; ${query}; SET IDENTITY_INSERT ID_PORTAL.${table} OFF;`;
+  }
 
   const request = pool.request();
   keys.forEach((key, i) => {
@@ -256,9 +272,23 @@ async function runMigration() {
 
     // --- PHASE 4: LIVE MIGRATION ---
 
+    // Fetch roles from Supabase first to build role name to UUID mapping
+    console.log('\n🔍 Fetching roles from Supabase to prepare UUID mapping...');
+    const { data: supabaseRoles, error: rolesFetchError } = await supabase.from('roles').select('*');
+    if (rolesFetchError) {
+      throw new Error(`Failed to fetch roles from Supabase: ${rolesFetchError.message}`);
+    }
+    const roleNameToUUID: Record<string, string> = {};
+    if (supabaseRoles) {
+      for (const r of supabaseRoles) {
+        roleNameToUUID[r.name] = mapRoleIntToUUID(r.id);
+      }
+    }
+    console.log(`Mapped ${Object.keys(roleNameToUUID).length} roles to UUIDs.`);
+
     // 1. Roles
     await migrateTable(pool, 'roles', 'roles', (row) => ({
-      id: row.id,
+      id: mapRoleIntToUUID(row.id),
       name: row.name,
       display_name: row.display_name,
       description: row.description,
@@ -274,20 +304,23 @@ async function runMigration() {
     }));
 
     // 3. Profiles (Users)
-    await migrateTable(pool, 'profiles', 'profiles', (row) => ({
-      id: row.id,
-      email: row.email,
-      full_name: row.full_name,
-      department: row.department,
-      role: row.role,
-      role_id: row.role_id,
-      password_hash: row.password_hash || defaultPasswordHash,
-      is_active: row.is_active !== undefined ? row.is_active : true,
-    }));
+    await migrateTable(pool, 'profiles', 'profiles', (row) => {
+      const mappedRoleId = row.role ? roleNameToUUID[row.role] : null;
+      return {
+        id: row.id,
+        email: row.email,
+        full_name: row.full_name,
+        department: row.department,
+        role: row.role,
+        role_id: mappedRoleId,
+        password_hash: row.password_hash || defaultPasswordHash,
+        is_active: row.is_active !== undefined ? row.is_active : true,
+      };
+    });
 
     // 4. Role Permissions
     await migrateTable(pool, 'role_permissions', 'role_permissions', (row) => ({
-      role_id: row.role_id,
+      role_id: mapRoleIntToUUID(row.role_id),
       permission_id: row.permission_id,
     }));
 
@@ -337,17 +370,17 @@ async function runMigration() {
       version: row.version,
       codigo_sap: row.sap_code,
       descripcion_sap: row.sap_description,
-      brand_id: row.brand_id,
-      supplier_id: row.supplier_id,
-      line_id: row.line_id,
-      category_id: row.category_id,
+      brand_id: isValidUUID(row.brand_id) ? row.brand_id : null,
+      supplier_id: isValidUUID(row.supplier_id) ? row.supplier_id : null,
+      line_id: isValidUUID(row.line_id) ? row.line_id : null,
+      category_id: isValidUUID(row.category_id) ? row.category_id : null,
       sample_type: row.sample_type,
       inspection_date: row.inspection_date,
       inspection_status: row.inspection_status,
       report_date: row.report_date,
       report_file: row.report_file,
       initial_technical_datasheet: row.initial_technical_datasheet,
-      technician: row.technician_id,
+      technician: isValidUUID(row.technician_id) ? row.technician_id : null,
       planned_start_date: row.planned_start_date,
       inspection_progress: row.inspection_progress,
       inspection_completed_date: row.inspection_completed_date,
@@ -446,7 +479,7 @@ async function runMigration() {
       id: row.id,
       project_number: row.project_number,
       name: row.name,
-      responsible: row.responsible_id,
+      responsible: isValidUUID(row.responsible_id) ? row.responsible_id : null,
       progress: row.progress,
       status: row.status,
     }));
@@ -518,8 +551,8 @@ async function runMigration() {
       start_date: row.start_date,
       end_date: row.end_date,
       type: row.task_type,
-      requester: row.requester_id,
-      assignee: row.assignee_id,
+      requester: isValidUUID(row.requester_id) ? row.requester_id : null,
+      assignee: isValidUUID(row.assignee_id) ? row.assignee_id : null,
       status: row.status,
       delivery_status: row.delivery_status,
       change_log: row.change_log,
@@ -602,7 +635,14 @@ async function runMigration() {
     }
 
     // 22. Approver Configs
-    await migrateTable(pool, 'approver_configs', 'approver_configs');
+    await migrateTable(pool, 'approver_configs', 'approver_configs', (row) => ({
+      id: row.id,
+      id_approver: row.id_approver,
+      mkt_approver: row.mkt_approver,
+      plan_approver: row.plan_approver,
+      prov_approver: row.prov_approver,
+      is_active: row.is_active !== undefined ? row.is_active : true,
+    }));
 
     // 23. RD Project Templates
     await migrateTable(pool, 'rd_project_templates', 'rd_project_templates');
@@ -610,12 +650,12 @@ async function runMigration() {
     // 24. RD Custom Projects
     await migrateTable(pool, 'rd_custom_projects', 'rd_custom_projects', (row) => ({
       id: row.id,
-      template_id: row.template_id,
+      template_id: isValidUUID(row.template_id) ? row.template_id : null,
       name: row.name,
       description: row.description,
       status: row.status,
       priority: row.priority,
-      responsible_id: row.responsible_id,
+      responsible_id: isValidUUID(row.responsible_id) ? row.responsible_id : null,
       start_date: row.start_date,
       end_date: row.end_date,
       sections: row.sections,
