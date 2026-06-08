@@ -108,10 +108,11 @@ export default function NewRequestModal({
     return `${prefix}${(maxNumber + 1).toString().padStart(3, '0')}`;
   };
 
-  // Auto-save draft
+  // Auto-save draft (exclude correlativeId so a stale ID is never restored)
   useEffect(() => {
     if (!initialData && isOpen) {
-      sessionStorage.setItem('new_request_draft', JSON.stringify(formData));
+      const { correlativeId: _omit, ...draftData } = formData;
+      sessionStorage.setItem('new_request_draft', JSON.stringify(draftData));
     }
   }, [formData, isOpen, initialData]);
 
@@ -141,21 +142,41 @@ export default function NewRequestModal({
         setArtworkType(initialData.proveedor === 'LOCAL' ? 'local' : 'imported');
         setStep(2);
       } else {
-        // Check for existing draft first
+        // Always generate a fresh correlative ID from current data to prevent duplicates
+        const nextId = generateNextCorrelativeId(existingData);
+        const defaultBrand = brands[0];
+        const defaultLine = productLines[0];
+
+        // Check for existing draft first, but always override correlativeId with a fresh one
         const saved = sessionStorage.getItem('new_request_draft');
         if (saved) {
           try {
             const draft = JSON.parse(saved);
-            setFormData(draft);
+            // Always use freshly-generated correlativeId, never the stale draft one
+            setFormData({
+              ...draft,
+              correlativeId: nextId,
+            });
           } catch (e) {
             console.error('Error parsing draft:', e);
+            setFormData({
+              codigoEAN: '',
+              codigoSAP: '',
+              descripcionSAP: '',
+              codProv: '',
+              proveedor: '',
+              correoProveedor: [],
+              marca: defaultBrand?.name || 'SOLE',
+              brandId: defaultBrand?.id || '',
+              linea: defaultLine?.name || 'LÍNEA BLANCA',
+              lineId: defaultLine?.id || '',
+              categoria: '',
+              categoryId: '',
+              sampleId: '',
+              correlativeId: nextId,
+            });
           }
         } else {
-          // No draft, reset to defaults
-          const nextId = generateNextCorrelativeId(existingData);
-          const defaultBrand = brands[0];
-          const defaultLine = productLines[0];
-          
           setFormData({
             codigoEAN: '',
             codigoSAP: '',
@@ -184,7 +205,7 @@ export default function NewRequestModal({
     if (isOpen) {
       let updates: any = {};
       
-      // Update correlative if missing
+      // Update correlative if missing — regenerate from latest existingData
       if (!initialData && !formData.correlativeId) {
         updates.correlativeId = generateNextCorrelativeId(existingData);
       }

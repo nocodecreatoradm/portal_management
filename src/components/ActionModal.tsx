@@ -2,26 +2,26 @@ import React, { useState, useRef } from 'react';
 import { SupabaseService } from '../lib/SupabaseService';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import { 
-  X, 
-  Tag, 
-  Clock, 
-  UploadCloud, 
-  FileText, 
-  Trash2, 
-  CheckCircle, 
-  Eye, 
+import {
+  X,
+  Tag,
+  Clock,
+  UploadCloud,
+  FileText,
+  Trash2,
+  CheckCircle,
+  Eye,
   ThumbsDown,
   Plus,
   Settings,
   ArrowLeft,
   Beaker
 } from 'lucide-react';
-import { 
-  ProductRecord, 
-  DocumentVersion, 
-  ArtworkCategory, 
-  ArtworkSubcategory, 
+import {
+  ProductRecord,
+  DocumentVersion,
+  ArtworkCategory,
+  ArtworkSubcategory,
   FileInfo,
   ApprovalStatus
 } from '../types';
@@ -80,15 +80,15 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
 
   if (!isOpen || !record) return null;
 
-  const title = action === 'upload' 
+  const title = action === 'upload'
     ? `Subir nueva versión de ${type === 'artwork' ? 'Artwork' : type === 'technical_sheet' ? 'Ficha Técnica' : 'Ficha Comercial'}`
     : action === 'approve'
       ? `Aprobar/Rechazar ${type === 'artwork' ? 'Artwork' : type === 'technical_sheet' ? 'Ficha Técnica' : 'Ficha Comercial'} - Etapa: ${stage}`
       : `Detalle de ${type === 'artwork' ? 'Artwork' : type === 'technical_sheet' ? 'Ficha Técnica' : 'Ficha Comercial'}`;
 
-  const docArrayKey = type === 'artwork' ? 'artworks' : 
-                      type === 'technical_sheet' ? 'technicalSheets' : 'commercialSheets';
-  
+  const docArrayKey = type === 'artwork' ? 'artworks' :
+    type === 'technical_sheet' ? 'technicalSheets' : 'commercialSheets';
+
   const docArray = record[docArrayKey] || [];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -98,7 +98,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
       setIsUploading(true);
       try {
         let fileInfos: FileInfo[] = [];
-        
+
         if (action === 'upload' && files.length > 0) {
           toast.loading(`Subiendo ${files.length} archivos...`, { id: toastId });
           const uploadPromises = files.map((f, idx) => {
@@ -113,23 +113,23 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
         }
 
         // Importante: esperar a que onSave termine antes de cerrar
-        await onSave({ 
-          comments, 
+        await onSave({
+          comments,
           changeDescription,
-          files: fileInfos, 
-          category: category, 
+          files: fileInfos,
+          category: category,
           subcategory: subcategory,
           proformaNumber,
           solpedNumber,
           estimatedShipmentDate,
-          status: stage === 'PLAN' 
-            ? (withObservation ? 'approved_with_observation' : 'approved') 
+          status: stage === 'PLAN'
+            ? (withObservation ? 'approved_with_observation' : 'approved')
             : (selectedStatus || 'approved'),
           targetVersion: activeVersion,
           userEmail: user?.email,
           userId: user?.id
         });
-        
+
         toast.dismiss(toastId);
         onClose();
         setFiles([]);
@@ -183,7 +183,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
             <X size={20} />
           </button>
         </div>
-        
+
         <div className="p-6 overflow-y-auto">
           <div className="mb-6 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
             <p className="text-sm text-gray-600"><span className="font-semibold text-gray-800">Producto:</span> {record.codigoSAP} - {record.descripcionSAP}</p>
@@ -215,7 +215,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-sm font-semibold text-gray-700">Categoría</label>
-                      <select 
+                      <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value as ArtworkCategory)}
                         className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#52627e] outline-none"
@@ -227,7 +227,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className="text-sm font-semibold text-gray-700">Subcategoría</label>
-                      <select 
+                      <select
                         value={subcategory}
                         onChange={(e) => setSubcategory(e.target.value as ArtworkSubcategory)}
                         className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#52627e] outline-none"
@@ -242,10 +242,10 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
 
                 {/* Show history/version preview */}
                 {(() => {
-                  const filteredDocs = type === 'artwork' 
+                  const filteredDocs = type === 'artwork'
                     ? docArray.filter(v => v.category === category && v.subcategory === subcategory)
                     : docArray;
-                  
+
                   if (filteredDocs.length > 0) {
                     const lastVersion = Math.max(...filteredDocs.map(v => v.version));
                     const lastDoc = filteredDocs.find(v => v.version === lastVersion);
@@ -283,20 +283,20 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
 
             {action === 'upload' && (
               <>
-                <div 
+                <div
                   onClick={() => fileInputRef.current?.click()}
                   className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   <UploadCloud size={32} className="mx-auto text-gray-400 mb-3" />
                   <p className="text-sm font-medium text-gray-700">Haz clic para seleccionar o arrastra los archivos aquí</p>
                   <p className="text-xs text-gray-500 mt-1">Formatos permitidos: {acceptedTypes} (Máx. 1 GB)</p>
-                  <input 
-                    type="file" 
+                  <input
+                    type="file"
                     ref={fileInputRef}
-                    className="hidden" 
+                    className="hidden"
                     multiple
                     accept={acceptedTypes}
-                    onChange={handleFileChange} 
+                    onChange={handleFileChange}
                   />
                 </div>
 
@@ -310,8 +310,8 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                             <FileText size={16} className="text-gray-400 shrink-0" />
                             <span className="truncate font-medium">{f.name}</span>
                           </div>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={(e) => { e.stopPropagation(); removeFile(i); }}
                             className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
                           >
@@ -338,7 +338,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
 
                 <div className="mt-4">
                   <label className="block text-sm font-black text-slate-700 mb-1 uppercase tracking-tighter">¿Qué se cambió o añadió en esta versión?</label>
-                  <textarea 
+                  <textarea
                     className="w-full border-2 border-indigo-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none min-h-[100px] bg-indigo-50/30 font-medium"
                     placeholder="Describe detalladamente los cambios realizados respecto a la versión anterior..."
                     value={changeDescription}
@@ -354,46 +354,46 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
               <div className="space-y-6">
                 {/* Version Selector Dropdowns */}
                 {stage !== 'PLAN' && action !== 'approve' && (
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  {type === 'artwork' && (
-                    <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
-                      <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Categoría</label>
-                      <select 
-                        value={activeVersion.category}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    {type === 'artwork' && (
+                      <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                        <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Categoría</label>
+                        <select
+                          value={activeVersion.category}
+                          onChange={(e) => {
+                            const cat = e.target.value;
+                            const versions = docArray.filter(v => v.category === cat).sort((a, b) => b.version - a.version);
+                            if (versions.length > 0) setActiveVersion(versions[0]);
+                          }}
+                          className="w-full bg-white border-2 border-indigo-100 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                        >
+                          {Array.from(new Set(docArray.map(v => v.category))).sort().map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    <div className={`${type === 'artwork' ? '' : 'col-span-2'} bg-indigo-50/50 p-3 rounded-xl border border-indigo-100`}>
+                      <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Versión Disponible</label>
+                      <select
+                        value={activeVersion.version}
                         onChange={(e) => {
-                          const cat = e.target.value;
-                          const versions = docArray.filter(v => v.category === cat).sort((a, b) => b.version - a.version);
-                          if (versions.length > 0) setActiveVersion(versions[0]);
+                          const ver = parseInt(e.target.value);
+                          const found = docArray.find(v => (type !== 'artwork' || v.category === activeVersion.category) && v.version === ver);
+                          if (found) setActiveVersion(found);
                         }}
                         className="w-full bg-white border-2 border-indigo-100 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
                       >
-                        {Array.from(new Set(docArray.map(v => v.category))).sort().map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
+                        {docArray
+                          .filter(v => type !== 'artwork' || v.category === activeVersion.category)
+                          .sort((a, b) => b.version - a.version)
+                          .map(v => (
+                            <option key={v.version} value={v.version}>Versión V{v.version}</option>
+                          ))
+                        }
                       </select>
                     </div>
-                  )}
-                  <div className={`${type === 'artwork' ? '' : 'col-span-2'} bg-indigo-50/50 p-3 rounded-xl border border-indigo-100`}>
-                    <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Versión Disponible</label>
-                    <select 
-                      value={activeVersion.version}
-                      onChange={(e) => {
-                        const ver = parseInt(e.target.value);
-                        const found = docArray.find(v => (type !== 'artwork' || v.category === activeVersion.category) && v.version === ver);
-                        if (found) setActiveVersion(found);
-                      }}
-                      className="w-full bg-white border-2 border-indigo-100 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
-                    >
-                      {docArray
-                        .filter(v => type !== 'artwork' || v.category === activeVersion.category)
-                        .sort((a, b) => b.version - a.version)
-                        .map(v => (
-                          <option key={v.version} value={v.version}>Versión V{v.version}</option>
-                        ))
-                      }
-                    </select>
                   </div>
-                </div>
                 )}
 
                 {action === 'approve' && (
@@ -416,8 +416,8 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                         </div>
                         <div className="flex flex-col items-end gap-1">
                           <label className="relative inline-flex items-center cursor-pointer">
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               className="sr-only peer"
                               checked={withObservation}
                               onChange={(e) => setWithObservation(e.target.checked)}
@@ -429,26 +429,24 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                       </div>
                     ) : (
                       <div className="flex gap-4 mb-6">
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => setSelectedStatus('approved')}
-                          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-colors border ${
-                            selectedStatus === 'approved' 
-                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' 
+                          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-colors border ${selectedStatus === 'approved'
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
                               : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                          }`}
+                            }`}
                         >
                           <CheckCircle size={20} />
                           Aprobar
                         </button>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => setSelectedStatus('rejected')}
-                          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-colors border ${
-                            selectedStatus === 'rejected' 
+                          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-colors border ${selectedStatus === 'rejected'
                               ? (stage === 'PROV' || stage === 'PLAN' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-red-600 text-white border-red-600 shadow-md')
                               : (stage === 'PROV' || stage === 'PLAN' ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100')
-                          }`}
+                            }`}
                         >
                           {stage === 'PROV' || stage === 'PLAN' ? <Eye size={20} /> : <ThumbsDown size={20} />}
                           {stage === 'PROV' || stage === 'PLAN' ? 'Observación' : 'Rechazar'}
@@ -461,7 +459,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                         <div className="grid grid-cols-2 gap-4">
                           <div className="flex flex-col gap-1.5">
                             <label className="text-sm font-semibold text-gray-700">Número de Proforma</label>
-                            <input 
+                            <input
                               type="text"
                               value={proformaNumber}
                               onChange={(e) => setProformaNumber(e.target.value)}
@@ -471,7 +469,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                           </div>
                           <div className="flex flex-col gap-1.5">
                             <label className="text-sm font-semibold text-gray-700">Número de Solped</label>
-                            <input 
+                            <input
                               type="text"
                               value={solpedNumber}
                               onChange={(e) => setSolpedNumber(e.target.value)}
@@ -481,8 +479,8 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                           </div>
                         </div>
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-sm font-semibold text-gray-700">Carga Ready</label>
-                          <input 
+                          <label className="text-sm font-semibold text-gray-700">Cargo Ready</label>
+                          <input
                             type="date"
                             value={estimatedShipmentDate}
                             onChange={(e) => setEstimatedShipmentDate(e.target.value)}
@@ -494,7 +492,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                     )}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Comentarios / Observaciones</label>
-                      <textarea 
+                      <textarea
                         className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#52627e] outline-none min-h-[100px]"
                         placeholder="Escribe aquí tus observaciones..."
                         value={comments}
@@ -515,8 +513,8 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                           {type === 'artwork' ? 'Categoría / Subcategoría' : 'Tipo de Documento'}
                         </p>
                         <h5 className="font-black text-slate-800 uppercase">
-                          {type === 'artwork' 
-                            ? `${activeVersion.category} - ${activeVersion.subcategory}` 
+                          {type === 'artwork'
+                            ? `${activeVersion.category} - ${activeVersion.subcategory}`
                             : type === 'technical_sheet' ? 'Ficha Técnica' : 'Ficha Comercial'}
                         </h5>
                       </div>
@@ -573,11 +571,10 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-bold text-slate-800 truncate" title={f.name}>{f.name}</p>
                               {type === 'commercial_sheet' && f.commercialType && (
-                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                                  f.commercialType === 'provisional' 
-                                    ? 'bg-amber-50 text-amber-600 border border-amber-100' 
+                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${f.commercialType === 'provisional'
+                                    ? 'bg-amber-50 text-amber-600 border border-amber-100'
                                     : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                                }`}>
+                                  }`}>
                                   {f.commercialType === 'provisional' ? 'Provisional' : 'Final'}
                                 </span>
                               )}
@@ -590,7 +587,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                     ))}
                   </div>
                 </div>
-                
+
                 <div>
                   <h4 className="text-sm font-semibold text-gray-800 mb-2">Historial de Aprobaciones</h4>
                   <div className="space-y-2">
@@ -602,26 +599,26 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                     ].map((item, idx) => {
                       if (!item.approval || item.approval.status === 'not_required') return null;
                       if (type !== 'artwork' && item.label !== 'I+D') return null;
-                      
-                      const statusColor = item.approval.status === 'approved' 
-                        ? 'text-emerald-600' 
-                        : item.approval.status === 'rejected' 
-                          ? 'text-red-600' 
+
+                      const statusColor = item.approval.status === 'approved'
+                        ? 'text-emerald-600'
+                        : item.approval.status === 'rejected'
+                          ? 'text-red-600'
                           : item.approval.status === 'approved_with_observation'
                             ? 'text-amber-600'
                             : 'text-slate-400';
-                      
+
                       return (
                         <div key={idx} className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded border border-gray-100">
                           <span className="font-medium">{item.label}</span>
                           <span className={`${statusColor} flex items-center gap-1 font-bold`}>
-                            {item.approval.status === 'approved' ? <CheckCircle size={14}/> : (item.approval.status === 'rejected' || item.approval.status === 'approved_with_observation') ? (item.label === 'PROV' || item.label === 'PLAN' ? <Eye size={14}/> : <ThumbsDown size={14}/>) : <Clock size={14}/>}
-                            {item.approval.status === 'approved' 
-                              ? `Aprobado por ${item.approval.user}` 
+                            {item.approval.status === 'approved' ? <CheckCircle size={14} /> : (item.approval.status === 'rejected' || item.approval.status === 'approved_with_observation') ? (item.label === 'PROV' || item.label === 'PLAN' ? <Eye size={14} /> : <ThumbsDown size={14} />) : <Clock size={14} />}
+                            {item.approval.status === 'approved'
+                              ? `Aprobado por ${item.approval.user}`
                               : item.approval.status === 'approved_with_observation'
                                 ? `Aprobado con observación por ${item.approval.user}`
-                                : item.approval.status === 'rejected' 
-                                  ? `${item.label === 'PROV' || item.label === 'PLAN' ? 'Observado' : 'Rechazar'} por ${item.approval.user}` 
+                                : item.approval.status === 'rejected'
+                                  ? `${item.label === 'PROV' || item.label === 'PLAN' ? 'Observado' : 'Rechazar'} por ${item.approval.user}`
                                   : 'Pendiente'}
                           </span>
                         </div>
@@ -639,9 +636,9 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
             Cancelar
           </button>
           {action !== 'view' && (
-            <button 
-              type="submit" 
-              form="action-form" 
+            <button
+              type="submit"
+              form="action-form"
               disabled={isUploading || (action === 'upload' && files.length === 0)}
               className="px-4 py-2 text-sm font-medium text-white bg-[#52627e] hover:bg-[#3d4a60] rounded-md transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
