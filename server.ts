@@ -72,6 +72,54 @@ function parseRowJSON(row: any) {
   return parsed;
 }
 
+// Field mappings between Frontend (English) and SQL Server (Spanish/Internal)
+const EE_COLUMN_MAP: Record<string, string> = {
+  mt_code: 'codigo_mt',
+  description: 'descripcion',
+  letter: 'letra',
+  ee_percentage: 'porcentaje_ee',
+  emission_date: 'fecha_emision',
+  vigilance_date: 'fecha_vigilancia',
+  product_type: 'tipo_producto',
+  certificate_file: 'certificado_file',
+  certificate_history: 'certificado_history',
+  label_file: 'etiqueta_file',
+  label_history: 'etiqueta_history',
+  test_report_file: 'test_report_file',
+  test_report_history: 'test_report_history',
+};
+
+const CATEGORIES_COLUMN_MAP: Record<string, string> = {
+  line_id: 'product_line_id',
+};
+
+// Create reverse maps for DB-to-Client conversion
+const REVERSE_EE_MAP: Record<string, string> = {};
+for (const [eng, esp] of Object.entries(EE_COLUMN_MAP)) {
+  REVERSE_EE_MAP[esp] = eng;
+}
+
+const REVERSE_CAT_MAP: Record<string, string> = {};
+for (const [eng, esp] of Object.entries(CATEGORIES_COLUMN_MAP)) {
+  REVERSE_CAT_MAP[esp] = eng;
+}
+
+function mapRowFromDb(table: string, row: any): any {
+  if (!row) return row;
+  const mappedRow: any = {};
+  for (const key of Object.keys(row)) {
+    let clientKey = key;
+    if (table === 'energy_efficiency_records' && REVERSE_EE_MAP[key]) {
+      clientKey = REVERSE_EE_MAP[key];
+    } else if (table === 'categories' && REVERSE_CAT_MAP[key]) {
+      clientKey = REVERSE_CAT_MAP[key];
+    }
+    mappedRow[clientKey] = row[key];
+  }
+  return mappedRow;
+}
+
+
 // Middleware to verify local JWT Bearer token
 async function requireAuth(req: any, res: any, next: any) {
   const authHeader = req.headers.authorization;
@@ -471,18 +519,26 @@ async function startServer() {
         if (filters && Array.isArray(filters)) {
           filters.forEach((filter: any, idx: number) => {
             const paramName = `filter_${idx}`;
+            
+            let fieldName = filter.field;
+            if (table === 'energy_efficiency_records' && EE_COLUMN_MAP[fieldName]) {
+              fieldName = EE_COLUMN_MAP[fieldName];
+            } else if (table === 'categories' && CATEGORIES_COLUMN_MAP[fieldName]) {
+              fieldName = CATEGORIES_COLUMN_MAP[fieldName];
+            }
+
             if (filter.op === 'eq') {
               if (filter.value === null) {
-                whereClauses.push(`${filterPrefix}[${filter.field}] IS NULL`);
+                whereClauses.push(`${filterPrefix}[${fieldName}] IS NULL`);
               } else {
-                whereClauses.push(`${filterPrefix}[${filter.field}] = @${paramName}`);
+                whereClauses.push(`${filterPrefix}[${fieldName}] = @${paramName}`);
                 request.input(paramName, filter.value);
               }
             } else if (filter.op === 'neq') {
               if (filter.value === null) {
-                whereClauses.push(`${filterPrefix}[${filter.field}] IS NOT NULL`);
+                whereClauses.push(`${filterPrefix}[${fieldName}] IS NOT NULL`);
               } else {
-                whereClauses.push(`${filterPrefix}[${filter.field}] != @${paramName}`);
+                whereClauses.push(`${filterPrefix}[${fieldName}] != @${paramName}`);
                 request.input(paramName, filter.value);
               }
             } else if (filter.op === 'in') {
@@ -491,7 +547,7 @@ async function startServer() {
                 filter.value.forEach((val: any, vIdx: number) => {
                   request.input(`filter_${idx}_${vIdx}`, val);
                 });
-                whereClauses.push(`${filterPrefix}[${filter.field}] IN (${paramNames.join(', ')})`);
+                whereClauses.push(`${filterPrefix}[${fieldName}] IN (${paramNames.join(', ')})`);
               } else {
                 whereClauses.push(`1=0`);
               }
@@ -501,7 +557,16 @@ async function startServer() {
 
         const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
         const topString = limit ? `TOP ${limit}` : '';
-        const orderString = orderCol ? `ORDER BY ${filterPrefix}[${orderCol}] ${orderAscending ? 'ASC' : 'DESC'}` : '';
+
+        let orderColumnName = orderCol;
+        if (orderCol) {
+          if (table === 'energy_efficiency_records' && EE_COLUMN_MAP[orderCol]) {
+            orderColumnName = EE_COLUMN_MAP[orderCol];
+          } else if (table === 'categories' && CATEGORIES_COLUMN_MAP[orderCol]) {
+            orderColumnName = CATEGORIES_COLUMN_MAP[orderCol];
+          }
+        }
+        const orderString = orderColumnName ? `ORDER BY ${filterPrefix}[${orderColumnName}] ${orderAscending ? 'ASC' : 'DESC'}` : '';
 
         if (table === 'samples') {
           query = `
@@ -564,10 +629,42 @@ async function startServer() {
           `;
         } else if (table === 'energy_efficiency_records') {
           query = `
-            SELECT ${topString} ee.*, 
-                   sup.legal_name as supplier_legal_name
+            SELECT ${topString} 
+                   ee.id, 
+                   ee.codigo_mt AS mt_code, 
+                   ee.descripcion AS description, 
+                   ee.letra AS letter, 
+                   ee.porcentaje_ee AS ee_percentage, 
+                   ee.ocp, 
+                   ee.supplier_id, 
+                   ee.fecha_emision AS emission_date, 
+                   ee.fecha_vigilancia AS vigilance_date, 
+                   ee.tipo_producto AS product_type, 
+                   ee.sample_id, 
+                   ee.certificado_file AS certificate_file, 
+                   ee.certificado_history AS certificate_history, 
+                   ee.etiqueta_file AS label_file, 
+                   ee.etiqueta_history AS label_history, 
+                   ee.test_report_file AS test_report_file, 
+                   ee.test_report_history AS test_report_history, 
+                   ee.gallery, 
+                   ee.created_at, 
+                   ee.updated_at,
+                   sup.legal_name AS supplier_legal_name
             FROM ID_PORTAL.energy_efficiency_records ee
             LEFT JOIN ID_PORTAL.suppliers sup ON ee.supplier_id = sup.id
+            ${whereString}
+            ${orderString}
+          `;
+        } else if (table === 'categories') {
+          query = `
+            SELECT ${topString} 
+                   id, 
+                   name, 
+                   product_line_id AS line_id, 
+                   created_at, 
+                   updated_at
+            FROM ID_PORTAL.categories
             ${whereString}
             ${orderString}
           `;
@@ -599,6 +696,7 @@ async function startServer() {
         }
 
         const dbRes = await request.query(query);
+
         let rows = dbRes.recordset.map(parseRowJSON);
 
         // Map joins structures back to Supabase client format
@@ -665,7 +763,22 @@ async function startServer() {
         const rows = isArray ? payload : [payload];
         const resultRows = [];
 
-        for (const row of rows) {
+        // Map payload fields to DB columns
+        const mappedRows = rows.map(row => {
+          const mappedRow: any = {};
+          for (const key of Object.keys(row)) {
+            let dbKey = key;
+            if (table === 'energy_efficiency_records' && EE_COLUMN_MAP[key]) {
+              dbKey = EE_COLUMN_MAP[key];
+            } else if (table === 'categories' && CATEGORIES_COLUMN_MAP[key]) {
+              dbKey = CATEGORIES_COLUMN_MAP[key];
+            }
+            mappedRow[dbKey] = row[key];
+          }
+          return mappedRow;
+        });
+
+        for (const row of mappedRows) {
           const keys = Object.keys(row);
           if (keys.length === 0) continue;
 
@@ -721,7 +834,9 @@ async function startServer() {
 
                 const updateRes = await updateRequest.query(updateQuery);
                 if (updateRes.recordset && updateRes.recordset[0]) {
-                  resultRows.push(parseRowJSON(updateRes.recordset[0]));
+                  let returnedRow = parseRowJSON(updateRes.recordset[0]);
+                  returnedRow = mapRowFromDb(table, returnedRow);
+                  resultRows.push(returnedRow);
                   continue;
                 }
               }
@@ -747,12 +862,15 @@ async function startServer() {
           const query = `INSERT INTO ID_PORTAL.[${table}] (${columns}) OUTPUT INSERTED.* VALUES (${valuesPlaceholders})`;
           const result = await rowRequest.query(query);
           if (result.recordset && result.recordset[0]) {
-            resultRows.push(parseRowJSON(result.recordset[0]));
+            let returnedRow = parseRowJSON(result.recordset[0]);
+            returnedRow = mapRowFromDb(table, returnedRow);
+            resultRows.push(returnedRow);
           }
         }
         
         return res.json(isArray ? resultRows : resultRows[0]);
       }
+
 
       // --- 3. UPDATE (PUT) ---
       if (method === 'PUT') {
@@ -761,9 +879,22 @@ async function startServer() {
           return res.status(400).json({ error: "No fields to update" });
         }
 
+        // Map payload fields to DB columns
+        const dbPayload: any = {};
+        for (const key of Object.keys(payload)) {
+          let dbKey = key;
+          if (table === 'energy_efficiency_records' && EE_COLUMN_MAP[key]) {
+            dbKey = EE_COLUMN_MAP[key];
+          } else if (table === 'categories' && CATEGORIES_COLUMN_MAP[key]) {
+            dbKey = CATEGORIES_COLUMN_MAP[key];
+          }
+          dbPayload[dbKey] = payload[key];
+        }
+
+        const dbKeys = Object.keys(dbPayload);
         const request = dbPool.request();
-        const setClauses = keys.map((k, i) => {
-          let val = payload[k];
+        const setClauses = dbKeys.map((k, i) => {
+          let val = dbPayload[k];
           const paramName = `update_${i}`;
           if (val instanceof Date || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val))) {
             request.input(paramName, sql.DateTime2, new Date(val));
@@ -780,7 +911,13 @@ async function startServer() {
           filters.forEach((filter: any, idx: number) => {
             const paramName = `filter_${idx}`;
             if (filter.op === 'eq') {
-              whereClauses.push(`[${filter.field}] = @${paramName}`);
+              let fieldName = filter.field;
+              if (table === 'energy_efficiency_records' && EE_COLUMN_MAP[fieldName]) {
+                fieldName = EE_COLUMN_MAP[fieldName];
+              } else if (table === 'categories' && CATEGORIES_COLUMN_MAP[fieldName]) {
+                fieldName = CATEGORIES_COLUMN_MAP[fieldName];
+              }
+              whereClauses.push(`[${fieldName}] = @${paramName}`);
               request.input(paramName, filter.value);
             }
           });
@@ -797,10 +934,12 @@ async function startServer() {
           WHERE ${whereClauses.join(' AND ')}
         `;
         const result = await request.query(query);
-        const rows = result.recordset.map(parseRowJSON);
+        let rows = result.recordset.map(parseRowJSON);
+        rows = rows.map(r => mapRowFromDb(table, r));
         
         return res.json(isSingle || isMaybeSingle ? (rows[0] || null) : rows);
       }
+
 
       // --- 4. DELETE ---
       if (method === 'DELETE') {
@@ -810,7 +949,13 @@ async function startServer() {
           filters.forEach((filter: any, idx: number) => {
             const paramName = `filter_${idx}`;
             if (filter.op === 'eq') {
-              whereClauses.push(`[${filter.field}] = @${paramName}`);
+              let fieldName = filter.field;
+              if (table === 'energy_efficiency_records' && EE_COLUMN_MAP[fieldName]) {
+                fieldName = EE_COLUMN_MAP[fieldName];
+              } else if (table === 'categories' && CATEGORIES_COLUMN_MAP[fieldName]) {
+                fieldName = CATEGORIES_COLUMN_MAP[fieldName];
+              }
+              whereClauses.push(`[${fieldName}] = @${paramName}`);
               request.input(paramName, filter.value);
             }
           });
@@ -824,6 +969,7 @@ async function startServer() {
         await request.query(query);
         return res.json({ success: true });
       }
+
 
       res.status(400).json({ error: `Method ${method} not implemented` });
     } catch (err: any) {
