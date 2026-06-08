@@ -3,7 +3,6 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
-import { createClient } from "@supabase/supabase-js";
 import { generateBlobSASQueryParameters, BlobSASPermissions, StorageSharedKeyCredential } from "@azure/storage-blob";
 import { runFullAzureMigration } from "./src/lib/azureMigrationHelper.ts";
 import sql from "mssql";
@@ -15,11 +14,6 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Initialize Supabase (keep client creation if referenced elsewhere in migration, but we won't query it)
-const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // SQL Server Connection Pool
 let pool: sql.ConnectionPool | null = null;
