@@ -20,13 +20,24 @@ import {
   InspectionTemplate
 } from '../types';
 
+const formatDateOnly = (val: any): string => {
+  if (!val) return '';
+  if (val instanceof Date) {
+    return val.toISOString().split('T')[0];
+  }
+  if (typeof val === 'string') {
+    return val.split('T')[0];
+  }
+  return String(val);
+};
+
 export const mapInventoryToDB = (item: Partial<RDInventoryItem>) => {
   const dbItem: any = {};
   if (item.serialNumber      !== undefined) dbItem.serial_number        = item.serialNumber;
   if (item.description       !== undefined) dbItem.description          = item.description;
   if (item.responsible       !== undefined) dbItem.responsible_id       = item.responsible;
-  if (item.acquisitionDate   !== undefined) dbItem.acquisition_date     = item.acquisitionDate;
-  if (item.startupDate       !== undefined) dbItem.startup_date         = item.startupDate;
+  if (item.acquisitionDate   !== undefined) dbItem.acquisition_date     = item.acquisitionDate || null;
+  if (item.startupDate       !== undefined) dbItem.startup_date         = item.startupDate || null;
   if (item.calibrationStatus !== undefined) dbItem.calibration_status   = item.calibrationStatus;
   if (item.category          !== undefined) dbItem.category             = item.category;
   if (item.equipmentType     !== undefined) dbItem.equipment_type       = item.equipmentType;
@@ -34,8 +45,8 @@ export const mapInventoryToDB = (item: Partial<RDInventoryItem>) => {
   if (item.brand             !== undefined) dbItem.brand                = item.brand;
   if (item.model             !== undefined) dbItem.model                = item.model;
   if (item.equipmentRange    !== undefined) dbItem.equipment_range      = item.equipmentRange;
-  if (item.lastCalibrationDate  !== undefined) dbItem.last_calibration_date = item.lastCalibrationDate;
-  if (item.nextCalibrationDate  !== undefined) dbItem.next_calibration_date = item.nextCalibrationDate;
+  if (item.lastCalibrationDate  !== undefined) dbItem.last_calibration_date = item.lastCalibrationDate || null;
+  if (item.nextCalibrationDate  !== undefined) dbItem.next_calibration_date = item.nextCalibrationDate || null;
   if (item.manual            !== undefined) dbItem.manual_file          = item.manual;
   if (item.photos            !== undefined) dbItem.photos               = item.photos;
   if (item.certificate       !== undefined) dbItem.certificate          = item.certificate;
@@ -48,8 +59,8 @@ export const mapDBToInventory = (dbItem: any): RDInventoryItem => ({
   serialNumber: dbItem.serial_number,
   description: dbItem.description,
   responsible: dbItem.responsible_id,
-  acquisitionDate: dbItem.acquisition_date,
-  startupDate: dbItem.startup_date,
+  acquisitionDate: formatDateOnly(dbItem.acquisition_date),
+  startupDate: formatDateOnly(dbItem.startup_date),
   calibrationStatus: dbItem.calibration_status,
   category: dbItem.category,
   equipmentType: dbItem.equipment_type,
@@ -57,8 +68,8 @@ export const mapDBToInventory = (dbItem: any): RDInventoryItem => ({
   brand: dbItem.brand,
   model: dbItem.model,
   equipmentRange: dbItem.equipment_range,
-  lastCalibrationDate: dbItem.last_calibration_date,
-  nextCalibrationDate: dbItem.next_calibration_date,
+  lastCalibrationDate: formatDateOnly(dbItem.last_calibration_date),
+  nextCalibrationDate: formatDateOnly(dbItem.next_calibration_date),
   manual: dbItem.manual_file,
   photos: dbItem.photos,
   certificateHistory: dbItem.certificates,
@@ -104,17 +115,6 @@ export const mapEEToDB = (record: Partial<EnergyEfficiencyRecord>) => {
   }
 
   return dbRecord;
-};
-
-const formatDateOnly = (val: any): string => {
-  if (!val) return '';
-  if (val instanceof Date) {
-    return val.toISOString().split('T')[0];
-  }
-  if (typeof val === 'string') {
-    return val.split('T')[0];
-  }
-  return String(val);
 };
 
 export const mapDBToEE = (dbRecord: any): EnergyEfficiencyRecord => ({

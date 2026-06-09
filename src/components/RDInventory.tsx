@@ -496,7 +496,9 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
                         </div>
                         <div>
                           <p className="text-xs font-bold text-slate-700 uppercase">V{cert.version} - {cert.name}</p>
-                          <p className="text-[10px] text-slate-400 font-medium">Calibrado: {cert.calibrationDate} | Vence: {cert.expiryDate}</p>
+                          <p className="text-[10px] text-slate-400 font-medium">
+                            Calibrado: {cert.calibrationDate ? format(parseISO(cert.calibrationDate), 'dd/MM/yyyy') : 'N/A'} | Vence: {cert.expiryDate ? format(parseISO(cert.expiryDate), 'dd/MM/yyyy') : 'N/A'}
+                          </p>
                         </div>
                       </div>
                       <a href={cert.url} target="_blank" rel="noreferrer" className="p-2 hover:bg-white rounded-lg text-slate-400 hover:text-indigo-600 transition-all">
@@ -556,11 +558,15 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Última</p>
-                    <p className="text-sm font-bold text-slate-700">{item.lastCalibrationDate || 'N/A'}</p>
+                    <p className="text-sm font-bold text-slate-700">
+                      {item.lastCalibrationDate ? format(parseISO(item.lastCalibrationDate), 'dd/MM/yyyy') : 'N/A'}
+                    </p>
                   </div>
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Próxima</p>
-                    <p className="text-sm font-bold text-slate-700">{item.nextCalibrationDate || 'N/A'}</p>
+                    <p className="text-sm font-bold text-slate-700">
+                      {item.nextCalibrationDate ? format(parseISO(item.nextCalibrationDate), 'dd/MM/yyyy') : 'N/A'}
+                    </p>
                   </div>
                 </div>
               </div>
