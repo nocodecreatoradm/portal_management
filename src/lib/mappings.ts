@@ -228,26 +228,30 @@ export const mapDBToTask = (dbTask: any): CalendarTask => ({
   createdAt: dbTask.created_at || new Date().toISOString()
 });
 
-export const mapProposalToDB = (proposal: Partial<InnovationProposal>) => ({
-  title: proposal.title,
-  description: proposal.description,
-  category: proposal.category,
-  author_id: proposal.author,
-  status: proposal.status,
-  priority: proposal.priority,
-  images: proposal.images,
-  sketches: proposal.sketches,
-  blueprints: proposal.blueprints,
-  tags: proposal.tags
-});
+export const mapProposalToDB = (proposal: Partial<InnovationProposal>) => {
+  const dbProposal: any = {};
+  if (proposal.title !== undefined) dbProposal.title = proposal.title;
+  if (proposal.description !== undefined) dbProposal.description = proposal.description;
+  if (proposal.category !== undefined) dbProposal.category = proposal.category;
+  if (proposal.author !== undefined) dbProposal.author = proposal.author;
+  if (proposal.status !== undefined) dbProposal.status = proposal.status;
+  if (proposal.priority !== undefined) dbProposal.priority = proposal.priority;
+  if (proposal.images !== undefined) dbProposal.images = proposal.images;
+  if (proposal.sketches !== undefined) dbProposal.sketches = proposal.sketches;
+  if (proposal.blueprints !== undefined) dbProposal.blueprints = proposal.blueprints;
+  if (proposal.tags !== undefined) dbProposal.tags = proposal.tags;
+  if (proposal.comments !== undefined) dbProposal.comments = proposal.comments;
+  if (proposal.updates !== undefined) dbProposal.updates = proposal.updates;
+  return dbProposal;
+};
 
 export const mapDBToProposal = (dbProposal: any): InnovationProposal => ({
   id: dbProposal.id,
   title: dbProposal.title,
   description: dbProposal.description,
   category: dbProposal.category,
-  author: dbProposal.author_id,
-  date: dbProposal.created_at,
+  author: dbProposal.author,
+  date: dbProposal.created_at || dbProposal.date,
   status: dbProposal.status,
   priority: dbProposal.priority,
   images: dbProposal.images || [],
@@ -256,7 +260,11 @@ export const mapDBToProposal = (dbProposal: any): InnovationProposal => ({
   tags: dbProposal.tags || [],
   comments: dbProposal.comments ? dbProposal.comments.map((c: any) => ({
     ...c,
-    user: c.user_id
+    user: c.user || c.user_id
+  })) : [],
+  updates: dbProposal.updates ? dbProposal.updates.map((u: any) => ({
+    ...u,
+    user: u.user || u.user_id
   })) : []
 });
 

@@ -324,6 +324,7 @@ CREATE TABLE ID_PORTAL.innovation_proposals (
     blueprints nvarchar(max), -- JSON format
     tags nvarchar(max), -- JSON format
     comments nvarchar(max), -- JSON format
+    updates nvarchar(max), -- JSON format
     created_at datetime2 DEFAULT GETDATE(),
     updated_at datetime2 DEFAULT GETDATE()
 );

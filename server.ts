@@ -1138,6 +1138,11 @@ async function startServer() {
         BEGIN
             ALTER TABLE ID_PORTAL.profiles ADD scopes nvarchar(max) DEFAULT '[]';
         END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.innovation_proposals') AND name = 'updates')
+        BEGIN
+            ALTER TABLE ID_PORTAL.innovation_proposals ADD updates nvarchar(max);
+        END
       `);
       console.log("Startup migrations completed successfully");
     } catch (migErr) {

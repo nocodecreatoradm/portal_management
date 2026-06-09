@@ -348,6 +348,20 @@ export interface OvenExperimentalRecord {
   date: string;
 }
 
+export interface ProposalUpdate {
+  id: string;
+  user: string;
+  date: string;
+  text: string;
+  files: FileInfo[];
+  comments?: {
+    id: string;
+    user: string;
+    text: string;
+    date: string;
+  }[];
+}
+
 export interface InnovationProposal {
   id: string;
   title: string;
@@ -367,6 +381,7 @@ export interface InnovationProposal {
     text: string;
     date: string;
   }[];
+  updates?: ProposalUpdate[];
 }
 
 export interface ChangeLog {
