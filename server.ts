@@ -538,7 +538,7 @@ async function startServer() {
           try {
             const request = new sql.Request(transaction);
             request.input('id', testId);
-            await request.query(\`DELETE FROM ID_PORTAL.energy_efficiency_records WHERE id = @id\`);
+            await request.query(`DELETE FROM ID_PORTAL.energy_efficiency_records WHERE id = @id`);
             await transaction.rollback();
             results.deleteTest = "Success (rolled back)";
           } catch (transErr: any) {
