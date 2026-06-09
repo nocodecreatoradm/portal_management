@@ -35,6 +35,23 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
   const [activeFilter, setActiveFilter] = useState<'all' | 'pdf' | 'docx' | 'xlsx' | 'pptx'>('all');
   const [documents, setDocuments] = useState<BrandDocument[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const sortedBrands = React.useMemo(() => {
+    const order = ['sole', 's-collection', 'rinnai', 'metusa', 'brikkel'];
+    return [...brands].sort((a, b) => {
+      const nameA = a.name.trim().toLowerCase();
+      const nameB = b.name.trim().toLowerCase();
+      const indexA = order.indexOf(nameA);
+      const indexB = order.indexOf(nameB);
+      
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      
+      return nameA.localeCompare(nameB);
+    });
+  }, [brands]);
   const [heroImage, setHeroImage] = useState('https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=2000');
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
@@ -272,7 +289,7 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
 
       {/* Brands Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {brands.map((brand, index) => (
+        {sortedBrands.map((brand, index) => (
           <motion.div
             key={brand.id}
             initial={{ opacity: 0, y: 20 }}
