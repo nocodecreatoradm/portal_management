@@ -1275,10 +1275,10 @@ async function startServer() {
             .input('pname', sql.NVarChar, perm.name)
             .input('pdesc', sql.NVarChar, perm.description)
             .input('pmod',  sql.NVarChar, perm.module)
-            .query(\`
+            .query(`
               IF NOT EXISTS (SELECT 1 FROM ID_PORTAL.permissions WHERE name = @pname)
                 INSERT INTO ID_PORTAL.permissions (name, description, module) VALUES (@pname, @pdesc, @pmod);
-            \`);
+            `);
         }
 
         // 3. Get all roles and all permissions
@@ -1298,10 +1298,10 @@ async function startServer() {
             await dbPool2.request()
               .input('rid', sql.UniqueIdentifier, role.id)
               .input('pid', sql.Int, permId)
-              .query(\`
+              .query(`
                 IF NOT EXISTS (SELECT 1 FROM ID_PORTAL.role_permissions WHERE role_id = @rid AND permission_id = @pid)
                   INSERT INTO ID_PORTAL.role_permissions (role_id, permission_id) VALUES (@rid, @pid);
-              \`);
+              `);
           }
         }
         console.log("Permissions seed migration completed successfully");
