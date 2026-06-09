@@ -326,7 +326,7 @@ export interface CantonFairSupplier {
   createdAt: string;
 }
 
-export type ModuleId = 'rd_inventory' | 'ntp_regulations' | 'work_plan' | 'samples' | 'technical_datasheet' | 'commercial_datasheet' | 'artwork_followup' | 'commercial_artworks' | 'approved_technical_sheets' | 'approved_commercial_sheets' | 'applications' | 'supplier_master' | 'water_demand' | 'gas_heater_experimental' | 'records' | 'absorption_calculation' | 'temperature_loss' | 'brandbook' | 'energy_efficiency' | 'product_management' | 'calendar' | 'rd_projects' | 'calculations_dashboard' | 'innovation_proposals' | 'cr_ni_coating_analysis' | 'canton_fair' | 'oven_experimental' | 'user_management' | 'master_data';
+export type ModuleId = 'rd_inventory' | 'ntp_regulations' | 'work_plan' | 'samples' | 'technical_datasheet' | 'commercial_datasheet' | 'artwork_followup' | 'commercial_artworks' | 'approved_technical_sheets' | 'approved_commercial_sheets' | 'applications' | 'supplier_master' | 'water_demand' | 'gas_heater_experimental' | 'records' | 'absorption_calculation' | 'temperature_loss' | 'brandbook' | 'energy_efficiency' | 'product_management' | 'calendar' | 'rd_projects' | 'calculations_dashboard' | 'innovation_proposals' | 'cr_ni_coating_analysis' | 'canton_fair' | 'oven_experimental' | 'user_management' | 'master_data' | 'quality_claims';
 
 export interface OvenInspectionPoint {
   id: string;
@@ -685,4 +685,24 @@ export interface RDInventoryItem {
   nextCalibrationDate?: string;
   photos?: FileInfo[];
   manual?: FileInfo;
+}
+
+export interface QualityClaim {
+  id: string;
+  productId: string;
+  sapCode: string;
+  trackingType: 'artwork' | 'technical' | 'commercial';
+  responsibleName: string;
+  responsibleEmail?: string;
+  defectType: 'Estético' | 'Funcional' | 'Dimensional';
+  documentCategory: string;
+  comments?: string;
+  claimStartDate: string;
+  claimEndDate?: string;
+  status: 'open' | 'resolved';
+  attachments: FileInfo[];
+  resolutionComments?: string;
+  resolvedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

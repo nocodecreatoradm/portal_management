@@ -19,7 +19,8 @@ import {
   RDProject,
   ProductLine,
   Category,
-  InspectionTemplate
+  InspectionTemplate,
+  QualityClaim
 } from '../types';
 import {
   mapInventoryToDB,
@@ -59,7 +60,9 @@ import {
   mapCategoryToDB,
   mapDBToCategory,
   mapInspectionTemplateToDB,
-  mapDBToInspectionTemplate
+  mapDBToInspectionTemplate,
+  mapQualityClaimToDB,
+  mapDBToQualityClaim
 } from './mappings';
 
 
@@ -1367,6 +1370,61 @@ export const SupabaseService = {
     if (!isUUID(id)) return true;
     const { error } = await supabase
       .from('brand_documents')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
+  // QUALITY CLAIMS
+  async getQualityClaims() {
+    const { data, error } = await supabase
+      .from('quality_claims')
+      .select()
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data.map(mapDBToQualityClaim);
+  },
+
+  async getQualityClaimsByProduct(productId: string) {
+    if (!isUUID(productId)) return [];
+    const { data, error } = await supabase
+      .from('quality_claims')
+      .select()
+      .eq('product_id', productId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data.map(mapDBToQualityClaim);
+  },
+
+  async createQualityClaim(claim: Partial<QualityClaim>) {
+    const dbClaim = mapQualityClaimToDB(claim);
+    const { data, error } = await supabase
+      .from('quality_claims')
+      .insert(dbClaim)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToQualityClaim(data);
+  },
+
+  async updateQualityClaim(id: string, updates: Partial<QualityClaim>) {
+    if (!isUUID(id)) return null;
+    const dbUpdates = mapQualityClaimToDB(updates);
+    const { data, error } = await supabase
+      .from('quality_claims')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToQualityClaim(data);
+  },
+
+  async deleteQualityClaim(id: string) {
+    if (!isUUID(id)) return true;
+    const { error } = await supabase
+      .from('quality_claims')
       .delete()
       .eq('id', id);
     if (error) throw error;

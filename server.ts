@@ -1188,6 +1188,29 @@ async function startServer() {
         BEGIN
             ALTER TABLE ID_PORTAL.products ADD CONSTRAINT UQ_products_sap_code_tracking_type UNIQUE (sap_code, tracking_type);
         END
+
+        IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('ID_PORTAL.quality_claims') AND type in (N'U'))
+        BEGIN
+            CREATE TABLE ID_PORTAL.quality_claims (
+                id uniqueidentifier PRIMARY KEY DEFAULT newid(),
+                product_id uniqueidentifier NOT NULL REFERENCES ID_PORTAL.products(id) ON DELETE CASCADE,
+                sap_code nvarchar(100) NOT NULL,
+                tracking_type nvarchar(100) NOT NULL,
+                responsible_name nvarchar(255) NOT NULL,
+                responsible_email nvarchar(255),
+                defect_type nvarchar(100) NOT NULL,
+                document_category nvarchar(255) NOT NULL,
+                comments nvarchar(max),
+                claim_start_date datetime2 NOT NULL DEFAULT GETDATE(),
+                claim_end_date datetime2,
+                status nvarchar(100) NOT NULL DEFAULT 'open',
+                attachments nvarchar(max),
+                resolution_comments nvarchar(max),
+                resolved_by nvarchar(255),
+                created_at datetime2 DEFAULT GETDATE(),
+                updated_at datetime2 DEFAULT GETDATE()
+            );
+        END
       `);
       console.log("Startup migrations completed successfully");
     } catch (migErr) {

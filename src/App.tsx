@@ -17,6 +17,8 @@ import DataTable from './components/DataTable';
 import ActionModal from './components/ActionModal';
 import ProductDetailModal from './components/ProductDetailModal';
 import NewRequestModal from './components/NewRequestModal';
+import QualityClaimModal from './components/QualityClaimModal';
+import QualityClaimsModule from './components/QualityClaimsModule';
 
 import AssignmentModal from './components/AssignmentModal';
 import DateEditModal from './components/DateEditModal';
@@ -67,7 +69,8 @@ import {
   Project,
   RDProject,
   AssignmentInfo,
-  InfoRequest
+  InfoRequest,
+  QualityClaim
 } from './types';
 import UserManagement from './components/UserManagement';
 import { useSamples } from './context/SamplesContext';
@@ -96,6 +99,9 @@ export default function App() {
   const [moduleInitialData, setModuleInitialData] = useState<Record<ModuleId, any>>({} as any);
   const [energyEfficiency, setEnergyEfficiency] = useState<any[]>([]);
   const [productManagement, setProductManagement] = useState<any[]>([]);
+  const [qualityClaims, setQualityClaims] = useState<QualityClaim[]>([]);
+  const [isQualityClaimsModalOpen, setIsQualityClaimsModalOpen] = useState(false);
+  const [selectedQualityClaimsProduct, setSelectedQualityClaimsProduct] = useState<ProductRecord | null>(null);
   const [filters, setFilters] = useState({
     marca: '',
     linea: '',
@@ -245,6 +251,14 @@ export default function App() {
           setCategories(cats);
         } catch (e) {
           console.error('Error loading categories:', e);
+        }
+
+        // Fetch quality claims
+        try {
+          const claims = await SupabaseService.getQualityClaims();
+          setQualityClaims(claims);
+        } catch (e) {
+          console.error('Error loading quality claims:', e);
         }
 
 
@@ -1056,6 +1070,50 @@ export default function App() {
     }
   };
 
+  const handleSaveQualityClaim = async (claimData: Partial<QualityClaim>) => {
+    try {
+      const newClaim = await SupabaseService.createQualityClaim(claimData);
+      setQualityClaims(prev => [newClaim, ...prev]);
+      
+      const product = data.find(p => p.id === newClaim.productId);
+      if (product) {
+        outlookService.sendQualityClaimEmail(product, newClaim).catch(err => {
+          console.error('Error sending quality claim email:', err);
+        });
+      }
+      toast.success('Reclamo de calidad registrado correctamente');
+    } catch (error) {
+      console.error('Error registering quality claim:', error);
+      toast.error('Error al registrar el reclamo de calidad');
+    }
+  };
+
+  const handleUpdateQualityClaim = async (id: string, updates: Partial<QualityClaim>) => {
+    try {
+      const updated = await SupabaseService.updateQualityClaim(id, updates);
+      if (updated) {
+        setQualityClaims(prev => prev.map(c => c.id === id ? updated : c));
+        toast.success('Reclamo de calidad actualizado correctamente');
+      }
+    } catch (error) {
+      console.error('Error updating quality claim:', error);
+      toast.error('Error al actualizar el reclamo de calidad');
+    }
+  };
+
+  const handleDeleteQualityClaim = async (id: string) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este reclamo? Esta acción no se puede deshacer.')) {
+      try {
+        await SupabaseService.deleteQualityClaim(id);
+        setQualityClaims(prev => prev.filter(c => c.id !== id));
+        toast.success('Reclamo de calidad eliminado correctamente');
+      } catch (error) {
+        console.error('Error deleting quality claim:', error);
+        toast.error('Error al eliminar el reclamo de calidad');
+      }
+    }
+  };
+
 
 
 
@@ -1089,7 +1147,8 @@ export default function App() {
       records: t('menu.base_records'),
       calendar: t('menu.calendar'),
       user_management: t('menu.users_permissions'),
-      master_data: 'Maestro de Datos'
+      master_data: 'Maestro de Datos',
+      quality_claims: t('menu.quality_claims')
     };
 
     if (activeModule === 'user_management') {
@@ -1102,6 +1161,20 @@ export default function App() {
 
     if (activeModule === 'innovation_proposals') {
       return <InnovationProposals />;
+    }
+
+    if (activeModule === 'quality_claims') {
+      return (
+        <QualityClaimsModule 
+          qualityClaims={qualityClaims}
+          products={data}
+          onViewProductDetail={setDetailRecord}
+          onOpenClaimsModal={(record) => {
+            setSelectedQualityClaimsProduct(record);
+            setIsQualityClaimsModalOpen(true);
+          }}
+        />
+      );
     }
 
     if (activeModule === 'brandbook') {
@@ -1376,6 +1449,11 @@ export default function App() {
             onStartFlow={handleStartFlow}
             onEditDates={handleEditDatesClick}
             onUpdateRecord={handleUpdateRecord}
+            qualityClaims={qualityClaims}
+            onQualityClaimsClick={(record) => {
+              setSelectedQualityClaimsProduct(record);
+              setIsQualityClaimsModalOpen(true);
+            }}
             onEdit={(record) => {
               setEditingProduct(record);
               setIsNewRequestModalOpen(true);
@@ -1631,6 +1709,19 @@ export default function App() {
             record={infoRequestConfig.record}
             type={infoRequestConfig.type}
             onSave={handleSaveInfoRequests}
+          />
+
+          <QualityClaimModal
+            isOpen={isQualityClaimsModalOpen}
+            onClose={() => {
+              setIsQualityClaimsModalOpen(false);
+              setSelectedQualityClaimsProduct(null);
+            }}
+            record={selectedQualityClaimsProduct}
+            qualityClaims={qualityClaims}
+            onSaveClaim={handleSaveQualityClaim}
+            onUpdateClaim={handleUpdateQualityClaim}
+            onDeleteClaim={handleDeleteQualityClaim}
           />
         </motion.div>
       )}

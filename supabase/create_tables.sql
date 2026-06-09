@@ -436,4 +436,25 @@ CREATE TABLE ID_PORTAL.audit_logs (
     new_data nvarchar(max), -- JSON format
     created_at datetime2 DEFAULT GETDATE()
 );
+
+-- QUALITY_CLAIMS
+CREATE TABLE ID_PORTAL.quality_claims (
+    id uniqueidentifier PRIMARY KEY DEFAULT newid(),
+    product_id uniqueidentifier NOT NULL REFERENCES ID_PORTAL.products(id) ON DELETE CASCADE,
+    sap_code nvarchar(100) NOT NULL,
+    tracking_type nvarchar(100) NOT NULL,
+    responsible_name nvarchar(255) NOT NULL,
+    responsible_email nvarchar(255),
+    defect_type nvarchar(100) NOT NULL,
+    document_category nvarchar(255) NOT NULL,
+    comments nvarchar(max),
+    claim_start_date datetime2 NOT NULL DEFAULT GETDATE(),
+    claim_end_date datetime2,
+    status nvarchar(100) NOT NULL DEFAULT 'open',
+    attachments nvarchar(max), -- JSON format: FileInfo[]
+    resolution_comments nvarchar(max),
+    resolved_by nvarchar(255),
+    created_at datetime2 DEFAULT GETDATE(),
+    updated_at datetime2 DEFAULT GETDATE()
+);
 GO

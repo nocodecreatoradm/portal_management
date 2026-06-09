@@ -17,7 +17,8 @@ import {
   SampleRecord,
   ProductLine,
   Category,
-  InspectionTemplate
+  InspectionTemplate,
+  QualityClaim
 } from '../types';
 
 const formatDateOnly = (val: any): string => {
@@ -653,4 +654,43 @@ export const mapDBToInspectionTemplate = (dbTemplate: any): InspectionTemplate =
   procedureFile: dbTemplate.procedure_file,
   createdAt: dbTemplate.created_at,
   updatedAt: dbTemplate.updated_at
+});
+
+export const mapQualityClaimToDB = (claim: Partial<QualityClaim>) => {
+  const dbClaim: any = {};
+  if (claim.productId          !== undefined) dbClaim.product_id          = claim.productId;
+  if (claim.sapCode            !== undefined) dbClaim.sap_code            = claim.sapCode;
+  if (claim.trackingType       !== undefined) dbClaim.tracking_type       = claim.trackingType;
+  if (claim.responsibleName    !== undefined) dbClaim.responsible_name    = claim.responsibleName;
+  if (claim.responsibleEmail   !== undefined) dbClaim.responsible_email   = claim.responsibleEmail;
+  if (claim.defectType         !== undefined) dbClaim.defect_type         = claim.defectType;
+  if (claim.documentCategory   !== undefined) dbClaim.document_category   = claim.documentCategory;
+  if (claim.comments           !== undefined) dbClaim.comments            = claim.comments;
+  if (claim.claimStartDate     !== undefined) dbClaim.claim_start_date     = claim.claimStartDate || null;
+  if (claim.claimEndDate       !== undefined) dbClaim.claim_end_date       = claim.claimEndDate || null;
+  if (claim.status             !== undefined) dbClaim.status             = claim.status;
+  if (claim.attachments        !== undefined) dbClaim.attachments        = claim.attachments;
+  if (claim.resolutionComments !== undefined) dbClaim.resolution_comments = claim.resolutionComments;
+  if (claim.resolvedBy         !== undefined) dbClaim.resolved_by         = claim.resolvedBy;
+  return dbClaim;
+};
+
+export const mapDBToQualityClaim = (dbClaim: any): QualityClaim => ({
+  id: dbClaim.id,
+  productId: dbClaim.product_id,
+  sapCode: dbClaim.sap_code,
+  trackingType: dbClaim.tracking_type,
+  responsibleName: dbClaim.responsible_name,
+  responsibleEmail: dbClaim.responsible_email,
+  defectType: dbClaim.defect_type,
+  documentCategory: dbClaim.document_category,
+  comments: dbClaim.comments,
+  claimStartDate: dbClaim.claim_start_date,
+  claimEndDate: dbClaim.claim_end_date,
+  status: dbClaim.status,
+  attachments: dbClaim.attachments || [],
+  resolutionComments: dbClaim.resolution_comments,
+  resolvedBy: dbClaim.resolved_by,
+  createdAt: dbClaim.created_at,
+  updatedAt: dbClaim.updated_at
 });

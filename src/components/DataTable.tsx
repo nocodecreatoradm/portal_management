@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Eye, Edit2, Trash2, FileText, Upload, Image as ImageIcon, UserPlus, HelpCircle, AlertCircle, Beaker, Search, X, Clock, Send, Calendar, Plus, ArrowUp, ArrowDown } from 'lucide-react';
-import { ProductRecord, DocumentVersion, Supplier, SampleRecord } from '../types';
+import { ProductRecord, DocumentVersion, Supplier, SampleRecord, QualityClaim } from '../types';
 import StatusIcon from './StatusIcon';
 import HeaderFilterPopover from './HeaderFilterPopover';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,6 +21,8 @@ interface DataTableProps {
   onDelete?: (record: ProductRecord) => void;
   mode?: 'artwork' | 'technical_sheet' | 'commercial_sheet';
   onUpdateRecord?: (id: string, updates: Partial<ProductRecord>) => Promise<void> | void;
+  qualityClaims?: QualityClaim[];
+  onQualityClaimsClick?: (record: ProductRecord) => void;
 }
 
 export default function DataTable({ 
@@ -36,7 +38,9 @@ export default function DataTable({
   onEditDates,
   onDelete,
   mode = 'artwork',
-  onUpdateRecord
+  onUpdateRecord,
+  qualityClaims = [],
+  onQualityClaimsClick
 }: DataTableProps) {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
@@ -902,7 +906,44 @@ export default function DataTable({
                     </div>
                   </td>
 
-                  <td className="px-3 py-3 border-r border-gray-100 font-mono text-xs text-slate-600 font-bold">{record.codigoSAP}</td>
+                  <td className="px-3 py-3 border-r border-gray-100 font-mono text-xs text-slate-600 font-bold">
+                    <div className="flex items-center gap-2">
+                      <span>{record.codigoSAP}</span>
+                      {onQualityClaimsClick && (
+                        (() => {
+                          const claimType = mode === 'artwork' ? 'artwork' : mode === 'technical_sheet' ? 'technical' : 'commercial';
+                          const prodClaims = (qualityClaims || []).filter(c => c.productId === record.id && c.trackingType === claimType);
+                          
+                          let qBg = 'bg-slate-300/50 text-slate-500 hover:bg-slate-400/50';
+                          let qTitle = 'Sin reclamos de calidad';
+                          
+                          if (prodClaims.length > 0) {
+                            const hasOpen = prodClaims.some(c => c.status === 'open');
+                            if (hasOpen) {
+                              qBg = 'bg-red-500 text-white animate-pulse hover:bg-red-600';
+                              qTitle = 'Reclamos de calidad abiertos';
+                            } else {
+                              qBg = 'bg-emerald-500 text-white hover:bg-emerald-600';
+                              qTitle = 'Reclamos de calidad resueltos';
+                            }
+                          }
+                          
+                          return (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onQualityClaimsClick(record);
+                              }}
+                              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black tracking-tighter shadow transition-all ${qBg}`}
+                              title={qTitle}
+                            >
+                              Q
+                            </button>
+                          );
+                        })()
+                      )}
+                    </div>
+                  </td>
                   <td className="px-3 py-3 border-r border-gray-100 text-slate-700 font-bold uppercase text-[11px] leading-tight max-w-[200px]">
                     {record.descripcionSAP}
                   </td>

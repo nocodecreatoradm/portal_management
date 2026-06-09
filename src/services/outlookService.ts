@@ -1,6 +1,6 @@
 
 import { toast } from 'sonner';
-import { ProductRecord, DocumentVersion, AssignmentInfo, InfoRequest, CalendarTask } from '../types';
+import { ProductRecord, DocumentVersion, AssignmentInfo, InfoRequest, CalendarTask, QualityClaim } from '../types';
 import { SupabaseService } from '../lib/SupabaseService';
 import { supabase } from '../lib/supabase';
 
@@ -765,6 +765,72 @@ export const outlookService = {
       if (isNew) toast.success('Notificación de calendario enviada');
     } catch (e) {
       console.error('Error sending calendar notification:', e);
+    }
+  },
+
+  /**
+   * Notifies a new quality claim/observation.
+   */
+  sendQualityClaimEmail: async (record: ProductRecord, claim: any) => {
+    const designerEmail = record.artworkAssignment?.designerEmail || 
+                          record.technicalAssignment?.designerEmail || 
+                          record.commercialAssignment?.designerEmail || 
+                          '';
+
+    const adminEmails = await outlookService.getAdminEmails();
+    const idEmails = await outlookService.getDepartmentEmailsForRecord('I+D', record);
+    
+    const recipients = [...new Set([
+      designerEmail,
+      ...adminEmails,
+      ...idEmails,
+      'mejoracontinua@sole.com.pe'
+    ].filter(Boolean))];
+
+    if (recipients.length === 0) return;
+
+    const subject = `[RECLAMO DE CALIDAD] - ${record.codigoSAP} - ${claim.documentCategory}`;
+    const title = 'Nuevo Reclamo de Calidad Registrado';
+
+    const content = `
+      <p>Estimado equipo,</p>
+      <p>Se ha registrado un nuevo reclamo de calidad para el producto <strong>${record.codigoSAP} - ${record.descripcionSAP}</strong>.</p>
+      
+      <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 16px; margin: 16px 0; border-radius: 8px;">
+        <p style="margin: 0; font-weight: bold; color: #991b1b;">Detalles del Reclamo:</p>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px;">
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold; color: #7f1d1d; width: 140px;">Registrado por:</td>
+            <td style="padding: 4px 0; color: #4b5563;">${claim.responsibleName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold; color: #7f1d1d;">Tipo de Defecto:</td>
+            <td style="padding: 4px 0; color: #4b5563;">${claim.defectType}</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold; color: #7f1d1d;">Documento / Arte:</td>
+            <td style="padding: 4px 0; color: #4b5563;">${claim.documentCategory}</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold; color: #7f1d1d;">Fecha de Inicio:</td>
+            <td style="padding: 4px 0; color: #4b5563;">${claim.claimStartDate}</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold; color: #7f1d1d; vertical-align: top;">Observaciones:</td>
+            <td style="padding: 4px 0; color: #4b5563; white-space: pre-wrap;">${claim.comments || 'Sin comentarios adicionales'}</td>
+          </tr>
+        </table>
+      </div>
+
+      <p>Por favor, ingresar al portal para revisar y subsanar el error a la brevedad.</p>
+    `;
+
+    try {
+      const actionUrl = outlookService.getModuleUrl(claim.trackingType);
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
+      toast.success('Notificación de reclamo de calidad enviada');
+    } catch (e) {
+      console.error('Error sending quality claim email:', e);
     }
   }
 };
