@@ -419,6 +419,7 @@ CREATE TABLE ID_PORTAL.rd_custom_projects (
     end_date datetime2,
     sections nvarchar(max), -- JSON format
     attachments nvarchar(max), -- JSON format
+    updates nvarchar(max), -- JSON format
     created_at datetime2 DEFAULT GETDATE(),
     updated_at datetime2 DEFAULT GETDATE()
 );

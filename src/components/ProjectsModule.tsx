@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Plus, Search, Filter, MoreVertical, Calendar, User, 
   CheckCircle2, Clock, AlertCircle, FileText, Download, 
@@ -71,8 +71,20 @@ export default function ProjectsModule() {
     priority: 'Media',
     responsible: '',
     startDate: format(new Date(), 'yyyy-MM-dd'),
-    sections: []
+    sections: [],
+    attachments: []
   });
+
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [activeTab, setActiveTab] = useState<'details' | 'updates'>('details');
+  const [progressText, setProgressText] = useState('');
+  const [progressFiles, setProgressFiles] = useState<FileInfo[]>([]);
+  const [uploadingProgressFile, setUploadingProgressFile] = useState(false);
+  const [activeUpdateComments, setActiveUpdateComments] = useState<Record<string, string>>({});
+
+  const projectFileInputRef = React.useRef<HTMLInputElement>(null);
+  const detailFileInputRef = React.useRef<HTMLInputElement>(null);
+  const progressFileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadData();
@@ -273,6 +285,200 @@ export default function ProjectsModule() {
         return s;
       })
     }));
+  };
+
+  const handleProjectFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingFile(true);
+    toast.loading('Subiendo archivo(s)...');
+
+    try {
+      const newAttachments: FileInfo[] = [];
+      for (const file of Array.from(files)) {
+        const path = `projects/${formData.name || 'unnamed'}/${Date.now()}_${file.name}`;
+        const fileRes = await SupabaseService.uploadFile('rd-files', path, file) as any;
+        newAttachments.push({
+          name: file.name,
+          url: fileRes.url,
+          type: file.type,
+          size: file.size,
+          uploadedAt: new Date().toISOString()
+        });
+      }
+      setFormData(prev => ({
+        ...prev,
+        attachments: [...(prev.attachments || []), ...newAttachments]
+      }));
+      toast.dismiss();
+      toast.success('Archivos cargados con éxito');
+    } catch (err: any) {
+      toast.dismiss();
+      toast.error('Error al subir archivos: ' + err.message);
+    } finally {
+      setUploadingFile(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleRemoveProjectAttachment = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      attachments: (prev.attachments || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleDetailFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedProject) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    toast.loading('Subiendo archivo...');
+    try {
+      const file = files[0];
+      const path = `projects/${selectedProject.name}/${Date.now()}_${file.name}`;
+      const fileRes = await SupabaseService.uploadFile('rd-files', path, file) as any;
+      const newAttachment: FileInfo = {
+        name: file.name,
+        url: fileRes.url,
+        type: file.type,
+        size: file.size,
+        uploadedAt: new Date().toISOString()
+      };
+      const updatedAttachments = [...(selectedProject.attachments || []), newAttachment];
+      
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedProject.id);
+      let updatedProj;
+      if (isUUID) {
+        updatedProj = await SupabaseService.updateRDProject(selectedProject.id, { attachments: updatedAttachments });
+      } else {
+        updatedProj = await SupabaseService.createRDProject({ ...selectedProject, attachments: updatedAttachments });
+      }
+      
+      setSelectedProject(updatedProj);
+      setProjects(prev => prev.map(p => p.id === selectedProject.id ? updatedProj : p));
+      toast.dismiss();
+      toast.success('Archivo adjuntado correctamente');
+    } catch (err: any) {
+      toast.dismiss();
+      toast.error('Error al adjuntar archivo: ' + err.message);
+    } finally {
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleProgressFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedProject) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingProgressFile(true);
+    toast.loading('Subiendo archivo al avance...');
+    try {
+      const newFiles: FileInfo[] = [];
+      for (const file of Array.from(files)) {
+        const path = `projects/${selectedProject.name}/updates/${Date.now()}_${file.name}`;
+        const fileRes = await SupabaseService.uploadFile('rd-files', path, file) as any;
+        newFiles.push({
+          name: file.name,
+          url: fileRes.url,
+          type: file.type,
+          size: file.size,
+          uploadedAt: new Date().toISOString()
+        });
+      }
+      setProgressFiles(prev => [...prev, ...newFiles]);
+      toast.dismiss();
+      toast.success('Documento adjuntado al avance');
+    } catch (err: any) {
+      toast.dismiss();
+      toast.error('Error al subir archivo: ' + err.message);
+    } finally {
+      setUploadingProgressFile(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleSaveProjectProgress = async () => {
+    if (!selectedProject) return;
+    if (!progressText.trim()) {
+      toast.error('Escribe una descripción del avance');
+      return;
+    }
+
+    try {
+      const newUpdate = {
+        id: crypto.randomUUID(),
+        user: user?.name || user?.email || 'Usuario',
+        date: new Date().toISOString(),
+        text: progressText,
+        files: progressFiles,
+        comments: []
+      };
+
+      const updatedUpdates = [...(selectedProject.updates || []), newUpdate];
+      
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedProject.id);
+      let updatedProj;
+      if (isUUID) {
+        updatedProj = await SupabaseService.updateRDProject(selectedProject.id, { updates: updatedUpdates });
+      } else {
+        updatedProj = await SupabaseService.createRDProject({ ...selectedProject, updates: updatedUpdates });
+      }
+
+      setSelectedProject(updatedProj);
+      setProjects(prev => prev.map(p => p.id === selectedProject.id ? updatedProj : p));
+      
+      setProgressText('');
+      setProgressFiles([]);
+      toast.success('Avance registrado correctamente');
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Error al registrar el avance');
+    }
+  };
+
+  const handleAddProjectUpdateComment = async (updateId: string) => {
+    if (!selectedProject) return;
+    const commentText = activeUpdateComments[updateId];
+    if (!commentText || !commentText.trim()) return;
+
+    try {
+      const updatedUpdates = (selectedProject.updates || []).map(upd => {
+        if (upd.id === updateId) {
+          return {
+            ...upd,
+            comments: [
+              ...(upd.comments || []),
+              {
+                id: crypto.randomUUID(),
+                user: user?.name || user?.email || 'Usuario',
+                text: commentText.trim(),
+                date: new Date().toISOString()
+              }
+            ]
+          };
+        }
+        return upd;
+      });
+
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedProject.id);
+      let updatedProj;
+      if (isUUID) {
+        updatedProj = await SupabaseService.updateRDProject(selectedProject.id, { updates: updatedUpdates });
+      } else {
+        updatedProj = await SupabaseService.createRDProject({ ...selectedProject, updates: updatedUpdates });
+      }
+
+      setSelectedProject(updatedProj);
+      setProjects(prev => prev.map(p => p.id === selectedProject.id ? updatedProj : p));
+      setActiveUpdateComments(prev => ({ ...prev, [updateId]: '' }));
+      toast.success('Comentario agregado');
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Error al agregar comentario');
+    }
   };
 
   const handleSubmitProject = async () => {
@@ -605,7 +811,8 @@ export default function ProjectsModule() {
                       onClick={() => {
                         setDeleteConfirm({
                           id: project.id,
-                          user: user?.name || 'Sistema',
+                          title: project.name,
+                          type: 'project',
                           onConfirm: () => {
                             handleDeleteProject(project.id);
                             setDeleteConfirm(null);
@@ -959,6 +1166,76 @@ export default function ProjectsModule() {
                         </div>
                       </div>
                     ))}
+
+                    {/* Documentos Adjuntos Section */}
+                    <div className="space-y-4 bg-blue-50/50 p-8 rounded-[2rem] border border-blue-100">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
+                          <h4 className="text-lg font-black text-slate-900 tracking-tight">Documentos Adjuntos</h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => projectFileInputRef.current?.click()}
+                          disabled={uploadingFile}
+                          className="flex items-center gap-2 text-blue-600 font-bold text-sm px-5 py-2.5 bg-white border border-blue-200 rounded-2xl hover:bg-blue-50 transition-all shadow-sm disabled:opacity-50"
+                        >
+                          <Upload size={16} />
+                          {uploadingFile ? 'Subiendo...' : 'Subir Archivos'}
+                        </button>
+                        <input
+                          ref={projectFileInputRef}
+                          type="file"
+                          multiple
+                          className="hidden"
+                          onChange={handleProjectFileUpload}
+                        />
+                      </div>
+
+                      {(formData.attachments || []).length === 0 ? (
+                        <div
+                          className="border-2 border-dashed border-blue-200 rounded-2xl py-10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-blue-50/50 transition-all"
+                          onClick={() => projectFileInputRef.current?.click()}
+                        >
+                          <Upload size={28} className="text-blue-300" />
+                          <p className="text-sm font-bold text-blue-400">Haz clic o arrastra archivos aquí</p>
+                          <p className="text-xs text-blue-300">PDF, Word, Excel, imágenes y más</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {(formData.attachments || []).map((file, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-blue-100 shadow-sm group">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center">
+                                  <FileText size={16} className="text-blue-500" />
+                                </div>
+                                <div>
+                                  <div className="text-sm font-bold text-slate-800 truncate max-w-[240px]">{file.name}</div>
+                                  <div className="text-[10px] text-slate-400">{(file.size / 1024).toFixed(1)} KB</div>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveProjectAttachment(idx)}
+                                className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => projectFileInputRef.current?.click()}
+                            disabled={uploadingFile}
+                            className="w-full py-3 border-2 border-dashed border-blue-200 rounded-2xl text-blue-400 font-bold text-sm hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
+                          >
+                            <Plus size={14} />
+                            Agregar más archivos
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     </div>
                   </div>
                 )}
@@ -1080,26 +1357,225 @@ export default function ProjectsModule() {
                   </div>
                 )}
                 <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-12">
-                  <div className="lg:col-span-2 space-y-12">
-                    {/* Project Data Sections */}
-                    {selectedProject.sections.map((section) => (
-                      <div key={section.id} className="space-y-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
-                          <h4 className="text-xl font-black text-slate-900 tracking-tight">{section.title}</h4>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 bg-slate-50/50 p-10 rounded-[2.5rem] border border-slate-100">
-                          {section.fields.map((field) => (
-                            <div key={field.id} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
-                              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">{field.label}</div>
-                              <div className="text-slate-700 font-bold bg-white px-6 py-4 rounded-2xl border border-slate-100 shadow-sm">
-                                {field.value || <span className="text-slate-300 italic">No registrado</span>}
-                              </div>
+                  <div className="lg:col-span-2">
+                    {/* Tabs */}
+                    <div className="flex gap-1 p-1 bg-slate-100 rounded-2xl mb-8">
+                      <button
+                        onClick={() => setActiveTab('details')}
+                        className={`flex-1 py-3 px-5 rounded-xl font-black text-sm transition-all ${
+                          activeTab === 'details'
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        Detalles del Proyecto
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('updates')}
+                        className={`flex-1 py-3 px-5 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 ${
+                          activeTab === 'updates'
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        Historial de Avances
+                        {(selectedProject.updates || []).length > 0 && (
+                          <span className="bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                            {(selectedProject.updates || []).length}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Tab: Detalles */}
+                    {activeTab === 'details' && (
+                      <div className="space-y-12">
+                        {selectedProject.sections.map((section) => (
+                          <div key={section.id} className="space-y-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
+                              <h4 className="text-xl font-black text-slate-900 tracking-tight">{section.title}</h4>
                             </div>
-                          ))}
-                        </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 bg-slate-50/50 p-10 rounded-[2.5rem] border border-slate-100">
+                              {section.fields.map((field) => (
+                                <div key={field.id} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
+                                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">{field.label}</div>
+                                  <div className="text-slate-700 font-bold bg-white px-6 py-4 rounded-2xl border border-slate-100 shadow-sm">
+                                    {field.value || <span className="text-slate-300 italic">No registrado</span>}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
+
+                    {/* Tab: Historial de Avances */}
+                    {activeTab === 'updates' && (
+                      <div className="space-y-8">
+                        {/* New Progress Form */}
+                        <div className="bg-slate-50 rounded-[2rem] border border-slate-200 p-8 space-y-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
+                            <h5 className="font-black text-slate-900">Registrar Nuevo Avance</h5>
+                          </div>
+                          <textarea
+                            rows={3}
+                            placeholder="Describe el avance, resultado o novedad del proyecto..."
+                            className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-50 focus:border-emerald-400 transition-all font-medium text-slate-700 resize-none text-sm"
+                            value={progressText}
+                            onChange={(e) => setProgressText(e.target.value)}
+                          />
+
+                          {/* Progress Files */}
+                          <div className="space-y-2">
+                            <input
+                              ref={progressFileInputRef}
+                              type="file"
+                              multiple
+                              className="hidden"
+                              onChange={handleProgressFileUpload}
+                            />
+                            {progressFiles.length > 0 && (
+                              <div className="space-y-2">
+                                {progressFiles.map((file, idx) => (
+                                  <div key={idx} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100">
+                                    <div className="flex items-center gap-2">
+                                      <FileText size={14} className="text-blue-400" />
+                                      <span className="text-xs font-bold text-slate-700 truncate max-w-[200px]">{file.name}</span>
+                                    </div>
+                                    <button
+                                      onClick={() => setProgressFiles(prev => prev.filter((_, i) => i !== idx))}
+                                      className="p-1.5 text-slate-300 hover:text-rose-500 rounded-lg transition-all"
+                                    >
+                                      <X size={12} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <button
+                              onClick={() => progressFileInputRef.current?.click()}
+                              disabled={uploadingProgressFile}
+                              className="flex items-center gap-2 text-slate-500 hover:text-blue-600 font-bold text-xs px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 transition-all"
+                            >
+                              <Upload size={14} />
+                              {uploadingProgressFile ? 'Subiendo...' : 'Adjuntar evidencias'}
+                            </button>
+                          </div>
+
+                          <button
+                            onClick={handleSaveProjectProgress}
+                            disabled={!progressText.trim()}
+                            className="flex items-center gap-2 bg-emerald-600 text-white px-8 py-3 rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <Save size={16} />
+                            Registrar Avance
+                          </button>
+                        </div>
+
+                        {/* Timeline */}
+                        {(selectedProject.updates || []).length === 0 ? (
+                          <div className="text-center py-12 text-slate-400">
+                            <Clock size={36} className="mx-auto mb-3 opacity-20" />
+                            <p className="font-bold">Sin avances registrados</p>
+                            <p className="text-sm">Registra el primer avance del proyecto arriba</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-6">
+                            {[...(selectedProject.updates || [])]
+                              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                              .map((update) => (
+                              <div key={update.id} className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
+                                <div className="p-6">
+                                  {/* Update Header */}
+                                  <div className="flex items-start justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-black text-sm">
+                                        {(update.user || 'U').charAt(0).toUpperCase()}
+                                      </div>
+                                      <div>
+                                        <div className="font-black text-slate-900 text-sm">{update.user}</div>
+                                        <div className="text-[10px] text-slate-400 font-medium">
+                                          {format(new Date(update.date), "dd 'de' MMMM 'de' yyyy, HH:mm")}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-emerald-100">
+                                      Avance
+                                    </span>
+                                  </div>
+
+                                  {/* Update Text */}
+                                  <p className="text-slate-700 text-sm font-medium leading-relaxed mb-4 bg-slate-50 p-4 rounded-2xl">
+                                    {update.text}
+                                  </p>
+
+                                  {/* Update Files */}
+                                  {(update.files || []).length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mb-4">
+                                      {update.files.map((file, fIdx) => (
+                                        <a
+                                          key={fIdx}
+                                          href={file.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-100 rounded-xl text-blue-600 font-bold text-xs hover:bg-blue-100 transition-all"
+                                        >
+                                          <Download size={12} />
+                                          {file.name}
+                                        </a>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Comments */}
+                                  {(update.comments || []).length > 0 && (
+                                    <div className="border-t border-slate-100 pt-4 space-y-3 mb-4">
+                                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Comentarios</div>
+                                      {update.comments!.map((comment) => (
+                                        <div key={comment.id} className="flex gap-3">
+                                          <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-black text-xs flex-shrink-0">
+                                            {(comment.user || 'U').charAt(0).toUpperCase()}
+                                          </div>
+                                          <div className="flex-1 bg-slate-50 rounded-2xl p-3">
+                                            <div className="flex items-center gap-2 mb-1">
+                                              <span className="text-xs font-black text-slate-700">{comment.user}</span>
+                                              <span className="text-[10px] text-slate-400">{format(new Date(comment.date), 'dd/MM/yyyy HH:mm')}</span>
+                                            </div>
+                                            <p className="text-xs text-slate-600 font-medium">{comment.text}</p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Add Comment */}
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      placeholder="Escribe un comentario..."
+                                      value={activeUpdateComments[update.id] || ''}
+                                      onChange={(e) => setActiveUpdateComments(prev => ({ ...prev, [update.id]: e.target.value }))}
+                                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddProjectUpdateComment(update.id); }}
+                                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+                                    />
+                                    <button
+                                      onClick={() => handleAddProjectUpdateComment(update.id)}
+                                      disabled={!activeUpdateComments[update.id]?.trim()}
+                                      className="px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-xs hover:bg-blue-700 transition-all disabled:opacity-40"
+                                    >
+                                      Enviar
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-8">
@@ -1139,9 +1615,19 @@ export default function ProjectsModule() {
                     <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm">
                       <div className="flex items-center justify-between mb-6">
                         <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">Adjuntos</h4>
-                        <button className="text-blue-600 hover:bg-blue-50 p-2 rounded-xl transition-all">
+                        <button
+                          onClick={() => detailFileInputRef.current?.click()}
+                          className="text-blue-600 hover:bg-blue-50 p-2 rounded-xl transition-all"
+                          title="Subir archivo"
+                        >
                           <Upload size={18} />
                         </button>
+                        <input
+                          ref={detailFileInputRef}
+                          type="file"
+                          className="hidden"
+                          onChange={handleDetailFileUpload}
+                        />
                       </div>
                       <div className="space-y-3">
                         {selectedProject.attachments.length > 0 ? (
@@ -1151,15 +1637,24 @@ export default function ProjectsModule() {
                                 <FileText size={18} className="text-slate-400" />
                                 <span className="text-sm font-bold text-slate-700 truncate max-w-[120px]">{file.name}</span>
                               </div>
-                              <button className="p-2 text-slate-400 hover:text-blue-600 transition-all">
+                              <a
+                                href={file.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 text-slate-400 hover:text-blue-600 transition-all"
+                                title="Descargar"
+                              >
                                 <Download size={16} />
-                              </button>
+                              </a>
                             </div>
                           ))
                         ) : (
-                          <div className="text-center py-8 text-slate-400">
-                            <Info size={24} className="mx-auto mb-2 opacity-20" />
-                            <p className="text-xs font-medium">Sin archivos adjuntos</p>
+                          <div
+                            className="text-center py-8 text-slate-400 cursor-pointer hover:bg-slate-50 rounded-2xl transition-all"
+                            onClick={() => detailFileInputRef.current?.click()}
+                          >
+                            <Upload size={24} className="mx-auto mb-2 opacity-20" />
+                            <p className="text-xs font-medium">Haz clic para adjuntar</p>
                           </div>
                         )}
                       </div>

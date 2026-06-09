@@ -640,6 +640,20 @@ export interface RDProjectTemplate {
   }[];
 }
 
+export interface ProjectUpdate {
+  id: string;
+  user: string;
+  date: string;
+  text: string;
+  files: FileInfo[];
+  comments?: {
+    id: string;
+    user: string;
+    text: string;
+    date: string;
+  }[];
+}
+
 export interface RDProject {
   id: string;
   templateId: string;
@@ -656,6 +670,7 @@ export interface RDProject {
     fields: RDProjectField[];
   }[];
   attachments: FileInfo[];
+  updates?: ProjectUpdate[];
   createdAt: string;
   updatedAt: string;
 }

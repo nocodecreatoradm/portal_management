@@ -1144,6 +1144,11 @@ async function startServer() {
             ALTER TABLE ID_PORTAL.innovation_proposals ADD updates nvarchar(max);
         END
 
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.rd_custom_projects') AND name = 'updates')
+        BEGIN
+            ALTER TABLE ID_PORTAL.rd_custom_projects ADD updates nvarchar(max);
+        END
+
         DECLARE @ConstraintName NVARCHAR(255);
         SELECT TOP 1 @ConstraintName = dc.name
         FROM sys.key_constraints dc

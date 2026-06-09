@@ -557,6 +557,7 @@ export const mapDBToRDProject = (dbProject: any): RDProject => ({
   endDate: dbProject.end_date,
   sections: dbProject.sections,
   attachments: dbProject.attachments || [],
+  updates: dbProject.updates || [],
   createdAt: dbProject.created_at,
   updatedAt: dbProject.updated_at
 });
@@ -577,6 +578,7 @@ export const mapRDProjectToDB = (project: Partial<RDProject>) => {
   if (project.endDate !== undefined) dbProject.end_date = project.endDate;
   if (project.sections !== undefined) dbProject.sections = project.sections;
   if (project.attachments !== undefined) dbProject.attachments = project.attachments;
+  if (project.updates !== undefined) dbProject.updates = project.updates;
   return dbProject;
 };
 
