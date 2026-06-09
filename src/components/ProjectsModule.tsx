@@ -8,6 +8,7 @@ import {
   Activity, Database, Cpu, Globe, HardDrive, Layers, Zap, Shield
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
@@ -16,6 +17,18 @@ import { exportToExcel } from '../lib/exportUtils';
 import { SupabaseService } from '../lib/SupabaseService';
 import { initialRDProjectTemplates, initialRDProjects } from '../data/mockData';
 import HeaderFilterPopover from './HeaderFilterPopover';
+
+const safeFormatDate = (dateVal: any, formatStr: string, options?: any): string => {
+  if (!dateVal) return '-';
+  try {
+    const d = dateVal instanceof Date ? dateVal : new Date(dateVal);
+    if (isNaN(d.getTime())) return '-';
+    return format(d, formatStr, options ? { locale: es, ...options } : { locale: es });
+  } catch (e) {
+    console.error('Error formatting date:', dateVal, e);
+    return '-';
+  }
+};
 
 export default function ProjectsModule() {
   const { user, profile } = useAuth();
@@ -614,7 +627,7 @@ export default function ProjectsModule() {
       'Responsable': p.responsible,
       'Fecha Inicio': p.startDate,
       'Fecha Fin': p.endDate || 'N/A',
-      'Creado': format(new Date(p.createdAt), 'dd/MM/yyyy')
+      'Creado': safeFormatDate(p.createdAt, 'dd/MM/yyyy')
     }));
     exportToExcel(data, `Proyectos_ID_${format(new Date(), 'yyyyMMdd')}`);
   };
@@ -800,7 +813,7 @@ export default function ProjectsModule() {
                       <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Inicio</span>
                       <span className="text-slate-700 font-bold flex items-center gap-2">
                         <Calendar size={14} className="text-slate-400" />
-                        {format(new Date(project.startDate), 'dd MMM, yyyy')}
+                        {safeFormatDate(project.startDate, 'dd MMM, yyyy')}
                       </span>
                     </div>
                   </div>
@@ -956,7 +969,7 @@ export default function ProjectsModule() {
                     </div>
                   </td>
                   <td className="px-8 py-5">
-                    <div className="text-sm font-bold text-slate-600">{format(new Date(project.startDate), 'dd/MM/yyyy')}</div>
+                    <div className="text-sm font-bold text-slate-600">{safeFormatDate(project.startDate, 'dd/MM/yyyy')}</div>
                   </td>
                   <td className="px-8 py-5 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1509,7 +1522,7 @@ export default function ProjectsModule() {
                                       <div>
                                         <div className="font-black text-slate-900 text-sm">{update.user}</div>
                                         <div className="text-[10px] text-slate-400 font-medium">
-                                          {format(new Date(update.date), "dd 'de' MMMM 'de' yyyy, HH:mm")}
+                                          {safeFormatDate(update.date, "dd 'de' MMMM 'de' yyyy, HH:mm")}
                                         </div>
                                       </div>
                                     </div>
@@ -1553,7 +1566,7 @@ export default function ProjectsModule() {
                                           <div className="flex-1 bg-slate-50 rounded-2xl p-3">
                                             <div className="flex items-center gap-2 mb-1">
                                               <span className="text-xs font-black text-slate-700">{comment.user}</span>
-                                              <span className="text-[10px] text-slate-400">{format(new Date(comment.date), 'dd/MM/yyyy HH:mm')}</span>
+                                              <span className="text-[10px] text-slate-400">{safeFormatDate(comment.date, 'dd/MM/yyyy HH:mm')}</span>
                                             </div>
                                             <p className="text-xs text-slate-600 font-medium">{comment.text}</p>
                                           </div>
@@ -1617,7 +1630,7 @@ export default function ProjectsModule() {
                           </div>
                           <div>
                             <div className="text-[10px] font-black uppercase tracking-widest opacity-40">Fecha de Inicio</div>
-                            <div className="font-bold">{format(new Date(selectedProject.startDate), 'dd/MM/yyyy')}</div>
+                            <div className="font-bold">{safeFormatDate(selectedProject.startDate, 'dd/MM/yyyy')}</div>
                           </div>
                         </div>
                       </div>
