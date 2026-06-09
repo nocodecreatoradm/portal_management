@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { Calendar, Download, ArrowLeft, Filter, CheckCircle2, XCircle, Clock, Target, Users, BarChart3 } from 'lucide-react';
 import { ProductRecord, ModuleId } from '../types';
-import { format, parseISO, differenceInDays, isWithinInterval, startOfMonth, endOfMonth, subMonths, isAfter } from 'date-fns';
+import { format, parseISO, differenceInDays, isWithinInterval, startOfMonth, endOfMonth, subMonths, isAfter, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import ModuleActions from './ModuleActions';
 import { exportToExcel, generateReportPDF } from '../lib/exportUtils';
@@ -28,8 +28,8 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
   });
 
   const stats = useMemo(() => {
-    const startDate = parseISO(dateRange.start);
-    const endDate = parseISO(dateRange.end);
+    const startDate = startOfDay(parseISO(dateRange.start));
+    const endDate = endOfDay(parseISO(dateRange.end));
 
     let totalApprovals = 0;
     let totalRejections = 0;
@@ -131,7 +131,7 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                             activeModule === 'technical_datasheet' ? 'technicalSheets' : 'commercialSheets';
         const docs = record[docArrayKey as keyof ProductRecord] as any[] || [];
         const docDates = docs.map(d => parseISO(d.uploadDate)).sort((a, b) => a.getTime() - b.getTime());
-        const actualCompletionDate = docDates.length > 0 ? docDates[0] : null;
+        const actualCompletionDate = docDates.length > 0 ? docDates[docDates.length - 1] : null;
 
         const startStr = assignment.plannedStartDate || assignment.assignmentDate || record.createdAt;
 
@@ -175,7 +175,8 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
       if (docs.length === 0) return;
       
       const docDates = docs.map(d => parseISO(d.uploadDate)).sort((a, b) => a.getTime() - b.getTime());
-      const end = docDates[0];
+      const end = docDates.length > 0 ? docDates[docDates.length - 1] : null;
+      if (!end) return;
       
       const assignmentKey = activeModule === 'artwork_followup' ? 'artworkAssignment' : 
                             activeModule === 'technical_datasheet' ? 'technicalAssignment' : 'commercialAssignment';
@@ -246,7 +247,7 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
       const assignment = record[assignmentKey as keyof ProductRecord] as any;
 
       const docDates = docs.map(d => parseISO(d.uploadDate)).sort((a, b) => a.getTime() - b.getTime());
-      const actualCompletionDate = docDates.length > 0 ? docs[0].uploadDate.split('T')[0] : 'N/A';
+      const actualCompletionDate = docDates.length > 0 ? format(docDates[docDates.length - 1], 'yyyy-MM-dd') : 'N/A';
 
       return {
         'Producto': record.descripcionSAP,
