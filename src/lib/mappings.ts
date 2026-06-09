@@ -104,6 +104,17 @@ export const mapEEToDB = (record: Partial<EnergyEfficiencyRecord>) => {
   return dbRecord;
 };
 
+const formatDateOnly = (val: any): string => {
+  if (!val) return '';
+  if (val instanceof Date) {
+    return val.toISOString().split('T')[0];
+  }
+  if (typeof val === 'string') {
+    return val.split('T')[0];
+  }
+  return String(val);
+};
+
 export const mapDBToEE = (dbRecord: any): EnergyEfficiencyRecord => ({
   id: dbRecord.id,
   codigoMT: dbRecord.mt_code || '',
@@ -112,8 +123,8 @@ export const mapDBToEE = (dbRecord: any): EnergyEfficiencyRecord => ({
   porcentajeEE: dbRecord.ee_percentage || '',
   ocp: dbRecord.ocp || '',
   proveedor: dbRecord.supplier?.legal_name || dbRecord.supplier_id || '',
-  fechaEmision: dbRecord.emission_date || '',
-  fechaVigilancia: dbRecord.vigilance_date || '',
+  fechaEmision: formatDateOnly(dbRecord.emission_date),
+  fechaVigilancia: formatDateOnly(dbRecord.vigilance_date),
   tipoProducto: dbRecord.product_type || '',
   sampleId: dbRecord.sample_id || '',
   certificadoFile: dbRecord.certificate_file,
