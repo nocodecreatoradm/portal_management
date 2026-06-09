@@ -274,7 +274,7 @@ export const mapNTPToDB = (reg: Partial<NTPRegulation>) => ({
   title: reg.title,
   category: reg.category,
   upload_date: reg.uploadDate,
-  file_info: reg.file,
+  file: reg.file,
   description: reg.description
 });
 
@@ -284,7 +284,7 @@ export const mapDBToNTP = (dbReg: any): NTPRegulation => ({
   title: dbReg.title,
   category: dbReg.category,
   uploadDate: dbReg.upload_date,
-  file: dbReg.file_info,
+  file: dbReg.file,
   description: dbReg.description
 });
 

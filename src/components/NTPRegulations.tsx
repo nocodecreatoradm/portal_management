@@ -80,7 +80,7 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
       'Título': r.title,
       'Categoría': r.category,
       'Fecha de Carga': format(parseISO(r.uploadDate), 'dd/MM/yyyy'),
-      'Archivo': r.file.name
+      'Archivo': r.file ? (typeof r.file === 'string' ? r.file : r.file.name || 'documento.pdf') : 'Sin archivo'
     }));
 
     exportToExcel(exportData, `Normativas_NTP_${format(new Date(), 'yyyyMMdd')}`);
@@ -118,7 +118,18 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
     
     try {
       setLoading(true);
-      let fileInfo = editingReg?.file || { name: 'documento.pdf', url: '#', type: 'application/pdf' };
+      let fileInfo = editingReg?.file;
+      if (fileInfo && typeof fileInfo === 'string') {
+        let name = 'documento.pdf';
+        try {
+          const parts = fileInfo.split('/');
+          name = parts[parts.length - 1] || 'documento.pdf';
+        } catch {}
+        fileInfo = { name, url: fileInfo, type: 'application/pdf' };
+      }
+      if (!fileInfo) {
+        fileInfo = { name: 'documento.pdf', url: '#', type: 'application/pdf' };
+      }
 
       if (selectedFile) {
         const toastId = toast.loading('Subiendo archivo...');
@@ -181,32 +192,60 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
 
   const handleDownload = (reg: NTPRegulation) => {
     const link = document.createElement('a');
-    if (reg.file?.url && reg.file.url !== '#') {
-      link.href = reg.file.url;
-    } else {
-      link.href = 'data:application/pdf;base64,JVBERi0xLjcKCjEgMCBvYmogICUgZW50cnkgcG9pbnQKPDwKICAvVHlwZSAvQ2F0YWxvZwogIC9QYWdlcyAyIDAgUgo+PgplbmRvYmoKCjIgMCBvYmoKPDwKICAvVHlwZSAvUGFnZXMKICAvQ291bnQgMQogIC9LaWRzIFszIDAgUl0KPj4KZW5kb2JqCgozIDAgb2JqCjw8CiAgL1R5cGUgL1BhZ2UKICAvUGFyZW50IDIgMCBSCiAgL01lZGlhQm94IFswIDAgNjEyIDc5Ml0KICAvQ29udGVudHMgNCAwIFIKPj4KZW5kb2JqCgo0IDAgb2JqCjw8CiAgL0xlbmd0aCA0NAo+PgpzdHJlYW0KQlQKICAvRjEgMjQgVGYKICA3MiA3MjAgVGQKICAoRG9jdW1lbnRvIE5UUCkgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagoKeHJlZgowIDUKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwNjggMDAwMDAgbiAKMDAwMDAwMDEyNSAwMDAwMCBuIAowMDAwMDAwMjExIDAwMDAwIG4gCnRyYWlsZXIKPDwKICAvU2l6ZSA1CiAgL1Jvb3QgMSAwIFIKPj4Kc3RhcnR4cmVmCjI3NQolJUVPRgo=';
+    let fileUrl = '';
+    let fileName = 'documento.pdf';
+
+    if (reg.file) {
+      if (typeof reg.file === 'string') {
+        fileUrl = reg.file;
+        try {
+          const parts = reg.file.split('/');
+          fileName = parts[parts.length - 1] || 'documento.pdf';
+        } catch {
+          fileName = 'documento.pdf';
+        }
+      } else if (typeof reg.file === 'object') {
+        fileUrl = reg.file.url || '';
+        fileName = reg.file.name || 'documento.pdf';
+      }
     }
-    link.download = reg.file?.name || 'documento.pdf';
+
+    if (fileUrl && fileUrl !== '#') {
+      link.href = fileUrl;
+    } else {
+      link.href = 'data:application/pdf;base64,JVBERi0xLjcKCjEgMCBvYmogICUgZW50cnkgcG9pbnQKPDwKICAvVHlwZSAvQ2F0YWxvZwogIC9QYWdlcyAyIDAgUgo+PgplbmRvYmoKCjIgMCBvYmoKPDwKICAvVHlwZSAvUGFnZXMKICAvQ291bnQgMQogIC9LaWRzIFszIDAgUl0KPj4KZW5kb2JqCgozIDAgb2JqCjw8CiAgL1R5cGUgL1BhZ2UKICAvUGFyZW50IDIgMCBSCiAgL01lZGlhQm94IFswIDAgNjEyIDc5Ml0KICAvQ29udGVudHMgNCAwIFIKPj4KZW5kb2JqCgozIDAgb2JqCjw8CiAgL0xlbmd0aCA0NAo+PgpzdHJlYW0KQlQKICAvRjEgMjQgVGYKICA3MiA3MjAgVGQKICAoRG9jdW1lbnRvIE5UUCkgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagoKeHJlZgowIDUKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwNjggMDAwMDAgbiAKMDAwMDAwMDEyNSAwMDAwMCBuIAowMDAwMDAwMjExIDAwMDAwIG4gCnRyYWlsZXIKPDwKICAvU2l6ZSA1CiAgL1Jvb3QgMSAwIFIKPj4Kc3RhcnR4cmVmCjI3NQolJUVPRgo=';
+    }
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const handleOpen = (reg: NTPRegulation) => {
-    if (reg.file?.url && reg.file.url !== '#') {
+    let fileUrl = '';
+
+    if (reg.file) {
+      if (typeof reg.file === 'string') {
+        fileUrl = reg.file;
+      } else if (typeof reg.file === 'object') {
+        fileUrl = reg.file.url || '';
+      }
+    }
+
+    if (fileUrl && fileUrl !== '#') {
       // Support for old records with data URLs and new records with public URLs
-      if (reg.file.url.startsWith('data:')) {
+      if (fileUrl.startsWith('data:')) {
         const newWindow = window.open();
         if (newWindow) {
           newWindow.document.write(
-            `<html><body style="margin:0"><iframe src="${reg.file.url}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe></body></html>`
+            `<html><body style="margin:0"><iframe src="${fileUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe></body></html>`
           );
           newWindow.document.close();
         } else {
           handleDownload(reg);
         }
       } else {
-        window.open(reg.file.url, '_blank');
+        window.open(fileUrl, '_blank');
       }
     } else {
       window.open('https://salalecturavirtual.inacal.gob.pe', '_blank');
