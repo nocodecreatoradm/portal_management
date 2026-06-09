@@ -18,7 +18,7 @@ import { initialRDProjectTemplates, initialRDProjects } from '../data/mockData';
 import HeaderFilterPopover from './HeaderFilterPopover';
 
 export default function ProjectsModule() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [projects, setProjects] = useState<RDProject[]>([]);
   const [templates, setTemplates] = useState<RDProjectTemplate[]>(initialRDProjectTemplates);
   const [loading, setLoading] = useState(true);
@@ -81,6 +81,7 @@ export default function ProjectsModule() {
   const [progressFiles, setProgressFiles] = useState<FileInfo[]>([]);
   const [uploadingProgressFile, setUploadingProgressFile] = useState(false);
   const [activeUpdateComments, setActiveUpdateComments] = useState<Record<string, string>>({});
+  const [profiles, setProfiles] = useState<any[]>([]);
 
   const projectFileInputRef = React.useRef<HTMLInputElement>(null);
   const detailFileInputRef = React.useRef<HTMLInputElement>(null);
@@ -106,6 +107,13 @@ export default function ProjectsModule() {
         templatesData = await SupabaseService.getRDProjectTemplates();
       } catch (err) {
         console.error('Error fetching RD templates from Supabase:', err);
+      }
+
+      try {
+        const profilesData = await SupabaseService.getProfiles();
+        setProfiles(profilesData);
+      } catch (err) {
+        console.error('Error fetching user profiles:', err);
       }
 
       const templateIdMap: Record<string, string> = {};
@@ -145,7 +153,7 @@ export default function ProjectsModule() {
         });
       }
 
-      const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+      const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
       // Migrate projects if empty
       const projectsMigrated = localStorage.getItem('rd_projects_migrated');
@@ -252,7 +260,7 @@ export default function ProjectsModule() {
       description: '',
       status: 'Borrador',
       priority: 'Media',
-      responsible: user?.name || '',
+      responsible: profile?.full_name || '',
       startDate: format(new Date(), 'yyyy-MM-dd'),
       sections: []
     });
@@ -348,7 +356,7 @@ export default function ProjectsModule() {
       };
       const updatedAttachments = [...(selectedProject.attachments || []), newAttachment];
       
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedProject.id);
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedProject.id);
       let updatedProj;
       if (isUUID) {
         updatedProj = await SupabaseService.updateRDProject(selectedProject.id, { attachments: updatedAttachments });
@@ -410,7 +418,7 @@ export default function ProjectsModule() {
     try {
       const newUpdate = {
         id: crypto.randomUUID(),
-        user: user?.name || user?.email || 'Usuario',
+        user: profile?.full_name || user?.email || 'Usuario',
         date: new Date().toISOString(),
         text: progressText,
         files: progressFiles,
@@ -419,7 +427,7 @@ export default function ProjectsModule() {
 
       const updatedUpdates = [...(selectedProject.updates || []), newUpdate];
       
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedProject.id);
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedProject.id);
       let updatedProj;
       if (isUUID) {
         updatedProj = await SupabaseService.updateRDProject(selectedProject.id, { updates: updatedUpdates });
@@ -453,7 +461,7 @@ export default function ProjectsModule() {
               ...(upd.comments || []),
               {
                 id: crypto.randomUUID(),
-                user: user?.name || user?.email || 'Usuario',
+                user: profile?.full_name || user?.email || 'Usuario',
                 text: commentText.trim(),
                 date: new Date().toISOString()
               }
@@ -463,7 +471,7 @@ export default function ProjectsModule() {
         return upd;
       });
 
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedProject.id);
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedProject.id);
       let updatedProj;
       if (isUUID) {
         updatedProj = await SupabaseService.updateRDProject(selectedProject.id, { updates: updatedUpdates });
@@ -515,7 +523,7 @@ export default function ProjectsModule() {
 
     try {
       if (selectedProject) {
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedProject.id);
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedProject.id);
         let result;
         if (isUUID) {
           result = await SupabaseService.updateRDProject(selectedProject.id, projectData);
@@ -548,9 +556,9 @@ export default function ProjectsModule() {
     }
   };
 
-  const handleUpdateTemplate = async (template: RDProjectTemplate) => {
+  const handleSaveTemplate = async (template: RDProjectTemplate) => {
     try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(template.id);
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(template.id);
       let result;
       if (isUUID) {
         result = await SupabaseService.updateRDProjectTemplate(template.id, template);
@@ -1063,13 +1071,16 @@ export default function ProjectsModule() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Responsable *</label>
-                        <input 
-                          type="text"
-                          className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 focus:border-blue-500 transition-all font-bold text-slate-700"
+                        <select 
+                          className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 focus:border-blue-500 transition-all font-bold text-slate-700 appearance-none animate-in fade-in"
                           value={formData.responsible}
                           onChange={(e) => setFormData({...formData, responsible: e.target.value})}
-                          placeholder="Nombre del encargado"
-                        />
+                        >
+                          <option value="">Seleccione un responsable...</option>
+                          {profiles.map(p => (
+                            <option key={p.id} value={p.full_name}>{p.full_name}</option>
+                          ))}
+                        </select>
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Estado</label>

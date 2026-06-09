@@ -581,7 +581,11 @@ export const SupabaseService = {
     const profiles = await getCachedProfiles();
     if (project.responsible) {
       const u = profiles.find(x => x.full_name === project.responsible);
-      if (u) project.responsible = u.id;
+      if (u) {
+        project.responsible = u.id;
+      } else if (!isUUID(project.responsible)) {
+        project.responsible = undefined;
+      }
     }
     const dbProject = mapProjectToDB(project);
     const { data, error } = await supabase
@@ -602,7 +606,11 @@ export const SupabaseService = {
     const profiles = await getCachedProfiles();
     if (updates.responsible) {
       const u = profiles.find(x => x.full_name === updates.responsible);
-      if (u) updates.responsible = u.id;
+      if (u) {
+        updates.responsible = u.id;
+      } else if (!isUUID(updates.responsible)) {
+        updates.responsible = undefined;
+      }
     }
     const dbUpdates = mapProjectToDB(updates);
     const { data, error } = await supabase
@@ -995,7 +1003,11 @@ export const SupabaseService = {
     const profiles = await getCachedProfiles();
     if (project.responsible) {
       const u = profiles.find(x => x.full_name === project.responsible);
-      if (u) project.responsible = u.id;
+      if (u) {
+        project.responsible = u.id;
+      } else if (!isUUID(project.responsible)) {
+        project.responsible = undefined;
+      }
     }
     const dbProject = mapRDProjectToDB(project);
     const { data, error } = await supabase
@@ -1016,7 +1028,11 @@ export const SupabaseService = {
     const profiles = await getCachedProfiles();
     if (updates.responsible) {
       const u = profiles.find(x => x.full_name === updates.responsible);
-      if (u) updates.responsible = u.id;
+      if (u) {
+        updates.responsible = u.id;
+      } else if (!isUUID(updates.responsible)) {
+        updates.responsible = undefined;
+      }
     }
     const dbUpdates = mapRDProjectToDB(updates);
     const { data, error } = await supabase
