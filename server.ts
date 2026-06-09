@@ -1217,6 +1217,98 @@ async function startServer() {
             );
         END
       `);
+
+      // ─── PERMISSIONS SEED MIGRATION ───────────────────────────────────────────
+      // Inserts all system permissions if they don't exist, then assigns them
+      // to every existing role. Admin-only permissions (users:view, master_data:view)
+      // are only assigned to roles with level >= 90 or named 'admin'/'Administrador'.
+      // This runs idempotently on every server start.
+      try {
+        const dbPool2 = await getDBPool();
+
+        // 1. Define all permissions the system uses
+        const allPermissions: { name: string; description: string; module: string; adminOnly: boolean }[] = [
+          // Gestión Operativa
+          { name: 'calendar:view',           description: 'Ver Calendario',                 module: 'Gestión Operativa',      adminOnly: false },
+          { name: 'work_plan:view',           description: 'Ver Plan de Trabajo',            module: 'Gestión Operativa',      adminOnly: false },
+          { name: 'artwork:view',             description: 'Ver Seguimiento de Artes',       module: 'Gestión Operativa',      adminOnly: false },
+          { name: 'artwork:edit',             description: 'Editar / Crear Artes',           module: 'Gestión Operativa',      adminOnly: false },
+          { name: 'technical_sheets:view',    description: 'Ver Fichas Técnicas y Comerciales', module: 'Gestión Operativa',  adminOnly: false },
+          { name: 'technical_sheets:edit',    description: 'Editar Fichas Técnicas y Comerciales', module: 'Gestión Operativa', adminOnly: false },
+          { name: 'quality_claims:view',      description: 'Ver Reclamos de Calidad',        module: 'Gestión Operativa',      adminOnly: false },
+          { name: 'quality_claims:edit',      description: 'Registrar / Resolver Reclamos',  module: 'Gestión Operativa',      adminOnly: false },
+          // Archivo Histórico
+          { name: 'approved_artworks:view',   description: 'Ver Artes Aprobadas',            module: 'Archivo Histórico',      adminOnly: false },
+          { name: 'approved_technical:view',  description: 'Ver Fichas Técnicas Aprobadas',  module: 'Archivo Histórico',      adminOnly: false },
+          { name: 'approved_commercial:view', description: 'Ver Fichas Comerciales Aprobadas', module: 'Archivo Histórico',   adminOnly: false },
+          // Desarrollo I+D
+          { name: 'projects:view',            description: 'Ver Proyectos I+D',              module: 'Desarrollo I+D',          adminOnly: false },
+          { name: 'projects:edit',            description: 'Crear / Editar Proyectos I+D',   module: 'Desarrollo I+D',          adminOnly: false },
+          { name: 'projects:progress',        description: 'Registrar Avances en Proyectos', module: 'Desarrollo I+D',          adminOnly: false },
+          { name: 'proposals:view',           description: 'Ver Propuestas de Innovación',   module: 'Desarrollo I+D',          adminOnly: false },
+          { name: 'proposals:edit',           description: 'Crear / Editar Propuestas',      module: 'Desarrollo I+D',          adminOnly: false },
+          { name: 'inventory:view',           description: 'Ver Inventario I+D',             module: 'Desarrollo I+D',          adminOnly: false },
+          { name: 'inventory:edit',           description: 'Editar Inventario I+D',          module: 'Desarrollo I+D',          adminOnly: false },
+          { name: 'suppliers:view',           description: 'Ver Maestro de Proveedores',     module: 'Desarrollo I+D',          adminOnly: false },
+          { name: 'suppliers:edit',           description: 'Editar Proveedores',             module: 'Desarrollo I+D',          adminOnly: false },
+          // Ingeniería & Productos
+          { name: 'samples:view',             description: 'Ver Muestras',                   module: 'Ingeniería & Productos',  adminOnly: false },
+          { name: 'samples:edit',             description: 'Registrar / Editar Muestras',    module: 'Ingeniería & Productos',  adminOnly: false },
+          { name: 'catalog:view',             description: 'Ver Catálogo de Productos',      module: 'Ingeniería & Productos',  adminOnly: false },
+          { name: 'catalog:edit',             description: 'Editar Catálogo de Productos',   module: 'Ingeniería & Productos',  adminOnly: false },
+          { name: 'efficiency:view',          description: 'Ver Eficiencia Energética',      module: 'Ingeniería & Productos',  adminOnly: false },
+          { name: 'calculations:view',        description: 'Ver Panel de Cálculos',          module: 'Ingeniería & Productos',  adminOnly: false },
+          // Recursos & Guías
+          { name: 'brandbook:view',           description: 'Ver Brandbook',                  module: 'Recursos & Guías',        adminOnly: false },
+          { name: 'regulations:view',         description: 'Ver Normas NTP',                 module: 'Recursos & Guías',        adminOnly: false },
+          { name: 'fairs:view',               description: 'Ver Ferias Internacionales',     module: 'Recursos & Guías',        adminOnly: false },
+          { name: 'apps:view',                description: 'Ver Aplicaciones',               module: 'Recursos & Guías',        adminOnly: false },
+          { name: 'records:view',             description: 'Ver Registros Base',             module: 'Recursos & Guías',        adminOnly: false },
+          // Configuración (admin only)
+          { name: 'users:view',               description: 'Gestionar Usuarios y Permisos',  module: 'Configuración',           adminOnly: true  },
+          { name: 'master_data:view',         description: 'Ver Maestro de Datos',           module: 'Configuración',           adminOnly: true  },
+        ];
+
+        // 2. Upsert permissions (insert if not exists)
+        for (const perm of allPermissions) {
+          await dbPool2.request()
+            .input('pname', sql.NVarChar, perm.name)
+            .input('pdesc', sql.NVarChar, perm.description)
+            .input('pmod',  sql.NVarChar, perm.module)
+            .query(\`
+              IF NOT EXISTS (SELECT 1 FROM ID_PORTAL.permissions WHERE name = @pname)
+                INSERT INTO ID_PORTAL.permissions (name, description, module) VALUES (@pname, @pdesc, @pmod);
+            \`);
+        }
+
+        // 3. Get all roles and all permissions
+        const rolesRes = await dbPool2.request().query('SELECT id, name, display_name, [level] FROM ID_PORTAL.roles');
+        const permsRes = await dbPool2.request().query('SELECT id, name FROM ID_PORTAL.permissions');
+        const roles: any[] = rolesRes.recordset;
+        const permsMap: Record<string, number> = {};
+        for (const p of permsRes.recordset) permsMap[p.name] = p.id;
+
+        // 4. For each role, ensure all applicable permissions are assigned
+        for (const role of roles) {
+          const isAdmin = role.name === 'admin' || role.display_name === 'Administrador' || (role.level || 0) >= 90;
+          for (const perm of allPermissions) {
+            if (perm.adminOnly && !isAdmin) continue; // skip admin-only for non-admins
+            const permId = permsMap[perm.name];
+            if (!permId) continue;
+            await dbPool2.request()
+              .input('rid', sql.UniqueIdentifier, role.id)
+              .input('pid', sql.Int, permId)
+              .query(\`
+                IF NOT EXISTS (SELECT 1 FROM ID_PORTAL.role_permissions WHERE role_id = @rid AND permission_id = @pid)
+                  INSERT INTO ID_PORTAL.role_permissions (role_id, permission_id) VALUES (@rid, @pid);
+              \`);
+          }
+        }
+        console.log("Permissions seed migration completed successfully");
+      } catch (permErr) {
+        console.error("Error running permissions seed migration:", permErr);
+      }
+      // ─── END PERMISSIONS SEED MIGRATION ──────────────────────────────────────
       console.log("Startup migrations completed successfully");
     } catch (migErr) {
       console.error("Error running startup database migrations:", migErr);
