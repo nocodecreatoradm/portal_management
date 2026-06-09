@@ -791,7 +791,13 @@ export default function App() {
               const newBrand = await SupabaseService.createBrand({ name: record.marca });
               resolved.marca = newBrand.id;
               setBrands(prev => [...prev, newBrand]);
-            } catch (err) { console.warn('Error creating brand:', err); }
+            } catch (err: any) {
+              // Duplicate: try to find the existing brand
+              const freshBrands = await SupabaseService.getBrands().catch(() => brands);
+              const existingBrand = (freshBrands as any[]).find((b: any) => b.name === record.marca);
+              if (existingBrand) { resolved.marca = existingBrand.id; setBrands(freshBrands as any); }
+              else console.warn('Error creating brand:', err);
+            }
           }
         }
         if (record.linea) {
@@ -802,7 +808,12 @@ export default function App() {
               const newLine = await SupabaseService.createProductLine({ name: record.linea });
               resolved.linea = newLine.id;
               setProductLines(prev => [...prev, newLine]);
-            } catch (err) { console.warn('Error creating line:', err); }
+            } catch (err: any) {
+              const freshLines = await SupabaseService.getProductLines().catch(() => productLines);
+              const existingLine = (freshLines as any[]).find((l: any) => l.name === record.linea);
+              if (existingLine) { resolved.linea = existingLine.id; setProductLines(freshLines as any); }
+              else console.warn('Error creating line:', err);
+            }
           }
         }
         if (record.proveedor) {
@@ -834,7 +845,22 @@ export default function App() {
               });
               resolved.proveedor = newSupplier.id;
               setSuppliers(prev => [...prev, newSupplier]);
-            } catch (err) { console.warn('Error creating supplier:', err); }
+            } catch (err: any) {
+              // If creation failed (e.g. duplicate), refresh suppliers and try to find it
+              console.warn('Error creating supplier, searching for existing one:', err);
+              try {
+                const allSuppliers = await SupabaseService.getSuppliers();
+                const existing = (allSuppliers as any[]).find((s: any) =>
+                  s.legalName === record.proveedor || s.commercialAlias === record.proveedor
+                );
+                if (existing) {
+                  resolved.proveedor = existing.id;
+                  setSuppliers(allSuppliers as any);
+                }
+              } catch (fetchErr) {
+                console.warn('Could not fetch suppliers after creation error:', fetchErr);
+              }
+            }
           }
         }
         return resolved;
