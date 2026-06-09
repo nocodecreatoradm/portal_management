@@ -615,7 +615,7 @@ export default function EnergyEfficiency({
               >
                 <option value="">Seleccionar línea</option>
                 {productLines.map(line => (
-                  <option key={line.id} value={line.id}>{line.name}</option>
+                  <option key={line.id} value={line.id}>{line.name.toUpperCase()}</option>
                 ))}
               </select>
             </div>
@@ -630,7 +630,7 @@ export default function EnergyEfficiency({
               >
                 <option value="">Seleccionar categoría</option>
                 {filteredCategories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  <option key={cat.id} value={cat.id}>{cat.name.toUpperCase()}</option>
                 ))}
               </select>
             </div>
