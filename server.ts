@@ -81,6 +81,8 @@ const EE_COLUMN_MAP: Record<string, string> = {
   emission_date: 'fecha_emision',
   vigilance_date: 'fecha_vigilancia',
   product_type: 'tipo_producto',
+  line_id: 'line_id',
+  category_id: 'category_id',
   certificate_file: 'certificado_file',
   certificate_history: 'certificado_history',
   label_file: 'etiqueta_file',
@@ -637,6 +639,8 @@ async function startServer() {
                    ee.porcentaje_ee AS ee_percentage, 
                    ee.ocp, 
                    ee.supplier_id, 
+                   ee.line_id,
+                   ee.category_id,
                    ee.fecha_emision AS emission_date, 
                    ee.fecha_vigilancia AS vigilance_date, 
                    ee.tipo_producto AS product_type, 
@@ -650,9 +654,13 @@ async function startServer() {
                    ee.gallery, 
                    ee.created_at, 
                    ee.updated_at,
-                   sup.legal_name AS supplier_legal_name
+                   sup.legal_name AS supplier_legal_name,
+                   l.name AS line_name,
+                   c.name AS category_name
             FROM ID_PORTAL.energy_efficiency_records ee
             LEFT JOIN ID_PORTAL.suppliers sup ON ee.supplier_id = sup.id
+            LEFT JOIN ID_PORTAL.product_lines l ON ee.line_id = l.id
+            LEFT JOIN ID_PORTAL.categories c ON ee.category_id = c.id
             ${whereString}
             ${orderString}
           `;
@@ -747,6 +755,8 @@ async function startServer() {
         } else if (table === 'energy_efficiency_records') {
           rows = rows.map(row => {
             row.supplier = row.supplier_legal_name ? { legal_name: row.supplier_legal_name } : null;
+            row.line = row.line_name ? { name: row.line_name } : null;
+            row.category = row.category_name ? { name: row.category_name } : null;
             return row;
           });
         }
@@ -993,8 +1003,28 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  app.listen(PORT, "0.0.0.0", async () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    
+    // RUN SCHEMA MIGRATIONS
+    console.log("Running startup schema migrations...");
+    try {
+      const dbPool = await getDBPool();
+      await dbPool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.energy_efficiency_records') AND name = 'line_id')
+        BEGIN
+            ALTER TABLE ID_PORTAL.energy_efficiency_records ADD line_id uniqueidentifier REFERENCES ID_PORTAL.product_lines(id);
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.energy_efficiency_records') AND name = 'category_id')
+        BEGIN
+            ALTER TABLE ID_PORTAL.energy_efficiency_records ADD category_id uniqueidentifier REFERENCES ID_PORTAL.categories(id);
+        END
+      `);
+      console.log("Startup migrations completed successfully");
+    } catch (migErr) {
+      console.error("Error running startup database migrations:", migErr);
+    }
   });
 }
 

@@ -459,6 +459,10 @@ export interface EnergyEfficiencyRecord {
   fechaEmision: string;
   fechaVigilancia: string;
   tipoProducto: string;
+  linea?: string;
+  lineId?: string;
+  categoria?: string;
+  categoryId?: string;
   sampleId?: string;
   certificadoFile?: FileInfo;
   certificadoHistory?: EnergyEfficiencyDocument[];

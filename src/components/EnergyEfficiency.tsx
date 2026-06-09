@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { EnergyEfficiencyRecord, SampleRecord, FileInfo, EnergyEfficiencyDocument } from '../types';
+import { EnergyEfficiencyRecord, SampleRecord, FileInfo, EnergyEfficiencyDocument, ProductLine, Category } from '../types';
 import { 
   Search, Plus, Filter, Download, Calendar, 
   FileText, Upload, Trash2, Edit2, X, Check,
@@ -28,6 +28,8 @@ export default function EnergyEfficiency({
   const [records, setRecords] = useState<EnergyEfficiencyRecord[]>([]);
   const [samples, setSamples] = useState<SampleRecord[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [productLines, setProductLines] = useState<ProductLine[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({
@@ -37,7 +39,8 @@ export default function EnergyEfficiency({
     porcentajeEE: '',
     proveedor: '',
     ocp: '',
-    fechaVigilancia: ''
+    fechaVigilancia: '',
+    linea: ''
   });
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({
     column: '',
@@ -75,14 +78,18 @@ export default function EnergyEfficiency({
   const loadData = async () => {
     try {
       setLoading(true);
-      const [recordsData, samplesData, suppliersData] = await Promise.all([
+      const [recordsData, samplesData, suppliersData, linesData, categoriesData] = await Promise.all([
         SupabaseService.getEnergyEfficiencyRecords(),
         SupabaseService.getSamples(),
-        SupabaseService.getSuppliers()
+        SupabaseService.getSuppliers(),
+        SupabaseService.getProductLines(),
+        SupabaseService.getCategories()
       ]);
       setRecords(recordsData);
       setSamples(samplesData);
       setSuppliers(suppliersData);
+      setProductLines(linesData);
+      setCategories(categoriesData);
     } catch (error) {
       console.error('Error loading EE data:', error);
       toast.error('Error al cargar datos');
@@ -296,6 +303,11 @@ export default function EnergyEfficiency({
           if (col === 'fechaVigilancia') {
             return r.fechaVigilancia?.toLowerCase().includes(filterVal);
           }
+          if (col === 'linea') {
+            const lineName = productLines.find(l => l.id === r.lineId || l.name === r.linea)?.name || r.linea || '';
+            const catName = categories.find(c => c.id === r.categoryId || c.name === r.categoria)?.name || r.categoria || '';
+            return lineName.toLowerCase().includes(filterVal) || catName.toLowerCase().includes(filterVal);
+          }
           return false;
         });
       }
@@ -317,6 +329,9 @@ export default function EnergyEfficiency({
         } else if (sortConfig.column === 'fechaVigilancia') {
           valA = a.fechaVigilancia || '';
           valB = b.fechaVigilancia || '';
+        } else if (sortConfig.column === 'linea') {
+          valA = productLines.find(l => l.id === a.lineId || l.name === a.linea)?.name || a.linea || '';
+          valB = productLines.find(l => l.id === b.lineId || l.name === b.linea)?.name || b.linea || '';
         }
         if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
         if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
@@ -327,7 +342,7 @@ export default function EnergyEfficiency({
     }
 
     return result;
-  }, [records, searchTerm, columnFilters, sortConfig]);
+  }, [records, searchTerm, columnFilters, sortConfig, productLines, categories]);
 
   const RecordForm = ({ 
     record, 
@@ -347,6 +362,40 @@ export default function EnergyEfficiency({
     const [etiquetaHistory, setEtiquetaHistory] = useState<EnergyEfficiencyDocument[]>(record?.etiquetaHistory || []);
     const [testReportHistory, setTestReportHistory] = useState<EnergyEfficiencyDocument[]>(record?.testReportHistory || []);
     const [gallery, setGallery] = useState<any[]>(record?.gallery || []);
+
+    const [selectedLine, setSelectedLine] = useState<string>(() => {
+      if (record?.lineId) return record.lineId;
+      if (record?.linea) {
+        const lineObj = productLines.find(l => l.name.toLowerCase() === record.linea?.toLowerCase());
+        if (lineObj) return lineObj.id;
+      }
+      return '';
+    });
+
+    const [selectedCategory, setSelectedCategory] = useState<string>(() => {
+      if (record?.categoryId) return record.categoryId;
+      if (record?.categoria) {
+        const catObj = categories.find(c => c.name.toLowerCase() === record.categoria?.toLowerCase());
+        if (catObj) return catObj.id;
+      }
+      return '';
+    });
+
+    const filteredCategories = useMemo(() => {
+      if (!selectedLine) return [];
+      return categories.filter(c => c.productLineId === selectedLine);
+    }, [selectedLine, categories]);
+
+    useEffect(() => {
+      if (selectedLine) {
+        const isValid = categories.some(c => c.id === selectedCategory && c.productLineId === selectedLine);
+        if (!isValid) {
+          setSelectedCategory('');
+        }
+      } else {
+        setSelectedCategory('');
+      }
+    }, [selectedLine, categories]);
 
     const handleFileUpload = async (type: 'certificado' | 'etiqueta' | 'testReport', e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -496,7 +545,11 @@ export default function EnergyEfficiency({
               proveedor: selectedSupplier ? selectedSupplier.id : providerName,
               fechaEmision: formData.get('fechaEmision') as string,
               fechaVigilancia: formData.get('fechaVigilancia') as string,
-              tipoProducto: formData.get('tipoProducto') as string,
+              tipoProducto: '', // Cleaned up
+              lineId: selectedLine,
+              linea: productLines.find(l => l.id === selectedLine)?.name || '',
+              categoryId: selectedCategory,
+              categoria: categories.find(c => c.id === selectedCategory)?.name || '',
               sampleId: formData.get('sampleId') as string || undefined,
               certificadoFile: certificado,
               certificadoHistory: certificadoHistory,
@@ -553,8 +606,33 @@ export default function EnergyEfficiency({
               <input type="date" name="fechaVigilancia" defaultValue={record?.fechaVigilancia} className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo Producto</label>
-              <input name="tipoProducto" defaultValue={record?.tipoProducto} className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" />
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Línea</label>
+              <select 
+                value={selectedLine} 
+                onChange={(e) => setSelectedLine(e.target.value)} 
+                required
+                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700"
+              >
+                <option value="">Seleccionar línea</option>
+                {productLines.map(line => (
+                  <option key={line.id} value={line.id}>{line.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoría</label>
+              <select 
+                value={selectedCategory} 
+                onChange={(e) => setSelectedCategory(e.target.value)} 
+                required
+                disabled={!selectedLine}
+                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700 disabled:opacity-50"
+              >
+                <option value="">Seleccionar categoría</option>
+                {filteredCategories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Vincular Muestra</label>
@@ -811,8 +889,22 @@ export default function EnergyEfficiency({
                     <p className="text-sm font-bold text-slate-700">{record.ocp}</p>
                   </div>
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tipo</p>
-                    <p className="text-sm font-bold text-slate-700">{record.tipoProducto}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Proveedor</p>
+                    <p className="text-sm font-bold text-slate-700">
+                      {suppliers.find(s => record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor))?.commercialAlias || record.proveedor}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Línea</p>
+                    <p className="text-sm font-bold text-slate-700">
+                      {productLines.find(l => l.id === record.lineId || l.name === record.linea)?.name || record.linea}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Categoría</p>
+                    <p className="text-sm font-bold text-slate-700">
+                      {categories.find(c => c.id === record.categoryId || c.name === record.categoria)?.name || record.categoria}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1076,10 +1168,11 @@ export default function EnergyEfficiency({
       'Letra': r.letra,
       '% EE': r.porcentajeEE,
       'OCP': r.ocp,
-      'Proveedor': r.proveedor,
+      'Proveedor': suppliers.find(s => r.proveedor && (s.id === r.proveedor || s.legalName === r.proveedor))?.commercialAlias || r.proveedor,
       'Emisión': r.fechaEmision,
       'Vigilancia': r.fechaVigilancia,
-      'Tipo': r.tipoProducto
+      'Línea': productLines.find(l => l.id === r.lineId || l.name === r.linea)?.name || r.linea || '',
+      'Categoría': categories.find(c => c.id === r.categoryId || c.name === r.categoria)?.name || r.categoria || ''
     }));
     exportToExcel(data, 'Eficiencia_Energetica');
     toast.success('Excel exportado correctamente');
@@ -1180,6 +1273,19 @@ export default function EnergyEfficiency({
                 </th>
                 <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                   <div className="flex items-center justify-between">
+                    <span>Línea / Categoría</span>
+                    <HeaderFilterPopover 
+                      column="linea" 
+                      label="Línea / Categoría" 
+                      currentFilter={columnFilters.linea || ''}
+                      onFilterChange={handleFilterChange}
+                      currentSort={sortConfig}
+                      onSortChange={handleSortChange}
+                    />
+                  </div>
+                </th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <div className="flex items-center justify-between">
                     <span>Proveedor / OCP</span>
                     <HeaderFilterPopover 
                       column="proveedor" 
@@ -1221,6 +1327,16 @@ export default function EnergyEfficiency({
                     <div className="flex flex-col items-center">
                       <span className="text-lg font-black text-indigo-600">{record.letra}</span>
                       <span className="text-[10px] font-bold text-slate-400">{record.porcentajeEE}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-5">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-700 uppercase">
+                        {productLines.find(l => l.id === record.lineId || l.name === record.linea)?.name || record.linea}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-medium uppercase">
+                        {categories.find(c => c.id === record.categoryId || c.name === record.categoria)?.name || record.categoria}
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-5">

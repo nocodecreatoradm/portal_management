@@ -84,6 +84,23 @@ export const mapEEToDB = (record: Partial<EnergyEfficiencyRecord>) => {
     test_report_history: record.testReportHistory,
     gallery: record.gallery
   };
+
+  if (record.lineId && isUUID(record.lineId)) {
+    dbRecord.line_id = record.lineId;
+  } else if (record.linea && isUUID(record.linea)) {
+    dbRecord.line_id = record.linea;
+  } else {
+    dbRecord.line_id = null;
+  }
+
+  if (record.categoryId && isUUID(record.categoryId)) {
+    dbRecord.category_id = record.categoryId;
+  } else if (record.categoria && isUUID(record.categoria)) {
+    dbRecord.category_id = record.categoria;
+  } else {
+    dbRecord.category_id = null;
+  }
+
   return dbRecord;
 };
 
@@ -106,7 +123,11 @@ export const mapDBToEE = (dbRecord: any): EnergyEfficiencyRecord => ({
   testReportFile: dbRecord.test_report_file,
   testReportHistory: dbRecord.test_report_history || [],
   gallery: dbRecord.gallery || [],
-  createdAt: dbRecord.created_at
+  createdAt: dbRecord.created_at,
+  linea: dbRecord.line?.name || dbRecord.line_id || '',
+  lineId: dbRecord.line_id || '',
+  categoria: dbRecord.category?.name || dbRecord.category_id || '',
+  categoryId: dbRecord.category_id || ''
 });
 
 export const mapProjectToDB = (project: Partial<Project>) => {
