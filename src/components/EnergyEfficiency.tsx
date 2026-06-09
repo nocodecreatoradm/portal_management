@@ -599,11 +599,11 @@ export default function EnergyEfficiency({
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha Emisión</label>
-              <input type="date" name="fechaEmision" defaultValue={record?.fechaEmision} className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" />
+              <input type="date" name="fechaEmision" defaultValue={record?.fechaEmision ? record.fechaEmision.split('T')[0] : ''} className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha Vigilancia</label>
-              <input type="date" name="fechaVigilancia" defaultValue={record?.fechaVigilancia} className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" />
+              <input type="date" name="fechaVigilancia" defaultValue={record?.fechaVigilancia ? record.fechaVigilancia.split('T')[0] : ''} className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700" />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Línea</label>
@@ -914,11 +914,11 @@ export default function EnergyEfficiency({
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-500 font-medium tracking-tight">Emisión:</span>
-                    <span className="font-bold text-slate-700">{record.fechaEmision}</span>
+                    <span className="font-bold text-slate-700">{record.fechaEmision ? record.fechaEmision.split('T')[0] : ''}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-500 font-medium tracking-tight">Vigilancia:</span>
-                    <span className="font-bold text-slate-700">{record.fechaVigilancia}</span>
+                    <span className="font-bold text-slate-700">{record.fechaVigilancia ? record.fechaVigilancia.split('T')[0] : ''}</span>
                   </div>
                 </div>
               </div>
@@ -1169,8 +1169,8 @@ export default function EnergyEfficiency({
       '% EE': r.porcentajeEE,
       'OCP': r.ocp,
       'Proveedor': suppliers.find(s => r.proveedor && (s.id === r.proveedor || s.legalName === r.proveedor))?.commercialAlias || r.proveedor,
-      'Emisión': r.fechaEmision,
-      'Vigilancia': r.fechaVigilancia,
+      'Emisión': r.fechaEmision ? r.fechaEmision.split('T')[0] : '',
+      'Vigilancia': r.fechaVigilancia ? r.fechaVigilancia.split('T')[0] : '',
       'Línea': productLines.find(l => l.id === r.lineId || l.name === r.linea)?.name || r.linea || '',
       'Categoría': categories.find(c => c.id === r.categoryId || c.name === r.categoria)?.name || r.categoria || ''
     }));
@@ -1350,7 +1350,9 @@ export default function EnergyEfficiency({
                   <td className="px-6 py-5">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vence</span>
-                      <span className="text-xs font-bold text-slate-700">{record.fechaVigilancia}</span>
+                      <span className="text-xs font-bold text-slate-700">
+                        {record.fechaVigilancia ? record.fechaVigilancia.split('T')[0] : ''}
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-5">
