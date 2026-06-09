@@ -204,9 +204,9 @@ export const mapTaskToDB = (task: Partial<CalendarTask>) => {
   if (task.deadline !== undefined) dbTask.deadline = task.deadline;
   if (task.startDate !== undefined) dbTask.start_date = task.startDate;
   if (task.endDate !== undefined) dbTask.end_date = task.endDate;
-  if (task.type !== undefined) dbTask.task_type = task.type;
-  if (task.requester !== undefined) dbTask.requester_id = task.requester;
-  if (task.assignee !== undefined) dbTask.assignee_id = task.assignee;
+  if (task.type !== undefined) dbTask.type = task.type;
+  if (task.requester !== undefined) dbTask.requester = task.requester;
+  if (task.assignee !== undefined) dbTask.assignee = task.assignee;
   if (task.status !== undefined) dbTask.status = task.status;
   if (task.deliveryStatus !== undefined) dbTask.delivery_status = task.deliveryStatus;
   if (task.changeLog !== undefined) dbTask.change_log = task.changeLog;
@@ -220,9 +220,9 @@ export const mapDBToTask = (dbTask: any): CalendarTask => ({
   deadline: dbTask.deadline,
   startDate: dbTask.start_date,
   endDate: dbTask.end_date,
-  type: dbTask.task_type,
-  requester: dbTask.requester_id,
-  assignee: dbTask.assignee_id,
+  type: dbTask.type,
+  requester: dbTask.requester,
+  assignee: dbTask.assignee,
   status: dbTask.status,
   deliveryStatus: dbTask.delivery_status,
   changeLog: dbTask.change_log || [],
