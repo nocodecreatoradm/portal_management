@@ -53,6 +53,7 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
   
   // State for collapsible groups
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    'manual_marca': true,
     'seguimiento': false,
     'aprobados': false,
     'gestion': false,
@@ -69,6 +70,14 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
   };
 
   const navGroups: NavGroup[] = [
+    {
+      title: 'Manual de Marca',
+      id: 'manual_marca',
+      icon: <Book size={18} />,
+      modules: [
+        { id: 'brandbook', label: 'Brandbook', icon: <Book size={18} />, permission: 'brandbook:view' },
+      ]
+    },
     {
       title: t('menu.operational_management'),
       id: 'seguimiento',
@@ -119,7 +128,6 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
       id: 'recursos',
       icon: <Book size={18} />,
       modules: [
-        { id: 'brandbook', label: t('menu.brandbook'), icon: <Book size={18} />, permission: 'brandbook:view' },
         { id: 'ntp_regulations', label: t('menu.ntp_regulations'), icon: <FileText size={18} />, permission: 'regulations:view' },
         { id: 'canton_fair', label: t('menu.international_fairs'), icon: <Briefcase size={18} />, permission: 'fairs:view' },
         { id: 'applications', label: t('menu.applications'), icon: <Layers size={18} />, permission: 'apps:view' },
