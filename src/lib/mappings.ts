@@ -489,10 +489,17 @@ export const mapSampleToDB = (sample: Partial<SampleRecord>) => {
   if (sample.correlativeId !== undefined) dbSample.correlative_id = sample.correlativeId;
   if (sample.codigoSAP !== undefined) dbSample.codigo_sap = sample.codigoSAP;
   if (sample.descripcionSAP !== undefined) dbSample.descripcion_sap = sample.descripcionSAP;
-  if (sample.marca !== undefined) dbSample.brand_id = isUUID(sample.marca) ? sample.marca : null;
+  
+  if (sample.brandId !== undefined) dbSample.brand_id = isUUID(sample.brandId) ? sample.brandId : null;
+  else if (sample.marca !== undefined) dbSample.brand_id = isUUID(sample.marca) ? sample.marca : null;
+
+  if (sample.lineId !== undefined) dbSample.line_id = isUUID(sample.lineId) ? sample.lineId : null;
+  else if (sample.linea !== undefined) dbSample.line_id = isUUID(sample.linea) ? sample.linea : null;
+
+  if (sample.categoryId !== undefined) dbSample.category_id = isUUID(sample.categoryId) ? sample.categoryId : null;
+  else if (sample.categoria !== undefined) dbSample.category_id = isUUID(sample.categoria) ? sample.categoria : null;
+
   if (sample.proveedor !== undefined) dbSample.supplier_id = isUUID(sample.proveedor) ? sample.proveedor : null;
-  if (sample.linea !== undefined) dbSample.line_id = isUUID(sample.linea) ? sample.linea : null;
-  if (sample.categoria !== undefined) dbSample.category_id = isUUID(sample.categoria) ? sample.categoria : null;
   if (sample.technician !== undefined) dbSample.technician = isUUID(sample.technician) ? sample.technician : null;
   if (sample.inspectionDate !== undefined) dbSample.inspection_date = sample.inspectionDate;
   if (sample.inspectionStatus !== undefined) dbSample.inspection_status = sample.inspectionStatus;
@@ -519,6 +526,9 @@ export const mapDBToSample = (dbSample: any): SampleRecord => ({
   version: dbSample.version || 1,
   codigoSAP: dbSample.codigo_sap,
   descripcionSAP: dbSample.descripcion_sap,
+  brandId: dbSample.brand_id || '',
+  lineId: dbSample.line_id || '',
+  categoryId: dbSample.category_id || '',
   marca: dbSample.brand?.name || dbSample.brand_id || 'SOLE',
   proveedor: dbSample.supplier?.commercial_alias || dbSample.supplier?.legal_name || dbSample.supplier_id || 'Desconocido',
   linea: dbSample.line?.name || dbSample.line_id || 'AGUA CALIENTE',

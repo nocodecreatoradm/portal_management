@@ -510,6 +510,104 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
     onClose();
   };
 
+  const renderFieldInput = (sectionId: string, field: any) => {
+    const type = field.type || 'textarea';
+    const options = field.options || [];
+
+    switch (type) {
+      case 'text':
+        return (
+          <input 
+            type="text"
+            value={field.value || ''}
+            onChange={(e) => handleUpdateField(sectionId, field.id, { value: e.target.value })}
+            placeholder="Ingresar valor..."
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-indigo-500/10 outline-none shadow-inner"
+          />
+        );
+      case 'select':
+        return (
+          <select
+            value={field.value || ''}
+            onChange={(e) => handleUpdateField(sectionId, field.id, { value: e.target.value })}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-indigo-500/10 outline-none shadow-inner"
+          >
+            <option value="">-- Seleccionar --</option>
+            {options.map((opt: string, idx: number) => (
+              <option key={idx} value={opt}>{opt}</option>
+            ))}
+          </select>
+        );
+      case 'radio':
+        return (
+          <div className="flex flex-wrap gap-4 py-2">
+            {options.map((opt: string, idx: number) => (
+              <label key={idx} className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                <input 
+                  type="radio"
+                  name={`field_${field.id}`}
+                  value={opt}
+                  checked={field.value === opt}
+                  onChange={() => handleUpdateField(sectionId, field.id, { value: opt })}
+                  className="w-4 h-4 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                />
+                {opt}
+              </label>
+            ))}
+          </div>
+        );
+      case 'checkbox':
+        const selectedValues = field.value ? field.value.split(', ') : [];
+        const handleCheckboxChange = (opt: string, checked: boolean) => {
+          let newValues;
+          if (checked) {
+            newValues = [...selectedValues, opt];
+          } else {
+            newValues = selectedValues.filter((v: string) => v !== opt);
+          }
+          handleUpdateField(sectionId, field.id, { value: newValues.join(', ') });
+        };
+        return (
+          <div className="flex flex-col gap-2 py-1">
+            {options.map((opt: string, idx: number) => (
+              <label key={idx} className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                <input 
+                  type="checkbox"
+                  value={opt}
+                  checked={selectedValues.includes(opt)}
+                  onChange={(e) => handleCheckboxChange(opt, e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                />
+                {opt}
+              </label>
+            ))}
+          </div>
+        );
+      case 'photo':
+        return (
+          <p className="text-xs text-slate-500 font-bold italic py-2">
+            Usar cargador de evidencias a la derecha para adjuntar fotografías.
+          </p>
+        );
+      case 'signature':
+        return (
+          <p className="text-xs text-slate-500 font-bold italic py-2">
+            Usar cargador de evidencias a la derecha para adjuntar firma escaneada.
+          </p>
+        );
+      case 'textarea':
+      default:
+        return (
+          <textarea 
+            value={field.value || ''}
+            onChange={(e) => handleUpdateField(sectionId, field.id, { value: e.target.value })}
+            placeholder="Ingresar descripción o valor..."
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500/10 outline-none min-h-[120px] resize-none shadow-inner"
+          />
+        );
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -655,12 +753,7 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
                               />
                             </div>
                             <div className="col-span-4">
-                              <textarea 
-                                value={field.value}
-                                onChange={(e) => handleUpdateField(section.id, field.id, { value: e.target.value })}
-                                placeholder="Ingresar descripción o valor..."
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500/10 outline-none min-h-[120px] resize-none shadow-inner"
-                              />
+                              {renderFieldInput(section.id, field)}
                             </div>
                             <div className="col-span-5 space-y-3">
                               <div className="flex flex-wrap gap-2">
