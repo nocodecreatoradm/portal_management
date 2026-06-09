@@ -92,6 +92,75 @@ const invalidateProfilesCache = () => {
   profilesCacheTimestamp = 0;
 };
 
+// Metadata cache (Brands, Product Lines, Categories, Suppliers) to map UUIDs client-side
+let cachedBrands: Brand[] | null = null;
+let cachedLines: ProductLine[] | null = null;
+let cachedCategories: Category[] | null = null;
+let cachedSuppliers: Supplier[] | null = null;
+let metadataCacheTimestamp = 0;
+const METADATA_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const getCachedBrands = async () => {
+  const now = Date.now();
+  if (cachedBrands && (now - metadataCacheTimestamp) < METADATA_CACHE_TTL) {
+    return cachedBrands;
+  }
+  const { data, error } = await supabase.from('brands').select().order('name');
+  if (!error && data) {
+    cachedBrands = data;
+    metadataCacheTimestamp = now;
+  }
+  return cachedBrands || [];
+};
+
+const getCachedLines = async () => {
+  const now = Date.now();
+  if (cachedLines && (now - metadataCacheTimestamp) < METADATA_CACHE_TTL) {
+    return cachedLines;
+  }
+  const { data, error } = await supabase.from('product_lines').select().order('name');
+  if (!error && data) {
+    cachedLines = data;
+    metadataCacheTimestamp = now;
+  }
+  return cachedLines || [];
+};
+
+const getCachedCategories = async () => {
+  const now = Date.now();
+  if (cachedCategories && (now - metadataCacheTimestamp) < METADATA_CACHE_TTL) {
+    return cachedCategories;
+  }
+  const { data, error } = await supabase.from('categories').select().order('name');
+  if (!error && data) {
+    cachedCategories = data.map(mapDBToCategory);
+    metadataCacheTimestamp = now;
+  }
+  return cachedCategories || [];
+};
+
+const getCachedSuppliers = async () => {
+  const now = Date.now();
+  if (cachedSuppliers && (now - metadataCacheTimestamp) < METADATA_CACHE_TTL) {
+    return cachedSuppliers;
+  }
+  const { data, error } = await supabase.from('suppliers').select().order('legal_name');
+  if (!error && data) {
+    cachedSuppliers = data.map(mapDBToSupplier);
+    metadataCacheTimestamp = now;
+  }
+  return cachedSuppliers || [];
+};
+
+const invalidateMetadataCache = () => {
+  cachedBrands = null;
+  cachedLines = null;
+  cachedCategories = null;
+  cachedSuppliers = null;
+  metadataCacheTimestamp = 0;
+};
+
+
 export const SupabaseService = {
   // MASTER DATA
   async getDepartments() {
@@ -109,6 +178,7 @@ export const SupabaseService = {
   async createBrand(brand: { name: string }) {
     const { data, error } = await supabase.from('brands').insert([brand]).select().single();
     if (error) throw error;
+    invalidateMetadataCache();
     return mapDBToBrand(data);
   },
 
@@ -116,12 +186,14 @@ export const SupabaseService = {
     const dbUpdates = mapBrandToDB(updates);
     const { data, error } = await supabase.from('brands').update(dbUpdates).eq('id', id).select().single();
     if (error) throw error;
+    invalidateMetadataCache();
     return mapDBToBrand(data);
   },
 
   async deleteBrand(id: string) {
     const { error } = await supabase.from('brands').delete().eq('id', id);
     if (error) throw error;
+    invalidateMetadataCache();
     return true;
   },
 
@@ -134,6 +206,7 @@ export const SupabaseService = {
   async createProductLine(line: { name: string }) {
     const { data, error } = await supabase.from('product_lines').insert([line]).select().single();
     if (error) throw error;
+    invalidateMetadataCache();
     return mapDBToProductLine(data);
   },
 
@@ -141,12 +214,14 @@ export const SupabaseService = {
     const dbUpdates = mapProductLineToDB(updates);
     const { data, error } = await supabase.from('product_lines').update(dbUpdates).eq('id', id).select().single();
     if (error) throw error;
+    invalidateMetadataCache();
     return mapDBToProductLine(data);
   },
 
   async deleteProductLine(id: string) {
     const { error } = await supabase.from('product_lines').delete().eq('id', id);
     if (error) throw error;
+    invalidateMetadataCache();
     return true;
   },
 
@@ -160,6 +235,7 @@ export const SupabaseService = {
     const dbCategory = mapCategoryToDB(category);
     const { data, error } = await supabase.from('categories').insert([dbCategory]).select().single();
     if (error) throw error;
+    invalidateMetadataCache();
     return mapDBToCategory(data);
   },
 
@@ -167,12 +243,14 @@ export const SupabaseService = {
     const dbUpdates = mapCategoryToDB(updates);
     const { data, error } = await supabase.from('categories').update(dbUpdates).eq('id', id).select().single();
     if (error) throw error;
+    invalidateMetadataCache();
     return mapDBToCategory(data);
   },
 
   async deleteCategory(id: string) {
     const { error } = await supabase.from('categories').delete().eq('id', id);
     if (error) throw error;
+    invalidateMetadataCache();
     return true;
   },
 
@@ -227,16 +305,48 @@ export const SupabaseService = {
       .order('created_at', { ascending: false });
     if (error) throw error;
     
-    const profiles = await getCachedProfiles();
+    const [brands, lines, categories, suppliers, profiles] = await Promise.all([
+      getCachedBrands(),
+      getCachedLines(),
+      getCachedCategories(),
+      getCachedSuppliers(),
+      getCachedProfiles()
+    ]);
+
     return data.map(mapDBToSample).map(sample => {
       const u = profiles.find(x => x.id === sample.technician);
       if (u) sample.technician = u.full_name;
+
+      // Client-side fallback mapping for brand, line, category, and supplier names
+      if (!sample.marca || isUUID(sample.marca)) {
+        const b = brands.find(x => x.id === sample.brandId || x.id === sample.marca);
+        if (b) sample.marca = b.name;
+      }
+      if (!sample.linea || isUUID(sample.linea)) {
+        const l = lines.find(x => x.id === sample.lineId || x.id === sample.linea);
+        if (l) sample.linea = l.name;
+      }
+      if (!sample.categoria || isUUID(sample.categoria)) {
+        const c = categories.find(x => x.id === sample.categoryId || x.id === sample.categoria);
+        if (c) sample.categoria = c.name;
+      }
+      if (!sample.proveedor || isUUID(sample.proveedor)) {
+        const s = suppliers.find(x => x.id === sample.proveedor);
+        if (s) sample.proveedor = s.commercialAlias || s.legalName;
+      }
+
       return sample;
     });
   },
 
   async createSample(sample: Partial<SampleRecord>) {
-    const profiles = await getCachedProfiles();
+    const [brands, lines, categories, suppliers, profiles] = await Promise.all([
+      getCachedBrands(),
+      getCachedLines(),
+      getCachedCategories(),
+      getCachedSuppliers(),
+      getCachedProfiles()
+    ]);
     if (sample.technician) {
       const u = profiles.find(x => x.full_name === sample.technician);
       if (u) sample.technician = u.id;
@@ -258,12 +368,36 @@ export const SupabaseService = {
     const s = mapDBToSample(data);
     const u = profiles.find(x => x.id === s.technician);
     if (u) s.technician = u.full_name;
+
+    // Resolve UUIDs to names client-side
+    if (!s.marca || isUUID(s.marca)) {
+      const b = brands.find(x => x.id === s.brandId || x.id === s.marca);
+      if (b) s.marca = b.name;
+    }
+    if (!s.linea || isUUID(s.linea)) {
+      const l = lines.find(x => x.id === s.lineId || x.id === s.linea);
+      if (l) s.linea = l.name;
+    }
+    if (!s.categoria || isUUID(s.categoria)) {
+      const c = categories.find(x => x.id === s.categoryId || x.id === s.categoria);
+      if (c) s.categoria = c.name;
+    }
+    if (!s.proveedor || isUUID(s.proveedor)) {
+      const sup = suppliers.find(x => x.id === s.proveedor);
+      if (sup) s.proveedor = sup.commercialAlias || sup.legalName;
+    }
     return s;
   },
 
   async updateSample(id: string, updates: Partial<SampleRecord>) {
     if (!isUUID(id)) return null;
-    const profiles = await getCachedProfiles();
+    const [brands, lines, categories, suppliers, profiles] = await Promise.all([
+      getCachedBrands(),
+      getCachedLines(),
+      getCachedCategories(),
+      getCachedSuppliers(),
+      getCachedProfiles()
+    ]);
     if (updates.technician) {
       const u = profiles.find(x => x.full_name === updates.technician);
       if (u) updates.technician = u.id;
@@ -286,6 +420,24 @@ export const SupabaseService = {
     const s = mapDBToSample(data);
     const u = profiles.find(x => x.id === s.technician);
     if (u) s.technician = u.full_name;
+
+    // Resolve UUIDs to names client-side
+    if (!s.marca || isUUID(s.marca)) {
+      const b = brands.find(x => x.id === s.brandId || x.id === s.marca);
+      if (b) s.marca = b.name;
+    }
+    if (!s.linea || isUUID(s.linea)) {
+      const l = lines.find(x => x.id === s.lineId || x.id === s.linea);
+      if (l) s.linea = l.name;
+    }
+    if (!s.categoria || isUUID(s.categoria)) {
+      const c = categories.find(x => x.id === s.categoryId || x.id === s.categoria);
+      if (c) s.categoria = c.name;
+    }
+    if (!s.proveedor || isUUID(s.proveedor)) {
+      const sup = suppliers.find(x => x.id === s.proveedor);
+      if (sup) s.proveedor = sup.commercialAlias || sup.legalName;
+    }
     return s;
   },
 
@@ -913,6 +1065,7 @@ export const SupabaseService = {
       .select()
       .single();
     if (error) throw error;
+    invalidateMetadataCache();
     return mapDBToSupplier(data);
   },
 
@@ -926,6 +1079,7 @@ export const SupabaseService = {
       .select()
       .single();
     if (error) throw error;
+    invalidateMetadataCache();
     return mapDBToSupplier(data);
   },
 
@@ -936,6 +1090,7 @@ export const SupabaseService = {
       .delete()
       .eq('id', id);
     if (error) throw error;
+    invalidateMetadataCache();
     return true;
   },
 
