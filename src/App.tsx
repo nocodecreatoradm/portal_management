@@ -45,6 +45,7 @@ import CrNiCoatingAnalysis from './components/CrNiCoatingAnalysis';
 import CantonFair from './components/CantonFair';
 import OvenExperimental from './components/OvenExperimental';
 import MasterDataModule from './components/MasterDataModule';
+import ArtworkGantt from './components/ArtworkGantt';
 import ModuleActions from './components/ModuleActions';
 import { exportToExcel, generateReportPDF, exportToPPT } from './lib/exportUtils';
 import { saveCalculationRecord, fetchCalculationRecords } from './lib/api';
@@ -84,6 +85,7 @@ export default function App() {
   const [activeModule, setActiveModule] = useState<ModuleId>('brandbook');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [showGantt, setShowGantt] = useState(false);
   const [data, setData] = useState<ProductRecord[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -1292,6 +1294,10 @@ export default function App() {
       return <ReportsDashboard data={data} activeModule={activeModule} onBack={() => setShowReport(false)} />;
     }
 
+    if (showGantt && activeModule === 'artwork_followup') {
+      return <ArtworkGantt data={filteredData} onBack={() => setShowGantt(false)} />;
+    }
+
     if (!isFollowupModule) {
       return (
         <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
@@ -1325,6 +1331,22 @@ export default function App() {
                 <FileText size={16} />
                 <span className="hidden sm:inline">Reporte</span>
               </button>
+              {activeModule === 'artwork_followup' && (
+                <button 
+                  onClick={() => setShowGantt(true)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-600 hover:text-indigo-600 hover:bg-white rounded-lg transition-all"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="15" y2="12"/>
+                    <line x1="3" y1="18" x2="18" y2="18"/>
+                    <rect x="7" y="4" width="6" height="4" rx="1"/>
+                    <rect x="5" y="10" width="8" height="4" rx="1"/>
+                    <rect x="6" y="16" width="10" height="4" rx="1"/>
+                  </svg>
+                  <span className="hidden sm:inline">Gantt</span>
+                </button>
+              )}
             </div>
 
             <button 
@@ -1392,6 +1414,7 @@ export default function App() {
   const handleModuleChange = (module: ModuleId) => {
     setActiveModule(module);
     setShowReport(false);
+    setShowGantt(false);
   };
 
   const handleLoadRecord = (moduleId: ModuleId, data: any) => {
