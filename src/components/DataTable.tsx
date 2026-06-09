@@ -165,17 +165,46 @@ export default function DataTable({
           const sampleCorrel = getSampleCorrelative(item.sampleId) || '';
           return sampleCorrel.toLowerCase().includes(lowerValue);
         }
+        if (key === 'status') {
+          const currentVersions = mode === 'artwork' ? (item.artworks || []) : 
+                                 mode === 'technical_sheet' ? (item.technicalSheets || []) : 
+                                 (item.commercialSheets || []);
+          const latestByCategory = mode === 'artwork' ? Object.values(
+            (currentVersions || []).reduce((acc, v) => {
+              if (!v) return acc;
+              const key = v.category || 'Others';
+              if (!acc[key] || acc[key].version < v.version) acc[key] = v;
+              return acc;
+            }, {} as Record<string, DocumentVersion>)
+          ).sort((a: any, b: any) => (a.category || '').localeCompare(b.category || '')) as DocumentVersion[]
+          : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => b.version - a.version)[0]] : []);
+          const generalStatus = getRecordStatus(item, mode, latestByCategory);
+          return generalStatus.label.toLowerCase().includes(lowerValue);
+        }
         if (key === 'assignment') {
           const assignment = mode === 'artwork' 
             ? item.artworkAssignment 
             : mode === 'technical_sheet' 
               ? item.technicalAssignment 
               : item.commercialAssignment;
+              
+          if (lowerValue === 'sin asignar') {
+            return !assignment || !assignment.designer;
+          }
           if (!assignment) return false;
+          
+          if (lowerValue === 'sin fecha') {
+            return !assignment.plannedEndDate;
+          }
+          if (lowerValue === 'vencido / próximo a vencer') {
+            return !!assignment.plannedEndDate && isNearDeadline(assignment.plannedEndDate);
+          }
+          
           const designerName = assignment.designer || '';
           const plannedDate = assignment.plannedEndDate 
-            ? format(parseISO(assignment.plannedEndDate), 'dd/MM/yy') 
+            ? `vence: ${format(parseISO(assignment.plannedEndDate), 'dd/MM/yy')}` 
             : '';
+          
           return designerName.toLowerCase().includes(lowerValue) || plannedDate.toLowerCase().includes(lowerValue);
         }
 
@@ -195,6 +224,24 @@ export default function DataTable({
           const bAssign = mode === 'artwork' ? b.artworkAssignment : mode === 'technical_sheet' ? b.technicalAssignment : b.commercialAssignment;
           aVal = aAssign?.plannedEndDate || '';
           bVal = bAssign?.plannedEndDate || '';
+        } else if (sortConfig.column === 'status') {
+          const getStatusLabel = (r: ProductRecord) => {
+            const currentVersions = mode === 'artwork' ? (r.artworks || []) : 
+                                   mode === 'technical_sheet' ? (r.technicalSheets || []) : 
+                                   (r.commercialSheets || []);
+            const latestByCategory = mode === 'artwork' ? Object.values(
+              (currentVersions || []).reduce((acc, v) => {
+                if (!v) return acc;
+                const key = v.category || 'Others';
+                if (!acc[key] || acc[key].version < v.version) acc[key] = v;
+                return acc;
+              }, {} as Record<string, DocumentVersion>)
+            ).sort((a: any, b: any) => (a.category || '').localeCompare(b.category || '')) as DocumentVersion[]
+            : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => b.version - a.version)[0]] : []);
+            return getRecordStatus(r, mode, latestByCategory).label;
+          };
+          aVal = getStatusLabel(a).toLowerCase();
+          bVal = getStatusLabel(b).toLowerCase();
         } else {
           aVal = String((a as any)[sortConfig.column] || '').toLowerCase();
           bVal = String((b as any)[sortConfig.column] || '').toLowerCase();
@@ -308,21 +355,57 @@ export default function DataTable({
   const uniqueLines = useMemo(() => Array.from(new Set(data.map(item => item.linea || '').filter(Boolean))), [data]);
   const uniqueBrands = useMemo(() => Array.from(new Set(data.map(item => item.marca || '').filter(Boolean))), [data]);
   const uniqueSamples = useMemo(() => Array.from(new Set(data.map(item => getSampleCorrelative(item.sampleId) || '').filter(Boolean))), [data, samples]);
-  const uniqueDesigners = useMemo(() => {
+  const uniqueStatuses = useMemo(() => {
     return Array.from(
       new Set(
-        data
-          .map(item => {
-            const assignment = mode === 'artwork' 
-              ? item.artworkAssignment 
-              : mode === 'technical_sheet' 
-                ? item.technicalAssignment 
-                : item.commercialAssignment;
-            return assignment?.designer || '';
-          })
-          .filter(Boolean)
+        data.map(item => {
+          const currentVersions = mode === 'artwork' ? (item.artworks || []) : 
+                                 mode === 'technical_sheet' ? (item.technicalSheets || []) : 
+                                 (item.commercialSheets || []);
+          const latestByCategory = mode === 'artwork' ? Object.values(
+            (currentVersions || []).reduce((acc, v) => {
+              if (!v) return acc;
+              const key = v.category || 'Others';
+              if (!acc[key] || acc[key].version < v.version) acc[key] = v;
+              return acc;
+            }, {} as Record<string, DocumentVersion>)
+          ).sort((a: any, b: any) => (a.category || '').localeCompare(b.category || '')) as DocumentVersion[]
+          : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => b.version - a.version)[0]] : []);
+          return getRecordStatus(item, mode, latestByCategory).label;
+        }).filter(Boolean)
       )
     );
+  }, [data, mode]);
+
+  const uniqueDesignersAndDatesAndStatus = useMemo(() => {
+    const values = new Set<string>();
+    
+    data.forEach(item => {
+      const assignment = mode === 'artwork' 
+        ? item.artworkAssignment 
+        : mode === 'technical_sheet' 
+          ? item.technicalAssignment 
+          : item.commercialAssignment;
+          
+      if (assignment) {
+        if (assignment.designer) {
+          values.add(assignment.designer);
+        }
+        if (assignment.plannedEndDate) {
+          const formattedDate = format(parseISO(assignment.plannedEndDate), 'dd/MM/yy');
+          values.add(`Vence: ${formattedDate}`);
+          if (isNearDeadline(assignment.plannedEndDate)) {
+            values.add("Vencido / Próximo a vencer");
+          }
+        } else {
+          values.add("Sin fecha");
+        }
+      } else {
+        values.add("Sin asignar");
+      }
+    });
+    
+    return Array.from(values).filter(Boolean);
   }, [data, mode]);
 
   return (
@@ -670,7 +753,24 @@ export default function DataTable({
                   />
                 </div>
               </th>
-              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100 min-w-[100px]">Estado</th>
+              <th 
+                rowSpan={2} 
+                className="px-3 py-3 text-center border-r border-gray-100 min-w-[120px] cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                onClick={() => toggleSort('status')}
+              >
+                <div className="flex items-center justify-center gap-1.5">
+                  <span>Estado</span>
+                  <HeaderFilterPopover 
+                    column="status" 
+                    label="Estado" 
+                    currentFilter={columnFilters.status || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                    uniqueValues={uniqueStatuses}
+                  />
+                </div>
+              </th>
               <th 
                 rowSpan={2} 
                 className="px-3 py-3 text-center border-r border-gray-100 min-w-[120px] cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
@@ -685,7 +785,7 @@ export default function DataTable({
                     onFilterChange={handleFilterChange} 
                     currentSort={sortConfig} 
                     onSortChange={handleSortChange} 
-                    uniqueValues={uniqueDesigners}
+                    uniqueValues={uniqueDesignersAndDatesAndStatus}
                   />
                 </div>
               </th>
