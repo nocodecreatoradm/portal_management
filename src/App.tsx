@@ -41,6 +41,7 @@ import EnergyEfficiency from './components/EnergyEfficiency';
 import ProductsModule from './components/ProductsModule';
 import ProjectsModule from './components/ProjectsModule';
 import CalendarModule from './components/CalendarModule';
+import PriceGMROISimulator from './components/PriceGMROISimulator';
 import CalculationsDashboard from './components/CalculationsDashboard';
 import InnovationProposals from './components/InnovationProposals';
 import CrNiCoatingAnalysis from './components/CrNiCoatingAnalysis';
@@ -1348,6 +1349,9 @@ export default function App() {
 
     if (activeModule === 'calendar') {
       return <CalendarModule />;
+    }
+    if (activeModule === 'price_gmroi_simulator') {
+      return <PriceGMROISimulator />;
     }
     if (activeModule === 'energy_efficiency') {
       return <EnergyEfficiency onExportPPT={handleExportPPT} />;

@@ -20,7 +20,9 @@ import {
   ProductLine,
   Category,
   InspectionTemplate,
-  QualityClaim
+  QualityClaim,
+  PriceGMROITemplate,
+  CategoryGMROIThreshold
 } from '../types';
 import {
   mapInventoryToDB,
@@ -62,7 +64,11 @@ import {
   mapInspectionTemplateToDB,
   mapDBToInspectionTemplate,
   mapQualityClaimToDB,
-  mapDBToQualityClaim
+  mapDBToQualityClaim,
+  mapGMROITemplateToDB,
+  mapDBToGMROITemplate,
+  mapThresholdToDB,
+  mapDBToThreshold
 } from './mappings';
 
 
@@ -1600,6 +1606,73 @@ export const SupabaseService = {
       .eq('id', id);
     if (error) throw error;
     return true;
+  },
+
+  // PRICE & GMROI SIMULATOR
+  async getPriceGMROITemplates() {
+    const { data, error } = await supabase
+      .from('price_gmroi_templates')
+      .select()
+      .order('name');
+    if (error) throw error;
+    return (data || []).map(mapDBToGMROITemplate);
+  },
+
+  async createPriceGMROITemplate(template: Partial<PriceGMROITemplate>) {
+    const dbTemp = mapGMROITemplateToDB(template);
+    const { data, error } = await supabase
+      .from('price_gmroi_templates')
+      .insert(dbTemp)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToGMROITemplate(data);
+  },
+
+  async updatePriceGMROITemplate(id: string, updates: Partial<PriceGMROITemplate>) {
+    if (!isUUID(id)) return null;
+    const dbUpdates = mapGMROITemplateToDB(updates);
+    const { data, error } = await supabase
+      .from('price_gmroi_templates')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToGMROITemplate(data);
+  },
+
+  async deletePriceGMROITemplate(id: string) {
+    if (!isUUID(id)) return true;
+    const { error } = await supabase
+      .from('price_gmroi_templates')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
+  },
+
+  async getCategoryGMROIThresholds() {
+    const { data, error } = await supabase
+      .from('category_gmroi_thresholds')
+      .select();
+    if (error) throw error;
+    return (data || []).map(mapDBToThreshold);
+  },
+
+  async saveCategoryGMROIThresholds(thresholds: CategoryGMROIThreshold[]) {
+    const results = [];
+    for (const t of thresholds) {
+      const dbThresh = mapThresholdToDB(t);
+      const { data, error } = await supabase
+        .from('category_gmroi_thresholds')
+        .upsert(dbThresh)
+        .select()
+        .single();
+      if (error) throw error;
+      results.push(mapDBToThreshold(data));
+    }
+    return results;
   }
 };
 

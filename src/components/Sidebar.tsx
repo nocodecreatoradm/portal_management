@@ -24,7 +24,8 @@ import {
   Lightbulb,
   Menu,
   Shield,
-  AlertCircle
+  AlertCircle,
+  TrendingUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ModuleId } from '../types';
@@ -129,6 +130,7 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
       icon: <Book size={18} />,
       modules: [
         { id: 'ntp_regulations', label: t('menu.ntp_regulations'), icon: <FileText size={18} />, permission: 'regulations:view' },
+        { id: 'price_gmroi_simulator', label: t('menu.price_gmroi_simulator'), icon: <TrendingUp size={18} />, permission: 'price_gmroi_simulator:view' },
         { id: 'canton_fair', label: t('menu.international_fairs'), icon: <Briefcase size={18} />, permission: 'fairs:view' },
         { id: 'applications', label: t('menu.applications'), icon: <Layers size={18} />, permission: 'apps:view' },
         { id: 'records', label: t('menu.base_records'), icon: <Database size={18} />, permission: 'records:view' },

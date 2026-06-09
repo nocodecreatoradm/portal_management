@@ -908,6 +908,9 @@ async function startServer() {
             if (table === 'canton_fair_settings' && row.year !== undefined) {
               checkQuery = `SELECT 1 FROM ID_PORTAL.[${table}] WHERE [year] = @check_year`;
               checkRequest.input('check_year', row.year);
+            } else if (table === 'category_gmroi_thresholds' && row.category_id !== undefined) {
+              checkQuery = `SELECT 1 FROM ID_PORTAL.[${table}] WHERE [category_id] = @check_cat_id`;
+              checkRequest.input('check_cat_id', row.category_id);
             } else if (row.id !== undefined && row.id !== null) {
               checkQuery = `SELECT 1 FROM ID_PORTAL.[${table}] WHERE [id] = @check_id`;
               checkRequest.input('check_id', row.id);
@@ -940,6 +943,14 @@ async function startServer() {
                     WHERE [year] = @check_year
                   `;
                   updateRequest.input('check_year', row.year);
+                } else if (table === 'category_gmroi_thresholds') {
+                  updateQuery = `
+                    UPDATE ID_PORTAL.[${table}]
+                    SET ${setClauses}
+                    OUTPUT INSERTED.*
+                    WHERE [category_id] = @check_cat_id
+                  `;
+                  updateRequest.input('check_cat_id', row.category_id);
                 } else {
                   updateQuery = `
                     UPDATE ID_PORTAL.[${table}]
@@ -1216,6 +1227,46 @@ async function startServer() {
                 updated_at datetime2 DEFAULT GETDATE()
             );
         END
+
+        IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('ID_PORTAL.price_gmroi_templates') AND type in (N'U'))
+        BEGIN
+            CREATE TABLE ID_PORTAL.price_gmroi_templates (
+                id uniqueidentifier PRIMARY KEY DEFAULT newid(),
+                name nvarchar(255) NOT NULL,
+                sap_code nvarchar(100) NOT NULL,
+                line_id uniqueidentifier NOT NULL REFERENCES ID_PORTAL.product_lines(id),
+                category_id uniqueidentifier NOT NULL REFERENCES ID_PORTAL.categories(id),
+                pvp_lista decimal(18, 4) NOT NULL DEFAULT 0,
+                pvp_promocion decimal(18, 4) NOT NULL DEFAULT 0,
+                margen_distribuidor decimal(18, 4) NOT NULL DEFAULT 0,
+                acuerdo_comercial decimal(18, 4) NOT NULL DEFAULT 0,
+                fob_unitario decimal(18, 4) NOT NULL DEFAULT 0,
+                tipo_cambio decimal(18, 4) NOT NULL DEFAULT 0,
+                costo_instalacion decimal(18, 4) NOT NULL DEFAULT 0,
+                costo_flete_contenedor decimal(18, 4) NOT NULL DEFAULT 0,
+                unidades_contenedor int NOT NULL DEFAULT 0,
+                ingresar_costo_directo bit NOT NULL DEFAULT 1,
+                gasto_estimado_consolidado decimal(18, 4) NOT NULL DEFAULT 0,
+                gasto_unitario_aplicado decimal(18, 4) NOT NULL DEFAULT 0,
+                forecast_demanda nvarchar(max) NOT NULL DEFAULT '[]',
+                llegada_stock nvarchar(max) NOT NULL DEFAULT '[]',
+                created_at datetime2 DEFAULT GETDATE(),
+                updated_at datetime2 DEFAULT GETDATE()
+            );
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('ID_PORTAL.category_gmroi_thresholds') AND type in (N'U'))
+        BEGIN
+            CREATE TABLE ID_PORTAL.category_gmroi_thresholds (
+                id uniqueidentifier PRIMARY KEY DEFAULT newid(),
+                category_id uniqueidentifier NOT NULL REFERENCES ID_PORTAL.categories(id) ON DELETE CASCADE,
+                min_medio decimal(18, 4) NOT NULL DEFAULT 0.8,
+                min_alto decimal(18, 4) NOT NULL DEFAULT 1.2,
+                created_at datetime2 DEFAULT GETDATE(),
+                updated_at datetime2 DEFAULT GETDATE(),
+                CONSTRAINT UQ_category_gmroi_thresholds UNIQUE (category_id)
+            );
+        END
       `);
 
       // ─── PERMISSIONS SEED MIGRATION ───────────────────────────────────────────
@@ -1261,6 +1312,7 @@ async function startServer() {
           // Recursos & Guías
           { name: 'brandbook:view',           description: 'Ver Brandbook',                  module: 'Recursos & Guías',        adminOnly: false },
           { name: 'regulations:view',         description: 'Ver Normas NTP',                 module: 'Recursos & Guías',        adminOnly: false },
+          { name: 'price_gmroi_simulator:view', description: 'Ver Simulador de Precios y GMROI', module: 'Recursos & Guías',      adminOnly: false },
           { name: 'fairs:view',               description: 'Ver Ferias Internacionales',     module: 'Recursos & Guías',        adminOnly: false },
           { name: 'apps:view',                description: 'Ver Aplicaciones',               module: 'Recursos & Guías',        adminOnly: false },
           { name: 'records:view',             description: 'Ver Registros Base',             module: 'Recursos & Guías',        adminOnly: false },

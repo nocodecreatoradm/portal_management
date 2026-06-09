@@ -18,7 +18,9 @@ import {
   ProductLine,
   Category,
   InspectionTemplate,
-  QualityClaim
+  QualityClaim,
+  PriceGMROITemplate,
+  CategoryGMROIThreshold
 } from '../types';
 
 const formatDateOnly = (val: any): string => {
@@ -705,4 +707,68 @@ export const mapDBToQualityClaim = (dbClaim: any): QualityClaim => ({
   resolvedBy: dbClaim.resolved_by,
   createdAt: dbClaim.created_at,
   updatedAt: dbClaim.updated_at
+});
+
+export const mapGMROITemplateToDB = (temp: Partial<PriceGMROITemplate>) => {
+  const dbTemp: any = {};
+  if (temp.id !== undefined) dbTemp.id = temp.id;
+  if (temp.name !== undefined) dbTemp.name = temp.name;
+  if (temp.sapCode !== undefined) dbTemp.sap_code = temp.sapCode;
+  if (temp.lineId !== undefined) dbTemp.line_id = temp.lineId;
+  if (temp.categoryId !== undefined) dbTemp.category_id = temp.categoryId;
+  if (temp.pvpLista !== undefined) dbTemp.pvp_lista = temp.pvpLista;
+  if (temp.pvpPromocion !== undefined) dbTemp.pvp_promocion = temp.pvpPromocion;
+  if (temp.margenDistribuidor !== undefined) dbTemp.margen_distribuidor = temp.margenDistribuidor;
+  if (temp.acuerdoComercial !== undefined) dbTemp.acuerdo_comercial = temp.acuerdoComercial;
+  if (temp.fobUnitario !== undefined) dbTemp.fob_unitario = temp.fobUnitario;
+  if (temp.tipoCambio !== undefined) dbTemp.tipo_cambio = temp.tipoCambio;
+  if (temp.costoInstalacion !== undefined) dbTemp.costo_instalacion = temp.costoInstalacion;
+  if (temp.costoFleteContenedor !== undefined) dbTemp.costo_flete_contenedor = temp.costoFleteContenedor;
+  if (temp.unidadesContenedor !== undefined) dbTemp.unidades_contenedor = temp.unidadesContenedor;
+  if (temp.ingresarCostoDirecto !== undefined) dbTemp.ingresar_costo_directo = temp.ingresarCostoDirecto ? 1 : 0;
+  if (temp.gastoEstimadoConsolidado !== undefined) dbTemp.gasto_estimado_consolidado = temp.gastoEstimadoConsolidado;
+  if (temp.gastoUnitarioAplicado !== undefined) dbTemp.gasto_unitario_aplicado = temp.gastoUnitarioAplicado;
+  if (temp.forecastDemanda !== undefined) dbTemp.forecast_demanda = temp.forecastDemanda;
+  if (temp.llegadaStock !== undefined) dbTemp.llegada_stock = temp.llegadaStock;
+  return dbTemp;
+};
+
+export const mapDBToGMROITemplate = (dbTemp: any): PriceGMROITemplate => ({
+  id: dbTemp.id,
+  name: dbTemp.name,
+  sapCode: dbTemp.sap_code,
+  lineId: dbTemp.line_id,
+  categoryId: dbTemp.category_id,
+  pvpLista: Number(dbTemp.pvp_lista || 0),
+  pvpPromocion: Number(dbTemp.pvp_promocion || 0),
+  margenDistribuidor: Number(dbTemp.margen_distribuidor || 0),
+  acuerdoComercial: Number(dbTemp.acuerdo_comercial || 0),
+  fobUnitario: Number(dbTemp.fob_unitario || 0),
+  tipoCambio: Number(dbTemp.tipo_cambio || 0),
+  costoInstalacion: Number(dbTemp.costo_instalacion || 0),
+  costoFleteContenedor: Number(dbTemp.costo_flete_contenedor || 0),
+  unidadesContenedor: Number(dbTemp.unidades_contenedor || 0),
+  ingresarCostoDirecto: dbTemp.ingresar_costo_directo === true || dbTemp.ingresar_costo_directo === 1 || dbTemp.ingresar_costo_directo === '1',
+  gastoEstimadoConsolidado: Number(dbTemp.gasto_estimado_consolidado || 0),
+  gastoUnitarioAplicado: Number(dbTemp.gasto_unitario_aplicado || 0),
+  forecastDemanda: Array.isArray(dbTemp.forecast_demanda) ? dbTemp.forecast_demanda : (typeof dbTemp.forecast_demanda === 'string' ? JSON.parse(dbTemp.forecast_demanda) : Array(12).fill(0)),
+  llegadaStock: Array.isArray(dbTemp.llegada_stock) ? dbTemp.llegada_stock : (typeof dbTemp.llegada_stock === 'string' ? JSON.parse(dbTemp.llegada_stock) : Array(12).fill(0)),
+  createdAt: dbTemp.created_at,
+  updatedAt: dbTemp.updated_at
+});
+
+export const mapThresholdToDB = (thresh: Partial<CategoryGMROIThreshold>) => {
+  const dbThresh: any = {};
+  if (thresh.id !== undefined) dbThresh.id = thresh.id;
+  if (thresh.categoryId !== undefined) dbThresh.category_id = thresh.categoryId;
+  if (thresh.minMedio !== undefined) dbThresh.min_medio = thresh.minMedio;
+  if (thresh.minAlto !== undefined) dbThresh.min_alto = thresh.minAlto;
+  return dbThresh;
+};
+
+export const mapDBToThreshold = (dbThresh: any): CategoryGMROIThreshold => ({
+  id: dbThresh.id,
+  categoryId: dbThresh.category_id,
+  minMedio: Number(dbThresh.min_medio || 0.8),
+  minAlto: Number(dbThresh.min_alto || 1.2)
 });
