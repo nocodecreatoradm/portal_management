@@ -126,7 +126,19 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
           
           // If the sample doesn't have a form or workflow yet, use the template ones
           if (!sample.inspectionForm || sample.inspectionForm.length === 0) {
-            setForm(tpt.formStructure.sections);
+            setForm((tpt.formStructure.sections || []).map((sec: any) => ({
+              id: sec.id || `sec_${Math.random().toString(36).substr(2, 9)}`,
+              title: sec.title || 'Sección de Inspección',
+              fields: (sec.fields || []).map((f: any) => ({
+                id: f.id || `fld_${Math.random().toString(36).substr(2, 9)}`,
+                label: f.label || '',
+                type: f.type || 'textarea',
+                required: f.required || false,
+                options: f.options || [],
+                value: f.value || '',
+                photos: f.photos || []
+              }))
+            })));
           }
           if (!sample.workflow || sample.workflow.length === 0) {
             if (tpt.workflowStructure.sections) {
@@ -742,7 +754,7 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
                         </div>
                       </div>
                       <div className="divide-y divide-slate-100">
-                        {section.fields.map((field) => (
+                        {(section.fields || []).map((field) => (
                           <div key={field.id} className="grid grid-cols-12 gap-6 p-6 items-start hover:bg-slate-50/50 transition-colors">
                             <div className="col-span-3">
                               <input 
@@ -757,13 +769,13 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
                             </div>
                             <div className="col-span-5 space-y-3">
                               <div className="flex flex-wrap gap-2">
-                                {field.photos.map((photo, idx) => (
+                                {(field.photos || []).map((photo, idx) => (
                                   <div key={idx} className="relative group w-20 h-20 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
                                     <img src={photo.url} alt="Evidencia" className="w-full h-full object-cover" />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                       <button 
                                         onClick={() => {
-                                          const newPhotos = field.photos.filter((_, i) => i !== idx);
+                                          const newPhotos = (field.photos || []).filter((_, i) => i !== idx);
                                           handleUpdateField(section.id, field.id, { photos: newPhotos });
                                         }}
                                         className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
