@@ -163,7 +163,8 @@ export default function UserManagement() {
   };
 
   const handleDeleteRole = async (roleId: number) => {
-    if (users.some(u => u.role === roles.find(r => r.id === roleId)?.name)) {
+    const targetRole = roles.find(r => r.id === roleId);
+    if (targetRole && users.some(u => u.role === targetRole.name || u.role === targetRole.display_name)) {
       toast.error('No se puede eliminar un rol que tiene usuarios asignados');
       return;
     }
@@ -211,7 +212,9 @@ export default function UserManagement() {
         user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.department?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+      const matchesRole = roleFilter === 'all' || 
+                          user.role === roleFilter || 
+                          roles.find(r => r.name === roleFilter)?.display_name === user.role;
       const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? user.is_active : !user.is_active);
       return matchesSearch && matchesRole && matchesStatus;
     });
@@ -227,7 +230,10 @@ export default function UserManagement() {
             return r.email?.toLowerCase().includes(filterVal);
           }
           if (col === 'role') {
-            return r.role?.toLowerCase().includes(filterVal);
+            const matchedRole = roles.find(rRole => rRole.name === r.role || rRole.display_name === r.role);
+            const userRoleName = matchedRole ? matchedRole.name : r.role;
+            const userRoleDisplay = matchedRole ? matchedRole.display_name : r.role;
+            return userRoleName?.toLowerCase().includes(filterVal) || userRoleDisplay?.toLowerCase().includes(filterVal);
           }
           if (col === 'is_active') {
             const statusStr = r.is_active ? 'activo' : 'inactivo';
@@ -525,15 +531,23 @@ export default function UserManagement() {
                           </div>
                         </td>
                         <td className="px-8 py-6 text-center">
-                          <div className={`
-                            inline-block px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] border-2 transition-all
-                            ${user.role === 'admin' ? 'bg-red-50 text-red-600 border-red-100' : 
-                              user.role === 'gerente_innovacion' ? 'bg-purple-50 text-purple-600 border-purple-100' :
-                              user.role === 'coordinador_id' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                              'bg-slate-50 text-slate-600 border-slate-100'}
-                          `}>
-                            {roles.find(r => r.name === user.role)?.display_name || user.role || 'VISITANTE'}
-                          </div>
+                          {(() => {
+                            const matchedRoleObj = roles.find(r => r.name === user.role || r.display_name === user.role);
+                            const userRoleName = matchedRoleObj ? matchedRoleObj.name : user.role;
+                            const userRoleDisplay = matchedRoleObj ? matchedRoleObj.display_name : (user.role || 'VISITANTE');
+                            
+                            const badgeColorClass = 
+                              userRoleName === 'admin' ? 'bg-red-50 text-red-600 border-red-100' : 
+                              userRoleName === 'gerente_innovacion' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                              userRoleName === 'coordinador_id' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                              'bg-slate-50 text-slate-600 border-slate-100';
+                              
+                            return (
+                              <div className={`inline-block px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] border-2 transition-all ${badgeColorClass}`}>
+                                {userRoleDisplay}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-8 py-6 text-center">
                           <button

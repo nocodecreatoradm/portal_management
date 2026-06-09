@@ -62,15 +62,18 @@ export default function UserEditModal({ isOpen, onClose, user, roles, onUpdate }
 
   useEffect(() => {
     if (user) {
+      const matchedRole = roles.find(r => r.name === user.role || r.display_name === user.role);
+      const normalizedRoleName = matchedRole ? matchedRole.name : (user.role || 'viewer');
+
       setFormData({
         full_name: user.full_name || '',
         department: user.department || '',
-        role: user.role || 'viewer',
+        role: normalizedRoleName,
         avatar_url: user.avatar_url || '',
         scopes: user.scopes || []
       });
     }
-  }, [user, isOpen]);
+  }, [user, isOpen, roles]);
 
   if (!isOpen || !user) return null;
 

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
+import { RolesService } from '../services/RolesService';
 
 interface Profile {
   id: string;
@@ -70,7 +71,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) throw error;
-      setProfile(data);
+
+      // Normalise role name using RolesService
+      let normalizedRole = data.role || 'viewer';
+      try {
+        const roles = await RolesService.getRoles();
+        const matchedRole = roles.find(r => r.name === data.role || r.display_name === data.role);
+        if (matchedRole) {
+          normalizedRole = matchedRole.name;
+        }
+      } catch (rolesErr) {
+        console.error('Error normalizing role in AuthContext:', rolesErr);
+      }
+
+      setProfile({
+        ...data,
+        role: normalizedRole
+      });
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {

@@ -29,7 +29,7 @@ export const PermissionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setLoading(true);
       // Fetch roles to find the current one and its permissions
       const roles = await RolesService.getRoles();
-      const currentRole = roles.find(r => r.name === profile?.role);
+      const currentRole = roles.find(r => r.name === profile?.role || r.display_name === profile?.role);
       
       if (currentRole && currentRole.permissions) {
         setPermissions(currentRole.permissions.map(p => p.name));
@@ -46,7 +46,7 @@ export const PermissionsProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const hasPermission = (permissionName: string) => {
     // Admin always has all permissions
-    if (profile?.role === 'admin') return true;
+    if (profile?.role === 'admin' || profile?.role === 'Administrador' || profile?.role?.toLowerCase() === 'administrador') return true;
     return permissions.includes(permissionName);
   };
 
