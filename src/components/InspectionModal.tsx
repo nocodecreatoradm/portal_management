@@ -10,6 +10,46 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { isBusinessTime, getBusinessMsBetween } from '../utils/businessHours';
 
+function normalizeWorkflow(rawWorkflow: any): any[] {
+  if (!rawWorkflow) return [];
+  if (Array.isArray(rawWorkflow)) {
+    if (rawWorkflow.length === 0) return [];
+    if (rawWorkflow[0] && (rawWorkflow[0].stages !== undefined || 'title' in rawWorkflow[0])) {
+      return rawWorkflow.map((sec: any) => ({
+        id: sec.id || `wf_sec_${Math.random().toString(36).substr(2, 9)}`,
+        title: sec.title || 'Sección de Trabajo',
+        stages: (sec.stages || []).map((s: any) => ({
+          id: s.id || `stg_${Math.random().toString(36).substr(2, 9)}`,
+          stage: s.stage || s.name || '',
+          status: s.status || 'pending',
+          comment: s.comment || '',
+          files: s.files || [],
+          description: s.description || s.text || '',
+          acceptanceCriteria: s.acceptanceCriteria || '',
+          referencePhotos: s.referencePhotos || []
+        }))
+      }));
+    }
+    return [
+      {
+        id: 'wf_sec_legacy',
+        title: 'Checklist de Procedimiento',
+        stages: rawWorkflow.map((s: any) => ({
+          id: s.id || `stg_${Math.random().toString(36).substr(2, 9)}`,
+          stage: s.stage || s.name || '',
+          status: s.status || 'pending',
+          comment: s.comment || '',
+          files: s.files || [],
+          description: s.description || s.text || '',
+          acceptanceCriteria: s.acceptanceCriteria || '',
+          referencePhotos: s.referencePhotos || []
+        }))
+      }
+    ];
+  }
+  return [];
+}
+
 interface InspectionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -42,12 +82,22 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
     }
   ]);
 
-  const [workflow, setWorkflow] = useState<WorkflowStage[]>(sample.workflow || [
-    { id: 'w1', stage: 'Inspección visual externa', status: 'pending' },
-    { id: 'w2', stage: 'Inspección de componentes internos', status: 'pending' },
-    { id: 'w3', stage: 'Evaluación de Capacidad', status: 'pending' },
-    { id: 'w4', stage: 'Evaluación de sistemas de seguridad', status: 'pending' },
-  ]);
+  const [workflow, setWorkflow] = useState<any[]>(() => {
+    const norm = normalizeWorkflow(sample.workflow);
+    if (norm.length > 0) return norm;
+    return [
+      {
+        id: 'wf_sec_default',
+        title: 'Checklist de Procedimiento',
+        stages: [
+          { id: 'w1', stage: 'Inspección visual externa', status: 'pending', comment: '', files: [], description: '', acceptanceCriteria: '', referencePhotos: [] },
+          { id: 'w2', stage: 'Inspección de componentes internos', status: 'pending', comment: '', files: [], description: '', acceptanceCriteria: '', referencePhotos: [] },
+          { id: 'w3', stage: 'Evaluación de Capacidad', status: 'pending', comment: '', files: [], description: '', acceptanceCriteria: '', referencePhotos: [] },
+          { id: 'w4', stage: 'Evaluación de sistemas de seguridad', status: 'pending', comment: '', files: [], description: '', acceptanceCriteria: '', referencePhotos: [] },
+        ]
+      }
+    ];
+  });
 
   const [timer, setTimer] = useState<InspectionTimer>(sample.inspectionTimer || {
     accumulatedTimeMs: 0,
@@ -79,11 +129,39 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
             setForm(tpt.formStructure.sections);
           }
           if (!sample.workflow || sample.workflow.length === 0) {
-            setWorkflow(tpt.workflowStructure.stages.map(s => ({
-              id: Math.random().toString(36).substr(2, 9),
-              stage: s.name,
-              status: 'pending'
-            })));
+            if (tpt.workflowStructure.sections) {
+              setWorkflow(tpt.workflowStructure.sections.map((sec: any) => ({
+                id: sec.id || `wf_sec_${Math.random().toString(36).substr(2, 9)}`,
+                title: sec.title,
+                stages: (sec.stages || []).map((s: any) => ({
+                  id: s.id || `stg_${Math.random().toString(36).substr(2, 9)}`,
+                  stage: s.name || s.stage || '',
+                  status: 'pending',
+                  comment: '',
+                  files: [],
+                  description: s.text || s.description || '',
+                  acceptanceCriteria: s.acceptanceCriteria || '',
+                  referencePhotos: s.referencePhotos || []
+                }))
+              })));
+            } else if (tpt.workflowStructure.stages) {
+              setWorkflow([
+                {
+                  id: 'wf_sec_default',
+                  title: 'Checklist de Procedimiento',
+                  stages: tpt.workflowStructure.stages.map((s: any) => ({
+                    id: s.id || `stg_${Math.random().toString(36).substr(2, 9)}`,
+                    stage: s.name || s.stage || '',
+                    status: 'pending',
+                    comment: '',
+                    files: [],
+                    description: s.text || s.description || '',
+                    acceptanceCriteria: s.acceptanceCriteria || '',
+                    referencePhotos: s.referencePhotos || []
+                  }))
+                }
+              ]);
+            }
           }
         }
       } catch (error) {
@@ -214,11 +292,19 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
             return sec;
           }));
         } else if (uploadingTo.type === 'workflow') {
-          setWorkflow(prev => prev.map(w => {
-            if (w.id === uploadingTo.stageId) {
-              return { ...w, files: [...(w.files || []), newFile] };
+          setWorkflow(prev => prev.map(sec => {
+            if (sec.id === uploadingTo.sectionId) {
+              return {
+                ...sec,
+                stages: sec.stages.map((w: any) => {
+                  if (w.id === uploadingTo.stageId) {
+                    return { ...w, files: [...(w.files || []), newFile] };
+                  }
+                  return w;
+                })
+              };
             }
-            return w;
+            return sec;
           }));
         }
       };
@@ -234,8 +320,8 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
     fileInputRef.current?.click();
   };
 
-  const triggerWorkflowUpload = (stageId: string) => {
-    setUploadingTo({ type: 'workflow', stageId });
+  const triggerWorkflowUpload = (sectionId: string, stageId: string) => {
+    setUploadingTo({ type: 'workflow', sectionId, stageId });
     fileInputRef.current?.click();
   };
 
@@ -294,19 +380,62 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
     }));
   };
 
-  const handleAddWorkflowStage = () => {
+  const handleAddWorkflowSection = () => {
     setWorkflow(prev => [
       ...prev,
-      { id: Math.random().toString(36).substr(2, 9), stage: 'Nuevo Procedimiento', status: 'pending' }
+      {
+        id: `wf_sec_${Date.now()}`,
+        title: 'NUEVA SECCIÓN DE TRABAJO',
+        stages: []
+      }
     ]);
   };
 
-  const handleUpdateWorkflow = (stageId: string, updates: Partial<WorkflowStage>) => {
-    setWorkflow(prev => prev.map(w => w.id === stageId ? { ...w, ...updates } : w));
+  const handleUpdateWorkflowSectionTitle = (sectionId: string, title: string) => {
+    setWorkflow(prev => prev.map(sec => sec.id === sectionId ? { ...sec, title: title.toUpperCase() } : sec));
   };
 
-  const handleRemoveWorkflowStage = (stageId: string) => {
-    setWorkflow(prev => prev.filter(w => w.id !== stageId));
+  const handleRemoveWorkflowSection = (sectionId: string) => {
+    setWorkflow(prev => prev.filter(sec => sec.id !== sectionId));
+  };
+
+  const handleAddWorkflowStage = (sectionId: string) => {
+    setWorkflow(prev => prev.map(sec => {
+      if (sec.id === sectionId) {
+        return {
+          ...sec,
+          stages: [
+            ...sec.stages,
+            { id: `stg_${Date.now()}`, stage: 'NUEVO PROCEDIMIENTO', status: 'pending', comment: '', files: [], description: '', acceptanceCriteria: '', referencePhotos: [] }
+          ]
+        };
+      }
+      return sec;
+    }));
+  };
+
+  const handleUpdateWorkflow = (sectionId: string, stageId: string, updates: Partial<WorkflowStage>) => {
+    setWorkflow(prev => prev.map(sec => {
+      if (sec.id === sectionId) {
+        return {
+          ...sec,
+          stages: sec.stages.map((w: any) => w.id === stageId ? { ...w, ...updates } : w)
+        };
+      }
+      return sec;
+    }));
+  };
+
+  const handleRemoveWorkflowStage = (sectionId: string, stageId: string) => {
+    setWorkflow(prev => prev.map(sec => {
+      if (sec.id === sectionId) {
+        return {
+          ...sec,
+          stages: sec.stages.filter((w: any) => w.id !== stageId)
+        };
+      }
+      return sec;
+    }));
   };
 
   const handleSaveDraft = () => {
@@ -363,13 +492,16 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
     finalTimer.isPaused = true;
     finalTimer.lastStartTime = undefined;
 
+    const allStages = workflow.flatMap((sec: any) => sec.stages || []);
+    const isAllApproved = allStages.length > 0 && allStages.every((w: any) => w.status === 'approved');
+
     onSave(sample.id, {
       inspectionForm: form,
       workflow: workflow,
       inspectionTimer: finalTimer,
       inspectionProgress: 'completed',
       inspectionCompletedDate: new Date().toISOString(),
-      inspectionStatus: workflow.every(w => w.status === 'approved') ? 'Aprobado' : 'Observado',
+      inspectionStatus: isAllApproved ? 'Aprobado' : 'Observado',
       history: [
         ...sample.history,
         { date: new Date().toISOString().split('T')[0], status: 'Inspección Finalizada', user: 'Técnico' }
@@ -474,11 +606,11 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
                 </button>
               ) : (
                 <button 
-                  onClick={handleAddWorkflowStage}
+                  onClick={handleAddWorkflowSection}
                   className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition-all"
                 >
                   <Plus size={16} />
-                  Añadir Procedimiento
+                  Añadir Sección de Trabajo
                 </button>
               )}
             </div>
@@ -572,105 +704,166 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
                   ))}
                 </div>
               ) : (
-                <div className="max-w-3xl mx-auto space-y-6">
-                  <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
-                    <h4 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-2">
-                      <CheckCircle2 className="text-indigo-500" size={24} />
-                      Checklist de Procedimiento
-                    </h4>
-                    <div className="space-y-4">
-                      {workflow.map((stage) => (
-                        <div key={stage.id} className="space-y-3 p-6 bg-slate-50 rounded-3xl border border-slate-100 group">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4 flex-1">
-                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                                stage.status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
-                                stage.status === 'observed' ? 'bg-amber-100 text-amber-600' : 'bg-white text-slate-300'
-                              }`}>
-                                {stage.status === 'approved' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
-                              </div>
-                              <input 
-                                type="text"
-                                value={stage.stage}
-                                onChange={(e) => handleUpdateWorkflow(stage.id, { stage: e.target.value })}
-                                className="text-sm font-bold text-slate-700 bg-transparent outline-none focus:text-indigo-600 flex-1"
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button 
-                                onClick={() => handleUpdateWorkflow(stage.id, { status: 'approved' })}
-                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                                  stage.status === 'approved' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white text-slate-400 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-600'
-                                }`}
-                              >
-                                Aprobado
-                              </button>
-                              <button 
-                                onClick={() => handleUpdateWorkflow(stage.id, { status: 'observed' })}
-                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                                  stage.status === 'observed' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-white text-slate-400 border border-slate-200 hover:bg-amber-50 hover:text-amber-600'
-                                }`}
-                              >
-                                Observado
-                              </button>
-                              <button 
-                                onClick={() => handleRemoveWorkflowStage(stage.id)}
-                                className="p-2 text-slate-300 hover:text-red-500 transition-all"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-col gap-4 pl-14">
-                            <div className="flex-1">
-                              <textarea 
-                                placeholder="Añadir comentario u observación..."
-                                value={stage.comment || ''}
-                                onChange={(e) => handleUpdateWorkflow(stage.id, { comment: e.target.value })}
-                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500/10 min-h-[120px] resize-none shadow-inner"
-                              />
-                            </div>
-                            
-                            <div className="flex flex-wrap gap-2">
-                              {stage.files?.map((file, idx) => (
-                                <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl group relative">
-                                  <FileText size={14} className="text-indigo-500" />
-                                  <span className="text-[10px] font-bold text-slate-600 truncate max-w-[150px]">{file.name}</span>
-                                  <div className="flex items-center gap-1">
-                                    <a 
-                                      href={file.url} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-indigo-600 hover:text-indigo-700 text-[10px] font-black uppercase"
-                                    >
-                                      Ver
-                                    </a>
-                                    <button 
-                                      onClick={() => {
-                                        const newFiles = stage.files?.filter((_, i) => i !== idx);
-                                        handleUpdateWorkflow(stage.id, { files: newFiles });
-                                      }}
-                                      className="p-1 hover:bg-red-50 text-slate-300 hover:text-red-500 rounded transition-colors"
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                              <button 
-                                onClick={() => triggerWorkflowUpload(stage.id)}
-                                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-slate-50 transition-all border-dashed"
-                              >
-                                <Plus size={14} />
-                                Añadir Doc / Foto
-                              </button>
-                            </div>
-                          </div>
+                <div className="space-y-8">
+                  {workflow.map((section) => (
+                    <div key={section.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                      <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                        <input 
+                          type="text"
+                          value={section.title}
+                          onChange={(e) => handleUpdateWorkflowSectionTitle(section.id, e.target.value)}
+                          className="text-sm font-black text-slate-800 uppercase tracking-widest bg-transparent outline-none focus:text-indigo-600 w-64"
+                        />
+                        <div className="flex items-center gap-4">
+                          <button 
+                            onClick={() => handleAddWorkflowStage(section.id)}
+                            className="flex items-center gap-1.5 text-[10px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest"
+                          >
+                            <Plus size={14} />
+                            Añadir Fila
+                          </button>
+                          <button 
+                            onClick={() => handleRemoveWorkflowSection(section.id)}
+                            className="text-slate-400 hover:text-red-500 transition-all"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
-                      ))}
+                      </div>
+
+                      <div className="divide-y divide-slate-100">
+                        {(section.stages || []).map((stage: any) => (
+                          <div key={stage.id} className="p-6 space-y-4 hover:bg-slate-50/30 transition-colors">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-4 flex-1">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                                  stage.status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
+                                  stage.status === 'observed' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'
+                                }`}>
+                                  {stage.status === 'approved' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+                                </div>
+                                <input 
+                                  type="text"
+                                  value={stage.stage}
+                                  onChange={(e) => handleUpdateWorkflow(section.id, stage.id, { stage: e.target.value })}
+                                  className="text-sm font-bold text-slate-700 bg-transparent outline-none focus:text-indigo-600 flex-1 uppercase"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => handleUpdateWorkflow(section.id, stage.id, { status: 'approved' })}
+                                  className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    stage.status === 'approved' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white text-slate-400 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-600'
+                                  }`}
+                                >
+                                  Aprobado
+                                </button>
+                                <button 
+                                  onClick={() => handleUpdateWorkflow(section.id, stage.id, { status: 'observed' })}
+                                  className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    stage.status === 'observed' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-white text-slate-400 border border-slate-200 hover:bg-amber-50 hover:text-amber-600'
+                                  }`}
+                                >
+                                  Observado
+                                </button>
+                                <button 
+                                  onClick={() => handleRemoveWorkflowStage(section.id, stage.id)}
+                                  className="p-2 text-slate-300 hover:text-red-500 transition-all"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Technical Guide Panel (Read-only reference) */}
+                            {(stage.description || stage.acceptanceCriteria || (stage.referencePhotos && stage.referencePhotos.length > 0)) && (
+                              <div className="ml-14 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/30 space-y-3">
+                                <div className="flex items-center gap-2 text-indigo-900 font-bold text-xs uppercase tracking-wider">
+                                  <FileText size={14} className="text-indigo-500" />
+                                  Guía Técnica de Evaluación
+                                </div>
+                                {stage.description && (
+                                  <div className="space-y-0.5">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Instrucciones del Procedimiento</span>
+                                    <p className="text-xs text-slate-600 whitespace-pre-wrap">{stage.description}</p>
+                                  </div>
+                                )}
+                                {stage.acceptanceCriteria && (
+                                  <div className="space-y-0.5">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Criterios de Aceptación</span>
+                                    <p className="text-xs text-slate-600 whitespace-pre-wrap">{stage.acceptanceCriteria}</p>
+                                  </div>
+                                )}
+                                {stage.referencePhotos && stage.referencePhotos.length > 0 && (
+                                  <div className="space-y-1.5">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Fotos Referenciales</span>
+                                    <div className="flex flex-wrap gap-2">
+                                      {stage.referencePhotos.map((photo: any, pIdx: number) => (
+                                        <a key={pIdx} href={photo.url} target="_blank" rel="noopener noreferrer" className="block w-14 h-14 rounded-lg overflow-hidden border border-slate-200 bg-white hover:opacity-90 transition-opacity shrink-0">
+                                          <img src={photo.url} alt="Referencial" className="w-full h-full object-cover" />
+                                        </a>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Tech Inputs (Comment, Evidence Uploads) */}
+                            <div className="ml-14 flex flex-col gap-4">
+                              <div className="flex-1">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 mb-1">Comentarios y Observaciones del Avance</span>
+                                <textarea 
+                                  placeholder="Añadir comentarios, desvíos u observaciones registradas durante el ensayo..."
+                                  value={stage.comment || ''}
+                                  onChange={(e) => handleUpdateWorkflow(section.id, stage.id, { comment: e.target.value })}
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500/10 min-h-[80px] resize-none shadow-inner"
+                                />
+                              </div>
+                              
+                              <div className="space-y-1.5">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Evidencias Adjuntas</span>
+                                <div className="flex flex-wrap gap-2">
+                                  {stage.files?.map((file: any, idx: number) => (
+                                    <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl group relative">
+                                      <FileText size={14} className="text-indigo-500" />
+                                      <span className="text-[10px] font-bold text-slate-600 truncate max-w-[150px]">{file.name}</span>
+                                      <div className="flex items-center gap-1">
+                                        <a 
+                                          href={file.url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-indigo-600 hover:text-indigo-700 text-[10px] font-black uppercase"
+                                        >
+                                          Ver
+                                        </a>
+                                        <button 
+                                          onClick={() => {
+                                            const newFiles = stage.files?.filter((_: any, i: number) => i !== idx);
+                                            handleUpdateWorkflow(section.id, stage.id, { files: newFiles });
+                                          }}
+                                          className="p-1 hover:bg-red-50 text-slate-300 hover:text-red-500 rounded transition-colors"
+                                        >
+                                          <Trash2 size={12} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                  <button 
+                                    onClick={() => triggerWorkflowUpload(section.id, stage.id)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-slate-50 transition-all border-dashed"
+                                  >
+                                    <Plus size={14} />
+                                    Añadir Doc / Foto
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  ))}
 
                   <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100 flex items-start gap-4">
                     <AlertCircle className="text-indigo-500 shrink-0" size={20} />

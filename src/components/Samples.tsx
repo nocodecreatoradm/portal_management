@@ -1441,31 +1441,72 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                       <CheckCircle2 size={16} className="text-emerald-500" />
                       Estado de Procedimientos
                     </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      {selectedSample.workflow?.map(stage => (
-                        <div key={stage.id} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                              stage.status === 'approved' ? 'bg-emerald-50 text-emerald-600' :
-                              stage.status === 'observed' ? 'bg-amber-50 text-amber-600' :
-                              'bg-slate-50 text-slate-400'
-                            }`}>
-                              {stage.status === 'approved' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                    <div className="grid grid-cols-2 gap-6">
+                      {(() => {
+                        const isSectioned = selectedSample.workflow && selectedSample.workflow.length > 0 && selectedSample.workflow[0].stages !== undefined;
+                        if (isSectioned) {
+                          return selectedSample.workflow.map((section: any) => (
+                            <div key={section.id} className="col-span-2 space-y-3">
+                              <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">{section.title}</h5>
+                              <div className="grid grid-cols-2 gap-4">
+                                {(section.stages || []).map((stage: any) => (
+                                  <div key={stage.id} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                        stage.status === 'approved' ? 'bg-emerald-50 text-emerald-600' :
+                                        stage.status === 'observed' ? 'bg-amber-50 text-amber-600' :
+                                        'bg-slate-50 text-slate-400'
+                                      }`}>
+                                        {stage.status === 'approved' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                                      </div>
+                                      <div>
+                                        <p className="text-xs font-bold text-slate-700">{stage.stage || stage.name}</p>
+                                        {stage.comment && <p className="text-[10px] text-slate-400 font-medium">{stage.comment}</p>}
+                                      </div>
+                                    </div>
+                                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md shrink-0 ${
+                                      stage.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                                      stage.status === 'observed' ? 'bg-amber-100 text-amber-700' :
+                                      'bg-slate-100 text-slate-500'
+                                    }`}>
+                                      {stage.status === 'approved' ? 'Aprobado' : stage.status === 'observed' ? 'Observado' : 'Pendiente'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-xs font-bold text-slate-700">{stage.stage}</p>
-                              {stage.comment && <p className="text-[10px] text-slate-400 font-medium">{stage.comment}</p>}
+                          ));
+                        } else {
+                          return (
+                            <div className="col-span-2 grid grid-cols-2 gap-4">
+                              {selectedSample.workflow?.map((stage: any) => (
+                                <div key={stage.id} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                      stage.status === 'approved' ? 'bg-emerald-50 text-emerald-600' :
+                                      stage.status === 'observed' ? 'bg-amber-50 text-amber-600' :
+                                      'bg-slate-50 text-slate-400'
+                                    }`}>
+                                      {stage.status === 'approved' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-bold text-slate-700">{stage.stage}</p>
+                                      {stage.comment && <p className="text-[10px] text-slate-400 font-medium">{stage.comment}</p>}
+                                    </div>
+                                  </div>
+                                  <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md shrink-0 ${
+                                    stage.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                                    stage.status === 'observed' ? 'bg-amber-100 text-amber-700' :
+                                    'bg-slate-100 text-slate-500'
+                                  }`}>
+                                    {stage.status === 'approved' ? 'Aprobado' : stage.status === 'observed' ? 'Observado' : 'Pendiente'}
+                                  </span>
+                                </div>
+                              ))}
                             </div>
-                          </div>
-                          <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${
-                            stage.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                            stage.status === 'observed' ? 'bg-amber-100 text-amber-700' :
-                            'bg-slate-100 text-slate-500'
-                          }`}>
-                            {stage.status === 'approved' ? 'Aprobado' : stage.status === 'observed' ? 'Observado' : 'Pendiente'}
-                          </span>
-                        </div>
-                      ))}
+                          );
+                        }
+                      })()}
                     </div>
                   </div>
                 </div>

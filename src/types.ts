@@ -183,6 +183,9 @@ export interface WorkflowStage {
   status: 'pending' | 'approved' | 'observed' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   comment?: string;
   files?: FileInfo[];
+  description?: string;
+  acceptanceCriteria?: string;
+  referencePhotos?: FileInfo[];
 }
 
 export interface InitialTechnicalDatasheet {
@@ -214,7 +217,7 @@ export interface InspectionTemplate {
   categoryId: string;
   name: string;
   formStructure: { sections: any[] };
-  workflowStructure: { stages: WorkflowStage[] };
+  workflowStructure: { stages?: WorkflowStage[]; sections?: any[] };
   procedureFile?: FileInfo;
   createdAt?: string;
   updatedAt?: string;
@@ -251,7 +254,7 @@ export interface SampleRecord {
   inspectionCompletedDate?: string;
   inspectionTimer?: InspectionTimer;
   inspectionForm?: InspectionSection[];
-  workflow?: WorkflowStage[];
+  workflow?: any[];
   infoRequests?: InfoRequest[];
   providerDocuments?: FileInfo[];
   gallery?: {
