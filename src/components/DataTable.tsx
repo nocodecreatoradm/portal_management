@@ -165,6 +165,19 @@ export default function DataTable({
           const sampleCorrel = getSampleCorrelative(item.sampleId) || '';
           return sampleCorrel.toLowerCase().includes(lowerValue);
         }
+        if (key === 'assignment') {
+          const assignment = mode === 'artwork' 
+            ? item.artworkAssignment 
+            : mode === 'technical_sheet' 
+              ? item.technicalAssignment 
+              : item.commercialAssignment;
+          if (!assignment) return false;
+          const designerName = assignment.designer || '';
+          const plannedDate = assignment.plannedEndDate 
+            ? format(parseISO(assignment.plannedEndDate), 'dd/MM/yy') 
+            : '';
+          return designerName.toLowerCase().includes(lowerValue) || plannedDate.toLowerCase().includes(lowerValue);
+        }
 
         const itemValue = String((item as any)[key] || '').toLowerCase();
         return itemValue.includes(lowerValue);
@@ -295,6 +308,22 @@ export default function DataTable({
   const uniqueLines = useMemo(() => Array.from(new Set(data.map(item => item.linea || '').filter(Boolean))), [data]);
   const uniqueBrands = useMemo(() => Array.from(new Set(data.map(item => item.marca || '').filter(Boolean))), [data]);
   const uniqueSamples = useMemo(() => Array.from(new Set(data.map(item => getSampleCorrelative(item.sampleId) || '').filter(Boolean))), [data, samples]);
+  const uniqueDesigners = useMemo(() => {
+    return Array.from(
+      new Set(
+        data
+          .map(item => {
+            const assignment = mode === 'artwork' 
+              ? item.artworkAssignment 
+              : mode === 'technical_sheet' 
+                ? item.technicalAssignment 
+                : item.commercialAssignment;
+            return assignment?.designer || '';
+          })
+          .filter(Boolean)
+      )
+    );
+  }, [data, mode]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
@@ -649,11 +678,15 @@ export default function DataTable({
               >
                 <div className="flex items-center justify-center gap-1.5">
                   <span>Asignación</span>
-                  {sortConfig.column === 'assignment' && sortConfig.direction && (
-                    sortConfig.direction === 'asc' 
-                      ? <ArrowUp size={12} className="text-blue-600 animate-pulse" /> 
-                      : <ArrowDown size={12} className="text-blue-600 animate-pulse" />
-                  )}
+                  <HeaderFilterPopover 
+                    column="assignment" 
+                    label="Asignación" 
+                    currentFilter={columnFilters.assignment || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                    uniqueValues={uniqueDesigners}
+                  />
                 </div>
               </th>
               <th colSpan={mode === 'artwork' ? 6 : 3} className={`px-4 py-2 text-center ${

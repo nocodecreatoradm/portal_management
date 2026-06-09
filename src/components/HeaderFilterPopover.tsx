@@ -79,9 +79,12 @@ export default function HeaderFilterPopover({
       </button>
 
       {isOpen && (
-        <div className={`absolute top-full mt-1.5 w-64 bg-white rounded-2xl border border-slate-200 shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-200 text-left normal-case tracking-normal ${
-          align === 'right' ? 'right-0' : align === 'center' ? 'left-1/2 -translate-x-1/2' : 'left-0'
-        }`}>
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className={`absolute top-full mt-1.5 w-64 bg-white rounded-2xl border border-slate-200 shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-200 text-left normal-case tracking-normal ${
+            align === 'right' ? 'right-0' : align === 'center' ? 'left-1/2 -translate-x-1/2' : 'left-0'
+          }`}
+        >
           {/* Header */}
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
             <span className="text-xs font-black text-slate-800 tracking-tight">{label}</span>
