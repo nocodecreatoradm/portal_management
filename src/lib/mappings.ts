@@ -478,13 +478,13 @@ export const mapSampleToDB = (sample: Partial<SampleRecord>) => {
   const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
   if (sample.correlativeId !== undefined) dbSample.correlative_id = sample.correlativeId;
-  if (sample.codigoSAP !== undefined) dbSample.sap_code = sample.codigoSAP;
-  if (sample.descripcionSAP !== undefined) dbSample.sap_description = sample.descripcionSAP;
+  if (sample.codigoSAP !== undefined) dbSample.codigo_sap = sample.codigoSAP;
+  if (sample.descripcionSAP !== undefined) dbSample.descripcion_sap = sample.descripcionSAP;
   if (sample.marca !== undefined) dbSample.brand_id = isUUID(sample.marca) ? sample.marca : null;
   if (sample.proveedor !== undefined) dbSample.supplier_id = isUUID(sample.proveedor) ? sample.proveedor : null;
   if (sample.linea !== undefined) dbSample.line_id = isUUID(sample.linea) ? sample.linea : null;
   if (sample.categoria !== undefined) dbSample.category_id = isUUID(sample.categoria) ? sample.categoria : null;
-  if (sample.technician !== undefined) dbSample.technician_id = isUUID(sample.technician) ? sample.technician : null;
+  if (sample.technician !== undefined) dbSample.technician = isUUID(sample.technician) ? sample.technician : null;
   if (sample.inspectionDate !== undefined) dbSample.inspection_date = sample.inspectionDate;
   if (sample.inspectionStatus !== undefined) dbSample.inspection_status = sample.inspectionStatus;
   if (sample.inspectionProgress !== undefined) dbSample.inspection_progress = sample.inspectionProgress;
@@ -508,8 +508,8 @@ export const mapDBToSample = (dbSample: any): SampleRecord => ({
   correlativeId: dbSample.correlative_id,
   createdAt: dbSample.created_at,
   version: dbSample.version || 1,
-  codigoSAP: dbSample.sap_code,
-  descripcionSAP: dbSample.sap_description,
+  codigoSAP: dbSample.codigo_sap,
+  descripcionSAP: dbSample.descripcion_sap,
   marca: dbSample.brand?.name || dbSample.brand_id || 'SOLE',
   proveedor: dbSample.supplier?.commercial_alias || dbSample.supplier?.legal_name || dbSample.supplier_id || 'Desconocido',
   linea: dbSample.line?.name || dbSample.line_id || 'AGUA CALIENTE',
@@ -518,7 +518,7 @@ export const mapDBToSample = (dbSample: any): SampleRecord => ({
   inspectionStatus: dbSample.inspection_status,
   reportDate: dbSample.report_date,
   reportFile: dbSample.report_file,
-  technician: dbSample.technician_id,
+  technician: dbSample.technician,
   inspectionProgress: dbSample.inspection_progress as any,
   inspectionTimer: dbSample.inspection_timer,
   inspectionForm: dbSample.inspection_form,

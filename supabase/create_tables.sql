@@ -63,6 +63,8 @@ CREATE TABLE ID_PORTAL.profiles (
     role_id uniqueidentifier REFERENCES ID_PORTAL.roles(id), -- Linked role object
     password_hash nvarchar(255), -- For local secure auth
     is_active bit DEFAULT 1,
+    avatar_url nvarchar(max),
+    scopes nvarchar(max) DEFAULT '[]',
     created_at datetime2 DEFAULT GETDATE(),
     updated_at datetime2 DEFAULT GETDATE()
 );

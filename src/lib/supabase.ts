@@ -208,9 +208,39 @@ export const supabase = {
 
     onAuthStateChange(callback: any) {
       authListeners.push(callback);
-      this.getSession().then(({ data: { session } }) => {
-        callback(session ? 'INITIAL_SESSION' : 'SIGNED_OUT', session);
-      });
+
+      // Check URL query parameters for recovery flow
+      const params = new URLSearchParams(window.location.search);
+      const isRecoveryFlow = params.get('recovery') === 'true';
+      const recoveryToken = params.get('token');
+      const recoveryEmail = params.get('email');
+
+      if (isRecoveryFlow && recoveryToken && recoveryEmail) {
+        // Initialize recovery session state
+        localStorage.setItem('auth_token', recoveryToken);
+        localStorage.setItem('auth_user', JSON.stringify({ email: recoveryEmail }));
+        
+        // Clean URL parameters from the browser history
+        try {
+          const newUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+        } catch (e) {
+          console.error('Failed to clean recovery URL parameters:', e);
+        }
+
+        // Trigger the recovery callback after a tiny delay to ensure listeners are ready
+        setTimeout(() => {
+          callback('PASSWORD_RECOVERY', {
+            access_token: recoveryToken,
+            user: { email: recoveryEmail }
+          });
+        }, 100);
+      } else {
+        this.getSession().then(({ data: { session } }) => {
+          callback(session ? 'INITIAL_SESSION' : 'SIGNED_OUT', session);
+        });
+      }
+
       return {
         data: {
           subscription: {

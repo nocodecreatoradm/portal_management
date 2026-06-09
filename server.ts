@@ -494,9 +494,104 @@ async function startServer() {
     }
   });
 
-  // Local JWT Auth: Reset password request (Mocked)
+  // Local JWT Auth: Reset password request
   app.post("/api/auth/reset-password-request", async (req, res) => {
-    res.json({ success: true, message: "Instrucciones de recuperación enviadas" });
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "El correo electrónico es requerido" });
+    }
+
+    try {
+      const dbPool = await getDBPool();
+      const result = await dbPool.request()
+        .input('email', email)
+        .query('SELECT * FROM ID_PORTAL.profiles WHERE email = @email');
+
+      if (result.recordset.length === 0) {
+        return res.status(400).json({ error: "No existe un usuario registrado con este correo" });
+      }
+
+      const user = result.recordset[0];
+      if (!user.is_active) {
+        return res.status(400).json({ error: "El usuario se encuentra inactivo" });
+      }
+
+      // Generate a temporary recovery token valid for 1 hour
+      const token = jwt.sign(
+        { id: user.id, email: user.email, role: user.role, isRecovery: true },
+        JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+
+      const origin = req.headers.origin || 'https://no-code-creation-portal-management.jppsfv.easypanel.host';
+      const recoveryUrl = `${origin}/?recovery=true&token=${token}&email=${encodeURIComponent(email)}`;
+
+      console.log(`[PASSWORD RECOVERY] Generated recovery URL for ${email}: ${recoveryUrl}`);
+
+      const userEmail = process.env.AZURE_MAIL_USER;
+      if (!userEmail) {
+        console.warn("[PASSWORD RECOVERY] AZURE_MAIL_USER is not defined in environment. Simulating successful send.");
+        return res.json({ success: true, message: "Instrucciones de recuperación simuladas (ver log del servidor)." });
+      }
+
+      const accessToken = await getAzureAccessToken();
+      const graphUrl = `https://graph.microsoft.com/v1.0/users/${userEmail}/sendMail`;
+
+      const emailPayload = {
+        message: {
+          subject: "Restablecer Contraseña - Portal de I+D",
+          body: {
+            contentType: "HTML",
+            content: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 24px; background-color: #ffffff; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);">
+                <div style="text-align: center; margin-bottom: 25px;">
+                  <h2 style="color: #2563eb; margin-bottom: 5px; font-weight: 8px;">Portal de I+D Sole</h2>
+                  <p style="color: #64748b; font-size: 14px; margin-top: 0; font-weight: 500;">Recuperación de Contraseña</p>
+                </div>
+                <p style="font-size: 16px; color: #1e293b; line-height: 1.6; font-weight: bold;">Hola, ${user.full_name}:</p>
+                <p style="font-size: 14px; color: #334155; line-height: 1.6;">
+                  Hemos recibido una solicitud para restablecer la contraseña de acceso a tu cuenta vinculada en el Portal de I+D de Sole.
+                </p>
+                <div style="text-align: center; margin: 35px 0;">
+                  <a href="${recoveryUrl}" style="background-color: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">
+                    Restablecer Contraseña
+                  </a>
+                </div>
+                <p style="font-size: 12px; color: #64748b; line-height: 1.6; border-left: 3px solid #cbd5e1; padding-left: 12px; margin: 25px 0;">
+                  <strong>Nota importante:</strong> Este enlace de recuperación es de un solo uso y expirará en un plazo de 1 hora. Si tú no has realizado esta solicitud, puedes ignorar este correo tranquilamente.
+                </p>
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 25px 0;" />
+                <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 0;">
+                  Este es un correo automático generado por el sistema. Por favor no respondas a este remitente.
+                </p>
+              </div>
+            `,
+          },
+          toRecipients: [{ emailAddress: { address: email } }],
+        },
+        saveToSentItems: "false",
+      };
+
+      const graphResponse = await fetch(graphUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(emailPayload),
+      });
+
+      if (!graphResponse.ok) {
+        const errorData = await graphResponse.json() as any;
+        console.error("[PASSWORD RECOVERY] Microsoft Graph API error:", errorData);
+        throw new Error(errorData.error?.message || "Failed to send email");
+      }
+
+      res.json({ success: true, message: "Enlace de recuperación enviado por correo electrónico." });
+    } catch (error: any) {
+      console.error("[PASSWORD RECOVERY] Fatal recovery error:", error);
+      res.status(500).json({ error: "Error interno al enviar el correo de recuperación" });
+    }
   });
 
 
@@ -1032,6 +1127,16 @@ async function startServer() {
         IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.energy_efficiency_records') AND name = 'category_id')
         BEGIN
             ALTER TABLE ID_PORTAL.energy_efficiency_records ADD category_id uniqueidentifier REFERENCES ID_PORTAL.categories(id);
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.profiles') AND name = 'avatar_url')
+        BEGIN
+            ALTER TABLE ID_PORTAL.profiles ADD avatar_url nvarchar(max);
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.profiles') AND name = 'scopes')
+        BEGIN
+            ALTER TABLE ID_PORTAL.profiles ADD scopes nvarchar(max) DEFAULT '[]';
         END
       `);
       console.log("Startup migrations completed successfully");
