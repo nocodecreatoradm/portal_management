@@ -308,9 +308,9 @@ export const mapPMRecordToDB = (record: Partial<ProductManagementRecord>) => {
   if (record.codigoEAN !== undefined) dbRecord.ean_code = record.codigoEAN;
   if (record.eanCode !== undefined) dbRecord.ean_code = record.eanCode;
   if (record.descripcionSAP !== undefined) dbRecord.sap_description = record.descripcionSAP;
-  if (record.brandId !== undefined) dbRecord.brand_id = record.brandId;
-  if (record.supplierId !== undefined) dbRecord.supplier_id = record.supplierId;
-  if (record.lineId !== undefined) dbRecord.line_id = record.lineId;
+  if (record.brandId !== undefined || record.marca !== undefined) dbRecord.brand_id = record.brandId || (record.marca && isUUID(record.marca) ? record.marca : null);
+  if (record.supplierId !== undefined || record.proveedor !== undefined) dbRecord.supplier_id = record.supplierId || (record.proveedor && isUUID(record.proveedor) ? record.proveedor : null);
+  if (record.lineId !== undefined || record.linea !== undefined) dbRecord.line_id = record.lineId || (record.linea && isUUID(record.linea) ? record.linea : null);
   if (record.sampleId !== undefined) dbRecord.sample_id = isUUID(record.sampleId) ? record.sampleId : null;
   if (record.fobPrice !== undefined) dbRecord.fob_price = record.fobPrice;
   if (record.fobPriceHistory !== undefined) dbRecord.fob_price_history = record.fobPriceHistory;

@@ -286,59 +286,71 @@ export default function ProductsModule({
       const resolvedFormData = { ...formData };
 
       // Resolve Brand
-      if (!isUUID(resolvedFormData.marca) && resolvedFormData.marca) {
-        const found = brands.find(b => b.name === resolvedFormData.marca);
-        if (found) {
-          resolvedFormData.marca = found.id;
-          resolvedFormData.brandId = found.id;
+      if (resolvedFormData.marca) {
+        if (isUUID(resolvedFormData.marca)) {
+          resolvedFormData.brandId = resolvedFormData.marca;
         } else {
-          try {
-            const newBrand = await SupabaseService.createBrand({ name: resolvedFormData.marca });
-            resolvedFormData.marca = newBrand.id;
-            resolvedFormData.brandId = newBrand.id;
-            setBrands(prev => [...prev, newBrand]);
-          } catch (err) {
-            console.warn('Error creating brand, using name:', err);
+          const found = brands.find(b => b.name === resolvedFormData.marca);
+          if (found) {
+            resolvedFormData.marca = found.id;
+            resolvedFormData.brandId = found.id;
+          } else {
+            try {
+              const newBrand = await SupabaseService.createBrand({ name: resolvedFormData.marca });
+              resolvedFormData.marca = newBrand.id;
+              resolvedFormData.brandId = newBrand.id;
+              setBrands(prev => [...prev, newBrand]);
+            } catch (err) {
+              console.warn('Error creating brand, using name:', err);
+            }
           }
         }
       }
 
       // Resolve Supplier
-      if (!isUUID(resolvedFormData.proveedor) && resolvedFormData.proveedor) {
-        const found = suppliers.find(s => s.legalName === resolvedFormData.proveedor || s.commercialAlias === resolvedFormData.proveedor);
-        if (found) {
-          resolvedFormData.proveedor = found.id;
-          resolvedFormData.supplierId = found.id;
+      if (resolvedFormData.proveedor) {
+        if (isUUID(resolvedFormData.proveedor)) {
+          resolvedFormData.supplierId = resolvedFormData.proveedor;
         } else {
-          try {
-            const newSupplier = await SupabaseService.createSupplier({ 
-              legalName: resolvedFormData.proveedor,
-              commercialAlias: resolvedFormData.proveedor,
-              erpCode: 'TEMP-' + Date.now()
-            });
-            resolvedFormData.proveedor = newSupplier.id;
-            resolvedFormData.supplierId = newSupplier.id;
-            setSuppliers(prev => [...prev, newSupplier]);
-          } catch (err) {
-            console.warn('Error creating supplier, using name:', err);
+          const found = suppliers.find(s => s.legalName === resolvedFormData.proveedor || s.commercialAlias === resolvedFormData.proveedor);
+          if (found) {
+            resolvedFormData.proveedor = found.id;
+            resolvedFormData.supplierId = found.id;
+          } else {
+            try {
+              const newSupplier = await SupabaseService.createSupplier({ 
+                legalName: resolvedFormData.proveedor,
+                commercialAlias: resolvedFormData.proveedor,
+                erpCode: 'TEMP-' + Date.now()
+              });
+              resolvedFormData.proveedor = newSupplier.id;
+              resolvedFormData.supplierId = newSupplier.id;
+              setSuppliers(prev => [...prev, newSupplier]);
+            } catch (err) {
+              console.warn('Error creating supplier, using name:', err);
+            }
           }
         }
       }
 
       // Resolve Line
-      if (!isUUID(resolvedFormData.linea) && resolvedFormData.linea) {
-        const found = productLines.find(l => l.name === resolvedFormData.linea);
-        if (found) {
-          resolvedFormData.linea = found.id;
-          resolvedFormData.lineId = found.id;
+      if (resolvedFormData.linea) {
+        if (isUUID(resolvedFormData.linea)) {
+          resolvedFormData.lineId = resolvedFormData.linea;
         } else {
-          try {
-            const newLine = await SupabaseService.createProductLine({ name: resolvedFormData.linea });
-            resolvedFormData.linea = newLine.id;
-            resolvedFormData.lineId = newLine.id;
-            setProductLines(prev => [...prev, newLine]);
-          } catch (err) {
-            console.warn('Error creating line, using name:', err);
+          const found = productLines.find(l => l.name === resolvedFormData.linea);
+          if (found) {
+            resolvedFormData.linea = found.id;
+            resolvedFormData.lineId = found.id;
+          } else {
+            try {
+              const newLine = await SupabaseService.createProductLine({ name: resolvedFormData.linea });
+              resolvedFormData.linea = newLine.id;
+              resolvedFormData.lineId = newLine.id;
+              setProductLines(prev => [...prev, newLine]);
+            } catch (err) {
+              console.warn('Error creating line, using name:', err);
+            }
           }
         }
       }
