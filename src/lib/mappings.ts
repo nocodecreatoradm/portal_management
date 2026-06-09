@@ -20,26 +20,28 @@ import {
   InspectionTemplate
 } from '../types';
 
-export const mapInventoryToDB = (item: Partial<RDInventoryItem>) => ({
-  serial_number: item.serialNumber,
-  description: item.description,
-  responsible_id: item.responsible, // Assuming 'responsible' is an ID
-  acquisition_date: item.acquisitionDate,
-  startup_date: item.startupDate,
-  calibration_status: item.calibrationStatus,
-  category: item.category,
-  equipment_type: item.equipmentType,
-  source_type: item.sourceType,
-  brand: item.brand,
-  model: item.model,
-  equipment_range: item.equipmentRange,
-  last_calibration_date: item.lastCalibrationDate,
-  next_calibration_date: item.nextCalibrationDate,
-  manual_file: item.manual,
-  photos: item.photos,
-  certificate: item.certificate,
-  certificates: item.certificateHistory
-});
+export const mapInventoryToDB = (item: Partial<RDInventoryItem>) => {
+  const dbItem: any = {};
+  if (item.serialNumber      !== undefined) dbItem.serial_number        = item.serialNumber;
+  if (item.description       !== undefined) dbItem.description          = item.description;
+  if (item.responsible       !== undefined) dbItem.responsible_id       = item.responsible;
+  if (item.acquisitionDate   !== undefined) dbItem.acquisition_date     = item.acquisitionDate;
+  if (item.startupDate       !== undefined) dbItem.startup_date         = item.startupDate;
+  if (item.calibrationStatus !== undefined) dbItem.calibration_status   = item.calibrationStatus;
+  if (item.category          !== undefined) dbItem.category             = item.category;
+  if (item.equipmentType     !== undefined) dbItem.equipment_type       = item.equipmentType;
+  if (item.sourceType        !== undefined) dbItem.source_type          = item.sourceType;
+  if (item.brand             !== undefined) dbItem.brand                = item.brand;
+  if (item.model             !== undefined) dbItem.model                = item.model;
+  if (item.equipmentRange    !== undefined) dbItem.equipment_range      = item.equipmentRange;
+  if (item.lastCalibrationDate  !== undefined) dbItem.last_calibration_date = item.lastCalibrationDate;
+  if (item.nextCalibrationDate  !== undefined) dbItem.next_calibration_date = item.nextCalibrationDate;
+  if (item.manual            !== undefined) dbItem.manual_file          = item.manual;
+  if (item.photos            !== undefined) dbItem.photos               = item.photos;
+  if (item.certificate       !== undefined) dbItem.certificate          = item.certificate;
+  if (item.certificateHistory !== undefined) dbItem.certificates        = item.certificateHistory;
+  return dbItem;
+};
 
 export const mapDBToInventory = (dbItem: any): RDInventoryItem => ({
   id: dbItem.id,
