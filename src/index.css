@@ -65,3 +65,10 @@ body {
     scrollbar-color: rgba(71, 85, 105, 0.4) transparent;
   }
 }
+
+/* Quitar borde negro por defecto de enfoque en gráficos */
+.recharts-wrapper:focus,
+.recharts-surface:focus,
+.recharts-legend-wrapper:focus {
+  outline: none !important;
+}

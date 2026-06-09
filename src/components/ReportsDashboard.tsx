@@ -127,9 +127,17 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
         if (type === 'art') designerStats[designer].artworks++;
         designerStats[designer].total++;
 
-        if (assignment.assignmentDate && assignment.actualCompletionDate) {
-          const start = parseISO(assignment.assignmentDate);
-          const end = parseISO(assignment.actualCompletionDate);
+        const docArrayKey = activeModule === 'artwork_followup' ? 'artworks' : 
+                            activeModule === 'technical_datasheet' ? 'technicalSheets' : 'commercialSheets';
+        const docs = record[docArrayKey as keyof ProductRecord] as any[] || [];
+        const docDates = docs.map(d => parseISO(d.uploadDate)).sort((a, b) => a.getTime() - b.getTime());
+        const actualCompletionDate = docDates.length > 0 ? docDates[0] : null;
+
+        const startStr = assignment.plannedStartDate || assignment.assignmentDate || record.createdAt;
+
+        if (startStr && actualCompletionDate) {
+          const start = parseISO(startStr);
+          const end = actualCompletionDate;
           const diff = differenceInDays(end, start);
           designerStats[designer].avgCompletionDays.push(Math.max(0, diff));
 
@@ -161,14 +169,25 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
     const monthlyPerformance: Record<string, { total: number, count: number }> = {};
     
     data.forEach(record => {
+      const docArrayKey = activeModule === 'artwork_followup' ? 'artworks' : 
+                          activeModule === 'technical_datasheet' ? 'technicalSheets' : 'commercialSheets';
+      const docs = record[docArrayKey as keyof ProductRecord] as any[] || [];
+      if (docs.length === 0) return;
+      
+      const docDates = docs.map(d => parseISO(d.uploadDate)).sort((a, b) => a.getTime() - b.getTime());
+      const end = docDates[0];
+      
       const assignmentKey = activeModule === 'artwork_followup' ? 'artworkAssignment' : 
                             activeModule === 'technical_datasheet' ? 'technicalAssignment' : 'commercialAssignment';
       const assignment = record[assignmentKey as keyof ProductRecord] as any;
-      if (assignment?.assignmentDate && assignment?.actualCompletionDate) {
-        const start = parseISO(assignment.assignmentDate);
-        const end = parseISO(assignment.actualCompletionDate);
+      const startStr = assignment?.plannedStartDate || assignment?.assignmentDate || record.createdAt;
+      if (!startStr) return;
+      
+      const start = parseISO(startStr);
+      
+      // Filter by selected dateRange
+      if (isWithinInterval(end, { start: startDate, end: endDate })) {
         const diff = differenceInDays(end, start);
-        
         const monthKey = format(end, 'yyyy-MM');
         if (!monthlyPerformance[monthKey]) {
           monthlyPerformance[monthKey] = { total: 0, count: 0 };
@@ -182,7 +201,10 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, stats]) => ({
         month,
-        displayMonth: format(parseISO(`${month}-01`), "d MMMM yyyy", { locale: es }),
+        displayMonth: (() => {
+          const formatted = format(parseISO(`${month}-01`), "MMMM yyyy", { locale: es });
+          return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+        })(),
         avgDays: parseFloat((stats.total / stats.count).toFixed(1))
       }));
 
@@ -223,14 +245,17 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                             activeModule === 'technical_datasheet' ? 'technicalAssignment' : 'commercialAssignment';
       const assignment = record[assignmentKey as keyof ProductRecord] as any;
 
+      const docDates = docs.map(d => parseISO(d.uploadDate)).sort((a, b) => a.getTime() - b.getTime());
+      const actualCompletionDate = docDates.length > 0 ? docs[0].uploadDate.split('T')[0] : 'N/A';
+
       return {
         'Producto': record.descripcionSAP,
         'Marca': record.marca,
         'Categoría': record.linea,
         'Estado': docs.length > 0 ? docs[docs.length - 1].idApproval.status : 'Pendiente',
         'Diseñador': assignment?.designer || 'N/A',
-        'Fecha Asignación': assignment?.assignmentDate || 'N/A',
-        'Fecha Fin Real': assignment?.actualCompletionDate || 'N/A',
+        'Fecha Asignación': assignment?.plannedStartDate || assignment?.assignmentDate || 'N/A',
+        'Fecha Fin Real': actualCompletionDate,
       };
     });
     exportToExcel(dataToExport, 'Reporte_Performance_ID');
@@ -426,7 +451,7 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                     tickLine={false} 
                     tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
                     label={{ 
-                      value: 'Tiempo de Elaboración de FC (días)', 
+                      value: `Tiempo de Elaboración de ${activeModule === 'artwork_followup' ? 'Artes' : activeModule === 'technical_datasheet' ? 'FT' : 'FC'} (días)`, 
                       angle: -90, 
                       position: 'insideLeft', 
                       style: { fill: '#94a3b8', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
