@@ -1143,6 +1143,51 @@ async function startServer() {
         BEGIN
             ALTER TABLE ID_PORTAL.innovation_proposals ADD updates nvarchar(max);
         END
+
+        DECLARE @ConstraintName NVARCHAR(255);
+        SELECT TOP 1 @ConstraintName = dc.name
+        FROM sys.key_constraints dc
+        WHERE dc.parent_object_id = OBJECT_ID('ID_PORTAL.products')
+          AND dc.type = 'UQ'
+          AND EXISTS (
+              SELECT 1 FROM sys.index_columns ic 
+              JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+              WHERE ic.object_id = dc.parent_object_id AND ic.index_id = dc.unique_index_id
+                AND c.name = 'sap_code'
+          );
+
+        IF @ConstraintName IS NOT NULL
+        BEGIN
+            DECLARE @DropSql NVARCHAR(MAX) = 'ALTER TABLE ID_PORTAL.products DROP CONSTRAINT ' + QUOTENAME(@ConstraintName);
+            EXEC sp_executesql @DropSql;
+        END
+
+        DECLARE @IndexName NVARCHAR(255);
+        SELECT TOP 1 @IndexName = name
+        FROM sys.indexes
+        WHERE object_id = OBJECT_ID('ID_PORTAL.products')
+          AND is_unique = 1
+          AND is_primary_key = 0
+          AND EXISTS (
+              SELECT 1 FROM sys.index_columns ic
+              JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+              WHERE ic.object_id = sys.indexes.object_id AND ic.index_id = sys.indexes.index_id
+                AND c.name = 'sap_code'
+          );
+
+        IF @IndexName IS NOT NULL
+        BEGIN
+            DECLARE @DropIndexSql NVARCHAR(MAX) = 'DROP INDEX ' + QUOTENAME(@IndexName) + ' ON ID_PORTAL.products';
+            EXEC sp_executesql @DropIndexSql;
+        END
+
+        IF NOT EXISTS (
+            SELECT 1 FROM sys.key_constraints 
+            WHERE parent_object_id = OBJECT_ID('ID_PORTAL.products') AND name = 'UQ_products_sap_code_tracking_type'
+        )
+        BEGIN
+            ALTER TABLE ID_PORTAL.products ADD CONSTRAINT UQ_products_sap_code_tracking_type UNIQUE (sap_code, tracking_type);
+        END
       `);
       console.log("Startup migrations completed successfully");
     } catch (migErr) {

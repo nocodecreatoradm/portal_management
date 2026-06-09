@@ -56,13 +56,9 @@ export const outlookService = {
   send: async (to: string | string[], subject: string, htmlBody: string) => {
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (data?.session?.access_token) {
-          headers['Authorization'] = `Bearer ${data.session.access_token}`;
-        }
-      } catch (tokenErr) {
-        console.error('Error retrieving active session for email send:', tokenErr);
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       const response = await fetch('/api/send-email', {

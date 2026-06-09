@@ -173,7 +173,7 @@ CREATE TABLE ID_PORTAL.samples (
 CREATE TABLE ID_PORTAL.products (
     id uniqueidentifier PRIMARY KEY DEFAULT newid(),
     correlative_id nvarchar(100),
-    sap_code nvarchar(100) NOT NULL UNIQUE,
+    sap_code nvarchar(100) NOT NULL,
     ean_code nvarchar(100),
     sap_description nvarchar(255),
     brand_id uniqueidentifier REFERENCES ID_PORTAL.brands(id),
@@ -194,7 +194,8 @@ CREATE TABLE ID_PORTAL.products (
     tracking_type nvarchar(100),
     linked_group_id uniqueidentifier,
     created_at datetime2 DEFAULT GETDATE(),
-    updated_at datetime2 DEFAULT GETDATE()
+    updated_at datetime2 DEFAULT GETDATE(),
+    CONSTRAINT UQ_products_sap_code_tracking_type UNIQUE (sap_code, tracking_type)
 );
 
 -- PRODUCT_MANAGEMENT

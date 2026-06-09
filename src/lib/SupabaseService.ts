@@ -1102,13 +1102,9 @@ export const SupabaseService = {
         const headers: Record<string, string> = {
           'Content-Type': 'application/json'
         };
-        try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData?.session?.access_token) {
-            headers['Authorization'] = `Bearer ${sessionData.session.access_token}`;
-          }
-        } catch (tokenErr) {
-          console.error('Error fetching token for SAS upload:', tokenErr);
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
         }
 
         // 1. Get the dynamic SAS url from our backend
