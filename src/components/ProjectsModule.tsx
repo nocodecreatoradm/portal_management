@@ -194,9 +194,9 @@ export default function ProjectsModule() {
 
   const filteredProjects = useMemo(() => {
     let result = projects.filter(p => 
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.responsible.toLowerCase().includes(searchTerm.toLowerCase())
+      (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.responsible || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     Object.keys(columnFilters).forEach(col => {
@@ -204,19 +204,19 @@ export default function ProjectsModule() {
       if (filterVal) {
         result = result.filter(r => {
           if (col === 'name') {
-            return r.name?.toLowerCase().includes(filterVal) || r.description?.toLowerCase().includes(filterVal);
+            return (r.name || '').toLowerCase().includes(filterVal) || (r.description || '').toLowerCase().includes(filterVal);
           }
           if (col === 'status') {
-            return r.status?.toLowerCase().includes(filterVal);
+            return (r.status || '').toLowerCase().includes(filterVal);
           }
           if (col === 'priority') {
-            return r.priority?.toLowerCase().includes(filterVal);
+            return (r.priority || '').toLowerCase().includes(filterVal);
           }
           if (col === 'responsible') {
-            return r.responsible?.toLowerCase().includes(filterVal);
+            return (r.responsible || '').toLowerCase().includes(filterVal);
           }
           if (col === 'startDate') {
-            return r.startDate?.toLowerCase().includes(filterVal);
+            return (r.startDate || '').toLowerCase().includes(filterVal);
           }
           return false;
         });
