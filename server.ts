@@ -12,6 +12,14 @@ import crypto from "crypto";
 
 dotenv.config();
 
+process.on("uncaughtException", (err) => {
+  console.error("SERVER UNCAUGHT EXCEPTION:", err);
+});
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("SERVER UNHANDLED REJECTION:", reason);
+});
+
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -40,6 +48,9 @@ async function getDBPool() {
     },
   };
   pool = await sql.connect(dbConfig);
+  pool.on('error', (err: any) => {
+    console.error('MSSQL Pool error:', err);
+  });
   return pool;
 }
 
@@ -486,6 +497,76 @@ async function startServer() {
   // Local JWT Auth: Reset password request (Mocked)
   app.post("/api/auth/reset-password-request", async (req, res) => {
     res.json({ success: true, message: "Instrucciones de recuperación enviadas" });
+  });
+
+  // Diagnostic API Endpoint
+  app.get("/api/diagnose", async (req, res) => {
+    try {
+      const dbPool = await getDBPool();
+      const results: any = {};
+
+      // 1. Check table structure and foreign keys referencing energy_efficiency_records
+      const fkQuery = `
+        SELECT 
+            fk.name AS ForeignKeyName,
+            tp.name AS ParentTable,
+            cp.name AS ParentColumn,
+            tr.name AS ReferencedTable,
+            cr.name AS ReferencedColumn
+        FROM sys.foreign_keys fk
+        INNER JOIN sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
+        INNER JOIN sys.tables tp ON fkc.parent_object_id = tp.object_id
+        INNER JOIN sys.columns cp ON fkc.parent_object_id = cp.object_id AND fkc.parent_column_id = cp.column_id
+        INNER JOIN sys.tables tr ON fkc.referenced_object_id = tr.object_id
+        INNER JOIN sys.columns cr ON fkc.referenced_object_id = cr.object_id AND fkc.referenced_column_id = cr.column_id
+        WHERE tr.name = 'energy_efficiency_records' OR tp.name = 'energy_efficiency_records'
+      `;
+      const fkRes = await dbPool.request().query(fkQuery);
+      results.foreignKeys = fkRes.recordset;
+
+      // 2. Select a record to test deletion
+      const selectQuery = `SELECT TOP 1 id, codigo_mt FROM ID_PORTAL.energy_efficiency_records`;
+      const selectRes = await dbPool.request().query(selectQuery);
+      results.sampleRecord = selectRes.recordset[0] || null;
+
+      if (results.sampleRecord) {
+        const testId = results.sampleRecord.id;
+        try {
+          // Test delete in a transaction and rollback
+          const transaction = new sql.Transaction(dbPool);
+          await transaction.begin();
+          try {
+            const request = new sql.Request(transaction);
+            request.input('id', testId);
+            await request.query(\`DELETE FROM ID_PORTAL.energy_efficiency_records WHERE id = @id\`);
+            await transaction.rollback();
+            results.deleteTest = "Success (rolled back)";
+          } catch (transErr: any) {
+            await transaction.rollback();
+            results.deleteTest = {
+              status: "Failed",
+              message: transErr.message,
+              code: transErr.code,
+              number: transErr.number,
+              state: transErr.state,
+              class: transErr.class,
+              stack: transErr.stack
+            };
+          }
+        } catch (txErr: any) {
+          results.transactionError = txErr.message;
+        }
+      } else {
+        results.deleteTest = "No records found to test deletion";
+      }
+
+      res.json(results);
+    } catch (err: any) {
+      res.status(500).json({
+        error: err.message,
+        stack: err.stack
+      });
+    }
   });
 
   // Database REST Query Gateway
