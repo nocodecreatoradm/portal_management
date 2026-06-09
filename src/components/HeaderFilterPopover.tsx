@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, X, Filter, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface HeaderFilterPopoverProps {
@@ -9,6 +9,7 @@ interface HeaderFilterPopoverProps {
   currentSort: { column: string; direction: 'asc' | 'desc' | null };
   onSortChange: (column: string, direction: 'asc' | 'desc' | null) => void;
   align?: 'left' | 'right' | 'center';
+  uniqueValues?: string[];
 }
 
 export default function HeaderFilterPopover({
@@ -18,10 +19,20 @@ export default function HeaderFilterPopover({
   onFilterChange,
   currentSort,
   onSortChange,
-  align = 'left'
+  align = 'left',
+  uniqueValues
 }: HeaderFilterPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  const filteredOptions = useMemo(() => {
+    if (!uniqueValues) return [];
+    return uniqueValues
+      .filter(Boolean)
+      .map(v => String(v))
+      .filter(opt => opt.toLowerCase().includes(currentFilter.toLowerCase()))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+  }, [uniqueValues, currentFilter]);
 
   // Close the popover when clicking outside
   useEffect(() => {
@@ -153,6 +164,34 @@ export default function HeaderFilterPopover({
                 </button>
               )}
             </div>
+
+            {/* List of Unique Values */}
+            {uniqueValues && uniqueValues.length > 0 && (
+              <div className="mt-2 max-h-36 overflow-y-auto border border-slate-100 rounded-xl divide-y divide-slate-50 custom-scrollbar bg-slate-50/20">
+                {filteredOptions.length > 0 ? (
+                  filteredOptions.map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onFilterChange(column, opt === currentFilter ? '' : opt);
+                        setIsOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-xs font-semibold hover:bg-blue-50/40 transition-colors flex items-center justify-between ${
+                        currentFilter === opt ? 'text-blue-600 bg-blue-50/30 font-bold' : 'text-slate-600'
+                      }`}
+                    >
+                      <span className="truncate">{opt}</span>
+                      {currentFilter === opt && <span className="w-1.5 h-1.5 rounded-full bg-blue-600 ml-2 shrink-0" />}
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-[10px] text-slate-400 italic text-center">
+                    No hay coincidencias
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

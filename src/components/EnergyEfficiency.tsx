@@ -1198,6 +1198,24 @@ export default function EnergyEfficiency({
     saveCalculationRecord('energy_efficiency', 'export_ppt', { module: 'energy_efficiency' }, user?.email || 'unknown');
   };
 
+  const toggleSort = (column: string) => {
+    let nextDirection: 'asc' | 'desc' | null = 'asc';
+    if (sortConfig.column === column) {
+      if (sortConfig.direction === 'asc') {
+        nextDirection = 'desc';
+      } else if (sortConfig.direction === 'desc') {
+        nextDirection = null;
+      }
+    }
+    handleSortChange(column, nextDirection);
+  };
+
+  const uniqueCodigoMTs = useMemo(() => Array.from(new Set(records.map(r => r.codigoMT || '').filter(Boolean))), [records]);
+  const uniqueLetras = useMemo(() => Array.from(new Set(records.map(r => r.letra || '').filter(Boolean))), [records]);
+  const uniqueLineas = useMemo(() => Array.from(new Set(records.map(r => productLines.find(l => l.id === r.lineId || l.name === r.linea)?.name || r.linea || '').filter(Boolean))), [records, productLines]);
+  const uniqueProveedores = useMemo(() => Array.from(new Set(records.map(r => r.proveedor || '').filter(Boolean))), [records]);
+  const uniqueFechas = useMemo(() => Array.from(new Set(records.map(r => r.fechaVigilancia || '').filter(Boolean))), [records]);
+
   return (
     <div id="energy-efficiency-container" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-[1600px] mx-auto bg-white p-2">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -1245,7 +1263,10 @@ export default function EnergyEfficiency({
           <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <th 
+                  className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                  onClick={() => toggleSort('codigoMT')}
+                >
                   <div className="flex items-center justify-between">
                     <span>Código MT / Descripción</span>
                     <HeaderFilterPopover 
@@ -1255,10 +1276,14 @@ export default function EnergyEfficiency({
                       onFilterChange={handleFilterChange}
                       currentSort={sortConfig}
                       onSortChange={handleSortChange}
+                      uniqueValues={uniqueCodigoMTs}
                     />
                   </div>
                 </th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
+                <th 
+                  className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                  onClick={() => toggleSort('letra')}
+                >
                   <div className="flex items-center justify-center">
                     <span>Letra / % EE</span>
                     <HeaderFilterPopover 
@@ -1268,10 +1293,14 @@ export default function EnergyEfficiency({
                       onFilterChange={handleFilterChange}
                       currentSort={sortConfig}
                       onSortChange={handleSortChange}
+                      uniqueValues={uniqueLetras}
                     />
                   </div>
                 </th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <th 
+                  className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                  onClick={() => toggleSort('linea')}
+                >
                   <div className="flex items-center justify-between">
                     <span>Línea / Categoría</span>
                     <HeaderFilterPopover 
@@ -1281,10 +1310,14 @@ export default function EnergyEfficiency({
                       onFilterChange={handleFilterChange}
                       currentSort={sortConfig}
                       onSortChange={handleSortChange}
+                      uniqueValues={uniqueLineas}
                     />
                   </div>
                 </th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <th 
+                  className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                  onClick={() => toggleSort('proveedor')}
+                >
                   <div className="flex items-center justify-between">
                     <span>Proveedor / OCP</span>
                     <HeaderFilterPopover 
@@ -1294,10 +1327,14 @@ export default function EnergyEfficiency({
                       onFilterChange={handleFilterChange}
                       currentSort={sortConfig}
                       onSortChange={handleSortChange}
+                      uniqueValues={uniqueProveedores}
                     />
                   </div>
                 </th>
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <th 
+                  className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                  onClick={() => toggleSort('fechaVigilancia')}
+                >
                   <div className="flex items-center justify-between">
                     <span>Vigencia</span>
                     <HeaderFilterPopover 
@@ -1307,6 +1344,7 @@ export default function EnergyEfficiency({
                       onFilterChange={handleFilterChange}
                       currentSort={sortConfig}
                       onSortChange={handleSortChange}
+                      uniqueValues={uniqueFechas}
                     />
                   </div>
                 </th>

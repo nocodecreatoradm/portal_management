@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Eye, Edit2, Trash2, FileText, Upload, Image as ImageIcon, UserPlus, HelpCircle, AlertCircle, Beaker, Search, X, Clock, Send, Calendar, Plus } from 'lucide-react';
+import { Eye, Edit2, Trash2, FileText, Upload, Image as ImageIcon, UserPlus, HelpCircle, AlertCircle, Beaker, Search, X, Clock, Send, Calendar, Plus, ArrowUp, ArrowDown } from 'lucide-react';
 import { ProductRecord, DocumentVersion, Supplier, SampleRecord } from '../types';
 import StatusIcon from './StatusIcon';
 import HeaderFilterPopover from './HeaderFilterPopover';
@@ -159,6 +159,13 @@ export default function DataTable({
       const lowerValue = value.toLowerCase();
       result = result.filter(item => {
         if (!item) return false;
+        
+        // Handle filter mapping if needed
+        if (key === 'sampleId') {
+          const sampleCorrel = getSampleCorrelative(item.sampleId) || '';
+          return sampleCorrel.toLowerCase().includes(lowerValue);
+        }
+
         const itemValue = String((item as any)[key] || '').toLowerCase();
         return itemValue.includes(lowerValue);
       });
@@ -167,8 +174,22 @@ export default function DataTable({
     // Sort by sortConfig or fallback to ID descending
     if (sortConfig.column && sortConfig.direction) {
       result.sort((a, b) => {
-        const aVal = String((a as any)[sortConfig.column] || '').toLowerCase();
-        const bVal = String((b as any)[sortConfig.column] || '').toLowerCase();
+        let aVal = '';
+        let bVal = '';
+
+        if (sortConfig.column === 'assignment') {
+          const aAssign = mode === 'artwork' ? a.artworkAssignment : mode === 'technical_sheet' ? a.technicalAssignment : a.commercialAssignment;
+          const bAssign = mode === 'artwork' ? b.artworkAssignment : mode === 'technical_sheet' ? b.technicalAssignment : b.commercialAssignment;
+          aVal = aAssign?.plannedEndDate || '';
+          bVal = bAssign?.plannedEndDate || '';
+        } else {
+          aVal = String((a as any)[sortConfig.column] || '').toLowerCase();
+          bVal = String((b as any)[sortConfig.column] || '').toLowerCase();
+        }
+
+        if (!aVal && bVal) return 1;
+        if (aVal && !bVal) return -1;
+        if (!aVal && !bVal) return 0;
         
         if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
@@ -183,7 +204,7 @@ export default function DataTable({
     }
 
     return result;
-  }, [data, columnFilters, sortConfig]);
+  }, [data, columnFilters, sortConfig, mode, samples]);
 
   const handleFilterChange = (column: string, value: string) => {
     setColumnFilters(prev => ({ ...prev, [column]: value }));
@@ -191,6 +212,18 @@ export default function DataTable({
 
   const handleSortChange = (column: string, direction: 'asc' | 'desc' | null) => {
     setSortConfig({ column, direction });
+  };
+
+  const toggleSort = (column: string) => {
+    let nextDirection: 'asc' | 'desc' | null = 'asc';
+    if (sortConfig.column === column) {
+      if (sortConfig.direction === 'asc') {
+        nextDirection = 'desc';
+      } else if (sortConfig.direction === 'desc') {
+        nextDirection = null;
+      }
+    }
+    handleSortChange(column, nextDirection);
   };
 
   const toggleRow = (id: string) => {
@@ -255,6 +288,13 @@ export default function DataTable({
     );
   };
 
+
+  const uniqueIDs = useMemo(() => Array.from(new Set(data.map(item => item.correlativeId || '').filter(Boolean))), [data]);
+  const uniqueSapCodes = useMemo(() => Array.from(new Set(data.map(item => item.codigoSAP || '').filter(Boolean))), [data]);
+  const uniqueSapDescriptions = useMemo(() => Array.from(new Set(data.map(item => item.descripcionSAP || '').filter(Boolean))), [data]);
+  const uniqueLines = useMemo(() => Array.from(new Set(data.map(item => item.linea || '').filter(Boolean))), [data]);
+  const uniqueBrands = useMemo(() => Array.from(new Set(data.map(item => item.marca || '').filter(Boolean))), [data]);
+  const uniqueSamples = useMemo(() => Array.from(new Set(data.map(item => getSampleCorrelative(item.sampleId) || '').filter(Boolean))), [data, samples]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
@@ -510,64 +550,112 @@ export default function DataTable({
           <thead className="bg-[#f8fafc] text-slate-500 uppercase text-[10px] font-bold border-b border-gray-200 sticky top-0 z-20">
             <tr>
               <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100 w-20">Acciones</th>
-              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100 whitespace-nowrap">
-                ID
-                <HeaderFilterPopover 
-                  column="correlativeId" 
-                  label="ID" 
-                  currentFilter={columnFilters.correlativeId || ''} 
-                  onFilterChange={handleFilterChange} 
-                  currentSort={sortConfig} 
-                  onSortChange={handleSortChange} 
-                />
+              <th 
+                rowSpan={2} 
+                className="px-3 py-3 text-center border-r border-gray-100 whitespace-nowrap cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                onClick={() => toggleSort('correlativeId')}
+              >
+                <div className="inline-flex items-center gap-1">
+                  <span>ID</span>
+                  <HeaderFilterPopover 
+                    column="correlativeId" 
+                    label="ID" 
+                    currentFilter={columnFilters.correlativeId || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                    uniqueValues={uniqueIDs}
+                  />
+                </div>
               </th>
 
-              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100 whitespace-nowrap">
-                Código SAP
-                <HeaderFilterPopover 
-                  column="codigoSAP" 
-                  label="Código SAP" 
-                  currentFilter={columnFilters.codigoSAP || ''} 
-                  onFilterChange={handleFilterChange} 
-                  currentSort={sortConfig} 
-                  onSortChange={handleSortChange} 
-                />
+              <th 
+                rowSpan={2} 
+                className="px-3 py-3 text-center border-r border-gray-100 whitespace-nowrap cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                onClick={() => toggleSort('codigoSAP')}
+              >
+                <div className="inline-flex items-center gap-1">
+                  <span>Código SAP</span>
+                  <HeaderFilterPopover 
+                    column="codigoSAP" 
+                    label="Código SAP" 
+                    currentFilter={columnFilters.codigoSAP || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                    uniqueValues={uniqueSapCodes}
+                  />
+                </div>
               </th>
-              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100">
-                Descripción SAP
-                <HeaderFilterPopover 
-                  column="descripcionSAP" 
-                  label="Descripción SAP" 
-                  currentFilter={columnFilters.descripcionSAP || ''} 
-                  onFilterChange={handleFilterChange} 
-                  currentSort={sortConfig} 
-                  onSortChange={handleSortChange} 
-                />
+              <th 
+                rowSpan={2} 
+                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                onClick={() => toggleSort('descripcionSAP')}
+              >
+                <div className="inline-flex items-center gap-1">
+                  <span>Descripción SAP</span>
+                  <HeaderFilterPopover 
+                    column="descripcionSAP" 
+                    label="Descripción SAP" 
+                    currentFilter={columnFilters.descripcionSAP || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                    uniqueValues={uniqueSapDescriptions}
+                  />
+                </div>
               </th>
-              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100">
-                Línea
-                <HeaderFilterPopover 
-                  column="linea" 
-                  label="Línea" 
-                  currentFilter={columnFilters.linea || ''} 
-                  onFilterChange={handleFilterChange} 
-                  currentSort={sortConfig} 
-                  onSortChange={handleSortChange} 
-                />
+              <th 
+                rowSpan={2} 
+                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                onClick={() => toggleSort('linea')}
+              >
+                <div className="inline-flex items-center gap-1">
+                  <span>Línea</span>
+                  <HeaderFilterPopover 
+                    column="linea" 
+                    label="Línea" 
+                    currentFilter={columnFilters.linea || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                    uniqueValues={uniqueLines}
+                  />
+                </div>
               </th>
-              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100">
-                Marca
-                <HeaderFilterPopover 
-                  column="marca" 
-                  label="Marca" 
-                  currentFilter={columnFilters.marca || ''} 
-                  onFilterChange={handleFilterChange} 
-                  currentSort={sortConfig} 
-                  onSortChange={handleSortChange} 
-                />
+              <th 
+                rowSpan={2} 
+                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                onClick={() => toggleSort('marca')}
+              >
+                <div className="inline-flex items-center gap-1">
+                  <span>Marca</span>
+                  <HeaderFilterPopover 
+                    column="marca" 
+                    label="Marca" 
+                    currentFilter={columnFilters.marca || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                    uniqueValues={uniqueBrands}
+                  />
+                </div>
               </th>
               <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100 min-w-[100px]">Estado</th>
-              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100 min-w-[120px]">Asignación</th>
+              <th 
+                rowSpan={2} 
+                className="px-3 py-3 text-center border-r border-gray-100 min-w-[120px] cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                onClick={() => toggleSort('assignment')}
+              >
+                <div className="flex items-center justify-center gap-1.5">
+                  <span>Asignación</span>
+                  {sortConfig.column === 'assignment' && sortConfig.direction && (
+                    sortConfig.direction === 'asc' 
+                      ? <ArrowUp size={12} className="text-blue-600 animate-pulse" /> 
+                      : <ArrowDown size={12} className="text-blue-600 animate-pulse" />
+                  )}
+                </div>
+              </th>
               <th colSpan={mode === 'artwork' ? 6 : 3} className={`px-4 py-2 text-center ${
                 mode === 'artwork' ? 'bg-indigo-50/50 text-indigo-600' : 
                 mode === 'technical_sheet' ? 'bg-emerald-50/50 text-emerald-600' : 
@@ -577,17 +665,24 @@ export default function DataTable({
                  mode === 'technical_sheet' ? 'Fichas Técnicas' : 
                  'Fichas Comerciales'}
               </th>
-              <th rowSpan={2} className="px-3 py-3 text-center border-l border-gray-100">
-                Muestra
-                <HeaderFilterPopover 
-                  column="sampleId" 
-                  label="Muestra" 
-                  currentFilter={columnFilters.sampleId || ''} 
-                  onFilterChange={handleFilterChange} 
-                  currentSort={sortConfig} 
-                  onSortChange={handleSortChange} 
-                  align="right"
-                />
+              <th 
+                rowSpan={2} 
+                className="px-3 py-3 text-center border-l border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                onClick={() => toggleSort('sampleId')}
+              >
+                <div className="inline-flex items-center gap-1">
+                  <span>Muestra</span>
+                  <HeaderFilterPopover 
+                    column="sampleId" 
+                    label="Muestra" 
+                    currentFilter={columnFilters.sampleId || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                    uniqueValues={uniqueSamples}
+                    align="right"
+                  />
+                </div>
               </th>
             </tr>
             <tr className="bg-slate-50/50">
