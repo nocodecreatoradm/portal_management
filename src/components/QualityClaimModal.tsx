@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, AlertCircle, CheckCircle2, Upload, Trash2, Calendar, FileText, User } from 'lucide-react';
 import { ProductRecord, QualityClaim, FileInfo } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../contexts/PermissionsContext';
 import { SupabaseService } from '../lib/SupabaseService';
 import { toast } from 'sonner';
 
@@ -27,6 +28,7 @@ export default function QualityClaimModal({
   isSubmitting = false
 }: QualityClaimModalProps) {
   const { profile } = useAuth();
+  const { hasPermission } = usePermissions();
   
   // Form states
   const [responsibleName, setResponsibleName] = useState('');
@@ -53,17 +55,10 @@ export default function QualityClaimModal({
   // Filter claims for this specific product
   const recordClaims = qualityClaims.filter(c => c.productId === record.id);
 
-  // Permissions check: Quality Manager, R&D Coordinators, R&D Technicians, Admins can log claims.
-  const canLogClaim = profile?.role?.toLowerCase() === 'admin' ||
-                       profile?.role?.toLowerCase() === 'administrador' ||
-                       profile?.role?.toLowerCase() === 'gerente de innovación y calidad' ||
-                       profile?.role?.toLowerCase() === 'coordinador de i+d' ||
-                       profile?.role?.toLowerCase() === 'técnico de i+d';
-
-  // Designers and Admins can resolve claims
-  const canResolveClaim = profile?.role?.toLowerCase() === 'admin' ||
-                          profile?.role?.toLowerCase() === 'administrador' ||
-                          profile?.role?.toLowerCase() === 'diseñadora_gráfica';
+  // Permission-based checks using the RBAC system
+  const isAdmin = profile?.role?.toLowerCase() === 'admin' || profile?.role?.toLowerCase() === 'administrador';
+  const canLogClaim = isAdmin || hasPermission('quality_claims:edit');
+  const canResolveClaim = isAdmin || hasPermission('quality_claims:edit');
 
   // Dynamically build list of document categories based on record type
   const getCategoriesList = () => {
