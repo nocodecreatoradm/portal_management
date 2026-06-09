@@ -15,6 +15,15 @@ interface QualityClaimsModuleProps {
   onOpenClaimsModal: (record: ProductRecord) => void;
 }
 
+const formatDate = (dateStr?: string) => {
+  if (!dateStr || dateStr === '-') return '-';
+  try {
+    return format(parseISO(dateStr), 'dd/MM/yyyy');
+  } catch (e) {
+    return dateStr.split('T')[0] || '-';
+  }
+};
+
 export default function QualityClaimsModule({
   qualityClaims,
   products,
@@ -286,10 +295,10 @@ export default function QualityClaimsModule({
                       {claim.comments}
                     </td>
                     <td className="px-6 py-5 text-xs font-bold text-slate-600">
-                      {claim.claimStartDate}
+                      {formatDate(claim.claimStartDate)}
                     </td>
                     <td className="px-6 py-5 text-xs text-slate-500">
-                      {claim.claimEndDate || '-'}
+                      {formatDate(claim.claimEndDate)}
                     </td>
                     <td className="px-6 py-5 text-center">
                       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
