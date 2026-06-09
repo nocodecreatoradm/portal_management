@@ -61,18 +61,6 @@ export default function NewRequestModal({
       };
     }
 
-    // Try to load from session storage if not editing
-    try {
-      const saved = sessionStorage.getItem('new_request_draft');
-      if (saved) {
-        const draft = JSON.parse(saved);
-        // Only restore if it matches the current mode (optional, but safer)
-        return draft;
-      }
-    } catch (e) {
-      console.error('Error loading draft:', e);
-    }
-
     return {
       codigoEAN: '',
       codigoSAP: '',
@@ -108,13 +96,7 @@ export default function NewRequestModal({
     return `${prefix}${(maxNumber + 1).toString().padStart(3, '0')}`;
   };
 
-  // Auto-save draft (exclude correlativeId so a stale ID is never restored)
-  useEffect(() => {
-    if (!initialData && isOpen) {
-      const { correlativeId: _omit, ...draftData } = formData;
-      sessionStorage.setItem('new_request_draft', JSON.stringify(draftData));
-    }
-  }, [formData, isOpen, initialData]);
+  // Draft auto-save disabled to ensure forms always start empty from scratch
 
   // Handle modal open/close transitions
   useEffect(() => {
@@ -122,6 +104,9 @@ export default function NewRequestModal({
     prevIsOpen.current = isOpen;
 
     if (wasClosed) {
+      // Clean up any old, legacy drafts from the browser storage to prevent contamination
+      sessionStorage.removeItem('new_request_draft');
+
       if (initialData) {
         setFormData({
           codigoEAN: initialData.codigoEAN || '',
@@ -145,53 +130,22 @@ export default function NewRequestModal({
         // Always generate a fresh correlative ID from current data to prevent duplicates
         const nextId = generateNextCorrelativeId(existingData);
 
-        // Check for existing draft first, but always override correlativeId with a fresh one
-        const saved = sessionStorage.getItem('new_request_draft');
-        if (saved) {
-          try {
-            const draft = JSON.parse(saved);
-            // Always use freshly-generated correlativeId, never the stale draft one
-            setFormData({
-              ...draft,
-              correlativeId: nextId,
-            });
-          } catch (e) {
-            console.error('Error parsing draft:', e);
-            setFormData({
-              codigoEAN: '',
-              codigoSAP: '',
-              descripcionSAP: '',
-              codProv: '',
-              proveedor: '',
-              correoProveedor: [],
-              marca: '',
-              brandId: '',
-              linea: '',
-              lineId: '',
-              categoria: '',
-              categoryId: '',
-              sampleId: '',
-              correlativeId: nextId,
-            });
-          }
-        } else {
-          setFormData({
-            codigoEAN: '',
-            codigoSAP: '',
-            descripcionSAP: '',
-            codProv: '',
-            proveedor: '',
-            correoProveedor: [],
-            marca: '',
-            brandId: '',
-            linea: '',
-            lineId: '',
-            categoria: '',
-            categoryId: '',
-            sampleId: '',
-            correlativeId: nextId,
-          });
-        }
+        setFormData({
+          codigoEAN: '',
+          codigoSAP: '',
+          descripcionSAP: '',
+          codProv: '',
+          proveedor: '',
+          correoProveedor: [],
+          marca: '',
+          brandId: '',
+          linea: '',
+          lineId: '',
+          categoria: '',
+          categoryId: '',
+          sampleId: '',
+          correlativeId: nextId,
+        });
         setStep(1);
         setArtworkType(null);
       }
@@ -401,19 +355,10 @@ export default function NewRequestModal({
     } as ProductRecord;
 
     onSubmit(updatedRecord);
-    sessionStorage.removeItem('new_request_draft');
     onClose();
   };
 
   const handleCancel = () => {
-    // Only ask to keep draft if they actually typed something meaningful, not just selecting type
-    if (!initialData && (formData.codigoSAP || formData.descripcionSAP)) {
-      if (confirm('¿Deseas descartar el borrador actual?')) {
-        sessionStorage.removeItem('new_request_draft');
-      }
-    } else if (!initialData) {
-      sessionStorage.removeItem('new_request_draft');
-    }
     onClose();
   };
 
