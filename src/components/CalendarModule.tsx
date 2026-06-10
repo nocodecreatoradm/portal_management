@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import UserSelect from './UserSelect';
 import { SupabaseService } from '../lib/SupabaseService';
-import { CalendarTask, ChangeLog } from '../types';
+import { CalendarTask, ChangeLog, Project, ProjectActivity } from '../types';
 import { 
   Plus, Search, Filter, Calendar as CalendarIcon, 
   Clock, User, CheckCircle2, AlertCircle, 
@@ -48,8 +48,36 @@ export default function CalendarModule() {
   const loadTasks = async () => {
     try {
       setLoading(true);
-      const data = await SupabaseService.getCalendarTasks();
-      setTasks(data);
+      const [tasksData, projectsData] = await Promise.all([
+        SupabaseService.getCalendarTasks(),
+        SupabaseService.getProjects()
+      ]);
+
+      const fixedActivities: CalendarTask[] = [];
+      projectsData.forEach((project: Project) => {
+        if (project.activities) {
+          project.activities.forEach((act: ProjectActivity) => {
+            fixedActivities.push({
+              id: `fixed-${act.id}`,
+              title: `[${project.name}] ${act.name}`,
+              description: act.comments || `Actividad de proyecto: ${project.name}`,
+              startDate: act.plannedStartDate,
+              endDate: act.plannedEndDate,
+              deadline: act.plannedEndDate ? `${act.plannedEndDate}T18:00` : undefined,
+              type: 'fixed_activity',
+              requester: 'Plan de Trabajo',
+              assignee: act.responsible ? act.responsible.join(', ') : '',
+              status: act.status === 'COMPLETADO' ? 'completed' : 
+                      act.status === 'EN PROCESO' ? 'in_progress' : 'pending',
+              deliveryStatus: act.status === 'COMPLETADO' ? 'on_time' : 'pending',
+              createdAt: getLimaNow().toISOString(),
+              changeLog: []
+            });
+          });
+        }
+      });
+
+      setTasks([...tasksData, ...fixedActivities]);
     } catch (error) {
       console.error('Error loading tasks:', error);
       toast.error('Error al cargar tareas del calendario');
@@ -124,6 +152,7 @@ export default function CalendarModule() {
     if (task.type === 'special_event') return 'bg-indigo-100 text-indigo-700 border-indigo-200';
     if (task.type === 'vacation') return 'bg-amber-100 text-amber-700 border-amber-200';
     if (task.type === 'field_visit') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    if (task.type === 'fixed_activity') return 'bg-purple-100 text-purple-700 border-purple-200';
     if (task.type === 'business_trip') return 'bg-sky-100 text-sky-700 border-sky-200';
     if (task.type === 'other_activity') return 'bg-slate-100 text-slate-700 border-slate-200';
     
@@ -409,6 +438,7 @@ export default function CalendarModule() {
                               {task.type === 'vacation' && <Sun size={8} />}
                               {task.type === 'field_visit' && <MapPin size={8} />}
                               {task.type === 'business_trip' && <Plane size={8} />}
+                              {task.type === 'fixed_activity' && <CalendarIcon size={8} />}
                               {task.type === 'other_activity' && <Activity size={8} />}
                               {task.title}
                             </div>
@@ -500,6 +530,7 @@ export default function CalendarModule() {
                             task.type === 'vacation' ? 'bg-amber-50 border-amber-200 text-amber-700' :
                             task.type === 'field_visit' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
                             task.type === 'business_trip' ? 'bg-sky-50 border-sky-200 text-sky-700' :
+                            task.type === 'fixed_activity' ? 'bg-purple-50 border-purple-200 text-purple-700' :
                             task.status === 'completed' ? 'bg-emerald-100 border-emerald-200 text-emerald-800' :
                             task.status === 'in_progress' ? 'bg-blue-50 border-blue-200 text-blue-700' :
                             'bg-slate-50 border-slate-200 text-slate-600'
@@ -561,6 +592,7 @@ export default function CalendarModule() {
                         {task.type === 'vacation' && <Sun size={14} className="text-amber-500" />}
                         {task.type === 'field_visit' && <MapPin size={14} className="text-emerald-500" />}
                         {task.type === 'business_trip' && <Plane size={14} className="text-sky-500" />}
+                        {task.type === 'fixed_activity' && <CalendarIcon size={14} className="text-purple-500" />}
                         {task.type === 'other_activity' && <Activity size={14} className="text-slate-500" />}
                         {task.type === 'work' && <Coffee size={14} className="text-slate-400" />}
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -569,6 +601,7 @@ export default function CalendarModule() {
                            task.type === 'vacation' ? 'Vacaciones' :
                            task.type === 'field_visit' ? 'Visita Campo' :
                            task.type === 'business_trip' ? 'Viaje Trabajo' :
+                           task.type === 'fixed_activity' ? 'Actividad Fija' :
                            task.type === 'other_activity' ? 'Actividad' : 'Trabajo'}
                         </span>
                       </div>
@@ -580,24 +613,28 @@ export default function CalendarModule() {
                       )}
                     </div>
                     <div className="flex items-center gap-1">
-                      <button 
-                        onClick={() => {
-                          setEditingTask(task);
-                          setRequester(task.requester || '');
-                          setAssignee(task.assignee || '');
-                          setEntryType(task.type);
-                          setIsModalOpen(true);
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition-all"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {task.type !== 'fixed_activity' && (
+                        <>
+                          <button 
+                            onClick={() => {
+                              setEditingTask(task);
+                              setRequester(task.requester || '');
+                              setAssignee(task.assignee || '');
+                              setEntryType(task.type);
+                              setIsModalOpen(true);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-all"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteTask(task.id)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition-all"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -656,7 +693,8 @@ export default function CalendarModule() {
                   <div className="flex items-center justify-between pt-3 border-t border-slate-200/60">
                     <div className="flex items-center gap-2">
                       <span className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-wider border ${getStatusColor(task)}`}>
-                        {task.type === 'work' ? (task.status === 'in_progress' ? 'En Curso' : task.status === 'completed' ? 'Completado' : task.status === 'cancelled' ? 'Cancelado' : 'Pendiente') : 
+                        {task.type === 'fixed_activity' ? 'Actividad Fija' :
+                         task.type === 'work' ? (task.status === 'in_progress' ? 'En Curso' : task.status === 'completed' ? 'Completado' : task.status === 'cancelled' ? 'Cancelado' : 'Pendiente') : 
                          task.type === 'holiday' ? 'Feriado' : 
                          task.type === 'vacation' ? 'Vacaciones' :
                          task.type === 'field_visit' ? 'Visita' :
@@ -665,7 +703,7 @@ export default function CalendarModule() {
                       </span>
 
                       {/* Quick Status Modifiers */}
-                      {task.status !== 'completed' && task.status !== 'cancelled' && (
+                      {task.status !== 'completed' && task.status !== 'cancelled' && task.type !== 'fixed_activity' && (
                         <div className="flex items-center gap-1 ml-2">
                           {task.status === 'pending' && (
                             <button
@@ -695,13 +733,15 @@ export default function CalendarModule() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <button 
-                        onClick={() => setShowHistory(task)}
-                        className="flex items-center gap-1 text-[9px] font-black text-slate-400 hover:text-indigo-600 uppercase tracking-wider"
-                      >
-                        <History size={12} />
-                        Historial
-                      </button>
+                      {task.type !== 'fixed_activity' && (
+                        <button 
+                          onClick={() => setShowHistory(task)}
+                          className="flex items-center gap-1 text-[9px] font-black text-slate-400 hover:text-indigo-600 uppercase tracking-wider"
+                        >
+                          <History size={12} />
+                          Historial
+                        </button>
+                      )}
                       {task.type === 'work' && (
                         <span className={`text-[9px] font-black uppercase tracking-wider ${getDeliveryStatusColor(task.deliveryStatus || 'pending')}`}>
                           {task.deliveryStatus === 'on_time' ? 'A Tiempo' : task.deliveryStatus === 'delayed' ? 'Con Retraso' : task.deliveryStatus === 'postponed' ? 'Postergado' : 'Pendiente'}

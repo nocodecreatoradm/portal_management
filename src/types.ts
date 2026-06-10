@@ -402,7 +402,7 @@ export interface CalendarTask {
   deadline?: string;
   startDate?: string;
   endDate?: string;
-  type: 'work' | 'holiday' | 'special_event' | 'vacation' | 'field_visit' | 'business_trip' | 'other_activity';
+  type: 'work' | 'holiday' | 'special_event' | 'vacation' | 'field_visit' | 'business_trip' | 'other_activity' | 'fixed_activity';
   requester?: string;
   assignee?: string;
   status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
