@@ -725,7 +725,8 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
         top: `${widgetPosition.top}px`,
         bottom: 'auto',
         right: 'auto',
-        transition: 'left 0.3s ease, top 0.3s ease'
+        transition: 'left 0.3s ease, top 0.3s ease',
+        zIndex: 95
       };
 
   return (
@@ -770,7 +771,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
 
       {/* Floating Soly Assistant Widget container */}
       <div 
-        className={isFixed ? "fixed bottom-6 right-6 flex items-end gap-2" : ""} 
+        className={isFixed ? "fixed bottom-6 right-6 flex items-end gap-2 z-[95]" : "z-[95]"} 
         style={containerStyle}
       >
         <AnimatePresence>
