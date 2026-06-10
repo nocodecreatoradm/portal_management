@@ -1054,7 +1054,7 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado de Inspección</span>
               <span className="text-sm font-bold text-slate-700">
-                {isVisible ? 'En Pantalla (Admin)' : 'Fuera de Pantalla (Insp)'}
+                {isVisible ? 'En Pantalla (T. Administrativo)' : 'Fuera de Pantalla (T. Inspección)'}
               </span>
             </div>
             <div className="w-px h-8 bg-slate-200" />
