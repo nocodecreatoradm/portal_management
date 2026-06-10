@@ -258,8 +258,11 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
     }
   };
 
-  const getSupplierLogo = (codProv: string) => {
-    const supplier = suppliers.find(s => s.erpCode === codProv);
+  const getSupplierLogo = (sample: SampleRecord) => {
+    const supplier = suppliers.find(s => 
+      (sample.proveedor && (s.id === sample.proveedor || s.commercialAlias === sample.proveedor || s.legalName === sample.proveedor)) ||
+      (sample.codProv && s.erpCode === sample.codProv)
+    );
     return supplier?.logoUrl;
   };
 
@@ -841,9 +844,9 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-white rounded border border-slate-100 flex items-center justify-center p-0.5 shrink-0">
-                          {getSupplierLogo(sample.codProv || '') ? (
+                          {getSupplierLogo(sample) ? (
                             <img 
-                              src={getSupplierLogo(sample.codProv || '')} 
+                              src={getSupplierLogo(sample)} 
                               alt={sample.proveedor}
                               className="max-w-full max-h-full object-contain"
                               referrerPolicy="no-referrer"

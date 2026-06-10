@@ -533,6 +533,7 @@ export const mapDBToSample = (dbSample: any): SampleRecord => ({
   categoryId: dbSample.category_id || '',
   marca: dbSample.brand?.name || dbSample.brand_id || 'SOLE',
   proveedor: dbSample.supplier?.commercial_alias || dbSample.supplier?.legal_name || dbSample.supplier_id || 'Desconocido',
+  codProv: dbSample.supplier?.erp_code || '',
   linea: dbSample.line?.name || dbSample.line_id || 'AGUA CALIENTE',
   categoria: dbSample.category?.name || dbSample.category_id,
   inspectionDate: dbSample.inspection_date,
