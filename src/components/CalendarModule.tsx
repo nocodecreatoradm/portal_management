@@ -86,8 +86,6 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
           const assign = product.artworkAssignment;
           const hasDates = assign && (assign.plannedStartDate || assign.plannedEndDate);
           const startDate = hasDates ? (assign.plannedStartDate || assign.plannedEndDate || '') : createdAtDate;
-          const endDate = hasDates ? (assign.plannedEndDate || assign.plannedStartDate || '') : createdAtDate;
-          const deadline = assign?.plannedEndDate ? `${assign.plannedEndDate}T18:00` : undefined;
 
           const isCompleted = !!(
             assign?.actualCompletionDate ||
@@ -98,6 +96,23 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
               v.planApproval?.status === 'approved'
             ))
           );
+
+          let endDate = hasDates ? (assign.plannedEndDate || assign.plannedStartDate || '') : createdAtDate;
+          if (isCompleted) {
+            if (assign?.actualCompletionDate) {
+              endDate = assign.actualCompletionDate;
+            } else {
+              const docs = product.artworks || [];
+              if (docs.length > 0) {
+                const latestDoc = docs[docs.length - 1];
+                if (latestDoc.uploadDate) {
+                  endDate = latestDoc.uploadDate.split('T')[0];
+                }
+              }
+            }
+          }
+
+          const deadline = assign?.plannedEndDate ? `${assign.plannedEndDate}T18:00` : undefined;
           
           const isDelayed = !isCompleted && deadline && new Date(deadline) < getLimaNow();
 
@@ -122,8 +137,6 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
           const assign = product.technicalAssignment;
           const hasDates = assign && (assign.plannedStartDate || assign.plannedEndDate);
           const startDate = hasDates ? (assign.plannedStartDate || assign.plannedEndDate || '') : createdAtDate;
-          const endDate = hasDates ? (assign.plannedEndDate || assign.plannedStartDate || '') : createdAtDate;
-          const deadline = assign?.plannedEndDate ? `${assign.plannedEndDate}T18:00` : undefined;
 
           const isCompleted = !!(
             assign?.actualCompletionDate ||
@@ -131,6 +144,23 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
               v.idApproval?.status === 'approved'
             ))
           );
+
+          let endDate = hasDates ? (assign.plannedEndDate || assign.plannedStartDate || '') : createdAtDate;
+          if (isCompleted) {
+            if (assign?.actualCompletionDate) {
+              endDate = assign.actualCompletionDate;
+            } else {
+              const docs = product.technicalSheets || [];
+              if (docs.length > 0) {
+                const latestDoc = docs[docs.length - 1];
+                if (latestDoc.uploadDate) {
+                  endDate = latestDoc.uploadDate.split('T')[0];
+                }
+              }
+            }
+          }
+
+          const deadline = assign?.plannedEndDate ? `${assign.plannedEndDate}T18:00` : undefined;
           
           const isDelayed = !isCompleted && deadline && new Date(deadline) < getLimaNow();
 
@@ -155,8 +185,6 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
           const assign = product.commercialAssignment;
           const hasDates = assign && (assign.plannedStartDate || assign.plannedEndDate);
           const startDate = hasDates ? (assign.plannedStartDate || assign.plannedEndDate || '') : createdAtDate;
-          const endDate = hasDates ? (assign.plannedEndDate || assign.plannedStartDate || '') : createdAtDate;
-          const deadline = assign?.plannedEndDate ? `${assign.plannedEndDate}T18:00` : undefined;
 
           const isCompleted = !!(
             assign?.actualCompletionDate ||
@@ -164,6 +192,23 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
               v.idApproval?.status === 'approved'
             ))
           );
+
+          let endDate = hasDates ? (assign.plannedEndDate || assign.plannedStartDate || '') : createdAtDate;
+          if (isCompleted) {
+            if (assign?.actualCompletionDate) {
+              endDate = assign.actualCompletionDate;
+            } else {
+              const docs = product.commercialSheets || [];
+              if (docs.length > 0) {
+                const latestDoc = docs[docs.length - 1];
+                if (latestDoc.uploadDate) {
+                  endDate = latestDoc.uploadDate.split('T')[0];
+                }
+              }
+            }
+          }
+
+          const deadline = assign?.plannedEndDate ? `${assign.plannedEndDate}T18:00` : undefined;
           
           const isDelayed = !isCompleted && deadline && new Date(deadline) < getLimaNow();
 
