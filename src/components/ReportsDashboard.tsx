@@ -34,20 +34,26 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
     let totalApprovals = 0;
     let totalRejections = 0;
     
+    const isArtwork = activeModule === 'artwork_followup';
+
     // Approval times by stage
-    const stageTimes: Record<string, number[]> = {
+    const stageTimes: Record<string, number[]> = isArtwork ? {
       'I+D': [],
       'MKT': [],
       'PROV': [],
       'PLAN': []
+    } : {
+      'I+D': []
     };
 
     // Status counts by stage
-    const stageStatus: Record<string, { approved: number, rejected: number }> = {
+    const stageStatus: Record<string, { approved: number, rejected: number }> = isArtwork ? {
       'I+D': { approved: 0, rejected: 0 },
       'MKT': { approved: 0, rejected: 0 },
       'PROV': { approved: 0, rejected: 0 },
       'PLAN': { approved: 0, rejected: 0 }
+    } : {
+      'I+D': { approved: 0, rejected: 0 }
     };
 
     data.forEach(record => {
@@ -78,9 +84,11 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
         };
 
         processApproval('I+D', version.idApproval);
-        processApproval('MKT', version.mktApproval);
-        processApproval('PLAN', version.planApproval);
-        processApproval('PROV', version.provApproval);
+        if (isArtwork) {
+          processApproval('MKT', version.mktApproval);
+          processApproval('PLAN', version.planApproval);
+          processApproval('PROV', version.provApproval);
+        }
       });
     });
 
@@ -297,7 +305,7 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
         'Marca': record.marca,
         'Categoría': record.linea,
         'Estado': estado,
-        'Diseñador': assignment?.designer || 'N/A',
+        [activeModule === 'artwork_followup' ? 'Diseñador' : 'Técnico']: assignment?.designer || 'N/A',
         'Fecha Asignación': assignment?.plannedStartDate || assignment?.assignmentDate || 'N/A',
         'Fecha Fin Real': actualCompletionDate,
       };
@@ -576,7 +584,7 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
         {/* Workload Chart */}
         <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-black text-slate-900">Carga de Trabajo por Diseñador</h3>
+            <h3 className="text-xl font-black text-slate-900">Carga de Trabajo por {activeModule === 'artwork_followup' ? 'Diseñador' : 'Técnico'}</h3>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total asignaciones</span>
           </div>
           <div className="h-[300px] w-full">
@@ -590,8 +598,8 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }}
-                  width={100}
-                  label={{ value: 'Diseñador', angle: -90, position: 'insideLeft', offset: -10, fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                  width={110}
+                  label={{ value: activeModule === 'artwork_followup' ? 'Diseñador' : 'Técnico', angle: -90, position: 'insideLeft', offset: -15, fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
                 />
                 <Tooltip 
                   cursor={{ fill: '#f8fafc' }}
@@ -607,12 +615,12 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
         {/* Efficiency Chart */}
         <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-black text-slate-900">Eficiencia y Tiempos</h3>
+            <h3 className="text-xl font-black text-slate-900">Eficiencia y Tiempos por {activeModule === 'artwork_followup' ? 'Diseñador' : 'Técnico'}</h3>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Días promedio vs Cumplimiento</span>
           </div>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.workloadData} margin={{ bottom: 20, left: 10 }}>
+              <BarChart data={stats.workloadData} margin={{ bottom: 10, left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis 
                   dataKey="name" 
@@ -620,7 +628,6 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                   tickLine={false} 
                   tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }}
                   dy={10}
-                  label={{ value: 'Diseñador', position: 'insideBottom', offset: -10, fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
                 />
                 <YAxis 
                   axisLine={false} 
