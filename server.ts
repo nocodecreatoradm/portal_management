@@ -924,7 +924,7 @@ async function startServer() {
                 const setClauses = keys.map((k, i) => {
                   let val = row[k];
                   const paramName = `update_${i}`;
-                  if (val instanceof Date || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val))) {
+                  if (val instanceof Date || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:[+-]\d{2}:\d{2}|Z)?)?$/.test(val))) {
                     updateRequest.input(paramName, sql.DateTime2, new Date(val));
                   } else if (typeof val === 'object' && val !== null) {
                     updateRequest.input(paramName, sql.NVarChar(sql.MAX), JSON.stringify(val));
@@ -978,7 +978,7 @@ async function startServer() {
           const valuesPlaceholders = keys.map((k, i) => {
             let val = row[k];
             const paramName = `param_${i}`;
-            if (val instanceof Date || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val))) {
+            if (val instanceof Date || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:[+-]\d{2}:\d{2}|Z)?)?$/.test(val))) {
               rowRequest.input(paramName, sql.DateTime2, new Date(val));
             } else if (typeof val === 'object' && val !== null) {
               rowRequest.input(paramName, sql.NVarChar(sql.MAX), JSON.stringify(val));
@@ -1025,7 +1025,7 @@ async function startServer() {
         const setClauses = dbKeys.map((k, i) => {
           let val = dbPayload[k];
           const paramName = `update_${i}`;
-          if (val instanceof Date || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val))) {
+          if (val instanceof Date || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:[+-]\d{2}:\d{2}|Z)?)?$/.test(val))) {
             request.input(paramName, sql.DateTime2, new Date(val));
           } else if (typeof val === 'object' && val !== null) {
             request.input(paramName, sql.NVarChar(sql.MAX), JSON.stringify(val));
