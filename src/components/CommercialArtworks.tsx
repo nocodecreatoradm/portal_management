@@ -56,8 +56,7 @@ export default function CommercialArtworks({
       'Descripción SAP': record.descripcionSAP,
       'Código EAN': record.codigoEAN,
       'Marca': record.marca,
-      'Línea': record.linea,
-      'Estado Comercial': record.commercialStatus || 'No a la venta'
+      'Línea': record.linea
     }));
 
     exportToExcel(exportData, `${moduleTitle.replace(/ /g, '_')}_${format(new Date(), 'yyyyMMdd')}`);
@@ -263,11 +262,11 @@ export default function CommercialArtworks({
           ref={topScrollRef}
           className="overflow-x-auto h-3 bg-slate-50 border-b border-slate-100"
         >
-          <div style={{ width: '1350px', height: '1px' }}></div>
+          <div style={{ width: '1200px', height: '1px' }}></div>
         </div>
 
         <div ref={tableContainerRef} className="overflow-x-auto min-h-[420px]">
-          <table className="w-full text-sm text-left border-collapse min-w-[1350px]">
+          <table className="w-full text-sm text-left border-collapse min-w-[1200px]">
             <thead className="bg-[#f8fafc] text-slate-500 uppercase text-[10px] font-bold border-b border-gray-200 sticky top-0 z-20">
               <tr>
                 <th className="px-6 py-4 border-r border-gray-100">
@@ -327,14 +326,13 @@ export default function CommercialArtworks({
                 </th>
                 <th className="px-4 py-4 border-r border-gray-100">Archivos</th>
                 <th className="px-4 py-4 border-r border-gray-100 text-center">Ver.</th>
-                <th className="px-6 py-4 bg-blue-50/50 text-blue-600">¿Está a la venta?</th>
                 <th className="px-4 py-4 text-center">Detalles</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {approvedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-slate-400 italic">
+                  <td colSpan={8} className="px-6 py-10 text-center text-slate-400 italic">
                     No hay elementos aprobados actualmente.
                   </td>
                 </tr>
@@ -357,9 +355,11 @@ export default function CommercialArtworks({
 
                   if (approvedVersions.length === 0) return null;
 
-                  // Get currently selected version or default to latest
-                  const currentVersionNum = selectedVersions[record.id] || approvedVersions[approvedVersions.length - 1].version;
-                  const currentVersion = approvedVersions.find(v => v.version === currentVersionNum) || approvedVersions[approvedVersions.length - 1];
+                  // Get currently selected version or default to the latest approved version (highest version number)
+                  const sortedApproved = [...approvedVersions].sort((a, b) => a.version - b.version);
+                  const latestApproved = sortedApproved[sortedApproved.length - 1];
+                  const currentVersionNum = selectedVersions[record.id] || latestApproved.version;
+                  const currentVersion = approvedVersions.find(v => v.version === currentVersionNum) || latestApproved;
 
                   return (
                     <tr key={record.id} className="hover:bg-slate-50/50 transition-colors">
@@ -414,25 +414,12 @@ export default function CommercialArtworks({
                           onChange={(e) => setSelectedVersions(prev => ({ ...prev, [record.id]: parseInt(e.target.value) }))}
                           className="bg-transparent border-none outline-none text-center cursor-pointer hover:text-blue-600 transition-colors"
                         >
-                          {approvedVersions.map(v => (
+                          {[...approvedVersions].sort((a, b) => b.version - a.version).map(v => (
                             <option key={v.version} value={v.version}>V{v.version}</option>
                           ))}
                         </select>
                       </td>
-                      <td className="px-6 py-4 bg-blue-50/20">
-                        <select 
-                          value={currentVersion.commercialStatus || 'No a la venta'}
-                          onChange={(e) => handleUpdateVersionStatus(record.id, currentVersion.version, e.target.value as any)}
-                          className={`w-full border rounded-lg px-3 py-1.5 text-xs font-bold outline-none transition-all ${
-                            currentVersion.commercialStatus === 'A la venta'
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700 focus:ring-2 focus:ring-emerald-500'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 focus:ring-2 focus:ring-slate-400'
-                          }`}
-                        >
-                          <option value="No a la venta">No a la venta</option>
-                          <option value="A la venta">A la venta</option>
-                        </select>
-                      </td>
+
                       <td className="px-4 py-4 text-center">
                         <button
                           onClick={() => setSelectedProduct(record)}
