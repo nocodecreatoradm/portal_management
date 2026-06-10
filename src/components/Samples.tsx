@@ -2191,7 +2191,19 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                                 const field = section?.fields.find(f => f.label === fieldLabel);
                                 return (
                                   <td key={id} className="p-6 text-[11px] font-black text-slate-700 text-center border-r border-slate-100">
-                                    {field?.value || <span className="text-slate-300">-</span>}
+                                    <div className="mb-2">{field?.value || <span className="text-slate-300">-</span>}</div>
+                                    {field?.photos && field.photos.length > 0 && (
+                                      <div className="flex flex-wrap gap-2 justify-center mt-3">
+                                        {field.photos.map((p, i) => (
+                                          <div key={i} className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shadow-sm group relative">
+                                            <img src={p.url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                            <a href={p.url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                              <Maximize2 size={12} className="text-white" />
+                                            </a>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </td>
                                 );
                               })}

@@ -111,9 +111,9 @@ export default function EnergyEfficiency({
 
   const handleUpdateRecord = async (updatedRecord: EnergyEfficiencyRecord) => {
     try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(updatedRecord.id);
+      const isUUIDVal = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(updatedRecord.id);
       let result;
-      if (isUUID) {
+      if (isUUIDVal) {
         result = await SupabaseService.updateEERecord(updatedRecord.id, updatedRecord);
       } else {
         const { id, createdAt, ...recordWithoutId } = updatedRecord;

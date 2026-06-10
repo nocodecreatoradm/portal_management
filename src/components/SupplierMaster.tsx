@@ -248,7 +248,7 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
 
   const handleSave = async () => {
     try {
-      const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       
       let result;
       if (editingSupplier && isUUID(editingSupplier.id)) {

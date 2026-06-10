@@ -302,7 +302,7 @@ export const updateCantonFairSupplier = async (id: string, supplier: any) => {
 
 export const deleteCantonFairSupplier = async (id: string) => {
   try {
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[45][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     if (!isUUID) return { success: true };
 
     const { error } = await supabase.from('canton_fair_suppliers').delete().eq('id', id);
