@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Sparkles, X, ChevronRight, ChevronLeft, ArrowRight, HelpCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Sparkles, X, ChevronRight, ChevronLeft, ArrowRight, Send } from 'lucide-react';
 import { ModuleId } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SupabaseService } from '../lib/SupabaseService';
 
 // Import avatar images
 import pointingForward from '../assets/avatar/pointing_forward.png';
@@ -32,11 +33,43 @@ interface TourStep {
   highlightSelector?: string;
 }
 
+interface ChatMessage {
+  sender: 'user' | 'soly';
+  text: string;
+  action?: { label: string; module: ModuleId };
+}
+
 export default function SolyAssistant({ activeModule, onNavigateModule, isVisible, onToggleVisible }: SolyAssistantProps) {
   const [isMinimized, setIsMinimized] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [activeTab, setActiveTab] = useState<'tour' | 'chat'>('tour');
+  
+  // Chat states
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      sender: 'soly',
+      text: '¡Hola! Soy Soly, tu asistente de I+D. Pregúntame sobre los plazos de entrega cercanos, prioridades críticas de la semana, dónde encontrar datos o resúmenes de muestras e inventario. ¿En qué te ayudo hoy?'
+    }
+  ]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Define step content and selectors for each module
+  // Highlighting and float positioning states
+  const [highlightRect, setHighlightRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const [widgetPosition, setWidgetPosition] = useState<{ left?: number; top?: number; placement: 'fixed' | 'left' | 'right' | 'below' | 'above' }>({
+    placement: 'fixed'
+  });
+
+  // App data cache for Q&A chatbot
+  const [appData, setAppData] = useState<{
+    tasks: any[];
+    products: any[];
+    samples: any[];
+    inventory: any[];
+    claims: any[];
+  }>({ tasks: [], products: [], samples: [], inventory: [], claims: [] });
+
+  // Tour data definitions
   const tourData: Record<string, TourStep[]> = {
     brandbook: [
       {
@@ -276,49 +309,6 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     ]
   };
 
-  // Reset steps on module change
-  useEffect(() => {
-    setCurrentStep(0);
-  }, [activeModule]);
-
-  // Effect to handle dynamic element highlighting and scrolling
-  useEffect(() => {
-    const clearHighlights = () => {
-      document.querySelectorAll('.soly-tour-highlight').forEach(el => {
-        el.classList.remove('soly-tour-highlight');
-      });
-    };
-
-    clearHighlights();
-
-    if (!isVisible || isMinimized) return;
-
-    const currentSteps = tourData[activeModule] || [
-      {
-        text: `Estás en el módulo de ${activeModule.replace('_', ' ')}. ¡Explora todas las herramientas disponibles en el panel lateral!`,
-        avatar: "pointing_forward"
-      }
-    ];
-    const step = currentSteps[currentStep];
-
-    if (step && step.highlightSelector) {
-      const timer = setTimeout(() => {
-        const element = document.querySelector(step.highlightSelector!);
-        if (element) {
-          element.classList.add('soly-tour-highlight');
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-
-    return () => {
-      clearHighlights();
-    };
-  }, [activeModule, currentStep, isVisible, isMinimized]);
-
-  if (!isVisible) return null;
-
   const currentSteps = tourData[activeModule] || [
     {
       text: `Estás en el módulo de ${activeModule.replace('_', ' ')}. ¡Explora todas las herramientas disponibles en el panel lateral!`,
@@ -328,6 +318,361 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
 
   const step = currentSteps[currentStep] || currentSteps[0];
   const avatarSrc = avatarImages[step.avatar] || pointingForward;
+
+  // Auto-scroll chat history on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  // Load all app data for chatbot queries on load
+  useEffect(() => {
+    if (!isVisible) return;
+    const fetchAllData = async () => {
+      try {
+        const [tasksData, productsData, samplesData, inventoryData, claimsData] = await Promise.all([
+          SupabaseService.getCalendarTasks().catch(() => []),
+          SupabaseService.getProducts().catch(() => []),
+          SupabaseService.getSamples().catch(() => []),
+          SupabaseService.getInventory().catch(() => []),
+          SupabaseService.getQualityClaims().catch(() => [])
+        ]);
+
+        setAppData({
+          tasks: tasksData || [],
+          products: productsData || [],
+          samples: samplesData || [],
+          inventory: inventoryData || [],
+          claims: claimsData || []
+        });
+      } catch (err) {
+        console.error("Error loading chat records:", err);
+      }
+    };
+    fetchAllData();
+  }, [isVisible]);
+
+  // Reset steps on module change
+  useEffect(() => {
+    setCurrentStep(0);
+  }, [activeModule]);
+
+  // Effect to calculate float positioning and cutout coordinates
+  useEffect(() => {
+    if (!isVisible || isMinimized || activeTab !== 'tour') {
+      setHighlightRect(null);
+      setWidgetPosition({ placement: 'fixed' });
+      return;
+    }
+
+    const updatePosition = () => {
+      const step = currentSteps[currentStep];
+      if (step && step.highlightSelector) {
+        const element = document.querySelector(step.highlightSelector);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          setHighlightRect({
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height
+          });
+
+          // Define assistant widget bounding box dimensions
+          const widgetWidth = window.innerWidth < 640 ? 270 : 370;
+          const widgetHeight = 230;
+
+          // Default fixed bottom-right position
+          let left = window.innerWidth - widgetWidth - 24;
+          let top = window.innerHeight - widgetHeight - 24;
+          let placement: 'fixed' | 'left' | 'right' | 'below' | 'above' = 'fixed';
+
+          // 1. Try Right Placement
+          if (window.innerWidth - (rect.left + rect.width) > widgetWidth + 40) {
+            left = rect.left + rect.width + 20;
+            top = Math.max(20, Math.min(rect.top + rect.height / 2 - widgetHeight / 2, window.innerHeight - widgetHeight - 40));
+            placement = 'right';
+          }
+          // 2. Try Left Placement
+          else if (rect.left > widgetWidth + 40) {
+            left = rect.left - widgetWidth - 20;
+            top = Math.max(20, Math.min(rect.top + rect.height / 2 - widgetHeight / 2, window.innerHeight - widgetHeight - 40));
+            placement = 'left';
+          }
+          // 3. Try Below Placement
+          else if (window.innerHeight - (rect.top + rect.height) > widgetHeight + 40) {
+            left = Math.max(20, Math.min(rect.left + rect.width / 2 - widgetWidth / 2, window.innerWidth - widgetWidth - 40));
+            top = rect.top + rect.height + 20;
+            placement = 'below';
+          }
+          // 4. Try Above Placement
+          else if (rect.top > widgetHeight + 40) {
+            left = Math.max(20, Math.min(rect.left + rect.width / 2 - widgetWidth / 2, window.innerWidth - widgetWidth - 40));
+            top = rect.top - widgetHeight - 20;
+            placement = 'above';
+          }
+
+          setWidgetPosition({ left, top, placement });
+        } else {
+          setHighlightRect(null);
+          setWidgetPosition({ placement: 'fixed' });
+        }
+      } else {
+        setHighlightRect(null);
+        setWidgetPosition({ placement: 'fixed' });
+      }
+    };
+
+    updatePosition();
+
+    // Event listeners for recalculating position dynamically on scroll/resize
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [activeModule, currentStep, isVisible, isMinimized, activeTab, currentSteps]);
+
+  // Chat QA NLP matching function
+  const getSolyResponse = (query: string): ChatMessage => {
+    const q = query.toLowerCase().trim();
+    const today = new Date();
+
+    // 1. URGENT / NEAR DEADLINES
+    if (q.includes('plazo') || q.includes('limite') || q.includes('límite') || q.includes('cerca') || q.includes('vence') || q.includes('urgente') || q.includes('fecha')) {
+      const pendingTasks = appData.tasks
+        .filter(t => t.status !== 'completed' && t.status !== 'cancelled' && t.deadline)
+        .map(t => ({ title: t.title, date: new Date(t.deadline), module: 'calendar' as ModuleId }));
+
+      const pendingProducts = appData.products
+        .filter(p => {
+          const assign = p.artworkAssignment || p.technicalAssignment || p.commercialAssignment;
+          return assign && assign.designer && !assign.actualCompletionDate && assign.plannedEndDate;
+        })
+        .map(p => {
+          const assign = p.artworkAssignment || p.technicalAssignment || p.commercialAssignment;
+          const type = p.trackingType === 'artwork' ? 'Arte' : p.trackingType === 'technical' ? 'F. Téc' : 'F. Com';
+          return {
+            title: `[${type}] ${p.correlativeId || p.codigoSAP}`,
+            date: new Date(assign.plannedEndDate),
+            module: (p.trackingType === 'artwork' ? 'artwork_followup' : p.trackingType === 'technical' ? 'technical_datasheet' : 'commercial_datasheet') as ModuleId
+          };
+        });
+
+      const pendingSamples = appData.samples
+        .filter(s => s.inspectionProgress !== 'completed' && s.plannedStartDate)
+        .map(s => ({
+          title: `[Muestra] ${s.correlativeId || s.codigoSAP}`,
+          date: new Date(s.plannedStartDate),
+          module: 'samples' as ModuleId
+        }));
+
+      const allPending = [...pendingTasks, ...pendingProducts, ...pendingSamples]
+        .filter(item => !isNaN(item.date.getTime()))
+        .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+      if (allPending.length === 0) {
+        return { sender: 'soly', text: '🎉 ¡Excelente! No tienes actividades pendientes con fecha límite registrada.' };
+      }
+
+      const urgentItems = allPending.slice(0, 4);
+      let reply = 'Aquí tienes las actividades más próximas a vencer:\n\n';
+      urgentItems.forEach(item => {
+        const diffTime = item.date.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        let statusText = '';
+        if (diffDays < 0) {
+          statusText = `(⚠️ Vencido hace ${Math.abs(diffDays)} días)`;
+        } else if (diffDays === 0) {
+          statusText = `(⏳ ¡Vence HOY!)`;
+        } else {
+          statusText = `(vence en ${diffDays} días)`;
+        }
+        reply += `• **${item.title}**: ${item.date.toLocaleDateString('es-PE')} ${statusText}\n`;
+      });
+
+      return { sender: 'soly', text: reply, action: { label: 'Ver Calendario', module: 'calendar' } };
+    }
+
+    // 2. TOP 5 PRIORITIES
+    if (q.includes('prioridad') || q.includes('prioridades') || q.includes('top 5') || q.includes('top5')) {
+      const pendingTasks = appData.tasks
+        .filter(t => t.status !== 'completed' && t.status !== 'cancelled')
+        .map(t => ({
+          title: t.title,
+          date: t.deadline ? new Date(t.deadline) : new Date(8640000000000000),
+          urgency: t.deliveryStatus === 'delayed' ? 2 : 1
+        }));
+
+      const pendingClaims = appData.claims
+        .filter(c => c.status === 'open')
+        .map(c => ({
+          title: `[Reclamo] SAP ${c.sapCode} - ${c.defectType}`,
+          date: c.claimEndDate ? new Date(c.claimEndDate) : new Date(8640000000000000),
+          urgency: 3 // Higher priority
+        }));
+
+      const pendingSamples = appData.samples
+        .filter(s => s.inspectionProgress !== 'completed')
+        .map(s => ({
+          title: `[Muestra] ${s.correlativeId || s.codigoSAP}`,
+          date: s.plannedStartDate ? new Date(s.plannedStartDate) : new Date(8640000000000000),
+          urgency: 2
+        }));
+
+      const allPriorities = [...pendingTasks, ...pendingClaims, ...pendingSamples]
+        .sort((a, b) => {
+          if (b.urgency !== a.urgency) return b.urgency - a.urgency;
+          return a.date.getTime() - b.date.getTime();
+        });
+
+      if (allPriorities.length === 0) {
+        return { sender: 'soly', text: 'No se encontraron actividades pendientes de alta prioridad. ¡Buen trabajo!' };
+      }
+
+      let reply = 'Estas son las **Top 5 Prioridades** críticas del portal en base a plazos y severidad:\n\n';
+      allPriorities.slice(0, 5).forEach((p, idx) => {
+        const dateText = p.date.getTime() === 8640000000000000 ? 'Sin fecha' : p.date.toLocaleDateString('es-PE');
+        reply += `${idx + 1}. **${p.title}** (Límite: ${dateText})\n`;
+      });
+
+      return { sender: 'soly', text: reply };
+    }
+
+    // 3. SAMPLES
+    if (q.includes('muestra') || q.includes('ensayo') || q.includes('inspeccion') || q.includes('inspección') || q.includes('laboratorio')) {
+      const pendingSamples = appData.samples.filter(s => s.inspectionProgress !== 'completed');
+      const inProgress = pendingSamples.filter(s => s.inspectionProgress === 'in_progress').length;
+      const pendingAssign = pendingSamples.filter(s => !s.technician).length;
+
+      let reply = `En el módulo de Muestras tenemos **${pendingSamples.length}** muestras activas:\n\n`;
+      reply += `• **${inProgress}** en curso de inspección.\n`;
+      reply += `• **${pendingAssign}** sin técnico asignado.\n\n`;
+
+      if (pendingSamples.length > 0) {
+        reply += 'Muestras urgentes:\n';
+        pendingSamples.slice(0, 3).forEach(s => {
+          reply += `• ${s.correlativeId || s.codigoSAP} - ${s.descripcionSAP || 'Muestra'}\n`;
+        });
+      }
+
+      return { sender: 'soly', text: reply, action: { label: 'Ir a Muestras', module: 'samples' } };
+    }
+
+    // 4. QUALITY CLAIMS
+    if (q.includes('reclamo') || q.includes('calidad') || q.includes('queja') || q.includes('defecto')) {
+      const openClaims = appData.claims.filter(c => c.status === 'open');
+      let reply = `Actualmente existen **${openClaims.length}** reclamos de calidad pendientes de subsanar:\n\n`;
+
+      if (openClaims.length > 0) {
+        openClaims.slice(0, 3).forEach(c => {
+          reply += `• **SAP ${c.sapCode}**: ${c.defectType} - ${c.comments || 'Sin comentarios'}\n`;
+        });
+      } else {
+        reply = '🎉 Todos los reclamos registrados han sido subsanados con éxito (semáforos en verde).';
+      }
+
+      return { sender: 'soly', text: reply, action: { label: 'Ver Reclamos', module: 'quality_claims' } };
+    }
+
+    // 5. CALIBRATION
+    if (q.includes('equipo') || q.includes('calibracion') || q.includes('calibración') || q.includes('inventario') || q.includes('vencido')) {
+      const expired = appData.inventory.filter(i => i.calibrationStatus === 'Vencido').length;
+      const warning = appData.inventory.filter(i => i.calibrationStatus === 'Próximo a Vencer').length;
+      let reply = `En el Inventario de Laboratorio tenemos:\n\n`;
+      reply += `• 🔴 **${expired}** equipos con calibración **Vencida**.\n`;
+      reply += `• 🟡 **${warning}** equipos **Próximos a Vencer**.\n\n`;
+
+      if (expired > 0) {
+        reply += "Equipos críticos vencidos:\n";
+        appData.inventory.filter(i => i.calibrationStatus === 'Vencido').slice(0, 3).forEach(i => {
+          reply += `• S/N ${i.serialNumber}: ${i.description}\n`;
+        });
+      }
+
+      return { sender: 'soly', text: reply, action: { label: 'Ver Inventario R&D', module: 'rd_inventory' } };
+    }
+
+    // 6. MODULE POSITIONING QUESTIONS (DÓNDE ENCONTRAR / NAVIGATION)
+    if (q.includes('donde') || q.includes('dónde') || q.includes('encontrar') || q.includes('buscar') || q.includes('ver') || q.includes('ir a')) {
+      if (q.includes('simulador') || q.includes('gmroi') || q.includes('precio')) {
+        return { 
+          sender: 'soly',
+          text: 'El **Simulador de Precios y Plantilla GMROI** se ubica en el menú lateral bajo el grupo de **Recursos & Guías**.',
+          action: { label: 'Ir al Simulador', module: 'price_gmroi_simulator' }
+        };
+      }
+      if (q.includes('calendario') || q.includes('pendientes')) {
+        return { 
+          sender: 'soly',
+          text: 'El **Calendario de Pendientes** está en el grupo de **Gestión Operativa**.',
+          action: { label: 'Ir al Calendario', module: 'calendar' }
+        };
+      }
+      if (q.includes('plan de trabajo') || q.includes('cronograma')) {
+        return { 
+          sender: 'soly',
+          text: 'El **Plan de Trabajo Anual** está en el grupo de **Gestión Operativa**.',
+          action: { label: 'Ir al Plan de Trabajo', module: 'work_plan' }
+        };
+      }
+      if (q.includes('artes') || q.includes('artwork')) {
+        return { 
+          sender: 'soly',
+          text: 'El **Seguimiento de Artes (Fase 1)** está en el grupo de **Gestión Operativa**.',
+          action: { label: 'Ir a Artes', module: 'artwork_followup' }
+        };
+      }
+      if (q.includes('ficha tecnica') || q.includes('ficha técnica') || q.includes('f. tec')) {
+        return { 
+          sender: 'soly',
+          text: 'El **Seguimiento de Fichas Técnicas (Fase 2)** está en el grupo de **Gestión Operativa**.',
+          action: { label: 'Ir a Ficha Técnica', module: 'technical_datasheet' }
+        };
+      }
+      if (q.includes('brandbook') || q.includes('marca') || q.includes('logotipo')) {
+        return { 
+          sender: 'soly',
+          text: 'El **Brandbook (Manual de Marca)** está al inicio del menú lateral en su propio grupo **Manual de Marca**.',
+          action: { label: 'Ir al Brandbook', module: 'brandbook' }
+        };
+      }
+    }
+
+    // DEFAULT
+    return {
+      sender: 'soly',
+      text: 'Disculpa, no logré comprender tu consulta. Puedes preguntarme:\n\n• *¿Cuáles son los plazos urgentes?*\n• *Genera el top 5 de prioridades.*\n• *¿Dónde encuentro el simulador GMROI?*\n• *Dime un resumen de las muestras o reclamos.*'
+    };
+  };
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+
+    const queryText = chatInput;
+    setChatInput('');
+
+    // Add user message
+    setChatMessages(prev => [...prev, { sender: 'user', text: queryText }]);
+
+    // Trigger response typing effect after a small delay
+    setTimeout(() => {
+      const response = getSolyResponse(queryText);
+      setChatMessages(prev => [...prev, response]);
+    }, 400);
+  };
+
+  const handleChipClick = (text: string) => {
+    setChatMessages(prev => [...prev, { sender: 'user', text }]);
+    setTimeout(() => {
+      const response = getSolyResponse(text);
+      setChatMessages(prev => [...prev, response]);
+    }, 400);
+  };
+
+  if (!isVisible) return null;
 
   const handleNext = () => {
     if (currentStep < currentSteps.length - 1) {
@@ -371,131 +716,287 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     }
   `;
 
+  const isFixed = widgetPosition.placement === 'fixed';
+  const containerStyle: React.CSSProperties = isFixed
+    ? {}
+    : {
+        position: 'fixed',
+        left: `${widgetPosition.left}px`,
+        top: `${widgetPosition.top}px`,
+        bottom: 'auto',
+        right: 'auto',
+        transition: 'left 0.3s ease, top 0.3s ease'
+      };
+
   return (
-    <div className="fixed bottom-6 right-6 z-[90] flex items-end gap-2 pointer-events-none">
+    <div className="z-[90] pointer-events-none">
       <style>{highlightStyles}</style>
-      
-      <AnimatePresence>
-        {!isMinimized && (
-          <div className="flex items-end gap-3 pointer-events-auto">
-            {/* Speech Bubble */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, x: 20 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.9, x: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 120 }}
-              className="w-72 sm:w-80 md:w-96 bg-white border border-slate-200 shadow-2xl p-5 rounded-3xl relative flex flex-col mb-4"
-            >
-              {/* Header toolbar */}
-              <div className="flex justify-between items-center mb-3">
-                <div className="flex items-center gap-1.5 text-indigo-600">
-                  <Sparkles size={16} className="animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Soly</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setIsMinimized(true)}
-                    className="hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors text-[9px] font-black uppercase px-2 py-0.5 border border-slate-200"
-                    title="Minimizar ayuda"
-                  >
-                    Minimizar
-                  </button>
-                  <button
-                    onClick={() => onToggleVisible(false)}
-                    className="p-1 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
-                    title="Ocultar asistente permanentemente"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              </div>
 
-              {/* Bubble Chat content */}
-              <div className="flex-1 flex flex-col justify-between min-h-[80px]">
-                <p className="text-xs font-semibold text-slate-700 leading-relaxed">
-                  {step.text}
-                </p>
+      {/* Dim Overlay Backdrops around highlighted element */}
+      {highlightRect && activeTab === 'tour' && !isMinimized && (
+        <>
+          {/* Top overlay */}
+          <div 
+            className="fixed top-0 left-0 right-0 bg-slate-950/60 z-[80] pointer-events-auto transition-all duration-300"
+            style={{ height: `${highlightRect.top - 4}px` }}
+          />
+          {/* Bottom overlay */}
+          <div 
+            className="fixed left-0 right-0 bottom-0 bg-slate-950/60 z-[80] pointer-events-auto transition-all duration-300"
+            style={{ top: `${highlightRect.top + highlightRect.height + 4}px` }}
+          />
+          {/* Left overlay */}
+          <div 
+            className="fixed bg-slate-950/60 z-[80] pointer-events-auto transition-all duration-300"
+            style={{ 
+              top: `${highlightRect.top - 4}px`, 
+              height: `${highlightRect.height + 8}px`, 
+              left: 0, 
+              width: `${highlightRect.left - 4}px` 
+            }}
+          />
+          {/* Right overlay */}
+          <div 
+            className="fixed bg-slate-950/60 z-[80] pointer-events-auto transition-all duration-300"
+            style={{ 
+              top: `${highlightRect.top - 4}px`, 
+              height: `${highlightRect.height + 8}px`, 
+              left: `${highlightRect.left + highlightRect.width + 4}px`, 
+              right: 0 
+            }}
+          />
+        </>
+      )}
 
-                {/* Optional navigation shortcut */}
-                {step.action && (
-                  <button
-                    onClick={() => handleActionClick(step.action!.module)}
-                    className="mt-3 inline-flex items-center gap-1.5 self-start text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 hover:bg-indigo-100/80 px-2.5 py-1.5 rounded-lg border border-indigo-100/60"
-                  >
-                    {step.action.label}
-                    <ArrowRight size={12} />
-                  </button>
-                )}
-              </div>
-
-              {/* Steps navigation footer */}
-              {currentSteps.length > 1 && (
-                <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Paso {currentStep + 1} de {currentSteps.length}
-                  </span>
-                  <div className="flex items-center gap-2">
+      {/* Floating Soly Assistant Widget container */}
+      <div 
+        className={isFixed ? "fixed bottom-6 right-6 flex items-end gap-2" : ""} 
+        style={containerStyle}
+      >
+        <AnimatePresence>
+          {!isMinimized && (
+            <div className="flex items-end gap-3 pointer-events-auto">
+              {/* Speech Bubble */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, x: 20 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.9, x: 20 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 120 }}
+                className="w-72 sm:w-80 md:w-96 bg-white border border-slate-200 shadow-2xl p-5 rounded-3xl relative flex flex-col mb-4 max-h-[440px]"
+              >
+                {/* Header toolbar */}
+                <div className="flex justify-between items-center mb-3">
+                  <div className="flex items-center gap-1.5 text-indigo-600">
+                    <Sparkles size={16} className="animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Soly</span>
+                  </div>
+                  <div className="flex items-center gap-1">
                     <button
-                      onClick={handlePrev}
-                      disabled={currentStep === 0}
-                      className="p-1 hover:bg-slate-100 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent text-slate-500 transition-colors"
+                      onClick={() => setIsMinimized(true)}
+                      className="hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors text-[9px] font-black uppercase px-2 py-0.5 border border-slate-200"
+                      title="Minimizar ayuda"
                     >
-                      <ChevronLeft size={16} />
+                      Minimizar
                     </button>
                     <button
-                      onClick={handleNext}
-                      disabled={currentStep === currentSteps.length - 1}
-                      className="p-1 hover:bg-slate-100 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent text-slate-500 transition-colors"
+                      onClick={() => onToggleVisible(false)}
+                      className="p-1 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                      title="Ocultar asistente permanentemente"
                     >
-                      <ChevronRight size={16} />
+                      <X size={16} />
                     </button>
                   </div>
                 </div>
-              )}
 
-              {/* Speech bubble pointer tail pointing to the avatar */}
-              <div className="absolute top-[65%] -right-1.5 w-3 h-3 bg-white border-t border-r border-slate-200 transform rotate(45deg) z-10" />
-            </motion.div>
+                {/* Tabs selection */}
+                <div className="flex border-b border-slate-100 mb-3 text-xs">
+                  <button 
+                    onClick={() => setActiveTab('tour')}
+                    className={`flex-1 pb-1.5 font-black uppercase tracking-wider text-center transition-all ${
+                      activeTab === 'tour' 
+                        ? 'text-indigo-600 border-b-2 border-indigo-600' 
+                        : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    Guía de Módulo
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('chat')}
+                    className={`flex-1 pb-1.5 font-black uppercase tracking-wider text-center transition-all ${
+                      activeTab === 'chat' 
+                        ? 'text-indigo-600 border-b-2 border-indigo-600' 
+                        : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    Preguntar a Soly
+                  </button>
+                </div>
 
-            {/* Standalone Free Avatar Image (Clippy Style) */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="w-36 h-48 sm:w-44 sm:h-52 flex items-end justify-center select-none shrink-0"
-            >
-              <img
-                src={avatarSrc}
-                alt="Soly Avatar"
-                className="w-full h-full object-contain filter drop-shadow-[0_12px_20px_rgba(0,0,0,0.18)] hover:scale-105 transition-transform duration-300 cursor-pointer"
-                onClick={() => setIsMinimized(true)}
-                title="Haz clic para minimizar"
-              />
-            </motion.div>
-          </div>
+                {/* Tour Tab Content */}
+                {activeTab === 'tour' && (
+                  <div className="flex-1 flex flex-col justify-between min-h-[90px]">
+                    <p className="text-xs font-semibold text-slate-700 leading-relaxed">
+                      {step.text}
+                    </p>
+
+                    {/* Optional navigation shortcut */}
+                    {step.action && (
+                      <button
+                        onClick={() => handleActionClick(step.action!.module)}
+                        className="mt-3 inline-flex items-center gap-1.5 self-start text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 hover:bg-indigo-100/80 px-2.5 py-1.5 rounded-lg border border-indigo-100/60"
+                      >
+                        {step.action.label}
+                        <ArrowRight size={12} />
+                      </button>
+                    )}
+
+                    {/* Steps navigation footer */}
+                    {currentSteps.length > 1 && (
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          Paso {currentStep + 1} de {currentSteps.length}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={handlePrev}
+                            disabled={currentStep === 0}
+                            className="p-1 hover:bg-slate-100 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent text-slate-500 transition-colors"
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                          <button
+                            onClick={handleNext}
+                            disabled={currentStep === currentSteps.length - 1}
+                            className="p-1 hover:bg-slate-100 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent text-slate-500 transition-colors"
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Chat Tab Content */}
+                {activeTab === 'chat' && (
+                  <div className="flex-1 flex flex-col min-h-[160px] justify-between">
+                    {/* Message Log */}
+                    <div className="flex-1 overflow-y-auto max-h-[180px] space-y-2.5 pr-1 mb-2 flex flex-col text-xs custom-scrollbar">
+                      {chatMessages.map((msg, idx) => (
+                        <div 
+                          key={idx}
+                          className={`max-w-[85%] rounded-2xl px-3.5 py-2 leading-relaxed font-semibold ${
+                            msg.sender === 'user'
+                              ? 'bg-indigo-600 text-white self-end rounded-tr-none'
+                              : 'bg-slate-50 text-slate-700 border border-slate-100 self-start rounded-tl-none whitespace-pre-wrap'
+                          }`}
+                        >
+                          {msg.text}
+                          {msg.action && (
+                            <button
+                              onClick={() => handleActionClick(msg.action!.module)}
+                              className="mt-2 flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-white hover:bg-indigo-50 border border-indigo-100 text-indigo-600 px-2 py-1 rounded-lg"
+                            >
+                              {msg.action.label}
+                              <ArrowRight size={10} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <div ref={chatEndRef} />
+                    </div>
+
+                    {/* Suggestion Chips */}
+                    <div className="flex gap-1.5 overflow-x-auto pb-2 border-t border-slate-100 pt-2 shrink-0 select-none custom-scrollbar">
+                      <button 
+                        onClick={() => handleChipClick('¿Qué plazos están cerca?')}
+                        className="px-2 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-slate-600 hover:text-indigo-600 rounded-full text-[9px] font-bold whitespace-nowrap transition-colors"
+                      >
+                        🕒 Plazos cerca
+                      </button>
+                      <button 
+                        onClick={() => handleChipClick('Top 5 Prioridades')}
+                        className="px-2 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-slate-600 hover:text-indigo-600 rounded-full text-[9px] font-bold whitespace-nowrap transition-colors"
+                      >
+                        🏆 Top 5 Prioridades
+                      </button>
+                      <button 
+                        onClick={() => handleChipClick('Resumen de Muestras')}
+                        className="px-2 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-slate-600 hover:text-indigo-600 rounded-full text-[9px] font-bold whitespace-nowrap transition-colors"
+                      >
+                        📦 Muestras
+                      </button>
+                      <button 
+                        onClick={() => handleChipClick('¿Hay reclamos de calidad abiertos?')}
+                        className="px-2 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-slate-600 hover:text-indigo-600 rounded-full text-[9px] font-bold whitespace-nowrap transition-colors"
+                      >
+                        ⚠️ Reclamos
+                      </button>
+                    </div>
+
+                    {/* Chat Text Input Form */}
+                    <form onSubmit={handleSendMessage} className="flex gap-1.5 items-center shrink-0">
+                      <input 
+                        type="text"
+                        placeholder="Pregúntame algo..."
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium text-slate-700"
+                      />
+                      <button 
+                        type="submit" 
+                        className="p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors flex items-center justify-center shrink-0"
+                      >
+                        <Send size={12} />
+                      </button>
+                    </form>
+                  </div>
+                )}
+
+                {/* Speech bubble pointer tail pointing to the avatar */}
+                <div className="absolute top-[65%] -right-1.5 w-3 h-3 bg-white border-t border-r border-slate-200 transform rotate(45deg) z-10" />
+              </motion.div>
+
+              {/* Standalone Free Avatar Image (Clippy Style) */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="w-36 h-48 sm:w-44 sm:h-52 flex items-end justify-center select-none shrink-0"
+              >
+                <img
+                  src={avatarSrc}
+                  alt="Soly Avatar"
+                  className="w-full h-full object-contain filter drop-shadow-[0_12px_20px_rgba(0,0,0,0.18)] hover:scale-105 transition-transform duration-300 cursor-pointer"
+                  onClick={() => setIsMinimized(true)}
+                  title="Haz clic para minimizar"
+                />
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Mini floating button toggle */}
+        {isMinimized && (
+          <motion.button
+            layoutId="solyFloatingBtn"
+            onClick={() => setIsMinimized(false)}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            className="w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-colors border-2 border-white relative group pointer-events-auto"
+          >
+            <div className="w-11 h-11 rounded-full overflow-hidden bg-indigo-50">
+              <img src={pointingForward} alt="Soly Mini" className="w-full h-full object-contain object-top mt-1" />
+            </div>
+            {/* Pulsing indicator */}
+            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white animate-bounce" />
+            {/* Tooltip */}
+            <span className="absolute right-full mr-3 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl">
+              ¿Necesitas ayuda?
+            </span>
+          </motion.button>
         )}
-      </AnimatePresence>
-
-      {/* Mini floating button toggle */}
-      {isMinimized && (
-        <motion.button
-          layoutId="solyFloatingBtn"
-          onClick={() => setIsMinimized(false)}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-colors border-2 border-white relative group pointer-events-auto"
-        >
-          <div className="w-11 h-11 rounded-full overflow-hidden bg-indigo-50">
-            <img src={pointingForward} alt="Soly Mini" className="w-full h-full object-contain object-top mt-1" />
-          </div>
-          {/* Pulsing indicator */}
-          <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white animate-bounce" />
-          {/* Tooltip */}
-          <span className="absolute right-full mr-3 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl">
-            ¿Necesitas ayuda?
-          </span>
-        </motion.button>
-      )}
+      </div>
     </div>
   );
 }
