@@ -1689,11 +1689,11 @@ export const SupabaseService = {
   },
 
   // SOLY REMINDERS
-  async getPendingReminders(receiverName: string) {
+  async getPendingReminders(receiverEmail: string) {
     const { data, error } = await supabase
       .from('soly_reminders')
       .select()
-      .eq('receiver_name', receiverName)
+      .eq('receiver_email', receiverEmail)
       .eq('status', 'pending')
       .order('created_at', { ascending: true });
     if (error) throw error;

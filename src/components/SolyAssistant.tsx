@@ -77,17 +77,19 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
   // Reminders state & handlers
   const [activeReminders, setActiveReminders] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
-  const [reminderReceiverName, setReminderReceiverName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRecipients, setSelectedRecipients] = useState<any[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [reminderMessage, setReminderMessage] = useState('');
   const [reminderStatusMsg, setReminderStatusMsg] = useState<{ type: 'success' | 'error' | ''; text: string }>({ type: '', text: '' });
   const [isSendingReminder, setIsSendingReminder] = useState(false);
 
   useEffect(() => {
-    if (!profile?.full_name) return;
+    if (!profile?.email) return;
 
     const fetchReminders = async () => {
       try {
-        const reminders = await SupabaseService.getPendingReminders(profile.full_name);
+        const reminders = await SupabaseService.getPendingReminders(profile.email);
         setActiveReminders(reminders);
       } catch (err) {
         console.error('Error fetching reminders:', err);
@@ -97,7 +99,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     fetchReminders();
     const interval = setInterval(fetchReminders, 25000);
     return () => clearInterval(interval);
-  }, [profile?.full_name]);
+  }, [profile?.email]);
 
   useEffect(() => {
     const fetchProfiles = async () => {
@@ -122,8 +124,8 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
 
   const handleSendReminderFromTab = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reminderReceiverName) {
-      setReminderStatusMsg({ type: 'error', text: 'Selecciona un destinatario.' });
+    if (selectedRecipients.length === 0) {
+      setReminderStatusMsg({ type: 'error', text: 'Selecciona al menos un destinatario.' });
       return;
     }
     if (!reminderMessage.trim()) {
@@ -135,27 +137,25 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     setReminderStatusMsg({ type: '', text: '' });
 
     try {
-      const receiver = profiles.find(p => p.full_name === reminderReceiverName);
-      if (!receiver) {
-        setReminderStatusMsg({ type: 'error', text: 'Usuario no encontrado.' });
-        setIsSendingReminder(false);
-        return;
-      }
+      await Promise.all(selectedRecipients.map(receiver => 
+        SupabaseService.createReminder({
+          senderName: profile?.full_name || 'Usuario',
+          senderEmail: profile?.email || '',
+          receiverName: receiver.full_name,
+          receiverEmail: receiver.email,
+          message: reminderMessage.trim(),
+          status: 'pending'
+        })
+      ));
 
-      await SupabaseService.createReminder({
-        senderName: profile?.full_name || 'Usuario',
-        senderEmail: profile?.email || '',
-        receiverName: receiver.full_name,
-        receiverEmail: receiver.email,
-        message: reminderMessage.trim(),
-        status: 'pending'
-      });
-
-      setReminderStatusMsg({ type: 'success', text: `¡Recordatorio enviado a ${receiver.full_name}! 🚀` });
+      const names = selectedRecipients.map(r => r.full_name).join(', ');
+      setReminderStatusMsg({ type: 'success', text: `¡Enviado con éxito a: ${names}! 🚀` });
       setReminderMessage('');
+      setSelectedRecipients([]);
+      setSearchQuery('');
     } catch (err) {
-      console.error('Error sending reminder:', err);
-      setReminderStatusMsg({ type: 'error', text: 'Error al enviar recordatorio.' });
+      console.error('Error sending reminders:', err);
+      setReminderStatusMsg({ type: 'error', text: 'Error al enviar recordatorios.' });
     } finally {
       setIsSendingReminder(false);
     }
@@ -2140,30 +2140,108 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
                   <form onSubmit={handleSendReminderFromTab} className="flex-1 flex flex-col justify-between min-h-[220px]">
                     <div className="flex-1 flex flex-col overflow-y-auto pr-1 max-h-[240px] custom-scrollbar">
                       <p className="text-[10px] text-slate-500 font-semibold mb-2 leading-tight">
-                        Envía una alerta a otro usuario del portal. Le aparecerá a la derecha de su pantalla.
+                        Envía una alerta a otros usuarios del portal. Les aparecerá a la derecha de su pantalla.
                       </p>
                       
-                      <div className="mb-2">
+                      <div className="mb-2.5 relative">
                         <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                          Destinatario:
+                          Destinatarios:
                         </label>
-                        <select
-                          value={reminderReceiverName}
-                          onChange={(e) => {
-                            setReminderReceiverName(e.target.value);
-                            setReminderStatusMsg({ type: '', text: '' });
-                          }}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 font-semibold"
-                        >
-                          <option value="">-- Selecciona un usuario --</option>
-                          {profiles
-                            .filter(p => p.full_name !== profile?.full_name && p.is_active !== false)
-                            .map((p) => (
-                              <option key={p.id} value={p.full_name}>
-                                {p.full_name} ({p.department || 'Sin área'})
-                              </option>
+                        
+                        {/* Selected recipients pills */}
+                        {selectedRecipients.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2 max-h-20 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-200/60 custom-scrollbar pointer-events-auto">
+                            {selectedRecipients.map(recipient => (
+                              <span 
+                                key={recipient.id} 
+                                className="inline-flex items-center gap-1 bg-indigo-50 border border-indigo-150 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                              >
+                                {recipient.full_name}
+                                <button 
+                                  type="button" 
+                                  onClick={() => setSelectedRecipients(prev => prev.filter(r => r.id !== recipient.id))} 
+                                  className="text-indigo-400 hover:text-indigo-700 font-bold ml-0.5 text-xs focus:outline-none"
+                                >
+                                  ×
+                                </button>
+                              </span>
                             ))}
-                        </select>
+                          </div>
+                        )}
+
+                        {/* Searchable Input */}
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder={selectedRecipients.length > 0 ? "Agregar otro..." : "Escribe el nombre del usuario..."}
+                            value={searchQuery}
+                            onChange={(e) => {
+                              setSearchQuery(e.target.value);
+                              setIsDropdownOpen(true);
+                              setReminderStatusMsg({ type: '', text: '' });
+                            }}
+                            onFocus={() => setIsDropdownOpen(true)}
+                            onBlur={() => setTimeout(() => setIsDropdownOpen(false), 250)}
+                            className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 font-semibold pointer-events-auto"
+                          />
+                          {searchQuery && (
+                            <button
+                              type="button"
+                              onClick={() => setSearchQuery('')}
+                              className="absolute right-2.5 top-1.5 text-slate-400 hover:text-slate-650 text-xs font-bold focus:outline-none pointer-events-auto"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Dropdown Options List */}
+                        {isDropdownOpen && (
+                          <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 shadow-2xl rounded-xl max-h-36 overflow-y-auto z-50 pointer-events-auto custom-scrollbar">
+                            {profiles.filter(p => {
+                              const normName = p.full_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                              const normDept = (p.department || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                              const normQuery = searchQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                              
+                              return p.full_name !== profile?.full_name && 
+                                     p.is_active !== false &&
+                                     !selectedRecipients.some(r => r.id === p.id) &&
+                                     (normName.includes(normQuery) || normDept.includes(normQuery));
+                            }).length === 0 ? (
+                              <div className="px-3 py-2 text-[10px] text-slate-400 font-medium italic">
+                                No se encontraron usuarios
+                              </div>
+                            ) : (
+                              profiles
+                                .filter(p => {
+                                  const normName = p.full_name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                                  const normDept = (p.department || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                                  const normQuery = searchQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                                  
+                                  return p.full_name !== profile?.full_name && 
+                                         p.is_active !== false &&
+                                         !selectedRecipients.some(r => r.id === p.id) &&
+                                         (normName.includes(normQuery) || normDept.includes(normQuery));
+                                })
+                                .map((p) => (
+                                  <div
+                                    key={p.id}
+                                    onClick={() => {
+                                      setSelectedRecipients(prev => [...prev, p]);
+                                      setSearchQuery('');
+                                      setIsDropdownOpen(false);
+                                    }}
+                                    className="px-3 py-1.5 hover:bg-indigo-50 hover:text-indigo-900 text-[11px] text-slate-700 font-semibold cursor-pointer border-b border-slate-50 last:border-b-0 flex justify-between items-center transition-colors pointer-events-auto"
+                                  >
+                                    <span>{p.full_name}</span>
+                                    <span className="text-[9px] text-slate-400 font-normal uppercase tracking-wider bg-slate-100 px-1.5 py-0.5 rounded">
+                                      {p.department || 'Sin área'}
+                                    </span>
+                                  </div>
+                                ))
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="mb-2">
@@ -2177,7 +2255,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
                             setReminderMessage(e.target.value);
                             setReminderStatusMsg({ type: '', text: '' });
                           }}
-                          className="w-full h-16 p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 font-medium resize-none leading-relaxed"
+                          className="w-full h-16 p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 font-medium resize-none leading-relaxed pointer-events-auto"
                         />
                       </div>
 
@@ -2195,7 +2273,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
                     <button
                       type="submit"
                       disabled={isSendingReminder}
-                      className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-xl py-2 text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none shadow-md shadow-indigo-600/10 shrink-0"
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-xl py-2 text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none shadow-md shadow-indigo-600/10 shrink-0 pointer-events-auto"
                     >
                       <Send size={12} />
                       {isSendingReminder ? 'Enviando...' : 'Enviar Recordatorio'}
