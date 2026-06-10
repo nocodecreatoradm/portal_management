@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import UserSelect from './UserSelect';
 import { SupabaseService } from '../lib/SupabaseService';
-import { CalendarTask, ChangeLog, Project, ProjectActivity } from '../types';
+import { CalendarTask, ChangeLog, ProductRecord, QualityClaim } from '../types';
 import { 
   Plus, Search, Filter, Calendar as CalendarIcon, 
   Clock, User, CheckCircle2, AlertCircle, 
@@ -48,33 +48,141 @@ export default function CalendarModule() {
   const loadTasks = async () => {
     try {
       setLoading(true);
-      const [tasksData, projectsData] = await Promise.all([
+      const [tasksData, productsData, claimsData] = await Promise.all([
         SupabaseService.getCalendarTasks(),
-        SupabaseService.getProjects()
+        SupabaseService.getProducts(),
+        SupabaseService.getQualityClaims()
       ]);
 
       const fixedActivities: CalendarTask[] = [];
-      projectsData.forEach((project: Project) => {
-        if (project.activities) {
-          project.activities.forEach((act: ProjectActivity) => {
-            fixedActivities.push({
-              id: `fixed-${act.id}`,
-              title: `[${project.name}] ${act.name}`,
-              description: act.comments || `Actividad de proyecto: ${project.name}`,
-              startDate: act.plannedStartDate,
-              endDate: act.plannedEndDate,
-              deadline: act.plannedEndDate ? `${act.plannedEndDate}T18:00` : undefined,
-              type: 'fixed_activity',
-              requester: 'Plan de Trabajo',
-              assignee: act.responsible ? act.responsible.join(', ') : '',
-              status: act.status === 'COMPLETADO' ? 'completed' : 
-                      act.status === 'EN PROCESO' ? 'in_progress' : 'pending',
-              deliveryStatus: act.status === 'COMPLETADO' ? 'on_time' : 'pending',
-              createdAt: getLimaNow().toISOString(),
-              changeLog: []
-            });
+
+      // 1. Map tracking assignments from products (Artes, Ficha Técnica, Ficha Comercial)
+      productsData.forEach((product: ProductRecord) => {
+        const createdAtDate = product.createdAt ? product.createdAt.split('T')[0] : getLimaNow().toISOString().split('T')[0];
+
+        if (product.trackingType === 'artwork') {
+          const assign = product.artworkAssignment;
+          const hasDates = assign && (assign.plannedStartDate || assign.plannedEndDate);
+          const startDate = hasDates ? (assign.plannedStartDate || assign.plannedEndDate || '') : createdAtDate;
+          const endDate = hasDates ? (assign.plannedEndDate || assign.plannedStartDate || '') : createdAtDate;
+          const deadline = assign?.plannedEndDate ? `${assign.plannedEndDate}T18:00` : undefined;
+
+          const isCompleted = !!(
+            assign?.actualCompletionDate ||
+            (product.artworks && product.artworks.length > 0 && product.artworks.some(v => 
+              v.idApproval?.status === 'approved' && 
+              v.mktApproval?.status === 'approved' && 
+              v.provApproval?.status === 'approved' && 
+              v.planApproval?.status === 'approved'
+            ))
+          );
+          
+          const isDelayed = !isCompleted && deadline && new Date(deadline) < getLimaNow();
+
+          fixedActivities.push({
+            id: `artwork-${product.id}`,
+            title: `[Arte] ${product.correlativeId ? `[${product.correlativeId}] ` : ''}[SAP ${product.codigoSAP}] ${product.descripcionSAP}`,
+            description: `Diseñador: ${assign?.designer || 'No asignado'}. Ficha relacionada: ${product.correlativeId || ''}`,
+            startDate,
+            endDate,
+            deadline,
+            type: 'fixed_activity',
+            requester: 'Seguimiento de Artes',
+            assignee: assign?.designer || '',
+            status: isCompleted ? 'completed' : 'pending',
+            deliveryStatus: isCompleted ? 'on_time' : (isDelayed ? 'delayed' : 'pending'),
+            createdAt: product.createdAt || getLimaNow().toISOString(),
+            changeLog: []
+          });
+        } else if (product.trackingType === 'technical') {
+          const assign = product.technicalAssignment;
+          const hasDates = assign && (assign.plannedStartDate || assign.plannedEndDate);
+          const startDate = hasDates ? (assign.plannedStartDate || assign.plannedEndDate || '') : createdAtDate;
+          const endDate = hasDates ? (assign.plannedEndDate || assign.plannedStartDate || '') : createdAtDate;
+          const deadline = assign?.plannedEndDate ? `${assign.plannedEndDate}T18:00` : undefined;
+
+          const isCompleted = !!(
+            assign?.actualCompletionDate ||
+            (product.technicalSheets && product.technicalSheets.length > 0 && product.technicalSheets.some(v => 
+              v.idApproval?.status === 'approved'
+            ))
+          );
+          
+          const isDelayed = !isCompleted && deadline && new Date(deadline) < getLimaNow();
+
+          fixedActivities.push({
+            id: `technical-${product.id}`,
+            title: `[Ficha Técnica] ${product.correlativeId ? `[${product.correlativeId}] ` : ''}[SAP ${product.codigoSAP}] ${product.descripcionSAP}`,
+            description: `Asignado a: ${assign?.designer || 'No asignado'}. Ficha relacionada: ${product.correlativeId || ''}`,
+            startDate,
+            endDate,
+            deadline,
+            type: 'fixed_activity',
+            requester: 'Seguimiento Ficha Técnica',
+            assignee: assign?.designer || '',
+            status: isCompleted ? 'completed' : 'pending',
+            deliveryStatus: isCompleted ? 'on_time' : (isDelayed ? 'delayed' : 'pending'),
+            createdAt: product.createdAt || getLimaNow().toISOString(),
+            changeLog: []
+          });
+        } else if (product.trackingType === 'commercial') {
+          const assign = product.commercialAssignment;
+          const hasDates = assign && (assign.plannedStartDate || assign.plannedEndDate);
+          const startDate = hasDates ? (assign.plannedStartDate || assign.plannedEndDate || '') : createdAtDate;
+          const endDate = hasDates ? (assign.plannedEndDate || assign.plannedStartDate || '') : createdAtDate;
+          const deadline = assign?.plannedEndDate ? `${assign.plannedEndDate}T18:00` : undefined;
+
+          const isCompleted = !!(
+            assign?.actualCompletionDate ||
+            (product.commercialSheets && product.commercialSheets.length > 0 && product.commercialSheets.some(v => 
+              v.idApproval?.status === 'approved'
+            ))
+          );
+          
+          const isDelayed = !isCompleted && deadline && new Date(deadline) < getLimaNow();
+
+          fixedActivities.push({
+            id: `commercial-${product.id}`,
+            title: `[Ficha Comercial] ${product.correlativeId ? `[${product.correlativeId}] ` : ''}[SAP ${product.codigoSAP}] ${product.descripcionSAP}`,
+            description: `Asignado a: ${assign?.designer || 'No asignado'}. Ficha relacionada: ${product.correlativeId || ''}`,
+            startDate,
+            endDate,
+            deadline,
+            type: 'fixed_activity',
+            requester: 'Seguimiento Ficha Comercial',
+            assignee: assign?.designer || '',
+            status: isCompleted ? 'completed' : 'pending',
+            deliveryStatus: isCompleted ? 'on_time' : (isDelayed ? 'delayed' : 'pending'),
+            createdAt: product.createdAt || getLimaNow().toISOString(),
+            changeLog: []
           });
         }
+      });
+
+      // 2. Map quality claims (Reclamos de Calidad)
+      claimsData.forEach((claim: QualityClaim) => {
+        const claimStart = claim.claimStartDate || claim.createdAt || getLimaNow().toISOString();
+        const claimStartStr = claimStart.split('T')[0];
+        const claimEndStr = claim.claimEndDate ? claim.claimEndDate.split('T')[0] : claimStartStr;
+        const deadline = claim.claimEndDate ? `${claim.claimEndDate.split('T')[0]}T18:00` : undefined;
+        const isCompleted = claim.status === 'resolved';
+        const isDelayed = !isCompleted && deadline && new Date(deadline) < getLimaNow();
+
+        fixedActivities.push({
+          id: `claim-${claim.id}`,
+          title: `[Reclamo] ${claim.sapCode ? `[SAP ${claim.sapCode}] ` : ''}${claim.defectType} - ${claim.documentCategory}`,
+          description: `Responsable: ${claim.responsibleName}. Tipo Defecto: ${claim.defectType}. Comentarios: ${claim.comments || 'Sin comentarios'}`,
+          startDate: claimStartStr,
+          endDate: claimEndStr,
+          deadline,
+          type: 'fixed_activity',
+          requester: 'Reclamos de Calidad',
+          assignee: claim.responsibleName || '',
+          status: isCompleted ? 'completed' : 'pending',
+          deliveryStatus: isCompleted ? 'on_time' : (isDelayed ? 'delayed' : 'pending'),
+          createdAt: claim.createdAt || claimStart,
+          changeLog: []
+        });
       });
 
       setTasks([...tasksData, ...fixedActivities]);
@@ -152,7 +260,12 @@ export default function CalendarModule() {
     if (task.type === 'special_event') return 'bg-indigo-100 text-indigo-700 border-indigo-200';
     if (task.type === 'vacation') return 'bg-amber-100 text-amber-700 border-amber-200';
     if (task.type === 'field_visit') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-    if (task.type === 'fixed_activity') return 'bg-purple-100 text-purple-700 border-purple-200';
+    if (task.type === 'fixed_activity') {
+      if (task.status === 'completed') {
+        return 'bg-purple-50 text-purple-400 border-purple-200/50 line-through opacity-60';
+      }
+      return 'bg-purple-100 text-purple-700 border-purple-200';
+    }
     if (task.type === 'business_trip') return 'bg-sky-100 text-sky-700 border-sky-200';
     if (task.type === 'other_activity') return 'bg-slate-100 text-slate-700 border-slate-200';
     
