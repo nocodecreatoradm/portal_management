@@ -593,6 +593,105 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
       }
     }
 
+    // --- GUIDANCE & FORM FILLING ENGINE ---
+    const guidanceRules = [
+      {
+        keys: ['registrar reclamo', 'crear reclamo', 'reportar reclamo', 'llenar reclamo', 'subir reclamo', 'queja', 'reportar queja', 'defecto', 'fallo'],
+        ans: '📝 *Guía para Registrar un Reclamo de Calidad:*\n\n' +
+             'Te llevaré al módulo de **Reclamos de Calidad** para llenar los datos. Sigue estos pasos:\n' +
+             '1. Haz clic en el botón de abajo para ir al módulo.\n' +
+             '2. Busca el producto por código SAP en la tabla y haz clic en el botón **"Q"** (el cual estará en gris si no tiene reclamos o rojo si tiene reclamos abiertos).\n' +
+             '3. Haz clic en el botón **"Registrar Reclamo"** para abrir el formulario.\n' +
+             '4. Selecciona el inspector, nivel de gravedad, tipo de defecto (estético, funcional, empaque) e ingresa la descripción detallada.\n' +
+             '5. Adjunta fotos como evidencia de calidad. ¡Soly notificará automáticamente por correo a las áreas involucradas!',
+        module: 'quality_claims' as ModuleId,
+        label: 'Ir a Reclamos de Calidad'
+      },
+      {
+        keys: ['crear tarea', 'crear actividad', 'planificar actividad', 'programar tarea', 'agregar pendiente', 'registrar tarea', 'nueva tarea', 'calendario'],
+        ans: '📅 *Guía para Programar una Tarea o Actividad:*\n\n' +
+             'Te llevaré al **Calendario de Pendientes** para ingresar la información. Sigue estos pasos:\n' +
+             '1. Haz clic en el botón de abajo para ir al Calendario.\n' +
+             '2. Selecciona el día y haz clic directamente sobre una celda vacía para abrir el formulario de creación.\n' +
+             '3. Ingresa el título de la tarea, selecciona el tipo (General, Comercial, Fichas, etc.) y define las fechas de inicio, fin y entrega.\n' +
+             '4. Asigna un responsable y un solicitante de la lista del equipo.\n' +
+             '5. Guarda el registro para añadirlo al calendario y a la vista Gantt mensual de todo el equipo.',
+        module: 'calendar' as ModuleId,
+        label: 'Ir al Calendario'
+      },
+      {
+        keys: ['registrar muestra', 'ingresar muestra', 'inspeccionar muestra', 'llenar muestra', 'evaluar muestra', 'ensayo muestra', 'muestra', 'hoja de inspección'],
+        ans: '🔬 *Guía para Evaluar y Registrar Muestras:*\n\n' +
+             'Te llevaré al módulo de **Muestras** para gestionar los datos. Sigue estos pasos:\n' +
+             '1. Haz clic abajo para ir al módulo de Muestras.\n' +
+             '2. Para programar la evaluación, haz clic en **"Asignar"** para definir el técnico a cargo y la fecha planificada.\n' +
+             '3. Haz clic en el botón **"Play"** (reproducción) al lado de la muestra para abrir la **Hoja de Inspección interactiva**.\n' +
+             '4. Llena las respuestas del formato dinámico de inspección (según la categoría) y carga fotos de evidencias de los ensayos.\n' +
+             '5. En la pestaña de procedimientos, puedes agregar/eliminar etapas en caliente para adaptar el flujo de prueba.',
+        module: 'samples' as ModuleId,
+        label: 'Ir a Muestras'
+      },
+      {
+        keys: ['simular precio', 'ingresar precio', 'calcular pvp', 'calcular margen', 'simular gmroi', 'llenar gmroi', 'simular rotacion', 'planilla 12 meses', 'pvp', 'margen', 'gmroi'],
+        ans: '📊 *Guía para Simular Precios y Planificar GMROI:*\n\n' +
+             'Te llevaré al **Simulador de Precios y Plantilla GMROI** para formular los datos. Sigue estos pasos:\n' +
+             '1. Haz clic abajo para ir al Simulador.\n' +
+             '2. Selecciona la Línea de Negocio y Categoría Técnica para cargar los umbrales de rendimiento específicos.\n' +
+             '3. Ajusta el PVP de Lista o el Costo del producto usando los deslizadores (se aplicará el 18% del IGV y los descuentos del canal de Grupo Sole).\n' +
+             '4. Pasa a la pestaña **"Planilla 12 Meses"** y edita las celdas de color amarillo para registrar compras y rotaciones físicas de stock.\n' +
+             '5. Visualiza el GMROI real proyectado para ver si la rentabilidad es Crítica, Aceptable o Alta.',
+        module: 'price_gmroi_simulator' as ModuleId,
+        label: 'Ir al Simulador GMROI'
+      },
+      {
+        keys: ['calcular demanda', 'demanda de agua', 'perdida de temperatura', 'calcular perdida', 'absorcion termica', 'calcular recubrimiento', 'espesor cromo', 'espesor niquel', 'calculos', 'cálculos', 'calculadora'],
+        ans: '🧮 *Guía para Realizar Cálculos de Ingeniería:*\n\n' +
+             'Te llevaré al **Dashboard de Cálculos de Ingeniería** para resolver fórmulas técnicas. Sigue estos pasos:\n' +
+             '1. Ve a la Calculadora de Ingeniería con el botón de abajo.\n' +
+             '2. Selecciona la pestaña del cálculo que requieres:\n' +
+             '   • **Demanda de Agua Caliente**: Ingresa el número de personas/servicios para calcular los litros necesarios.\n' +
+             '   • **Pérdida de Temperatura**: Ingresa longitud de tubería, diámetro, material y temperaturas para estimar la caída térmica.\n' +
+             '   • **Absorción Térmica**: Calcula la energía necesaria para calentar volúmenes de agua.\n' +
+             '   • **Recubrimiento Cromo-Níquel**: Simula espesores de capas electroquímicas y resistencia a la corrosión.\n' +
+             '3. Ingresa los datos solicitados en los inputs y obtén resultados instantáneos formateados.',
+        module: 'calculations_dashboard' as ModuleId,
+        label: 'Ir a Calculadora'
+      },
+      {
+        keys: ['registrar avance', 'llenar avance', 'actualizar avance', 'porcentaje de avance', 'avance de proyecto', 'guardar avance', 'work plan', 'plan de trabajo', 'proyecto', 'actividad'],
+        ans: '📈 *Guía para Registrar Avances en el Plan de Trabajo:*\n\n' +
+             'Te llevaré al **Plan de Trabajo Anual** para que registres los avances de tus proyectos. Sigue estos pasos:\n' +
+             '1. Haz clic abajo para ir al Plan de Trabajo.\n' +
+             '2. Selecciona tu proyecto en la lista desplegable.\n' +
+             '3. Busca la actividad correspondiente y haz clic sobre la celda en la grilla temporal de Gantt.\n' +
+             '4. Se abrirá el modal de "Registrar Avance": ingresa la fecha de inicio, fecha de fin y el progreso total acumulado en porcentaje (%).\n' +
+             '5. Agrega comentarios sobre los hitos alcanzados y guarda los cambios. El sistema actualizará automáticamente el avance promedio del proyecto.',
+        module: 'work_plan' as ModuleId,
+        label: 'Ir al Plan de Trabajo'
+      },
+      {
+        keys: ['crear proveedor', 'registrar proveedor', 'agregar proveedor', 'subir proveedor', 'proveedor', 'proveedores', 'maestro de proveedores'],
+        ans: '🏭 *Guía para Registrar un Proveedor:*\n\n' +
+             'Te llevaré al **Maestro de Proveedores** para guardar la información. Sigue estos pasos:\n' +
+             '1. Haz clic en el botón de abajo para ir al Maestro de Proveedores.\n' +
+             '2. Haz clic en el botón **"Agregar Proveedor"** en la esquina superior derecha.\n' +
+             '3. Completa los campos: Nombre del proveedor, contacto, correo, teléfono y dirección.\n' +
+             '4. **Carga el Logotipo Oficial** del proveedor. Este logo se mostrará automáticamente en el listado del módulo de muestras.\n' +
+             '5. Haz clic en "Guardar".',
+        module: 'supplier_master' as ModuleId,
+        label: 'Ir a Proveedores'
+      }
+    ];
+
+    const guidanceMatch = guidanceRules.find(item => item.keys.some(k => q.includes(k)));
+    if (guidanceMatch) {
+      return {
+        sender: 'soly',
+        text: guidanceMatch.ans,
+        action: { label: guidanceMatch.label, module: guidanceMatch.module }
+      };
+    }
+
     // --- GENERAL CULTURE KNOWLEDGE DATABASE ---
     const generalCulture = [
       {
@@ -1109,7 +1208,16 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     // DEFAULT friendly fallback
     return {
       sender: 'soly',
-      text: '¡Hola! No he logrado comprender tu consulta exacta ni tengo notas guardadas al respecto. Puedes:\n\n• *¿Cuáles son los plazos urgentes?*\n• *Genera el top 5 de prioridades.*\n• *Preguntarme sobre un módulo (ej. "Háblame del Simulador GMROI", "Normativas NTP" o "Reclamos")*\n• *Pedirme que memorice algo: "Recuerda que Carlos Hoyos es el Coordinador de I+D" o "Guarda que la clave es 1234"*'
+      text: '¡Hola! No logré entender esa consulta en específico, pero recuerda que **estoy aquí para guiarte paso a paso por el portal para ingresar datos, llenar formularios o realizar cálculos en los módulos necesarios**.\n\n' +
+            '¿Qué te gustaría hacer hoy?\n\n' +
+            '• 📝 **Registrar un Reclamo**: Te guiaré a Reclamos de Calidad para reportar desvíos a fábrica y adjuntar evidencias.\n' +
+            '• 📅 **Programar una Tarea**: Te llevaré al Calendario para registrar pendientes con fechas de inicio, fin y responsables.\n' +
+            '• 🔬 **Evaluar una Muestra**: Te guiaré a Muestras para asignar técnicos e iniciar la hoja de inspección con preguntas dinámicas.\n' +
+            '• 📊 **Simular PVP o GMROI**: Te llevaré al Simulador para formular precios de lista, márgenes y rotaciones de inventario.\n' +
+            '• 🧮 **Realizar Cálculos Técnicos**: Te guiaré a la Calculadora de Ingeniería para calcular demandas de agua, pérdidas térmicas o recubrimientos.\n' +
+            '• 📈 **Registrar Avance**: Te llevaré al Plan de Trabajo para que actualices los porcentajes de progreso de tus proyectos.\n' +
+            '• 🏭 **Registrar Proveedor**: Te llevaré al Maestro de Proveedores para añadir datos y logos de fabricantes.\n\n' +
+            'Dime qué necesitas y te guiaré al módulo correspondiente de inmediato.'
     };
   };
 
