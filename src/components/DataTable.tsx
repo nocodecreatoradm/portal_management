@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Eye, Edit2, Trash2, FileText, Upload, Image as ImageIcon, UserPlus, HelpCircle, AlertCircle, Beaker, Search, X, Clock, Send, Calendar, Plus, ArrowUp, ArrowDown } from 'lucide-react';
+import { Eye, Edit2, Trash2, FileText, Upload, Image as ImageIcon, UserPlus, HelpCircle, AlertCircle, Beaker, Search, X, Clock, Send, Calendar, Plus, ArrowUp, ArrowDown, MessageSquare } from 'lucide-react';
 import { ProductRecord, DocumentVersion, Supplier, SampleRecord, QualityClaim } from '../types';
 import StatusIcon from './StatusIcon';
 import HeaderFilterPopover from './HeaderFilterPopover';
@@ -739,7 +739,7 @@ export default function DataTable({
               </th>
               <th 
                 rowSpan={2} 
-                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[180px] max-w-[180px]"
                 onClick={() => toggleSort('descripcionSAP')}
               >
                 <div className="inline-flex items-center gap-1">
@@ -757,7 +757,7 @@ export default function DataTable({
               </th>
               <th 
                 rowSpan={2} 
-                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[110px] max-w-[110px]"
                 onClick={() => toggleSort('comments')}
               >
                 <div className="inline-flex items-center gap-1">
@@ -775,7 +775,7 @@ export default function DataTable({
               </th>
               <th 
                 rowSpan={2} 
-                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[100px] max-w-[100px]"
                 onClick={() => toggleSort('linea')}
               >
                 <div className="inline-flex items-center gap-1">
@@ -793,7 +793,7 @@ export default function DataTable({
               </th>
               <th 
                 rowSpan={2} 
-                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[110px] max-w-[110px]"
                 onClick={() => toggleSort('categoria')}
               >
                 <div className="inline-flex items-center gap-1">
@@ -1022,16 +1022,22 @@ export default function DataTable({
                       )}
                     </div>
                   </td>
-                  <td className="px-3 py-3 border-r border-gray-100 text-slate-700 font-bold uppercase text-[11px] leading-tight max-w-[200px]">
+                  <td className="px-3 py-3 border-r border-gray-100 text-slate-700 font-bold uppercase text-[11px] leading-tight max-w-[180px] truncate" title={record.descripcionSAP}>
                     {record.descripcionSAP}
                   </td>
-                  <td className="px-3 py-3 border-r border-gray-100 text-[11px] leading-tight text-slate-500 font-medium italic max-w-[150px] truncate" title={record.comments}>
-                    {record.comments || <span className="text-slate-300">-</span>}
+                  <td className="px-3 py-3 border-r border-gray-100 text-[11px] leading-tight text-slate-500 font-medium italic max-w-[110px] text-center">
+                    {record.comments ? (
+                      <div className="flex justify-center" title={record.comments}>
+                        <MessageSquare className="w-4 h-4 text-indigo-500 hover:text-indigo-600 transition-colors cursor-help" />
+                      </div>
+                    ) : (
+                      <span className="text-slate-300">-</span>
+                    )}
                   </td>
-                  <td className="px-3 py-3 border-r border-gray-100 text-[10px] text-slate-500 font-medium uppercase tracking-tight text-center">
+                  <td className="px-3 py-3 border-r border-gray-100 text-[10px] text-slate-500 font-medium uppercase tracking-tight text-center max-w-[100px] truncate" title={record.linea}>
                     {record.linea}
                   </td>
-                  <td className="px-3 py-3 border-r border-gray-100 text-[10px] text-slate-500 font-medium uppercase tracking-tight text-center">
+                  <td className="px-3 py-3 border-r border-gray-100 text-[10px] text-slate-500 font-medium uppercase tracking-tight text-center max-w-[110px] truncate" title={record.categoria}>
                     {record.categoria || <span className="text-slate-300">-</span>}
                   </td>
                   <td className="px-3 py-3 border-r border-gray-100 text-center">
