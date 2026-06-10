@@ -22,7 +22,8 @@ import {
   InspectionTemplate,
   QualityClaim,
   PriceGMROITemplate,
-  CategoryGMROIThreshold
+  CategoryGMROIThreshold,
+  SolyReminder
 } from '../types';
 import {
   mapInventoryToDB,
@@ -68,7 +69,9 @@ import {
   mapGMROITemplateToDB,
   mapDBToGMROITemplate,
   mapThresholdToDB,
-  mapDBToThreshold
+  mapDBToThreshold,
+  mapReminderToDB,
+  mapDBToReminder
 } from './mappings';
 
 
@@ -1683,6 +1686,42 @@ export const SupabaseService = {
       results.push(mapDBToThreshold(data));
     }
     return results;
+  },
+
+  // SOLY REMINDERS
+  async getPendingReminders(receiverName: string) {
+    const { data, error } = await supabase
+      .from('soly_reminders')
+      .select()
+      .eq('receiver_name', receiverName)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return (data || []).map(mapDBToReminder);
+  },
+
+  async createReminder(reminder: Omit<SolyReminder, 'id'>) {
+    const dbRem = mapReminderToDB(reminder);
+    const { data, error } = await supabase
+      .from('soly_reminders')
+      .insert(dbRem)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToReminder(data);
+  },
+
+  async updateReminder(id: string, updates: Partial<SolyReminder>) {
+    if (!isUUID(id)) return null;
+    const dbUpdates = mapReminderToDB(updates);
+    const { data, error } = await supabase
+      .from('soly_reminders')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToReminder(data);
   }
 };
 

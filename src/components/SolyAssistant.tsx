@@ -74,6 +74,35 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     claims: any[];
   }>({ tasks: [], products: [], samples: [], inventory: [], claims: [] });
 
+  // Reminders state & handlers
+  const [activeReminders, setActiveReminders] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!profile?.full_name) return;
+
+    const fetchReminders = async () => {
+      try {
+        const reminders = await SupabaseService.getPendingReminders(profile.full_name);
+        setActiveReminders(reminders);
+      } catch (err) {
+        console.error('Error fetching reminders:', err);
+      }
+    };
+
+    fetchReminders();
+    const interval = setInterval(fetchReminders, 25000);
+    return () => clearInterval(interval);
+  }, [profile?.full_name]);
+
+  const handleDismissReminder = async (id: string) => {
+    try {
+      await SupabaseService.updateReminder(id, { status: 'read' });
+      setActiveReminders(prev => prev.filter(r => r.id !== id));
+    } catch (err) {
+      console.error('Error dismissing reminder:', err);
+    }
+  };
+
   // Tour data definitions
   const tourData: Record<string, TourStep[]> = {
     brandbook: [
@@ -1466,7 +1495,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     return rawRes;
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
 
@@ -1477,7 +1506,69 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     // Add user message
     setChatMessages(prev => [...prev, { sender: 'user', text: queryText }]);
 
-    // Trigger response typing effect after a small delay
+    // Check for inter-user reminder intent
+    const reminderRegex = /^(?:recu[eé]rdale a|hazle un recordatorio a|env[ií]ale un recordatorio a|dile a)\s+([a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\-\.]+)\s+que\s+(.+)$/i;
+    const match = queryText.match(reminderRegex);
+
+    if (match) {
+      // Temporary "thinking" message
+      setChatMessages(prev => [...prev, { 
+        sender: 'soly', 
+        text: 'Déjame buscar al usuario y registrar tu recordatorio...' 
+      }]);
+
+      try {
+        const targetName = match[1].trim().toLowerCase();
+        const reminderMsg = match[2].trim();
+
+        const allProfiles = await SupabaseService.getProfiles();
+        const matches = allProfiles.filter(p => 
+          p.full_name.toLowerCase().includes(targetName)
+        );
+
+        // Remove the temporary "thinking" message
+        setChatMessages(prev => prev.slice(0, -1));
+
+        if (matches.length === 0) {
+          setChatMessages(prev => [...prev, {
+            sender: 'soly',
+            text: `🔍 No pude encontrar a ningún usuario que coincida con **"${match[1]}"** en la plataforma. ¿Podrías verificar el nombre o intentar escribir su nombre completo?`
+          }]);
+        } else if (matches.length === 1) {
+          const receiver = matches[0];
+          await SupabaseService.createReminder({
+            senderName: profile?.full_name || 'Usuario',
+            senderEmail: profile?.email || '',
+            receiverName: receiver.full_name,
+            receiverEmail: receiver.email,
+            message: reminderMsg,
+            status: 'pending'
+          });
+
+          setChatMessages(prev => [...prev, {
+            sender: 'soly',
+            text: `🔔 ¡Entendido! Le he enviado un recordatorio a **${receiver.full_name}** para que: *"${reminderMsg}"*.\n\nLe aparecerá una alerta de Soly en la esquina de su pantalla de inmediato. 🚀`
+          }]);
+        } else {
+          // Multiple matches found
+          const list = matches.map(m => `• **${m.full_name}** (${m.department || 'Sin área'})`).join('\n');
+          setChatMessages(prev => [...prev, {
+            sender: 'soly',
+            text: `👥 Encontré varias coincidencias para **"${match[1]}"**:\n\n${list}\n\n¿A quién de ellos te refieres? Por favor, indícame su nombre completo.`
+          }]);
+        }
+      } catch (err) {
+        console.error('Error creating reminder:', err);
+        setChatMessages(prev => prev.slice(0, -1));
+        setChatMessages(prev => [...prev, {
+          sender: 'soly',
+          text: `❌ Hubo un error al registrar el recordatorio. Por favor, inténtalo de nuevo.`
+        }]);
+      }
+      return;
+    }
+
+    // Default Q&A flow
     setTimeout(() => {
       const response = getSolyResponse(queryText);
       setChatMessages(prev => [...prev, response]);
@@ -1538,7 +1629,61 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     }
   };
 
-  if (!isVisible) return null;
+  // If Soly is not visible globally, we still render the alerts stack so the user receives messages in the background
+  if (!isVisible) {
+    return (
+      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none max-w-sm w-full">
+        <AnimatePresence>
+          {activeReminders.map((reminder) => (
+            <motion.div
+              key={reminder.id}
+              initial={{ opacity: 0, x: 100, y: -20, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 100, scale: 0.9 }}
+              className="pointer-events-auto bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-2xl rounded-xl p-4 flex gap-3.5 relative overflow-hidden group w-full"
+            >
+              {/* Decorative top border gradient line */}
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+              
+              {/* Soly Avatar Indicator */}
+              <div className="shrink-0 flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-full p-[2px] shadow-lg shadow-indigo-950/30">
+                  <div className="w-full h-full bg-slate-800 rounded-full overflow-hidden flex items-end justify-center">
+                    <img 
+                      src={celebrating} 
+                      alt="Soly Avatar" 
+                      className="w-10 h-10 object-contain object-bottom"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Content */}
+              <div className="flex-1 flex flex-col gap-1 pr-4">
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                  Mensaje de Soly
+                </span>
+                <span className="text-xs font-semibold text-slate-100">
+                  Recordatorio de <span className="text-purple-400 font-bold">{reminder.senderName}</span>:
+                </span>
+                <p className="text-xs text-slate-350 leading-relaxed italic bg-slate-950/40 p-2 rounded-lg border border-slate-800/60 mt-1">
+                  "{reminder.message}"
+                </p>
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={() => handleDismissReminder(reminder.id)}
+                    className="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-[11px] font-bold px-3.5 py-1.5 rounded-lg shadow-lg hover:shadow-indigo-500/20 transition-all flex items-center gap-1.5"
+                  >
+                    Entendido
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   const handleNext = () => {
     if (currentStep < currentSteps.length - 1) {
@@ -1645,6 +1790,58 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
   return (
     <div className="z-[90] pointer-events-none">
       <style>{highlightStyles}</style>
+
+      {/* Soly Alerts Stack (Top-Right) */}
+      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none max-w-sm w-full">
+        <AnimatePresence>
+          {activeReminders.map((reminder) => (
+            <motion.div
+              key={reminder.id}
+              initial={{ opacity: 0, x: 100, y: -20, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 100, scale: 0.9 }}
+              className="pointer-events-auto bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-2xl rounded-xl p-4 flex gap-3.5 relative overflow-hidden group w-full"
+            >
+              {/* Decorative top border gradient line */}
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+              
+              {/* Soly Avatar Indicator */}
+              <div className="shrink-0 flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-full p-[2px] shadow-lg shadow-indigo-950/30">
+                  <div className="w-full h-full bg-slate-800 rounded-full overflow-hidden flex items-end justify-center">
+                    <img 
+                      src={celebrating} 
+                      alt="Soly Avatar" 
+                      className="w-10 h-10 object-contain object-bottom"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Content */}
+              <div className="flex-1 flex flex-col gap-1 pr-4">
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                  Mensaje de Soly
+                </span>
+                <span className="text-xs font-semibold text-slate-100">
+                  Recordatorio de <span className="text-purple-400 font-bold">{reminder.senderName}</span>:
+                </span>
+                <p className="text-xs text-slate-350 leading-relaxed italic bg-slate-950/40 p-2 rounded-lg border border-slate-800/60 mt-1">
+                  "{reminder.message}"
+                </p>
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={() => handleDismissReminder(reminder.id)}
+                    className="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-[11px] font-bold px-3.5 py-1.5 rounded-lg shadow-lg hover:shadow-indigo-500/20 transition-all flex items-center gap-1.5"
+                  >
+                    Entendido
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
 
       {/* Dim Overlay Backdrops around highlighted element */}
       {highlightRect && activeTab === 'tour' && !isMinimized && (

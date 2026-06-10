@@ -20,7 +20,8 @@ import {
   InspectionTemplate,
   QualityClaim,
   PriceGMROITemplate,
-  CategoryGMROIThreshold
+  CategoryGMROIThreshold,
+  SolyReminder
 } from '../types';
 
 const formatDateOnly = (val: any): string => {
@@ -776,4 +777,30 @@ export const mapDBToThreshold = (dbThresh: any): CategoryGMROIThreshold => ({
   categoryId: dbThresh.category_id,
   minMedio: Number(dbThresh.min_medio || 0.8),
   minAlto: Number(dbThresh.min_alto || 1.2)
+});
+
+export const mapReminderToDB = (reminder: Partial<SolyReminder>) => {
+  const dbRem: any = {};
+  if (reminder.id !== undefined) dbRem.id = reminder.id;
+  if (reminder.senderName !== undefined) dbRem.sender_name = reminder.senderName;
+  if (reminder.senderEmail !== undefined) dbRem.sender_email = reminder.senderEmail;
+  if (reminder.receiverName !== undefined) dbRem.receiver_name = reminder.receiverName;
+  if (reminder.receiverEmail !== undefined) dbRem.receiver_email = reminder.receiverEmail;
+  if (reminder.message !== undefined) dbRem.message = reminder.message;
+  if (reminder.status !== undefined) dbRem.status = reminder.status;
+  if (reminder.createdAt !== undefined) dbRem.created_at = reminder.createdAt;
+  if (reminder.updatedAt !== undefined) dbRem.updated_at = reminder.updatedAt;
+  return dbRem;
+};
+
+export const mapDBToReminder = (dbRem: any): SolyReminder => ({
+  id: dbRem.id,
+  senderName: dbRem.sender_name,
+  senderEmail: dbRem.sender_email,
+  receiverName: dbRem.receiver_name,
+  receiverEmail: dbRem.receiver_email,
+  message: dbRem.message,
+  status: dbRem.status,
+  createdAt: dbRem.created_at,
+  updatedAt: dbRem.updated_at
 });

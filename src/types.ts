@@ -758,3 +758,15 @@ export interface CategoryGMROIThreshold {
   minAlto: number;
 }
 
+export interface SolyReminder {
+  id?: string;
+  senderName: string;
+  senderEmail?: string;
+  receiverName: string;
+  receiverEmail?: string;
+  message: string;
+  status: 'pending' | 'read';
+  createdAt?: string;
+  updatedAt?: string;
+}
+

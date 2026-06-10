@@ -1267,6 +1267,21 @@ async function startServer() {
                 CONSTRAINT UQ_category_gmroi_thresholds UNIQUE (category_id)
             );
         END
+
+        IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('ID_PORTAL.soly_reminders') AND type in (N'U'))
+        BEGIN
+            CREATE TABLE ID_PORTAL.soly_reminders (
+                id uniqueidentifier PRIMARY KEY DEFAULT newid(),
+                sender_name nvarchar(255) NOT NULL,
+                sender_email nvarchar(255),
+                receiver_name nvarchar(255) NOT NULL,
+                receiver_email nvarchar(255),
+                message nvarchar(max) NOT NULL,
+                status nvarchar(100) NOT NULL DEFAULT 'pending',
+                created_at datetime2 DEFAULT GETDATE(),
+                updated_at datetime2 DEFAULT GETDATE()
+            );
+        END
       `);
 
       // ─── PERMISSIONS SEED MIGRATION ───────────────────────────────────────────
