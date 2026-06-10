@@ -1,4 +1,4 @@
-import { LogOut, User as UserIcon, Menu, X } from 'lucide-react';
+import { LogOut, User as UserIcon, Menu, X, HelpCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -6,9 +6,11 @@ import LanguageSwitcher from './LanguageSwitcher';
 interface HeaderProps {
   onToggleSidebar: () => void;
   isSidebarOpen: boolean;
+  isSolyVisible: boolean;
+  onToggleSoly: () => void;
 }
 
-export default function Header({ onToggleSidebar, isSidebarOpen }: HeaderProps) {
+export default function Header({ onToggleSidebar, isSidebarOpen, isSolyVisible, onToggleSoly }: HeaderProps) {
   const { profile, signOut } = useAuth();
   const { t } = useTranslation();
 
@@ -47,6 +49,16 @@ export default function Header({ onToggleSidebar, isSidebarOpen }: HeaderProps) 
             </span>
           </div>
         </div>
+
+        <button 
+          onClick={onToggleSoly}
+          className={`p-2 rounded-xl transition-all ${
+            isSolyVisible ? 'text-indigo-600 bg-indigo-50 border border-indigo-100' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'
+          }`}
+          title="Ayuda del Asistente Soly"
+        >
+          <HelpCircle size={20} />
+        </button>
         
         <LanguageSwitcher />
         

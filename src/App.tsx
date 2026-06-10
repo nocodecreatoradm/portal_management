@@ -43,6 +43,7 @@ import ProjectsModule from './components/ProjectsModule';
 import CalendarModule from './components/CalendarModule';
 import PriceGMROISimulator from './components/PriceGMROISimulator';
 import CalculationsDashboard from './components/CalculationsDashboard';
+import SolyAssistant from './components/SolyAssistant';
 import InnovationProposals from './components/InnovationProposals';
 import CrNiCoatingAnalysis from './components/CrNiCoatingAnalysis';
 import CantonFair from './components/CantonFair';
@@ -104,6 +105,18 @@ export default function App() {
   const [isQualityClaimsModalOpen, setIsQualityClaimsModalOpen] = useState(false);
   const [selectedQualityClaimsProduct, setSelectedQualityClaimsProduct] = useState<ProductRecord | null>(null);
   const [claimSearchTerm, setClaimSearchTerm] = useState('');
+  const [isSolyVisible, setIsSolyVisible] = useState(() => {
+    const saved = localStorage.getItem('is_soly_visible');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  const handleToggleSoly = () => {
+    setIsSolyVisible((prev: boolean) => {
+      const next = !prev;
+      localStorage.setItem('is_soly_visible', JSON.stringify(next));
+      return next;
+    });
+  };
   const [filters, setFilters] = useState({
     marca: '',
     linea: '',
@@ -1657,6 +1670,8 @@ export default function App() {
             <Header 
               onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
               isSidebarOpen={isSidebarOpen}
+              isSolyVisible={isSolyVisible}
+              onToggleSoly={handleToggleSoly}
             />
             
             <main className="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar">
@@ -1738,6 +1753,16 @@ export default function App() {
             onSaveClaim={handleSaveQualityClaim}
             onUpdateClaim={handleUpdateQualityClaim}
             onDeleteClaim={handleDeleteQualityClaim}
+          />
+
+          <SolyAssistant
+            activeModule={activeModule}
+            onNavigateModule={handleModuleChange}
+            isVisible={isSolyVisible}
+            onToggleVisible={(visible) => {
+              setIsSolyVisible(visible);
+              localStorage.setItem('is_soly_visible', JSON.stringify(visible));
+            }}
           />
         </motion.div>
       )}
