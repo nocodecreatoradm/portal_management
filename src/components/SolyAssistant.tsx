@@ -442,20 +442,20 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     // 1. URGENT / NEAR DEADLINES
     if (q.includes('plazo') || q.includes('limite') || q.includes('límite') || q.includes('cerca') || q.includes('vence') || q.includes('urgente') || q.includes('fecha')) {
       const pendingTasks = appData.tasks
-        .filter(t => t.status !== 'completed' && t.status !== 'cancelled' && t.deadline)
-        .map(t => ({ title: t.title, date: new Date(t.deadline), module: 'calendar' as ModuleId }));
+        .filter(t => t.status !== 'completed' && t.status !== 'cancelled' && (t.deadline || (t.startDate && t.endDate)))
+        .map(t => ({ title: t.title, date: new Date(t.deadline || t.endDate || ''), module: 'calendar' as ModuleId }));
 
       const pendingProducts = appData.products
         .filter(p => {
           const assign = p.artworkAssignment || p.technicalAssignment || p.commercialAssignment;
-          return assign && assign.designer && !assign.actualCompletionDate && assign.plannedEndDate;
+          return assign && assign.designer && !assign.actualCompletionDate && assign.plannedStartDate && assign.plannedEndDate;
         })
         .map(p => {
           const assign = p.artworkAssignment || p.technicalAssignment || p.commercialAssignment;
           const type = p.trackingType === 'artwork' ? 'Arte' : p.trackingType === 'technical' ? 'F. Téc' : 'F. Com';
           return {
             title: `[${type}] ${p.correlativeId || p.codigoSAP}`,
-            date: new Date(assign.plannedEndDate),
+            date: new Date(assign.plannedEndDate || ''),
             module: (p.trackingType === 'artwork' ? 'artwork_followup' : p.trackingType === 'technical' ? 'technical_datasheet' : 'commercial_datasheet') as ModuleId
           };
         });
@@ -464,7 +464,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
         .filter(s => s.inspectionProgress !== 'completed' && s.plannedStartDate)
         .map(s => ({
           title: `[Muestra] ${s.correlativeId || s.codigoSAP}`,
-          date: new Date(s.plannedStartDate),
+          date: new Date(s.plannedStartDate || ''),
           module: 'samples' as ModuleId
         }));
 
@@ -498,28 +498,31 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     // 2. TOP 5 PRIORITIES
     if (q.includes('prioridad') || q.includes('prioridades') || q.includes('top 5') || q.includes('top5')) {
       const pendingTasks = appData.tasks
-        .filter(t => t.status !== 'completed' && t.status !== 'cancelled')
+        .filter(t => t.status !== 'completed' && t.status !== 'cancelled' && (t.deadline || (t.startDate && t.endDate)))
         .map(t => ({
           title: t.title,
-          date: t.deadline ? new Date(t.deadline) : new Date(8640000000000000),
+          date: new Date(t.deadline || t.endDate || ''),
           urgency: t.deliveryStatus === 'delayed' ? 2 : 1
-        }));
+        }))
+        .filter(t => !isNaN(t.date.getTime()));
 
       const pendingClaims = appData.claims
-        .filter(c => c.status === 'open')
+        .filter(c => c.status === 'open' && c.claimStartDate && c.claimEndDate)
         .map(c => ({
           title: `[Reclamo] SAP ${c.sapCode} - ${c.defectType}`,
-          date: c.claimEndDate ? new Date(c.claimEndDate) : new Date(8640000000000000),
+          date: new Date(c.claimEndDate || ''),
           urgency: 3 // Higher priority
-        }));
+        }))
+        .filter(c => !isNaN(c.date.getTime()));
 
       const pendingSamples = appData.samples
-        .filter(s => s.inspectionProgress !== 'completed')
+        .filter(s => s.inspectionProgress !== 'completed' && s.plannedStartDate)
         .map(s => ({
           title: `[Muestra] ${s.correlativeId || s.codigoSAP}`,
-          date: s.plannedStartDate ? new Date(s.plannedStartDate) : new Date(8640000000000000),
+          date: new Date(s.plannedStartDate || ''),
           urgency: 2
-        }));
+        }))
+        .filter(s => !isNaN(s.date.getTime()));
 
       const allPriorities = [...pendingTasks, ...pendingClaims, ...pendingSamples]
         .sort((a, b) => {
@@ -533,8 +536,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
 
       let reply = 'Estas son las **Top 5 Prioridades** críticas del portal en base a plazos y severidad:\n\n';
       allPriorities.slice(0, 5).forEach((p, idx) => {
-        const dateText = p.date.getTime() === 8640000000000000 ? 'Sin fecha' : p.date.toLocaleDateString('es-PE');
-        reply += `${idx + 1}. **${p.title}** (Límite: ${dateText})\n`;
+        reply += `${idx + 1}. **${p.title}** (Límite: ${p.date.toLocaleDateString('es-PE')})\n`;
       });
 
       return { sender: 'soly', text: reply };
