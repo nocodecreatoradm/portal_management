@@ -38,7 +38,7 @@ export const mapInventoryToDB = (item: Partial<RDInventoryItem>) => {
   const dbItem: any = {};
   if (item.serialNumber      !== undefined) dbItem.serial_number        = item.serialNumber;
   if (item.description       !== undefined) dbItem.description          = item.description;
-  if (item.responsible       !== undefined) dbItem.responsible_id       = item.responsible;
+  if (item.responsible       !== undefined) dbItem.responsible          = item.responsible;
   if (item.acquisitionDate   !== undefined) dbItem.acquisition_date     = item.acquisitionDate || null;
   if (item.startupDate       !== undefined) dbItem.startup_date         = item.startupDate || null;
   if (item.calibrationStatus !== undefined) dbItem.calibration_status   = item.calibrationStatus;
@@ -61,7 +61,7 @@ export const mapDBToInventory = (dbItem: any): RDInventoryItem => ({
   id: dbItem.id,
   serialNumber: dbItem.serial_number,
   description: dbItem.description,
-  responsible: dbItem.responsible_id,
+  responsible: dbItem.responsible,
   acquisitionDate: formatDateOnly(dbItem.acquisition_date),
   startupDate: formatDateOnly(dbItem.startup_date),
   calibrationStatus: dbItem.calibration_status,
