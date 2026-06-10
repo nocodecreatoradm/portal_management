@@ -59,15 +59,23 @@ export const SamplesProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setLoading(true);
       const remoteItems = await SupabaseService.getSamples();
       
-      // Merge with initialSamples (on-demand migration support)
-      const remoteIds = new Set(remoteItems.map(i => i.id));
-      const remoteCorrelatives = new Set(remoteItems.map(i => i.correlativeId).filter(Boolean));
+      const alreadyMigrated = localStorage.getItem('rd_samples_migrated');
       
-      const uniqueMockItems = initialSamples.filter(mock => 
-        !remoteIds.has(mock.id) && (!mock.correlativeId || !remoteCorrelatives.has(mock.correlativeId))
-      );
-      
-      setSamples([...remoteItems, ...uniqueMockItems]);
+      if (remoteItems.length === 0 && !alreadyMigrated) {
+        // One-time migration of mock data to database
+        const migrationPromises = initialSamples.map(async (sample) => {
+          const resolved = resolveIds(sample);
+          return SupabaseService.createSample(resolved as SampleRecord);
+        });
+        const migratedItems = await Promise.all(migrationPromises);
+        setSamples(migratedItems);
+        localStorage.setItem('rd_samples_migrated', 'true');
+      } else {
+        setSamples(remoteItems);
+        if (!alreadyMigrated && remoteItems.length > 0) {
+          localStorage.setItem('rd_samples_migrated', 'true');
+        }
+      }
     } catch (error) {
       console.error('Error fetching samples:', error);
       toast.error('Error al cargar muestras desde el servidor');

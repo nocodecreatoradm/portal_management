@@ -219,7 +219,6 @@ export default function App() {
         const results = await Promise.allSettled([
           SupabaseService.getProducts(),
           SupabaseService.getSuppliers(),
-          SupabaseService.getSamples(),
           SupabaseService.getBrands(),
           SupabaseService.getProductLines()
         ]);
@@ -227,7 +226,6 @@ export default function App() {
         const [
           productsRes,
           suppliersRes,
-          samplesRes,
           brandsRes,
           linesRes
         ] = results;
@@ -237,9 +235,6 @@ export default function App() {
 
         if (suppliersRes.status === 'fulfilled') setSuppliers(suppliersRes.value as unknown as Supplier[]);
         else console.error('Error loading suppliers:', suppliersRes.reason);
-
-        if (samplesRes.status === 'fulfilled') setSamples(samplesRes.value as any);
-        else console.error('Error loading samples:', samplesRes.reason);
 
         if (brandsRes.status === 'fulfilled') setBrands(brandsRes.value);
         else console.error('Error loading brands:', brandsRes.reason);
@@ -271,7 +266,7 @@ export default function App() {
           .catch(error => console.error('Error loading calculations:', error));
 
         // Only show error toast if critical data failed
-        if (productsRes.status === 'rejected' || samplesRes.status === 'rejected') {
+        if (productsRes.status === 'rejected') {
           toast.error('Error al sincronizar datos principales con la nube');
         }
 
