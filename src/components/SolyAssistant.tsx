@@ -923,7 +923,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
       console.error("Error reading learned association:", err);
     }
 
-    // 1. URGENT / NEAR DEADLINES (Excluding overdue by more than 15 days)
+    // 1. URGENT / NEAR DEADLINES (Excluding overdue tasks from this list)
     if (q.includes('plazo') || q.includes('limite') || q.includes('límite') || q.includes('cerca') || q.includes('vence') || q.includes('urgente') || q.includes('fecha')) {
       const pendingTasks = appData.tasks
         .filter(t => t.status !== 'completed' && t.status !== 'cancelled' && (t.deadline || (t.startDate && t.endDate)))
@@ -952,26 +952,39 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
           module: 'samples' as ModuleId
         }));
 
-      const allPending = [...pendingTasks, ...pendingProducts, ...pendingSamples]
+      const rawPending = [...pendingTasks, ...pendingProducts, ...pendingSamples];
+
+      // Only show tasks that are NOT overdue (diffDays >= 0)
+      const upcomingPending = rawPending
         .filter(item => {
           if (isNaN(item.date.getTime())) return false;
           const diffDays = getDiffDays(item.date);
-          return diffDays >= -15; // Exclude if overdue by more than 15 days
+          return diffDays >= 0; 
         })
         .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-      if (allPending.length === 0) {
-        return { sender: 'soly', text: '🎉 ¡Excelente! No tienes actividades pendientes con fecha límite registrada (o están postergadas/fuera de rango de 15 días de retraso).' };
+      // Count overdue tasks (diffDays < 0 && diffDays >= -15)
+      const overdueCount = rawPending
+        .filter(item => {
+          if (isNaN(item.date.getTime())) return false;
+          const diffDays = getDiffDays(item.date);
+          return diffDays < 0 && diffDays >= -15;
+        }).length;
+
+      if (upcomingPending.length === 0) {
+        let textMsg = '🎉 ¡Excelente! No tienes actividades pendientes con fecha límite futura en el portal.';
+        if (overdueCount > 0) {
+          textMsg += `\n\n⚠️ **Nota:** Sin embargo, tienes **${overdueCount}** tareas ya vencidas con retrasos de hasta 15 días. Si deseas verlas con su contexto y ubicación, pregúntame: *'¿Qué tareas están vencidas?'* o *'Ver tareas vencidas'*.`;
+        }
+        return { sender: 'soly', text: textMsg };
       }
 
-      const urgentItems = allPending.slice(0, 4);
-      let reply = 'Aquí tienes las actividades más próximas a vencer (excluyendo retrasos de más de 15 días):\n\n';
+      const urgentItems = upcomingPending.slice(0, 4);
+      let reply = 'Aquí tienes las actividades próximas a vencer:\n\n';
       urgentItems.forEach(item => {
         const diffDays = getDiffDays(item.date);
         let statusText = '';
-        if (diffDays < 0) {
-          statusText = `(⚠️ Vencido hace ${Math.abs(diffDays)} días)`;
-        } else if (diffDays === 0) {
+        if (diffDays === 0) {
           statusText = `(⏳ ¡Vence HOY!)`;
         } else {
           statusText = `(vence en ${diffDays} días)`;
@@ -979,7 +992,87 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
         reply += `• **${item.title}**: ${item.date.toLocaleDateString('es-PE')} ${statusText}\n`;
       });
 
+      if (overdueCount > 0) {
+        reply += `\n💡 **Nota:** Tienes **${overdueCount}** tareas vencidas acumulando retrasos. Si deseas verlas con su contexto y ubicación, pregúntame: *'¿Qué tareas están vencidas?'* o *'Ver tareas vencidas'*.`;
+      }
+
       return { sender: 'soly', text: reply, action: { label: 'Ver Calendario', module: 'calendar' } };
+    }
+
+    // 1b. OVERDUE / DELAYED ACTIVITIES WITH CONTEXT & LOCATION
+    if (q.includes('vencid') || q.includes('retrasad') || q.includes('atrasad')) {
+      const pendingTasks = appData.tasks
+        .filter(t => t.status !== 'completed' && t.status !== 'cancelled' && (t.deadline || (t.startDate && t.endDate)))
+        .map(t => ({
+          title: t.title,
+          desc: t.description || 'Sin descripción',
+          date: new Date(t.deadline || t.endDate || ''),
+          module: 'calendar' as ModuleId,
+          moduleLabel: 'Calendario de Pendientes',
+          responsible: t.assignee || 'Sin asignar'
+        }));
+
+      const pendingProducts = appData.products
+        .filter(p => {
+          const assign = p.artworkAssignment || p.technicalAssignment || p.commercialAssignment;
+          return assign && assign.designer && !assign.actualCompletionDate && assign.plannedStartDate && assign.plannedEndDate;
+        })
+        .map(p => {
+          const assign = p.artworkAssignment || p.technicalAssignment || p.commercialAssignment!;
+          const type = p.trackingType === 'artwork' ? 'Artes (Fase 1)' : p.trackingType === 'technical' ? 'Ficha Técnica (Fase 2)' : 'Ficha Comercial (Fase 3)';
+          const modId = p.trackingType === 'artwork' ? 'artwork_followup' : p.trackingType === 'technical' ? 'technical_datasheet' : 'commercial_datasheet';
+          return {
+            title: `Producto ${p.correlativeId || p.codigoSAP}`,
+            desc: p.descripcionSAP || 'Sin descripción SAP',
+            date: new Date(assign.plannedEndDate || ''),
+            module: modId as ModuleId,
+            moduleLabel: `Seguimiento de ${type}`,
+            responsible: assign.designer || 'Sin asignar'
+          };
+        });
+
+      const pendingSamples = appData.samples
+        .filter(s => s.inspectionProgress !== 'completed' && s.plannedStartDate)
+        .map(s => ({
+          title: `Muestra ${s.correlativeId || s.codigoSAP}`,
+          desc: s.descripcionSAP || 'Sin descripción',
+          date: new Date(s.plannedStartDate || ''),
+          module: 'samples' as ModuleId,
+          moduleLabel: 'Muestras (R&D Samples)',
+          responsible: s.technician || 'Sin asignar'
+        }));
+
+      // Filter to only overdue tasks (diffDays < 0) and at most 15 days delay (diffDays >= -15)
+      const overdueItems = [...pendingTasks, ...pendingProducts, ...pendingSamples]
+        .filter(item => {
+          if (isNaN(item.date.getTime())) return false;
+          const diffDays = getDiffDays(item.date);
+          return diffDays < 0 && diffDays >= -15;
+        })
+        .sort((a, b) => a.date.getTime() - b.date.getTime()); // Show oldest overdue first
+
+      if (overdueItems.length === 0) {
+        return {
+          sender: 'soly',
+          text: '🎉 ¡Enhorabuena! No tienes actividades ni tareas vencidas en el portal (dentro del límite de 15 días de retraso).'
+        };
+      }
+
+      let reply = `⚠️ **Tienes ${overdueItems.length} actividades vencidas (con hasta 15 días de retraso):**\n\n`;
+      overdueItems.forEach((item, idx) => {
+        const diffDays = getDiffDays(item.date);
+        reply += `${idx + 1}. **${item.title}**\n` +
+                 `   • 📝 **Detalle:** ${item.desc}\n` +
+                 `   • 👤 **Responsable:** ${item.responsible}\n` +
+                 `   • 📅 **Vencimiento:** ${item.date.toLocaleDateString('es-PE')} (retrasado hace **${Math.abs(diffDays)} días**)\n` +
+                 `   • 📍 **Ubicación:** Menú lateral ➔ **${item.moduleLabel}**.\n\n`;
+      });
+
+      return {
+        sender: 'soly',
+        text: reply,
+        action: { label: 'Ir al Calendario', module: 'calendar' }
+      };
     }
 
     // 2. TOP 5 PRIORITIES (Excluding overdue by more than 15 days)
