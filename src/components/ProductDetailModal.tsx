@@ -447,10 +447,11 @@ export default function ProductDetailModal({
 
     const isArtwork = type === 'artwork';
 
-    // Group versions by category and subcategory
     const groupedVersions: Record<string, DocumentVersion[]> = {};
     versions.forEach(v => {
-      const key = isArtwork ? `${v.category || 'General'} - ${v.subcategory || 'General'}` : 'Documento';
+      const key = isArtwork 
+        ? `${(v.category || 'General').toUpperCase()} - ${(v.subcategory || 'General').toUpperCase()}` 
+        : 'Documento';
       if (!groupedVersions[key]) groupedVersions[key] = [];
       groupedVersions[key].push(v);
     });

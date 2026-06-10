@@ -480,7 +480,7 @@ export default function App() {
               const latestByCategory = Object.values(
                 newlyUpdatedDocs.reduce((acc: any, v: any) => {
                   if (!v) return acc;
-                  const key = v.category || 'Others';
+                  const key = v.category && v.subcategory ? `${v.category.toUpperCase()} - ${v.subcategory.toUpperCase()}` : (v.category || 'Others').toUpperCase();
                   if (!acc[key] || Number(acc[key].version) < Number(v.version)) acc[key] = v;
                   return acc;
                 }, {} as Record<string, DocumentVersion>)
@@ -617,7 +617,7 @@ export default function App() {
         const latestByCategory = Object.values(
           docArray.reduce((acc, v) => {
             if (!v) return acc;
-            const key = v.category || 'Others';
+            const key = v.category && v.subcategory ? `${v.category.toUpperCase()} - ${v.subcategory.toUpperCase()}` : (v.category || 'Others').toUpperCase();
             if (!acc[key] || Number(acc[key].version) < Number(v.version)) acc[key] = v;
             return acc;
           }, {} as Record<string, DocumentVersion>)

@@ -362,12 +362,20 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                           value={activeVersion.category}
                           onChange={(e) => {
                             const cat = e.target.value;
-                            const versions = docArray.filter(v => v.category === cat).sort((a, b) => Number(b.version) - Number(a.version));
+                            let versions = docArray.filter(v => 
+                              (v.category || '').toUpperCase() === (cat || '').toUpperCase() &&
+                              (v.subcategory || '').toUpperCase() === (activeVersion.subcategory || '').toUpperCase()
+                            ).sort((a, b) => Number(b.version) - Number(a.version));
+                            if (versions.length === 0) {
+                              versions = docArray.filter(v => 
+                                (v.category || '').toUpperCase() === (cat || '').toUpperCase()
+                              ).sort((a, b) => Number(b.version) - Number(a.version));
+                            }
                             if (versions.length > 0) setActiveVersion(versions[0]);
                           }}
                           className="w-full bg-white border-2 border-indigo-100 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
                         >
-                          {Array.from(new Set(docArray.map(v => v.category))).sort().map(cat => (
+                          {Array.from(new Set(docArray.map(v => (v.category || '').toUpperCase()))).sort().map(cat => (
                             <option key={cat} value={cat}>{cat}</option>
                           ))}
                         </select>
@@ -379,13 +387,23 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                         value={activeVersion.version}
                         onChange={(e) => {
                           const ver = parseInt(e.target.value);
-                          const found = docArray.find(v => (type !== 'artwork' || v.category === activeVersion.category) && Number(v.version) === Number(ver));
+                          const found = docArray.find(v => 
+                            type !== 'artwork'
+                              ? Number(v.version) === Number(ver)
+                              : ((v.category || '').toUpperCase() === (activeVersion.category || '').toUpperCase() &&
+                                 (v.subcategory || '').toUpperCase() === (activeVersion.subcategory || '').toUpperCase() &&
+                                 Number(v.version) === Number(ver))
+                          );
                           if (found) setActiveVersion(found);
                         }}
                         className="w-full bg-white border-2 border-indigo-100 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
                       >
                         {docArray
-                          .filter(v => type !== 'artwork' || v.category === activeVersion.category)
+                          .filter(v => 
+                            type !== 'artwork' || 
+                            ((v.category || '').toUpperCase() === (activeVersion.category || '').toUpperCase() &&
+                             (v.subcategory || '').toUpperCase() === (activeVersion.subcategory || '').toUpperCase())
+                          )
                           .sort((a, b) => Number(b.version) - Number(a.version))
                           .map(v => (
                             <option key={v.version} value={v.version}>Versión V{v.version}</option>
