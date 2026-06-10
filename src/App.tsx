@@ -316,7 +316,7 @@ export default function App() {
       'Línea': r.linea,
       'Marca': r.marca,
       'Diseñador': r.artworkAssignment?.designer || 'No asignado',
-      'Versión Actual': r.artworks.length > 0 ? Math.max(...r.artworks.map(a => a.version)) : 0
+      'Versión Actual': r.artworks.length > 0 ? Math.max(...r.artworks.map(a => Number(a.version))) : 0
     }));
 
     exportToExcel(exportData, `Seguimiento_Artes_${format(new Date(), 'yyyyMMdd')}`);
@@ -378,7 +378,7 @@ export default function App() {
               : currentDocs;
             
             const nextVersionNumber = categoryDocs.length > 0 
-              ? Math.max(...categoryDocs.map(v => v.version)) + 1 
+              ? Math.max(...categoryDocs.map(v => Number(v.version))) + 1 
               : 1;
 
             const standardizedFiles = actionData.files.map((f: any, index: number) => {
@@ -427,7 +427,7 @@ export default function App() {
             const targetVersion = actionData.targetVersion || modalConfig.version;
             
             const versionIndex = currentDocs.findIndex(v => 
-              v.version === targetVersion?.version &&
+              Number(v.version) === Number(targetVersion?.version) &&
               v.category === targetVersion?.category &&
               v.subcategory === targetVersion?.subcategory
             );
@@ -481,7 +481,7 @@ export default function App() {
                 newlyUpdatedDocs.reduce((acc: any, v: any) => {
                   if (!v) return acc;
                   const key = v.category || 'Others';
-                  if (!acc[key] || acc[key].version < v.version) acc[key] = v;
+                  if (!acc[key] || Number(acc[key].version) < Number(v.version)) acc[key] = v;
                   return acc;
                 }, {} as Record<string, DocumentVersion>)
               ) as DocumentVersion[];
@@ -499,7 +499,7 @@ export default function App() {
                   // Stop flow and reset subsequent stages to not_started
                   latestByCategory.forEach((latestV: any) => {
                     const idx = newlyUpdatedDocs.findIndex((v: any) => 
-                      v.version === latestV.version && 
+                      Number(v.version) === Number(latestV.version) && 
                       v.category === latestV.category && 
                       v.subcategory === latestV.subcategory
                     );
@@ -519,7 +519,7 @@ export default function App() {
                   // Advance active documents to the next stage ('pending')
                   latestByCategory.forEach((latestV: any) => {
                     const idx = newlyUpdatedDocs.findIndex((v: any) => 
-                      v.version === latestV.version && 
+                      Number(v.version) === Number(latestV.version) && 
                       v.category === latestV.category && 
                       v.subcategory === latestV.subcategory
                     );
@@ -618,7 +618,7 @@ export default function App() {
           docArray.reduce((acc, v) => {
             if (!v) return acc;
             const key = v.category || 'Others';
-            if (!acc[key] || acc[key].version < v.version) acc[key] = v;
+            if (!acc[key] || Number(acc[key].version) < Number(v.version)) acc[key] = v;
             return acc;
           }, {} as Record<string, DocumentVersion>)
         ) as DocumentVersion[];
@@ -627,7 +627,7 @@ export default function App() {
         // and others = 'not_started'
         latestByCategory.forEach(latestV => {
           const idx = docArray.findIndex(v => 
-            v.version === latestV.version && 
+            Number(v.version) === Number(latestV.version) && 
             v.category === latestV.category && 
             v.subcategory === latestV.subcategory
           );
@@ -644,7 +644,7 @@ export default function App() {
         });
       } else {
         const versionIndex = docArray.findIndex(v => 
-          v.version === version.version &&
+          Number(v.version) === Number(version.version) &&
           v.category === version.category &&
           v.subcategory === version.subcategory
         );

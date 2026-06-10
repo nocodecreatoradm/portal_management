@@ -27,6 +27,12 @@ export default function StatusIcon({
           <ThumbsUp size={iconSize} />
         </div>
       );
+    case 'approved_with_observation':
+      return (
+        <div onClick={onClick} style={style} className={`${baseClasses} bg-amber-100 text-amber-600 ${interactive ? 'hover:ring-amber-400' : ''}`} title="Aprobado con observación">
+          <ThumbsUp size={iconSize} />
+        </div>
+      );
     case 'rejected':
       return (
         <div onClick={onClick} style={style} className={`${baseClasses} ${isObservation ? 'bg-blue-100 text-blue-600 hover:ring-blue-400' : 'bg-red-100 text-red-600 hover:ring-red-400'}`} title={isObservation ? "Observación" : "Rechazar"}>

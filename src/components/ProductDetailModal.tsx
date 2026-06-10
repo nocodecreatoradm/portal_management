@@ -133,9 +133,9 @@ export default function ProductDetailModal({
   ) => {
     if (!assignment) return null;
     
-    const sortedVersions = [...versions].sort((a, b) => a.version - b.version);
+    const sortedVersions = [...versions].sort((a, b) => Number(a.version) - Number(b.version));
     const firstVer = sortedVersions[0];
-    const latestVer = [...versions].sort((a, b) => b.version - a.version)[0];
+    const latestVer = [...versions].sort((a, b) => Number(b.version) - Number(a.version))[0];
     
     const plannedStart = assignment.plannedStartDate;
     const plannedEnd = assignment.plannedEndDate;
@@ -259,7 +259,7 @@ export default function ProductDetailModal({
 
     const currentList = (record as any)[listKey] as DocumentVersion[];
     const updatedList = currentList.map(v => 
-      v.version === reviewingVersion.version.version && v.category === reviewingVersion.version.category && v.subcategory === reviewingVersion.version.subcategory ? { ...v, pdfComments: newComments } : v
+      Number(v.version) === Number(reviewingVersion.version.version) && v.category === reviewingVersion.version.category && v.subcategory === reviewingVersion.version.subcategory ? { ...v, pdfComments: newComments } : v
     );
 
     // Update the parent/database
@@ -277,9 +277,8 @@ export default function ProductDetailModal({
                     type === 'technical_sheet' ? 'technicalSheets' : 
                     'commercialSheets';
 
-    const currentList = (record as any)[listKey] as DocumentVersion[];
     const updatedList = currentList.map(v => {
-      if (v.version === version.version && v.category === version.category && v.subcategory === version.subcategory) {
+      if (Number(v.version) === Number(version.version) && v.category === version.category && v.subcategory === version.subcategory) {
         const updatedFiles = v.files.filter((_, i) => i !== fileIndex);
         return { ...v, files: updatedFiles };
       }
@@ -301,8 +300,7 @@ export default function ProductDetailModal({
                     type === 'technical_sheet' ? 'technicalSheets' : 
                     'commercialSheets';
 
-    const currentList = (record as any)[listKey] as DocumentVersion[];
-    const updatedList = currentList.filter(v => !(v.version === version.version && v.category === version.category && v.subcategory === version.subcategory));
+    const updatedList = currentList.filter(v => !(Number(v.version) === Number(version.version) && v.category === version.category && v.subcategory === version.subcategory));
 
     try {
       onUpdateRecord(record.id, { [listKey]: updatedList });
@@ -396,24 +394,34 @@ export default function ProductDetailModal({
     ? calculationRecords.filter(calc => calc.sample_id === record.sampleId || (linkedSample && calc.sample_id === linkedSample.correlativeId))
     : [];
 
-  const renderApprovalStatus = (approval: Approval, label: string, isArtwork: boolean = true) => {
+  const renderApprovalStatus = (approval: Approval | undefined, label: string, isArtwork: boolean = true) => {
     let icon = <Minus size={16} className="text-gray-400" />;
     let textClass = 'text-gray-500';
     let statusText = 'No aplica';
 
-    if (approval.status === 'approved') {
+    const status = approval?.status || 'not_started';
+
+    if (status === 'approved') {
       icon = <CheckCircle size={16} className="text-emerald-500" />;
       textClass = 'text-emerald-700';
-      statusText = `Aprobado por ${approval.user || 'Usuario'} el ${approval.date || ''}`;
-    } else if (approval.status === 'rejected') {
+      statusText = `Aprobado por ${approval?.user || 'Usuario'} el ${approval?.date || ''}`;
+    } else if (status === 'approved_with_observation') {
+      icon = <CheckCircle size={16} className="text-amber-500" />;
+      textClass = 'text-amber-700';
+      statusText = `Aprobado con observación por ${approval?.user || 'Usuario'} el ${approval?.date || ''}`;
+    } else if (status === 'rejected') {
       const isObservation = isArtwork && (label === 'Proveedor' || label === 'Planeamiento');
       icon = isObservation ? <Eye size={16} className="text-blue-500" /> : <ThumbsDown size={16} className="text-red-500" />;
       textClass = isObservation ? 'text-blue-700' : 'text-red-700';
-      statusText = `${isObservation ? 'Observado' : 'Rechazar'} por ${approval.user || 'Usuario'} el ${approval.date || ''}`;
-    } else if (approval.status === 'pending') {
+      statusText = `${isObservation ? 'Observado' : 'Rechazar'} por ${approval?.user || 'Usuario'} el ${approval?.date || ''}`;
+    } else if (status === 'pending') {
       icon = <Clock size={16} className="text-amber-500" />;
       textClass = 'text-amber-700';
       statusText = 'Pendiente de aprobación';
+    } else if (status === 'not_started') {
+      icon = <Minus size={16} className="text-gray-400" />;
+      textClass = 'text-gray-500';
+      statusText = 'No iniciado';
     }
 
     return (
@@ -423,7 +431,7 @@ export default function ProductDetailModal({
           <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">{label}</span>
         </div>
         <p className={`text-xs ${textClass} font-medium`}>{statusText}</p>
-        {approval.comments && (
+        {approval?.comments && (
           <p className="text-xs text-gray-600 mt-1 italic bg-gray-50 p-2 rounded border border-gray-100">
             "{approval.comments}"
           </p>
@@ -478,7 +486,7 @@ export default function ProductDetailModal({
               
               {!isCollapsed && (
                 <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                  {groupVersions.sort((a, b) => b.version - a.version).map((v, idx) => (
+                  {groupVersions.sort((a, b) => Number(b.version) - Number(a.version)).map((v, idx) => (
                     <div key={idx} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-4">

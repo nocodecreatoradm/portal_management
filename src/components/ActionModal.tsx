@@ -247,8 +247,8 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                     : docArray;
 
                   if (filteredDocs.length > 0) {
-                    const lastVersion = Math.max(...filteredDocs.map(v => v.version));
-                    const lastDoc = filteredDocs.find(v => v.version === lastVersion);
+                    const lastVersion = Math.max(...filteredDocs.map(v => Number(v.version)));
+                    const lastDoc = filteredDocs.find(v => Number(v.version) === Number(lastVersion));
                     return (
                       <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
                         <div className="flex justify-between items-center mb-2">
@@ -362,7 +362,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                           value={activeVersion.category}
                           onChange={(e) => {
                             const cat = e.target.value;
-                            const versions = docArray.filter(v => v.category === cat).sort((a, b) => b.version - a.version);
+                            const versions = docArray.filter(v => v.category === cat).sort((a, b) => Number(b.version) - Number(a.version));
                             if (versions.length > 0) setActiveVersion(versions[0]);
                           }}
                           className="w-full bg-white border-2 border-indigo-100 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
@@ -379,14 +379,14 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
                         value={activeVersion.version}
                         onChange={(e) => {
                           const ver = parseInt(e.target.value);
-                          const found = docArray.find(v => (type !== 'artwork' || v.category === activeVersion.category) && v.version === ver);
+                          const found = docArray.find(v => (type !== 'artwork' || v.category === activeVersion.category) && Number(v.version) === Number(ver));
                           if (found) setActiveVersion(found);
                         }}
                         className="w-full bg-white border-2 border-indigo-100 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
                       >
                         {docArray
                           .filter(v => type !== 'artwork' || v.category === activeVersion.category)
-                          .sort((a, b) => b.version - a.version)
+                          .sort((a, b) => Number(b.version) - Number(a.version))
                           .map(v => (
                             <option key={v.version} value={v.version}>Versión V{v.version}</option>
                           ))

@@ -177,11 +177,11 @@ export default function DataTable({
             (currentVersions || []).reduce((acc, v) => {
               if (!v) return acc;
               const key = v.category || 'Others';
-              if (!acc[key] || acc[key].version < v.version) acc[key] = v;
+              if (!acc[key] || Number(acc[key].version) < Number(v.version)) acc[key] = v;
               return acc;
             }, {} as Record<string, DocumentVersion>)
           ).sort((a: any, b: any) => (a.category || '').localeCompare(b.category || '')) as DocumentVersion[]
-          : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => b.version - a.version)[0]] : []);
+          : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => Number(b.version) - Number(a.version))[0]] : []);
           const generalStatus = getRecordStatus(item, mode, latestByCategory);
           return generalStatus.label.toLowerCase().includes(lowerValue);
         }
@@ -237,11 +237,11 @@ export default function DataTable({
               (currentVersions || []).reduce((acc, v) => {
                 if (!v) return acc;
                 const key = v.category || 'Others';
-                if (!acc[key] || acc[key].version < v.version) acc[key] = v;
+                if (!acc[key] || Number(acc[key].version) < Number(v.version)) acc[key] = v;
                 return acc;
               }, {} as Record<string, DocumentVersion>)
             ).sort((a: any, b: any) => (a.category || '').localeCompare(b.category || '')) as DocumentVersion[]
-            : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => b.version - a.version)[0]] : []);
+            : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => Number(b.version) - Number(a.version))[0]] : []);
             return getRecordStatus(r, mode, latestByCategory).label;
           };
           aVal = getStatusLabel(a).toLowerCase();
@@ -372,11 +372,11 @@ export default function DataTable({
             (currentVersions || []).reduce((acc, v) => {
               if (!v) return acc;
               const key = v.category || 'Others';
-              if (!acc[key] || acc[key].version < v.version) acc[key] = v;
+              if (!acc[key] || Number(acc[key].version) < Number(v.version)) acc[key] = v;
               return acc;
             }, {} as Record<string, DocumentVersion>)
           ).sort((a: any, b: any) => (a.category || '').localeCompare(b.category || '')) as DocumentVersion[]
-          : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => b.version - a.version)[0]] : []);
+          : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => Number(b.version) - Number(a.version))[0]] : []);
           return getRecordStatus(item, mode, latestByCategory).label;
         }).filter(Boolean)
       )
@@ -427,11 +427,11 @@ export default function DataTable({
             (currentVersions || []).reduce((acc, v) => {
               if (!v) return acc;
               const key = v.category || 'Others';
-              if (!acc[key] || acc[key].version < v.version) acc[key] = v;
+              if (!acc[key] || Number(acc[key].version) < Number(v.version)) acc[key] = v;
               return acc;
             }, {} as Record<string, DocumentVersion>)
           ).sort((a: any, b: any) => (a.category || '').localeCompare(b.category || '')) as DocumentVersion[]
-          : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => b.version - a.version)[0]] : []);
+          : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => Number(b.version) - Number(a.version))[0]] : []);
 
           const isExpanded = expandedRows[record.id];
           const hasMore = latestByCategory.length > 1;
@@ -902,11 +902,11 @@ export default function DataTable({
                 (currentVersions || []).reduce((acc, v) => {
                   if (!v) return acc;
                   const key = v.category || 'Others';
-                  if (!acc[key] || acc[key].version < v.version) acc[key] = v;
+                  if (!acc[key] || Number(acc[key].version) < Number(v.version)) acc[key] = v;
                   return acc;
                 }, {} as Record<string, DocumentVersion>)
               ).sort((a: any, b: any) => (a.category || '').localeCompare(b.category || '')) as DocumentVersion[]
-              : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => b.version - a.version)[0]] : []);
+              : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => Number(b.version) - Number(a.version))[0]] : []);
 
               const isExpanded = expandedRows[record.id];
               const hasMore = latestByCategory.length > 1;
