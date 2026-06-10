@@ -293,6 +293,8 @@ async function startServer() {
           ALTER TABLE ID_PORTAL.product_management ADD previous_year INT`,
         `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'catalog_comments')
           ALTER TABLE ID_PORTAL.product_management ADD catalog_comments NVARCHAR(MAX)`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'categoria')
+          ALTER TABLE ID_PORTAL.product_management ADD categoria NVARCHAR(255)`,
       ];
 
       const results: string[] = [];
