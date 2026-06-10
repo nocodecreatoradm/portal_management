@@ -275,27 +275,39 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
     fieldId?: string,
     stageId?: string 
   } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !uploadingTo) return;
 
-    Array.from(files).forEach((file: File) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const newFile: FileInfo = {
-          name: file.name,
-          url: reader.result as string,
-          type: file.type
-        };
+    const capturedUploadingTo = { ...uploadingTo };
+    setUploadingTo(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
 
-        if (uploadingTo.type === 'form') {
+    setIsUploading(true);
+    const toastId = toast.loading(`Subiendo ${files.length} archivo(s)...`);
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const file of Array.from(files)) {
+      try {
+        const folder = capturedUploadingTo.type === 'form'
+          ? `inspections/${sample.id}/form/${capturedUploadingTo.sectionId}/${capturedUploadingTo.fieldId}`
+          : `inspections/${sample.id}/workflow/${capturedUploadingTo.sectionId}/${capturedUploadingTo.stageId}`;
+        const path = `${folder}/${Date.now()}_${file.name}`;
+
+        const uploaded = await SupabaseService.uploadFile('rd-files', path, file);
+        const newFile: FileInfo = { name: uploaded.name, url: uploaded.url, type: uploaded.type || file.type };
+
+        if (capturedUploadingTo.type === 'form') {
           setForm(prev => prev.map(sec => {
-            if (sec.id === uploadingTo.sectionId) {
+            if (sec.id === capturedUploadingTo.sectionId) {
               return {
                 ...sec,
                 fields: sec.fields.map(f => {
-                  if (f.id === uploadingTo.fieldId) {
+                  if (f.id === capturedUploadingTo.fieldId) {
                     return { ...f, photos: [...f.photos, newFile] };
                   }
                   return f;
@@ -304,13 +316,13 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
             }
             return sec;
           }));
-        } else if (uploadingTo.type === 'workflow') {
+        } else if (capturedUploadingTo.type === 'workflow') {
           setWorkflow(prev => prev.map(sec => {
-            if (sec.id === uploadingTo.sectionId) {
+            if (sec.id === capturedUploadingTo.sectionId) {
               return {
                 ...sec,
                 stages: sec.stages.map((w: any) => {
-                  if (w.id === uploadingTo.stageId) {
+                  if (w.id === capturedUploadingTo.stageId) {
                     return { ...w, files: [...(w.files || []), newFile] };
                   }
                   return w;
@@ -320,12 +332,21 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
             return sec;
           }));
         }
-      };
-      reader.readAsDataURL(file);
-    });
-    
-    setUploadingTo(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+        successCount++;
+      } catch (err: any) {
+        console.error('Error subiendo archivo de inspección:', err);
+        errorCount++;
+      }
+    }
+
+    setIsUploading(false);
+    if (errorCount === 0) {
+      toast.success(`${successCount} archivo(s) subido(s) correctamente`, { id: toastId });
+    } else if (successCount > 0) {
+      toast.warning(`${successCount} subido(s), ${errorCount} con error`, { id: toastId });
+    } else {
+      toast.error('Error al subir los archivos', { id: toastId });
+    }
   };
 
   const triggerUpload = (sectionId: string, fieldId: string) => {
@@ -681,9 +702,11 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
 
             <button 
               onClick={handleSaveDraft}
-              className="p-2 text-slate-400 hover:bg-white rounded-xl transition-all"
+              disabled={isUploading}
+              className="p-2 text-slate-400 hover:bg-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              title={isUploading ? 'Subiendo archivos...' : 'Guardar borrador y cerrar'}
             >
-              <XCircle size={24} />
+              {isUploading ? <Loader2 size={24} className="animate-spin text-indigo-400" /> : <XCircle size={24} />}
             </button>
           </div>
         </div>
@@ -1090,15 +1113,23 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
             </div>
           </div>
           <div className="flex items-center gap-4">
+            {isUploading && (
+              <div className="flex items-center gap-2 text-sm font-bold text-indigo-600 animate-pulse">
+                <Loader2 size={16} className="animate-spin" />
+                Subiendo archivos...
+              </div>
+            )}
             <button 
               onClick={handleSaveDraft}
-              className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-700 transition-all"
+              disabled={isUploading}
+              className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Guardar Borrador
             </button>
             <button 
               onClick={handleFinalize}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-8 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+              disabled={isUploading}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-8 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
             >
               <CheckCircle2 size={18} />
               Finalizar Ciclo de Inspección
