@@ -1338,7 +1338,51 @@ async function startServer() {
         END
       `);
 
+      // ─── LINEAL DE PRODUCTOS COLUMN MIGRATION ─────────────────────────────────
+      // Idempotently adds new columns needed for the Lineal de Productos feature
+      try {
+        const migPool = await getDBPool();
+        const linealMigrationSQL = `
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'segment')
+            ALTER TABLE ID_PORTAL.product_management ADD segment nvarchar(50) NULL;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'commercial_name')
+            ALTER TABLE ID_PORTAL.product_management ADD commercial_name nvarchar(255) NULL;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'detailed_description')
+            ALTER TABLE ID_PORTAL.product_management ADD detailed_description nvarchar(max) NULL;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'product_status')
+            ALTER TABLE ID_PORTAL.product_management ADD product_status nvarchar(50) NULL DEFAULT 'vigente';
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'habilitado')
+            ALTER TABLE ID_PORTAL.product_management ADD habilitado bit NULL DEFAULT 0;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'incluye_kit')
+            ALTER TABLE ID_PORTAL.product_management ADD incluye_kit bit NULL DEFAULT 0;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'habilitacion_costo')
+            ALTER TABLE ID_PORTAL.product_management ADD habilitacion_costo decimal(18,4) NULL;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'pvp')
+            ALTER TABLE ID_PORTAL.product_management ADD pvp decimal(18,4) NULL;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'pvp_descuento')
+            ALTER TABLE ID_PORTAL.product_management ADD pvp_descuento decimal(18,4) NULL;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'sales_current_year')
+            ALTER TABLE ID_PORTAL.product_management ADD sales_current_year int NULL;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'sales_previous_year')
+            ALTER TABLE ID_PORTAL.product_management ADD sales_previous_year int NULL;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'current_year')
+            ALTER TABLE ID_PORTAL.product_management ADD current_year int NULL;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'previous_year')
+            ALTER TABLE ID_PORTAL.product_management ADD previous_year int NULL;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'catalog_comments')
+            ALTER TABLE ID_PORTAL.product_management ADD catalog_comments nvarchar(max) NULL;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'categoria')
+            ALTER TABLE ID_PORTAL.product_management ADD categoria nvarchar(255) NULL;
+        `;
+        await migPool.request().query(linealMigrationSQL);
+        console.log('✅ Lineal de Productos column migration completed successfully');
+      } catch (linealMigErr) {
+        console.error('❌ Error in Lineal de Productos column migration:', linealMigErr);
+      }
+      // ─── END LINEAL DE PRODUCTOS MIGRATION ───────────────────────────────────
+
       // ─── PERMISSIONS SEED MIGRATION ───────────────────────────────────────────
+
       // Inserts all system permissions if they don't exist, then assigns them
       // to every existing role. Admin-only permissions (users:view, master_data:view)
       // are only assigned to roles with level >= 90 or named 'admin'/'Administrador'.
