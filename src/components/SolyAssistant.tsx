@@ -3,6 +3,8 @@ import { Sparkles, X, ChevronRight, ChevronLeft, ArrowRight, Send } from 'lucide
 import { ModuleId } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SupabaseService } from '../lib/SupabaseService';
+import { useAuth } from '../contexts/AuthContext';
+import { usePermissions } from '../contexts/PermissionsContext';
 
 // Import avatar images
 import pointingForward from '../assets/avatar/pointing_forward.png';
@@ -40,6 +42,8 @@ interface ChatMessage {
 }
 
 export default function SolyAssistant({ activeModule, onNavigateModule, isVisible, onToggleVisible }: SolyAssistantProps) {
+  const { profile } = useAuth();
+  const { hasPermission } = usePermissions();
   const [isMinimized, setIsMinimized] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [activeTab, setActiveTab] = useState<'tour' | 'chat'>('tour');
@@ -436,7 +440,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
   }, [activeModule, currentStep, isVisible, isMinimized, activeTab, currentSteps]);
 
   // Chat QA NLP matching function
-  const getSolyResponse = (query: string): ChatMessage => {
+  const getSolyResponseRaw = (query: string): ChatMessage => {
     const q = query.toLowerCase().trim();
     const today = new Date();
 
@@ -595,6 +599,42 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
 
     // --- GUIDANCE & FORM FILLING ENGINE ---
     const guidanceRules = [
+      {
+        keys: ['agua caliente', 'demanda de agua', 'dimensionamiento de agua caliente', 'litros agua', 'terma'],
+        ans: '¡Entendido! Te llevaré de inmediato al **Cálculo de Demanda de Agua Caliente**. Allí podrás ingresar la cantidad de personas o servicios y calcular la capacidad recomendada.',
+        module: 'water_demand' as ModuleId,
+        label: 'Ir a Demanda de Agua'
+      },
+      {
+        keys: ['absorción', 'absorcion', 'campana', 'campana extractora', 'volumen cocina'],
+        ans: '¡Entendido! Te llevaré de inmediato al **Cálculo de Absorción de Campana**. Allí podrás calcular la capacidad de extracción necesaria según el volumen de la cocina.',
+        module: 'absorption_calculation' as ModuleId,
+        label: 'Ir a Absorción de Campana'
+      },
+      {
+        keys: ['pérdida de temperatura', 'perdida de temperatura', 'tubería', 'tuberia', 'caída térmica', 'caida termica'],
+        ans: '¡Entendido! Te llevaré al **Cálculo de Pérdidas de Temperatura en Tuberías** para de inmediato estimar la caída térmica según material, longitud y aislamiento.',
+        module: 'temperature_loss' as ModuleId,
+        label: 'Ir a Pérdida de Temperatura'
+      },
+      {
+        keys: ['recubrimiento', 'cromo', 'niquel', 'níquel', 'espesor cromo', 'corrosión', 'corrosion'],
+        ans: '¡Entendido! Te llevaré al **Análisis de Recubrimiento Cromo-Níquel** para estimar espesores y resistencia a la corrosión de las piezas.',
+        module: 'cr_ni_coating_analysis' as ModuleId,
+        label: 'Ir a Análisis de Recubrimiento'
+      },
+      {
+        keys: ['horno', 'hornos', 'termocupla', 'temperatura cocina', 'curva de calor'],
+        ans: '¡Entendido! Te llevaré al módulo de **Curvas de Temperatura en Hornos de Cocina** para registrar de inmediato lecturas térmicas en tiempo real.',
+        module: 'oven_experimental' as ModuleId,
+        label: 'Ir a Curvas de Horno'
+      },
+      {
+        keys: ['calentador a gas', 'calentadores a gas', 'rendimiento térmico calentadores', 'rendimiento termico calentadores'],
+        ans: '¡Entendido! Te llevaré al módulo de **Rendimiento Térmico de Calentadores a Gas** para de inmediato evaluar eficiencia energética.',
+        module: 'gas_heater_experimental' as ModuleId,
+        label: 'Ir a Rendimiento Calentadores'
+      },
       {
         keys: ['registrar reclamo', 'crear reclamo', 'reportar reclamo', 'llenar reclamo', 'subir reclamo', 'queja', 'reportar queja', 'defecto', 'fallo'],
         ans: '📝 *Guía para Registrar un Reclamo de Calidad:*\n\n' +
@@ -1221,6 +1261,118 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     };
   };
 
+  const modulePermissionMap: Record<ModuleId, string> = {
+    brandbook: 'brandbook:view',
+    calendar: 'calendar:view',
+    work_plan: 'work_plan:view',
+    artwork_followup: 'artwork:view',
+    technical_datasheet: 'technical_sheets:view',
+    commercial_datasheet: 'technical_sheets:view',
+    quality_claims: 'artwork:view',
+    commercial_artworks: 'approved_artworks:view',
+    approved_technical_sheets: 'approved_technical:view',
+    approved_commercial_sheets: 'approved_commercial:view',
+    rd_projects: 'projects:view',
+    innovation_proposals: 'proposals:view',
+    rd_inventory: 'inventory:view',
+    supplier_master: 'suppliers:view',
+    samples: 'samples:view',
+    product_management: 'catalog:view',
+    energy_efficiency: 'efficiency:view',
+    calculations_dashboard: 'calculations:view',
+    ntp_regulations: 'regulations:view',
+    price_gmroi_simulator: 'price_gmroi_simulator:view',
+    canton_fair: 'fairs:view',
+    applications: 'apps:view',
+    records: 'records:view',
+    user_management: 'users:view',
+    master_data: 'users:view',
+    water_demand: 'calculations:view',
+    absorption_calculation: 'calculations:view',
+    temperature_loss: 'calculations:view',
+    cr_ni_coating_analysis: 'calculations:view',
+    oven_experimental: 'calculations:view',
+    gas_heater_experimental: 'calculations:view',
+  };
+
+  const getModuleLabel = (mod: ModuleId): string => {
+    const moduleNames: Record<ModuleId, string> = {
+      brandbook: 'Brandbook',
+      calendar: 'Calendario',
+      work_plan: 'Plan de Trabajo',
+      samples: 'Muestras',
+      rd_inventory: 'Inventario R&D',
+      ntp_regulations: 'Normativas NTP',
+      price_gmroi_simulator: 'Simulador GMROI',
+      artwork_followup: 'Seguimiento de Artes',
+      technical_datasheet: 'Fichas Técnicas',
+      commercial_datasheet: 'Fichas Comerciales',
+      quality_claims: 'Reclamos de Calidad',
+      supplier_master: 'Maestro de Proveedores',
+      master_data: 'Maestro de Datos',
+      energy_efficiency: 'Eficiencia Energética',
+      product_management: 'Gestión de Productos',
+      rd_projects: 'Proyectos I+D',
+      calculations_dashboard: 'Calculadora de Ingeniería',
+      innovation_proposals: 'Propuestas de Innovación',
+      cr_ni_coating_analysis: 'Análisis de Recubrimiento',
+      canton_fair: 'Feria de Cantón',
+      oven_experimental: 'Curvas de Temperatura Cocina',
+      gas_heater_experimental: 'Experimental Calentadores',
+      water_demand: 'Cálculo Demanda Agua',
+      absorption_calculation: 'Cálculo Absorción',
+      temperature_loss: 'Cálculo Pérdida Temperatura',
+      user_management: 'Gestión de Usuarios',
+      commercial_artworks: 'Artes Comerciales',
+      approved_technical_sheets: 'Fichas Técnicas Aprobadas',
+      approved_commercial_sheets: 'Fichas Comerciales Aprobadas',
+      applications: 'Aplicaciones',
+      records: 'Registros'
+    };
+    return moduleNames[mod] || mod.replace('_', ' ');
+  };
+
+  const getSolyResponse = (query: string): ChatMessage => {
+    const q = query.toLowerCase().trim();
+    
+    // Check for sensitive administrative changes (roles, dates, etc.)
+    const isSensitiveChangeQuery = 
+      q.includes('cambia') || q.includes('modifica') || q.includes('edita') || 
+      q.includes('borra') || q.includes('elimina') || q.includes('reprograma') || 
+      q.includes('actualiza') || q.includes('asigna');
+      
+    const isSensitiveTarget = 
+      q.includes('rol') || q.includes('fecha') || q.includes('entrega') || 
+      q.includes('plazo') || q.includes('usuario') || q.includes('permiso') || 
+      q.includes('firma') || q.includes('aprobación') || q.includes('aprobacion');
+
+    if (isSensitiveChangeQuery && isSensitiveTarget) {
+      if (!hasPermission('users:view')) {
+        return {
+          sender: 'soly',
+          text: `🔒 **Acceso Restringido:** Como tu asistente de I+D, no tengo autorización para realizar modificaciones directas en la base de datos de producción (como reasignar roles, cambiar fechas oficiales de entrega o alterar firmas de aprobación) para usuarios con tu rol actual (${profile?.role || 'Visitante'}).\n\nSolo los usuarios con rol de **Administrador / Coordinador** pueden realizar estas modificaciones ingresando directamente a los respectivos formularios de cada módulo.`
+        };
+      } else {
+        return {
+          sender: 'soly',
+          text: `🛠️ **Modificaciones Sensibles:** Hola, veo que eres Administrador/Coordinador. Como asistente conversacional, por seguridad e integridad de datos, no puedo ejecutar consultas directas de modificación de base de datos (como reescribir fechas o roles) mediante chat libre.\n\nPor favor, dirígete al módulo correspondiente (**Gestión de Usuarios** para roles, o **Calendario/Seguimiento** para fechas) para realizar los cambios mediante los controles oficiales del sistema.`
+        };
+      }
+    }
+
+    const rawRes = getSolyResponseRaw(query);
+    if (rawRes.action) {
+      const requiredPermission = modulePermissionMap[rawRes.action.module];
+      if (requiredPermission && !hasPermission(requiredPermission)) {
+        return {
+          sender: 'soly',
+          text: `🔒 Lo siento, no tienes permisos en tu rol de **${profile?.role || 'Visitante'}** para acceder o realizar acciones en el módulo de **${getModuleLabel(rawRes.action.module)}** (requiere el permiso \`${requiredPermission}\`).`
+        };
+      }
+    }
+    return rawRes;
+  };
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -1236,6 +1388,30 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     setTimeout(() => {
       const response = getSolyResponse(queryText);
       setChatMessages(prev => [...prev, response]);
+
+      // Automatic navigation if the query specifies it and the action is allowed
+      const q = queryText.toLowerCase().trim();
+      const shouldAutoNavigate = 
+        q.startsWith('entra') || 
+        q.startsWith('ve a') || 
+        q.startsWith('llévame') || 
+        q.startsWith('llevame') || 
+        q.startsWith('ir a') || 
+        q.startsWith('abrir') || 
+        q.startsWith('navega') ||
+        q.includes('llévame al') ||
+        q.includes('llevame al') ||
+        q.includes('muéstrame') ||
+        q.includes('muestrame') ||
+        q.includes('mostrar') ||
+        q.includes('ingresa a') ||
+        q.includes('ingresar a');
+
+      if (shouldAutoNavigate && response.action) {
+        setTimeout(() => {
+          handleActionClick(response.action!.module);
+        }, 1000);
+      }
     }, 400);
   };
 
@@ -1284,6 +1460,16 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
   };
 
   const handleActionClick = (targetModule: ModuleId) => {
+    // Check permission
+    const requiredPermission = modulePermissionMap[targetModule];
+    if (requiredPermission && !hasPermission(requiredPermission)) {
+      setChatMessages(prev => [...prev, {
+        sender: 'soly',
+        text: `🔒 **Acceso Denegado:** Tu rol de **${profile?.role || 'Visitante'}** no tiene los permisos necesarios (\`${requiredPermission}\`) para acceder al módulo de **${getModuleLabel(targetModule)}**.`
+      }]);
+      return;
+    }
+
     if (lastUserQuery) {
       const moduleNames: Record<ModuleId, string> = {
         brandbook: 'Brandbook',
