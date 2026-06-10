@@ -409,6 +409,8 @@ export interface CalendarTask {
   deliveryStatus?: 'on_time' | 'delayed' | 'postponed' | 'pending';
   createdAt: string;
   changeLog: ChangeLog[];
+  sapCode?: string;
+  referenceId?: string;
 }
 
 export interface ProductManagementRecord {

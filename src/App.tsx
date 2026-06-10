@@ -103,6 +103,7 @@ export default function App() {
   const [qualityClaims, setQualityClaims] = useState<QualityClaim[]>([]);
   const [isQualityClaimsModalOpen, setIsQualityClaimsModalOpen] = useState(false);
   const [selectedQualityClaimsProduct, setSelectedQualityClaimsProduct] = useState<ProductRecord | null>(null);
+  const [claimSearchTerm, setClaimSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     marca: '',
     linea: '',
@@ -1174,6 +1175,7 @@ export default function App() {
             setSelectedQualityClaimsProduct(record);
             setIsQualityClaimsModalOpen(true);
           }}
+          initialSearchTerm={claimSearchTerm}
         />
       );
     }
@@ -1348,7 +1350,7 @@ export default function App() {
     }
 
     if (activeModule === 'calendar') {
-      return <CalendarModule />;
+      return <CalendarModule onNavigateToModule={handleNavigateFromCalendar} />;
     }
     if (activeModule === 'price_gmroi_simulator') {
       return <PriceGMROISimulator />;
@@ -1497,6 +1499,21 @@ export default function App() {
     setActiveModule(module);
     setShowReport(false);
     setShowGantt(false);
+    setClaimSearchTerm('');
+  };
+
+  const handleNavigateFromCalendar = (moduleId: ModuleId, itemId: string, sapCode?: string) => {
+    setActiveModule(moduleId);
+    setShowReport(false);
+    setShowGantt(false);
+    if (moduleId === 'quality_claims') {
+      setClaimSearchTerm(sapCode || '');
+    } else {
+      const product = data.find(p => p.id === itemId);
+      if (product) {
+        setDetailRecord(product);
+      }
+    }
   };
 
   const handleLoadRecord = (moduleId: ModuleId, data: any) => {

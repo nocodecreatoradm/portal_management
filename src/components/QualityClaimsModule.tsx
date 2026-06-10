@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, AlertCircle, CheckCircle2, FileText, Download, TrendingUp, BarChart3, PieChart as PieIcon, ExternalLink } from 'lucide-react';
 import { QualityClaim, ProductRecord } from '../types';
 import { format, parseISO } from 'date-fns';
@@ -13,6 +13,7 @@ interface QualityClaimsModuleProps {
   products: ProductRecord[];
   onViewProductDetail: (record: ProductRecord) => void;
   onOpenClaimsModal: (record: ProductRecord) => void;
+  initialSearchTerm?: string;
 }
 
 const formatDate = (dateStr?: string) => {
@@ -28,11 +29,18 @@ export default function QualityClaimsModule({
   qualityClaims,
   products,
   onViewProductDetail,
-  onOpenClaimsModal
+  onOpenClaimsModal,
+  initialSearchTerm
 }: QualityClaimsModuleProps) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'resolved'>('all');
   const [defectFilter, setDefectFilter] = useState<'all' | 'Estético' | 'Funcional' | 'Dimensional'>('all');
+
+  useEffect(() => {
+    if (initialSearchTerm !== undefined) {
+      setSearchTerm(initialSearchTerm);
+    }
+  }, [initialSearchTerm]);
   const [moduleFilter, setModuleFilter] = useState<'all' | 'artwork' | 'technical' | 'commercial'>('all');
 
   // Filter claims

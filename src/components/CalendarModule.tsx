@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import UserSelect from './UserSelect';
 import { SupabaseService } from '../lib/SupabaseService';
-import { CalendarTask, ChangeLog, ProductRecord, QualityClaim } from '../types';
+import { CalendarTask, ChangeLog, ProductRecord, QualityClaim, ModuleId } from '../types';
 import { 
   Plus, Search, Filter, Calendar as CalendarIcon, 
   Clock, User, CheckCircle2, AlertCircle, 
   History, Edit2, Trash2, X, ChevronLeft, ChevronRight,
   ArrowRight, MoreVertical, Star, PartyPopper, Coffee,
-  Sun, MapPin, Plane, Activity, Check, Play, Ban
+  Sun, MapPin, Plane, Activity, Check, Play, Ban, ExternalLink
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -26,7 +26,11 @@ const parseLocalISO = (dateStr: string) => {
   return parseISO(dateStr);
 };
 
-export default function CalendarModule() {
+interface CalendarModuleProps {
+  onNavigateToModule?: (moduleId: ModuleId, itemId: string, sapCode?: string) => void;
+}
+
+export default function CalendarModule({ onNavigateToModule }: CalendarModuleProps = {}) {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<CalendarTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +48,24 @@ export default function CalendarModule() {
   useEffect(() => {
     loadTasks();
   }, []);
+
+  const handleFixedTaskClick = (task: CalendarTask) => {
+    if (task.type !== 'fixed_activity' || !onNavigateToModule) return;
+
+    if (task.id.startsWith('artwork-')) {
+      const id = task.id.replace('artwork-', '');
+      onNavigateToModule('artwork_followup', id, task.sapCode);
+    } else if (task.id.startsWith('technical-')) {
+      const id = task.id.replace('technical-', '');
+      onNavigateToModule('technical_datasheet', id, task.sapCode);
+    } else if (task.id.startsWith('commercial-')) {
+      const id = task.id.replace('commercial-', '');
+      onNavigateToModule('commercial_datasheet', id, task.sapCode);
+    } else if (task.id.startsWith('claim-')) {
+      const id = task.id.replace('claim-', '');
+      onNavigateToModule('quality_claims', id, task.sapCode);
+    }
+  };
 
   const loadTasks = async () => {
     try {
@@ -81,7 +103,7 @@ export default function CalendarModule() {
 
           fixedActivities.push({
             id: `artwork-${product.id}`,
-            title: `[Arte] ${product.correlativeId ? `[${product.correlativeId}] ` : ''}[SAP ${product.codigoSAP}] ${product.descripcionSAP}`,
+            title: `[Arte] ${product.correlativeId || product.codigoSAP}${product.descripcionSAP ? ` | ${product.descripcionSAP}` : ''}`,
             description: `Diseñador: ${assign?.designer || 'No asignado'}. Ficha relacionada: ${product.correlativeId || ''}`,
             startDate,
             endDate,
@@ -92,7 +114,9 @@ export default function CalendarModule() {
             status: isCompleted ? 'completed' : 'pending',
             deliveryStatus: isCompleted ? 'on_time' : (isDelayed ? 'delayed' : 'pending'),
             createdAt: product.createdAt || getLimaNow().toISOString(),
-            changeLog: []
+            changeLog: [],
+            sapCode: product.codigoSAP,
+            referenceId: product.id
           });
         } else if (product.trackingType === 'technical') {
           const assign = product.technicalAssignment;
@@ -112,7 +136,7 @@ export default function CalendarModule() {
 
           fixedActivities.push({
             id: `technical-${product.id}`,
-            title: `[Ficha Técnica] ${product.correlativeId ? `[${product.correlativeId}] ` : ''}[SAP ${product.codigoSAP}] ${product.descripcionSAP}`,
+            title: `[F. Téc] ${product.correlativeId || product.codigoSAP}${product.descripcionSAP ? ` | ${product.descripcionSAP}` : ''}`,
             description: `Asignado a: ${assign?.designer || 'No asignado'}. Ficha relacionada: ${product.correlativeId || ''}`,
             startDate,
             endDate,
@@ -123,7 +147,9 @@ export default function CalendarModule() {
             status: isCompleted ? 'completed' : 'pending',
             deliveryStatus: isCompleted ? 'on_time' : (isDelayed ? 'delayed' : 'pending'),
             createdAt: product.createdAt || getLimaNow().toISOString(),
-            changeLog: []
+            changeLog: [],
+            sapCode: product.codigoSAP,
+            referenceId: product.id
           });
         } else if (product.trackingType === 'commercial') {
           const assign = product.commercialAssignment;
@@ -143,7 +169,7 @@ export default function CalendarModule() {
 
           fixedActivities.push({
             id: `commercial-${product.id}`,
-            title: `[Ficha Comercial] ${product.correlativeId ? `[${product.correlativeId}] ` : ''}[SAP ${product.codigoSAP}] ${product.descripcionSAP}`,
+            title: `[F. Com] ${product.correlativeId || product.codigoSAP}${product.descripcionSAP ? ` | ${product.descripcionSAP}` : ''}`,
             description: `Asignado a: ${assign?.designer || 'No asignado'}. Ficha relacionada: ${product.correlativeId || ''}`,
             startDate,
             endDate,
@@ -154,7 +180,9 @@ export default function CalendarModule() {
             status: isCompleted ? 'completed' : 'pending',
             deliveryStatus: isCompleted ? 'on_time' : (isDelayed ? 'delayed' : 'pending'),
             createdAt: product.createdAt || getLimaNow().toISOString(),
-            changeLog: []
+            changeLog: [],
+            sapCode: product.codigoSAP,
+            referenceId: product.id
           });
         }
       });
@@ -170,7 +198,7 @@ export default function CalendarModule() {
 
         fixedActivities.push({
           id: `claim-${claim.id}`,
-          title: `[Reclamo] ${claim.sapCode ? `[SAP ${claim.sapCode}] ` : ''}${claim.defectType} - ${claim.documentCategory}`,
+          title: `[Reclamo] ${claim.sapCode || ''}${claim.sapCode ? ' | ' : ''}${claim.defectType} - ${claim.documentCategory}`,
           description: `Responsable: ${claim.responsibleName}. Tipo Defecto: ${claim.defectType}. Comentarios: ${claim.comments || 'Sin comentarios'}`,
           startDate: claimStartStr,
           endDate: claimEndStr,
@@ -181,7 +209,9 @@ export default function CalendarModule() {
           status: isCompleted ? 'completed' : 'pending',
           deliveryStatus: isCompleted ? 'on_time' : (isDelayed ? 'delayed' : 'pending'),
           createdAt: claim.createdAt || claimStart,
-          changeLog: []
+          changeLog: [],
+          sapCode: claim.sapCode,
+          referenceId: claim.id
         });
       });
 
@@ -506,7 +536,7 @@ export default function CalendarModule() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-7 flex-1 overflow-y-auto">
+              <div className="grid grid-cols-7 border-slate-100">
                 {calendarDays.map((day, idx) => {
                   const dayStr = format(day, 'yyyy-MM-dd');
                   const dayTasks = tasksByDay[dayStr] || [];
@@ -517,12 +547,12 @@ export default function CalendarModule() {
                     <div 
                       key={idx}
                       onClick={() => setSelectedDay(day)}
-                      className={`min-h-[120px] p-2 border-b border-r border-slate-100 transition-all cursor-pointer hover:bg-slate-50/50 flex flex-col gap-1 ${
+                      className={`h-[90px] p-1.5 border-b border-r border-slate-100 transition-all cursor-pointer hover:bg-slate-50/50 flex flex-col gap-0.5 ${
                         !isCurrentMonth ? 'bg-slate-50/30 opacity-40' : ''
                       } ${isToday ? 'bg-indigo-50/30' : ''}`}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-xs font-bold ${isToday ? 'w-6 h-6 flex items-center justify-center bg-indigo-600 text-white rounded-full' : 'text-slate-600'}`}>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className={`text-[10px] font-bold ${isToday ? 'w-5 h-5 flex items-center justify-center bg-indigo-600 text-white rounded-full text-[9px]' : 'text-slate-600'}`}>
                           {format(day, 'd')}
                         </span>
                         {dayTasks.length > 0 && (
@@ -541,10 +571,20 @@ export default function CalendarModule() {
                             ? `${isStart ? 'rounded-l-lg rounded-r-none border-r-0 mr-0 pr-0' : isEnd ? 'rounded-r-lg rounded-l-none border-l-0 ml-0 pl-0' : 'rounded-none border-l-0 border-r-0 mx-0 px-0'}`
                             : 'rounded-lg';
 
+                          const isFixed = task.type === 'fixed_activity';
+
                           return (
                             <div 
                               key={task.id}
-                              className={`text-[9px] font-bold px-2 py-1 truncate border flex items-center gap-1 transition-all ${roundStyle} ${getStatusColor(task)}`}
+                              onClick={(e) => {
+                                if (isFixed) {
+                                  e.stopPropagation();
+                                  handleFixedTaskClick(task);
+                                }
+                              }}
+                              className={`text-[9px] font-semibold px-1.5 py-0.5 truncate border flex items-center gap-1 transition-all ${roundStyle} ${getStatusColor(task)} ${
+                                isFixed ? 'hover:brightness-95 hover:shadow-sm cursor-pointer' : ''
+                              }`}
                             >
                               {task.type === 'holiday' && <Star size={8} />}
                               {task.type === 'special_event' && <PartyPopper size={8} />}
@@ -608,12 +648,21 @@ export default function CalendarModule() {
                   const endCol = endIdx !== -1 ? endIdx + 2 : daysInMonth.length + 1;
                   
                   const isDelayed = task.status !== 'completed' && task.status !== 'cancelled' && task.deadline && new Date(task.deadline) < getLimaNow();
+                  
+                  const isFixed = task.type === 'fixed_activity';
 
                   return (
                     <div 
                       key={task.id} 
-                      onClick={() => setSelectedDay(start)}
-                      className="flex items-center hover:bg-slate-50/50 py-1.5 rounded-xl transition-all cursor-pointer group"
+                      onClick={(e) => {
+                        if (isFixed) {
+                          e.stopPropagation();
+                          handleFixedTaskClick(task);
+                        } else {
+                          setSelectedDay(start);
+                        }
+                      }}
+                      className="flex items-center hover:bg-slate-50/50 py-1 rounded-xl transition-all cursor-pointer group"
                     >
                       {/* Left Panel */}
                       <div className="w-48 flex-shrink-0 pr-4 pl-4 truncate">
@@ -846,6 +895,15 @@ export default function CalendarModule() {
                     </div>
 
                     <div className="flex items-center gap-3">
+                      {task.type === 'fixed_activity' && (
+                        <button 
+                          onClick={() => handleFixedTaskClick(task)}
+                          className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded-lg text-[9px] font-black transition-all border border-indigo-200/50 uppercase tracking-wider"
+                        >
+                          <span>Ir al Módulo</span>
+                          <ArrowRight size={10} />
+                        </button>
+                      )}
                       {task.type !== 'fixed_activity' && (
                         <button 
                           onClick={() => setShowHistory(task)}
