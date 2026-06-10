@@ -46,6 +46,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
   
   // Chat states
   const [chatInput, setChatInput] = useState('');
+  const [lastUserQuery, setLastUserQuery] = useState('');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       sender: 'soly',
@@ -439,7 +440,29 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     const q = query.toLowerCase().trim();
     const today = new Date();
 
-    // 1. URGENT / NEAR DEADLINES
+    // Helper to calculate days of delay/overdue status
+    const getDiffDays = (d: Date) => {
+      const diffTime = d.getTime() - today.getTime();
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
+
+    // 0. CHECK LEARNED ASSOCIATIONS FROM LOCALSTORAGE (DYNAMIC LEARNING)
+    try {
+      const learned = JSON.parse(localStorage.getItem('soly_learned_associations') || '[]');
+      const sortedLearned = learned.sort((a: any, b: any) => b.clicks - a.clicks);
+      const match = sortedLearned.find((a: any) => q.includes(a.query) || a.query.includes(q));
+      if (match) {
+        return {
+          sender: 'soly',
+          text: `🤖 *¡He aprendido de tu comportamiento anterior!* \n\nHe recordado que cuando buscas sobre esto, sueles dirigirte al módulo **${match.moduleLabel}**. ¿Deseas que te redirija allí?`,
+          action: { label: `Ir a ${match.moduleLabel}`, module: match.moduleId }
+        };
+      }
+    } catch (err) {
+      console.error("Error reading learned association:", err);
+    }
+
+    // 1. URGENT / NEAR DEADLINES (Excluding overdue by more than 15 days)
     if (q.includes('plazo') || q.includes('limite') || q.includes('límite') || q.includes('cerca') || q.includes('vence') || q.includes('urgente') || q.includes('fecha')) {
       const pendingTasks = appData.tasks
         .filter(t => t.status !== 'completed' && t.status !== 'cancelled' && (t.deadline || (t.startDate && t.endDate)))
@@ -469,18 +492,21 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
         }));
 
       const allPending = [...pendingTasks, ...pendingProducts, ...pendingSamples]
-        .filter(item => !isNaN(item.date.getTime()))
+        .filter(item => {
+          if (isNaN(item.date.getTime())) return false;
+          const diffDays = getDiffDays(item.date);
+          return diffDays >= -15; // Exclude if overdue by more than 15 days
+        })
         .sort((a, b) => a.date.getTime() - b.date.getTime());
 
       if (allPending.length === 0) {
-        return { sender: 'soly', text: '🎉 ¡Excelente! No tienes actividades pendientes con fecha límite registrada.' };
+        return { sender: 'soly', text: '🎉 ¡Excelente! No tienes actividades pendientes con fecha límite registrada (o están postergadas/fuera de rango de 15 días de retraso).' };
       }
 
       const urgentItems = allPending.slice(0, 4);
-      let reply = 'Aquí tienes las actividades más próximas a vencer:\n\n';
+      let reply = 'Aquí tienes las actividades más próximas a vencer (excluyendo retrasos de más de 15 días):\n\n';
       urgentItems.forEach(item => {
-        const diffTime = item.date.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const diffDays = getDiffDays(item.date);
         let statusText = '';
         if (diffDays < 0) {
           statusText = `(⚠️ Vencido hace ${Math.abs(diffDays)} días)`;
@@ -495,7 +521,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
       return { sender: 'soly', text: reply, action: { label: 'Ver Calendario', module: 'calendar' } };
     }
 
-    // 2. TOP 5 PRIORITIES
+    // 2. TOP 5 PRIORITIES (Excluding overdue by more than 15 days)
     if (q.includes('prioridad') || q.includes('prioridades') || q.includes('top 5') || q.includes('top5')) {
       const pendingTasks = appData.tasks
         .filter(t => t.status !== 'completed' && t.status !== 'cancelled' && (t.deadline || (t.startDate && t.endDate)))
@@ -504,7 +530,10 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
           date: new Date(t.deadline || t.endDate || ''),
           urgency: t.deliveryStatus === 'delayed' ? 2 : 1
         }))
-        .filter(t => !isNaN(t.date.getTime()));
+        .filter(t => {
+          if (isNaN(t.date.getTime())) return false;
+          return getDiffDays(t.date) >= -15; // Exclude if overdue by > 15 days
+        });
 
       const pendingClaims = appData.claims
         .filter(c => c.status === 'open' && c.claimStartDate && c.claimEndDate)
@@ -513,7 +542,10 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
           date: new Date(c.claimEndDate || ''),
           urgency: 3 // Higher priority
         }))
-        .filter(c => !isNaN(c.date.getTime()));
+        .filter(c => {
+          if (isNaN(c.date.getTime())) return false;
+          return getDiffDays(c.date) >= -15; // Exclude if overdue by > 15 days
+        });
 
       const pendingSamples = appData.samples
         .filter(s => s.inspectionProgress !== 'completed' && s.plannedStartDate)
@@ -522,7 +554,10 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
           date: new Date(s.plannedStartDate || ''),
           urgency: 2
         }))
-        .filter(s => !isNaN(s.date.getTime()));
+        .filter(s => {
+          if (isNaN(s.date.getTime())) return false;
+          return getDiffDays(s.date) >= -15; // Exclude if overdue by > 15 days
+        });
 
       const allPriorities = [...pendingTasks, ...pendingClaims, ...pendingSamples]
         .sort((a, b) => {
@@ -531,10 +566,10 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
         });
 
       if (allPriorities.length === 0) {
-        return { sender: 'soly', text: 'No se encontraron actividades pendientes de alta prioridad. ¡Buen trabajo!' };
+        return { sender: 'soly', text: 'No se encontraron actividades pendientes de alta prioridad con fechas válidas. ¡Buen trabajo!' };
       }
 
-      let reply = 'Estas son las **Top 5 Prioridades** críticas del portal en base a plazos y severidad:\n\n';
+      let reply = 'Estas son las **Top 5 Prioridades** críticas del portal en base a plazos y severidad (máx. 15 días de retraso):\n\n';
       allPriorities.slice(0, 5).forEach((p, idx) => {
         reply += `${idx + 1}. **${p.title}** (Límite: ${p.date.toLocaleDateString('es-PE')})\n`;
       });
@@ -542,61 +577,140 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
       return { sender: 'soly', text: reply };
     }
 
-    // 3. SAMPLES
-    if (q.includes('muestra') || q.includes('ensayo') || q.includes('inspeccion') || q.includes('inspección') || q.includes('laboratorio')) {
-      const pendingSamples = appData.samples.filter(s => s.inspectionProgress !== 'completed');
-      const inProgress = pendingSamples.filter(s => s.inspectionProgress === 'in_progress').length;
-      const pendingAssign = pendingSamples.filter(s => !s.technician).length;
-
-      let reply = `En el módulo de Muestras tenemos **${pendingSamples.length}** muestras activas:\n\n`;
-      reply += `• **${inProgress}** en curso de inspección.\n`;
-      reply += `• **${pendingAssign}** sin técnico asignado.\n\n`;
-
-      if (pendingSamples.length > 0) {
-        reply += 'Muestras urgentes:\n';
-        pendingSamples.slice(0, 3).forEach(s => {
-          reply += `• ${s.correlativeId || s.codigoSAP} - ${s.descripcionSAP || 'Muestra'}\n`;
-        });
+    // 3. STATIC KNOWLEDGE BASE (Covers all 31 modules of the application)
+    const modulesKB = [
+      {
+        keywords: ['brandbook', 'marca', 'logo', 'identidad', 'colores', 'manual de marca', 'sole', 'rinnai', 'metusa', 'brikkel'],
+        text: 'El módulo **Brandbook (Manual de Marca)** centraliza el manual de identidad visual, logotipos oficiales, tipografías y paletas de colores de nuestras marcas comerciales. Puedes descargar el manual en PDF o exportarlo directamente a una plantilla de PowerPoint (PPT).',
+        module: 'brandbook' as ModuleId,
+        label: 'Brandbook'
+      },
+      {
+        keywords: ['calendario', 'pendiente', 'gantt', 'tarea', 'actividades', 'plazo fijo'],
+        text: 'El **Calendario de Pendientes** centraliza los plazos críticos y tareas del equipo. Mapea automáticamente plazos fijos de Artes y Fichas Técnicas, y cuenta con vista Gantt mensual y controles rápidos de estado ("Completar", "Iniciar", "Cancelar").',
+        module: 'calendar' as ModuleId,
+        label: 'Calendario'
+      },
+      {
+        keywords: ['plan de trabajo', 'cronograma', 'cronograma anual', 'avance', 'porcentaje', 'work plan', 'work_plan'],
+        text: 'El **Plan de Trabajo Anual** permite la trazabilidad de los proyectos principales de I+D. Aquí puedes registrar avances acumulados en % para rangos de fecha personalizados y ver el estado general del proyecto recalculado en tiempo real.',
+        module: 'work_plan' as ModuleId,
+        label: 'Plan de Trabajo'
+      },
+      {
+        keywords: ['muestra', 'ensayo', 'inspección', 'inspeccion', 'laboratorio', 'hoja de inspección', 'tecnico', 'técnico'],
+        text: 'El módulo de **Muestras** gestiona los ensayos físicos de laboratorio. Permite asignar técnicos, cronometrar tiempos administrativos y realizar la inspección interactiva con flujos y formatos de preguntas dinámicas adaptables por categoría.',
+        module: 'samples' as ModuleId,
+        label: 'Muestras'
+      },
+      {
+        keywords: ['inventario', 'calibracion', 'calibración', 'equipo', 'instrumento', 'vence calibracion'],
+        text: 'El **Inventario de Laboratorio** lleva el control de calibración y vigencia de equipos. Cuenta con semáforos de alerta (rojo, amarillo, verde) para detectar instrumentos vencidos o próximos a expirar.',
+        module: 'rd_inventory' as ModuleId,
+        label: 'Inventario R&D'
+      },
+      {
+        keywords: ['normativa', 'ntp', 'inacal', 'norma', 'peruana'],
+        text: 'El módulo de **Normativas NTP** contiene las Normas Técnicas Peruanas aplicables a nuestro catálogo. Si no hay un PDF guardado en la nube, el sistema te redirigirá automáticamente a la Sala de Lectura Virtual de INACAL.',
+        module: 'ntp_regulations' as ModuleId,
+        label: 'Normativas NTP'
+      },
+      {
+        keywords: ['simulador', 'gmroi', 'precio', 'pvp', 'margen', 'rentabilidad', 'planilla', 'simular'],
+        text: 'El **Simulador de Precios y Plantilla GMROI** permite formular PVP con fórmulas del Grupo Sole (IGV 18%, DTO de canal) e ingresar las rotaciones de stock en una planilla de 12 meses para estimar la rentabilidad GMROI.',
+        module: 'price_gmroi_simulator' as ModuleId,
+        label: 'Simulador GMROI'
+      },
+      {
+        keywords: ['artes', 'artwork', 'diseño', 'caja', 'manual', 'etiqueta', 'fase 1'],
+        text: 'El **Seguimiento de Artes (Fase 1)** gestiona la aprobación colaborativa de empaques, manuales y etiquetas. Requiere firmas de conformidad de I+D, Marketing, Planeamiento y el Proveedor externo para validar la versión.',
+        module: 'artwork_followup' as ModuleId,
+        label: 'Seguimiento de Artes'
+      },
+      {
+        keywords: ['ficha tecnica', 'ficha técnica', 'f. tec', 'especificaciones', 'fase 2'],
+        text: 'El módulo de **Fichas Técnicas (Fase 2)** controla la validación de las especificaciones completas de fabricación del producto, adjuntando PDFs y gestionando aprobaciones de las áreas correspondientes.',
+        module: 'technical_datasheet' as ModuleId,
+        label: 'Fichas Técnicas'
+      },
+      {
+        keywords: ['ficha comercial', 'f. com', 'garantía', 'venta', 'fase 3'],
+        text: 'La **Ficha Comercial (Fase 3)** valida el lanzamiento comercial final (manuales definitivos, rotulado y términos de garantía). Su aprobación cambia automáticamente el estado del producto a "A la Venta".',
+        module: 'commercial_datasheet' as ModuleId,
+        label: 'Fichas Comerciales'
+      },
+      {
+        keywords: ['reclamo', 'defecto', 'calidad', 'queja', 'estetico', 'funcional', 'empaque'],
+        text: 'El panel de **Reclamos de Calidad** permite registrar desvíos de calidad con evidencias fotográficas y determinar la causa raíz. Muestra indicadores de fallas y envía alertas automáticas por correo electrónico Outlook.',
+        module: 'quality_claims' as ModuleId,
+        label: 'Reclamos de Calidad'
+      },
+      {
+        keywords: ['proveedor', 'supplier', 'directorio', 'proveedores', 'maestro de proveedores'],
+        text: 'El **Maestro de Proveedores** es el catálogo de fábricas externas. Permite guardar la información de contacto y subir el logotipo oficial de cada proveedor, el cual se renderiza directamente en el módulo de muestras.',
+        module: 'supplier_master' as ModuleId,
+        label: 'Maestro de Proveedores'
+      },
+      {
+        keywords: ['maestro de datos', 'master data', 'configuración', 'plantilla', 'estructurar'],
+        text: 'El **Maestro de Datos** (exclusivo de administradores) permite registrar nuevas marcas, líneas, categorías y estructurar las secciones de preguntas e inspección para las evaluaciones del laboratorio.',
+        module: 'master_data' as ModuleId,
+        label: 'Maestro de Datos'
+      },
+      {
+        keywords: ['eficiencia', 'energetica', 'energética', 'certificado', 'etiqueta', 'ee'],
+        text: 'El módulo de **Eficiencia Energética** recopila certificados y reportes oficiales. Permite gestionar y exportar la clasificación de consumo energético (letras de A a G) obligatoria en el portafolio.',
+        module: 'energy_efficiency' as ModuleId,
+        label: 'Eficiencia Energética'
+      },
+      {
+        keywords: ['proyecto', 'proyectos', 'desarrollo', 'responsable', 'rd_projects', 'id_projects'],
+        text: 'En el módulo **Proyectos I+D** se realiza el seguimiento a desarrollos especiales del equipo, registrando avances, comentarios de auditoría y subiendo evidencias con responsables del personal de diseño.',
+        module: 'rd_projects' as ModuleId,
+        label: 'Proyectos I+D'
+      },
+      {
+        keywords: ['innovación', 'innovacion', 'propuesta', 'idea', 'buzon', 'buzón'],
+        text: 'El módulo de **Propuestas de Innovación** es un buzón colaborativo. Permite a cualquier usuario registrar propuestas, subir bosquejos técnicos y recibir comentarios de los evaluadores del comité.',
+        module: 'innovation_proposals' as ModuleId,
+        label: 'Propuestas de Innovación'
+      },
+      {
+        keywords: ['calculo', 'cálculo', 'demanda', 'agua', 'absorcion', 'temperatura', 'recubrimiento', 'cromo', 'niquel', 'ingeniería'],
+        text: 'El portal integra herramientas de **Cálculos de Ingeniería**: Demanda de Agua Caliente, Absorción Térmica, Pérdidas de Temperatura en Tuberías y Análisis de Recubrimiento Cromo-Níquel (espesores y corrosión).',
+        module: 'calculations_dashboard' as ModuleId,
+        label: 'Calculadora de Ingeniería'
+      },
+      {
+        keywords: ['feria', 'canton', 'cantón', 'china', 'visita', 'proveedor china', 'viaje'],
+        text: 'El módulo de la **Feria de Cantón** recopila los viajes a China. Almacena cotizaciones, catálogos, fotos de plantas visitadas y evaluaciones de innovación, precio y calidad de manufactura.',
+        module: 'canton_fair' as ModuleId,
+        label: 'Feria de Cantón'
+      },
+      {
+        keywords: ['experimental', 'horno', 'cocina', 'temperatura cocina', 'calentador experimental', 'termocupla', 'curva de calor'],
+        text: 'En el grupo experimental se registran las lecturas de termocupla en tiempo real para **Hornos de Cocina** y **Calentadores a Gas**, graficando las curvas térmicas para control de calidad.',
+        module: 'oven_experimental' as ModuleId,
+        label: 'Curvas de Temperatura Cocina'
+      },
+      {
+        keywords: ['usuario', 'permiso', 'rol', 'roles', 'administrador', 'perfil'],
+        text: 'La **Gestión de Usuarios** permite a los administradores administrar el personal del portal, modificar perfiles y asignar roles con permisos específicos (Coordinador, Técnico, Marketing, Planeamiento, etc.).',
+        module: 'user_management' as ModuleId,
+        label: 'Gestión de Usuarios'
       }
+    ];
 
-      return { sender: 'soly', text: reply, action: { label: 'Ir a Muestras', module: 'samples' } };
+    const kbMatch = modulesKB.find(item => item.keywords.some(kw => q.includes(kw)));
+    if (kbMatch) {
+      return {
+        sender: 'soly',
+        text: kbMatch.text,
+        action: { label: `Ir a ${kbMatch.label}`, module: kbMatch.module }
+      };
     }
 
-    // 4. QUALITY CLAIMS
-    if (q.includes('reclamo') || q.includes('calidad') || q.includes('queja') || q.includes('defecto')) {
-      const openClaims = appData.claims.filter(c => c.status === 'open');
-      let reply = `Actualmente existen **${openClaims.length}** reclamos de calidad pendientes de subsanar:\n\n`;
-
-      if (openClaims.length > 0) {
-        openClaims.slice(0, 3).forEach(c => {
-          reply += `• **SAP ${c.sapCode}**: ${c.defectType} - ${c.comments || 'Sin comentarios'}\n`;
-        });
-      } else {
-        reply = '🎉 Todos los reclamos registrados han sido subsanados con éxito (semáforos en verde).';
-      }
-
-      return { sender: 'soly', text: reply, action: { label: 'Ver Reclamos', module: 'quality_claims' } };
-    }
-
-    // 5. CALIBRATION
-    if (q.includes('equipo') || q.includes('calibracion') || q.includes('calibración') || q.includes('inventario') || q.includes('vencido')) {
-      const expired = appData.inventory.filter(i => i.calibrationStatus === 'Vencido').length;
-      const warning = appData.inventory.filter(i => i.calibrationStatus === 'Próximo a Vencer').length;
-      let reply = `En el Inventario de Laboratorio tenemos:\n\n`;
-      reply += `• 🔴 **${expired}** equipos con calibración **Vencida**.\n`;
-      reply += `• 🟡 **${warning}** equipos **Próximos a Vencer**.\n\n`;
-
-      if (expired > 0) {
-        reply += "Equipos críticos vencidos:\n";
-        appData.inventory.filter(i => i.calibrationStatus === 'Vencido').slice(0, 3).forEach(i => {
-          reply += `• S/N ${i.serialNumber}: ${i.description}\n`;
-        });
-      }
-
-      return { sender: 'soly', text: reply, action: { label: 'Ver Inventario R&D', module: 'rd_inventory' } };
-    }
-
-    // 6. MODULE POSITIONING QUESTIONS (DÓNDE ENCONTRAR / NAVIGATION)
+    // 4. FALLBACK REDIRECTIONS FOR GENERAL NAVIGATION KEYWORDS
     if (q.includes('donde') || q.includes('dónde') || q.includes('encontrar') || q.includes('buscar') || q.includes('ver') || q.includes('ir a')) {
       if (q.includes('simulador') || q.includes('gmroi') || q.includes('precio')) {
         return { 
@@ -642,10 +756,10 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
       }
     }
 
-    // DEFAULT
+    // DEFAULT friendly fallback
     return {
       sender: 'soly',
-      text: 'Disculpa, no logré comprender tu consulta. Puedes preguntarme:\n\n• *¿Cuáles son los plazos urgentes?*\n• *Genera el top 5 de prioridades.*\n• *¿Dónde encuentro el simulador GMROI?*\n• *Dime un resumen de las muestras o reclamos.*'
+      text: '¡Hola! No he logrado comprender tu consulta exacta. Puedes preguntarme sobre:\n\n• *¿Cuáles son los plazos urgentes?*\n• *Genera el top 5 de prioridades.*\n• *Información de cualquier módulo (ej. "Háblame del Simulador GMROI", "Normativas NTP" o "Reclamos")*\n\n*(¡Iré aprendiendo de lo que navegues y selecciones!)*'
     };
   };
 
@@ -655,6 +769,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
 
     const queryText = chatInput;
     setChatInput('');
+    setLastUserQuery(queryText);
 
     // Add user message
     setChatMessages(prev => [...prev, { sender: 'user', text: queryText }]);
@@ -667,11 +782,33 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
   };
 
   const handleChipClick = (text: string) => {
+    setLastUserQuery(text);
     setChatMessages(prev => [...prev, { sender: 'user', text }]);
     setTimeout(() => {
       const response = getSolyResponse(text);
       setChatMessages(prev => [...prev, response]);
     }, 400);
+  };
+
+  const learnAssociation = (queryText: string, moduleId: ModuleId, moduleLabel: string) => {
+    try {
+      const key = 'soly_learned_associations';
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
+      const q = queryText.toLowerCase().trim();
+      if (!q || q.includes('prioridad') || q.includes('prioridades') || q.includes('plazo') || q.includes('vence') || q.includes('cerca')) return;
+
+      const index = existing.findIndex((a: any) => a.query === q);
+      if (index >= 0) {
+        existing[index].clicks = (existing[index].clicks || 1) + 1;
+        existing[index].moduleId = moduleId;
+        existing[index].moduleLabel = moduleLabel;
+      } else {
+        existing.push({ query: q, moduleId, moduleLabel, clicks: 1 });
+      }
+      localStorage.setItem(key, JSON.stringify(existing));
+    } catch (err) {
+      console.error("Error writing learned association:", err);
+    }
   };
 
   if (!isVisible) return null;
@@ -689,6 +826,43 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
   };
 
   const handleActionClick = (targetModule: ModuleId) => {
+    if (lastUserQuery) {
+      const moduleNames: Record<ModuleId, string> = {
+        brandbook: 'Brandbook',
+        calendar: 'Calendario',
+        work_plan: 'Plan de Trabajo',
+        samples: 'Muestras',
+        rd_inventory: 'Inventario R&D',
+        ntp_regulations: 'Normativas NTP',
+        price_gmroi_simulator: 'Simulador GMROI',
+        artwork_followup: 'Seguimiento de Artes',
+        technical_datasheet: 'Fichas Técnicas',
+        commercial_datasheet: 'Fichas Comerciales',
+        quality_claims: 'Reclamos de Calidad',
+        supplier_master: 'Maestro de Proveedores',
+        master_data: 'Maestro de Datos',
+        energy_efficiency: 'Eficiencia Energética',
+        product_management: 'Gestión de Productos',
+        rd_projects: 'Proyectos I+D',
+        calculations_dashboard: 'Calculadora de Ingeniería',
+        innovation_proposals: 'Propuestas de Innovación',
+        cr_ni_coating_analysis: 'Análisis de Recubrimiento',
+        canton_fair: 'Feria de Cantón',
+        oven_experimental: 'Curvas de Temperatura Cocina',
+        gas_heater_experimental: 'Experimental Calentadores',
+        water_demand: 'Cálculo Demanda Agua',
+        absorption_calculation: 'Cálculo Absorción',
+        temperature_loss: 'Cálculo Pérdida Temperatura',
+        user_management: 'Gestión de Usuarios',
+        commercial_artworks: 'Artes Comerciales',
+        approved_technical_sheets: 'Fichas Técnicas Aprobadas',
+        approved_commercial_sheets: 'Fichas Comerciales Aprobadas',
+        applications: 'Aplicaciones',
+        records: 'Registros'
+      };
+      const label = moduleNames[targetModule] || targetModule.replace('_', ' ');
+      learnAssociation(lastUserQuery, targetModule, label);
+    }
     onNavigateModule(targetModule);
   };
 
