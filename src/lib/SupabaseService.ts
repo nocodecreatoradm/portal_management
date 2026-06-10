@@ -728,10 +728,20 @@ export const SupabaseService = {
     if (error) throw error;
     
     const profiles = await getCachedProfiles();
-    return data.map(mapDBToProject).map(proj => {
+    const mapped = data.map(mapDBToProject).map(proj => {
       const u = profiles.find(x => x.id === proj.responsible);
       if (u) proj.responsible = u.full_name;
       return proj;
+    });
+
+    // Sort numerically by project number
+    return mapped.sort((a, b) => {
+      const numA = parseInt(a.number, 10);
+      const numB = parseInt(b.number, 10);
+      if (isNaN(numA) && isNaN(numB)) return (a.number || '').localeCompare(b.number || '');
+      if (isNaN(numA)) return 1;
+      if (isNaN(numB)) return -1;
+      return numA - numB;
     });
   },
 

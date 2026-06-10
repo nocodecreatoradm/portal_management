@@ -150,7 +150,7 @@ export const mapProjectToDB = (project: Partial<Project>) => {
   return {
     project_number: project.number,
     name: project.name,
-    responsible_id: project.responsible || null,
+    responsible: project.responsible || null,
     progress: project.progress,
     status: project.status
   };
@@ -160,7 +160,7 @@ export const mapDBToProject = (dbProject: any): Project => ({
   id: dbProject.id,
   number: dbProject.project_number || '',
   name: dbProject.name || '',
-  responsible: dbProject.responsible_id || '',
+  responsible: dbProject.responsible || '',
   progress: dbProject.progress || 0,
   status: dbProject.status || 'NO INICIADO',
   activities: dbProject.activities ? dbProject.activities.map(mapDBToActivity) : []

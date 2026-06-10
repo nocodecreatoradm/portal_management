@@ -54,6 +54,17 @@ interface WorkPlanProps {
   onExportPPT?: () => void;
 }
 
+const sortProjects = (projList: Project[]): Project[] => {
+  return [...projList].sort((a, b) => {
+    const numA = parseInt(a.number, 10);
+    const numB = parseInt(b.number, 10);
+    if (isNaN(numA) && isNaN(numB)) return (a.number || '').localeCompare(b.number || '');
+    if (isNaN(numA)) return 1;
+    if (isNaN(numB)) return -1;
+    return numA - numB;
+  });
+};
+
 export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
   const [showAuditTrail, setShowAuditTrail] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
@@ -317,9 +328,9 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
           
           if (isFakeId) {
             // Replace the fake project with the real one in the state
-            setProjects(prev => prev.map(p => p.id === editingProject.id ? newProject : p));
+            setProjects(prev => sortProjects(prev.map(p => p.id === editingProject.id ? newProject : p)));
           } else {
-            setProjects(prev => [...prev, newProject]);
+            setProjects(prev => sortProjects([...prev, newProject]));
           }
           
           toast.success('Proyecto guardado correctamente');
