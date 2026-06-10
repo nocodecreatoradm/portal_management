@@ -33,6 +33,7 @@ export default function PDFReviewer({
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.1);
+  const [minScale, setMinScale] = useState(0.1);
   const [newComment, setNewComment] = useState('');
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [clickPosition, setClickPosition] = useState<{ x: number, y: number } | null>(null);
@@ -59,6 +60,7 @@ export default function PDFReviewer({
         
         const fitScale = Math.min(widthScale, heightScale, 1.5);
         setScale(fitScale);
+        setMinScale(Math.min(0.5, fitScale));
         setLastLoadedFileIndex(activeFileIndex);
       }
     }
@@ -79,6 +81,7 @@ export default function PDFReviewer({
         
         const fitScale = Math.min(widthScale, heightScale, 1.5);
         setScale(fitScale);
+        setMinScale(Math.min(0.5, fitScale));
         setLastLoadedFileIndex(activeFileIndex);
       }
     }
@@ -184,7 +187,7 @@ export default function PDFReviewer({
               <ZoomIn size={20} />
             </button>
             <button 
-              onClick={() => setScale(s => Math.max(0.5, s - 0.2))}
+              onClick={() => setScale(s => Math.max(minScale, s - 0.2))}
               className="p-2.5 hover:bg-white/10 rounded-xl text-white/70 transition-all"
               title="Alejar (Zoom Out)"
             >

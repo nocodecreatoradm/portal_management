@@ -379,7 +379,7 @@ export default function NewRequestModal({
   const currentLineId = formData.lineId || productLines.find(l => l.name === formData.linea)?.id;
   const categoryOptions = categories
     .filter(c => c.productLineId === currentLineId)
-    .map(c => ({ value: c.name, label: c.name.toUpperCase() }));
+    .map(c => ({ value: c.name.toUpperCase(), label: c.name.toUpperCase() }));
 
   const providerOptions = existingProviders?.map(p => ({
     value: p.name,

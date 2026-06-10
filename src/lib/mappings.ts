@@ -143,7 +143,7 @@ export const mapDBToEE = (dbRecord: any): EnergyEfficiencyRecord => ({
   createdAt: dbRecord.created_at,
   linea: dbRecord.line?.name || dbRecord.line_id || '',
   lineId: dbRecord.line_id || '',
-  categoria: dbRecord.category?.name || dbRecord.category_id || '',
+  categoria: (dbRecord.category?.name || dbRecord.category_id || '').toUpperCase(),
   categoryId: dbRecord.category_id || ''
 });
 
@@ -403,7 +403,7 @@ export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
   trackingType: dbProduct.tracking_type,
   linkedGroupId: dbProduct.linked_group_id,
   categoryId: dbProduct.category_id || dbProduct.sample?.category_id || '',
-  categoria: dbProduct.category?.name || dbProduct.sample?.category?.name || dbProduct.category_id || '',
+  categoria: (dbProduct.category?.name || dbProduct.sample?.category?.name || dbProduct.category_id || '').toUpperCase(),
   comments: dbProduct.comments || ''
 });
 
@@ -431,7 +431,7 @@ export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
   technicalAssignment: dbRecord.technical_assignment,
   commercialAssignment: dbRecord.commercial_assignment,
   categoryId: dbRecord.category_id || '',
-  categoria: dbRecord.category?.name || dbRecord.category_id || '',
+  categoria: (dbRecord.category?.name || dbRecord.category_id || '').toUpperCase(),
   createdAt: dbRecord.created_at || new Date().toISOString()
 });
 
@@ -540,7 +540,7 @@ export const mapDBToSample = (dbSample: any): SampleRecord => ({
   proveedor: dbSample.supplier?.commercial_alias || dbSample.supplier?.legal_name || dbSample.supplier_id || 'Desconocido',
   codProv: dbSample.supplier?.erp_code || '',
   linea: dbSample.line?.name || dbSample.line_id || 'AGUA CALIENTE',
-  categoria: dbSample.category?.name || dbSample.category_id,
+  categoria: (dbSample.category?.name || dbSample.category_id || '').toUpperCase(),
   inspectionDate: dbSample.inspection_date,
   inspectionStatus: dbSample.inspection_status,
   reportDate: dbSample.report_date,

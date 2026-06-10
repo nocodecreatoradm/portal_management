@@ -188,7 +188,7 @@ const resolveProductsMetadata = async (products: ProductRecord | ProductRecord[]
     }
     if (!p.categoria || isUUID(p.categoria)) {
       const c = categories.find(x => x.id === p.categoryId || x.id === p.categoria);
-      if (c) p.categoria = c.name;
+      if (c) p.categoria = c.name.toUpperCase();
     }
     if (!p.proveedor || isUUID(p.proveedor)) {
       const s = suppliers.find(x => x.id === p.proveedor);
@@ -366,7 +366,7 @@ export const SupabaseService = {
       }
       if (!sample.categoria || isUUID(sample.categoria)) {
         const c = categories.find(x => x.id === sample.categoryId || x.id === sample.categoria);
-        if (c) sample.categoria = c.name;
+        if (c) sample.categoria = c.name.toUpperCase();
       }
       if (!sample.proveedor || isUUID(sample.proveedor)) {
         const s = suppliers.find(x => x.id === sample.proveedor);
@@ -418,7 +418,7 @@ export const SupabaseService = {
     }
     if (!s.categoria || isUUID(s.categoria)) {
       const c = categories.find(x => x.id === s.categoryId || x.id === s.categoria);
-      if (c) s.categoria = c.name;
+      if (c) s.categoria = c.name.toUpperCase();
     }
     if (!s.proveedor || isUUID(s.proveedor)) {
       const sup = suppliers.find(x => x.id === s.proveedor);
@@ -470,7 +470,7 @@ export const SupabaseService = {
     }
     if (!s.categoria || isUUID(s.categoria)) {
       const c = categories.find(x => x.id === s.categoryId || x.id === s.categoria);
-      if (c) s.categoria = c.name;
+      if (c) s.categoria = c.name.toUpperCase();
     }
     if (!s.proveedor || isUUID(s.proveedor)) {
       const sup = suppliers.find(x => x.id === s.proveedor);

@@ -357,7 +357,7 @@ export default function DataTable({
   const uniqueSapCodes = useMemo(() => Array.from(new Set(data.map(item => item.codigoSAP || '').filter(Boolean))), [data]);
   const uniqueSapDescriptions = useMemo(() => Array.from(new Set(data.map(item => item.descripcionSAP || '').filter(Boolean))), [data]);
   const uniqueLines = useMemo(() => Array.from(new Set(data.map(item => item.linea || '').filter(Boolean))), [data]);
-  const uniqueCategories = useMemo(() => Array.from(new Set(data.map(item => item.categoria || '').filter(Boolean))), [data]);
+  const uniqueCategories = useMemo(() => Array.from(new Set(data.map(item => (item.categoria || '').toUpperCase()).filter(Boolean))), [data]);
   const uniqueBrands = useMemo(() => Array.from(new Set(data.map(item => item.marca || '').filter(Boolean))), [data]);
   const uniqueComments = useMemo(() => Array.from(new Set(data.map(item => item.comments || '').filter(Boolean))), [data]);
   const uniqueSamples = useMemo(() => Array.from(new Set(data.map(item => getSampleCorrelative(item.sampleId) || '').filter(Boolean))), [data, samples]);
