@@ -446,6 +446,137 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
 
+    // --- PERSONAL MEMORY COMMANDS (ADD, DELETE, LIST, SMALL TALK) ---
+    // 1. ADD FACT
+    const memoryTriggers = ['recuerda que', 'guarda que', 'memoriza que', 'anota que', 'registra que', 'recuerda', 'guarda'];
+    const addTrigger = memoryTriggers.find(t => q.startsWith(t) || q.includes(' ' + t));
+    if (addTrigger) {
+      const parts = query.split(new RegExp(addTrigger, 'i'));
+      if (parts && parts.length > 1 && parts[1].trim()) {
+        const textToRemember = parts[1].trim();
+        try {
+          const key = 'soly_personal_memory';
+          const memory = JSON.parse(localStorage.getItem(key) || '[]');
+          
+          const cleanWords = textToRemember.toLowerCase()
+            .replace(/[¿?¡!.,;:]/g, '')
+            .split(/\s+/)
+            .filter(w => w.length > 3);
+
+          memory.push({
+            id: Math.random().toString(36).substr(2, 9),
+            originalText: textToRemember,
+            keywords: cleanWords,
+            timestamp: new Date().toLocaleDateString('es-PE') + ' ' + new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
+          });
+          localStorage.setItem(key, JSON.stringify(memory));
+          return {
+            sender: 'soly',
+            text: `📝 *¡Entendido! He guardado esto en mi memoria personal:* \n\n"${textToRemember}" \n\nLo tendré presente y lo recordaré cuando me hagas preguntas relacionadas.`
+          };
+        } catch (err) {
+          console.error("Error saving memory:", err);
+        }
+      }
+    }
+
+    // 2. DELETE FACT
+    if (q.includes('borra la memoria') || q.includes('reinicia tu memoria') || q.includes('borra toda mi memoria')) {
+      try {
+        localStorage.removeItem('soly_personal_memory');
+        return {
+          sender: 'soly',
+          text: '🧹 *Memoria restablecida.* He olvidado todos los datos y notas personales que me habías indicado.'
+        };
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    const deleteTriggers = ['olvida lo de', 'borra lo de', 'elimina lo de', 'olvida que', 'borra que', 'olvida'];
+    const delTrigger = deleteTriggers.find(t => q.startsWith(t) || q.includes(' ' + t));
+    if (delTrigger) {
+      const parts = query.split(new RegExp(delTrigger, 'i'));
+      if (parts && parts.length > 1 && parts[1].trim()) {
+        const target = parts[1].replace(/[?¿!¡.,;:]/g, '').trim().toLowerCase();
+        try {
+          const key = 'soly_personal_memory';
+          const memory = JSON.parse(localStorage.getItem(key) || '[]');
+          const filtered = memory.filter((item: any) => !item.originalText.toLowerCase().includes(target));
+          
+          if (filtered.length < memory.length) {
+            localStorage.setItem(key, JSON.stringify(filtered));
+            return {
+              sender: 'soly',
+              text: `🗑️ Hecho. He eliminado de mi memoria las notas que mencionaban a *"${parts[1].trim()}"*.`
+            };
+          } else {
+            return {
+              sender: 'soly',
+              text: `No encontré ningún dato en mi memoria que coincida con *"${parts[1].trim()}"*.`
+            };
+          }
+        } catch (err) {
+          console.error("Error deleting from memory:", err);
+        }
+      }
+    }
+
+    // 3. LIST ALL FACT MEMORIES
+    if (q === 'memoria' || q.includes('qué recuerdas') || q.includes('que recuerdas') || q.includes('lista de memoria') || q.includes('qué has guardado') || q.includes('que has guardado') || q.includes('ver memoria') || q.includes('mostrar memoria')) {
+      try {
+        const memory = JSON.parse(localStorage.getItem('soly_personal_memory') || '[]');
+        if (memory.length === 0) {
+          return {
+            sender: 'soly',
+            text: '💭 Mi memoria personal está vacía por el momento. Puedes enseñarme cosas diciéndome por ejemplo:\n\n• *"Recuerda que Carlos Hoyos es el jefe de I+D."*\n• *"Guarda que la clave del lab es 9090."*'
+          };
+        }
+
+        let reply = '📝 *Esto es lo que tengo guardado en mi memoria personal:* \n\n';
+        memory.forEach((m: any, idx: number) => {
+          reply += `${idx + 1}. "${m.originalText}" *(Guardado el ${m.timestamp})*\n`;
+        });
+        reply += '\n*(Puedes pedirme que olvide algo diciéndome: "olvida {palabra}")*';
+        return { sender: 'soly', text: reply };
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // 4. SMALL TALK
+    // Saludos
+    if (q === 'hola' || q === 'buenos dias' || q === 'buenos días' || q === 'buenas tardes' || q === 'buenas noches' || q === 'que tal' || q === 'cómo estás' || q === 'como estas') {
+      return {
+        sender: 'soly',
+        text: '👋 ¡Hola! Qué gusto saludarte. Soy Soly, tu asistente personal. ¿En qué te puedo colaborar hoy?'
+      };
+    }
+
+    // Agradecimientos
+    if (q === 'gracias' || q === 'muchas gracias' || q === 'buen trabajo' || q === 'excelente' || q === 'perfecto' || q === 'ok' || q === 'bien') {
+      return {
+        sender: 'soly',
+        text: '¡De nada! Es un gusto ayudarte. Avísame si tienes cualquier otra consulta o si deseas que guarde alguna información.'
+      };
+    }
+
+    // Despedidas
+    if (q === 'adios' || q === 'adiós' || q === 'chao' || q === 'hasta luego' || q === 'nos vemos') {
+      return {
+        sender: 'soly',
+        text: '¡Nos vemos! Que tengas un excelente día de trabajo. ¡Aquí estaré si me necesitas!'
+      };
+    }
+
+    // Identidad
+    if (q.includes('quien eres') || q.includes('quién eres') || q.includes('de donde eres') || q.includes('que haces') || q.includes('que eres') || q.includes('qué eres') || q.includes('clippy')) {
+      return {
+        sender: 'soly',
+        text: 'Soy **Soly**, tu asistente de I+D en el portal. Fui rediseñado al estilo vintage de **Clippy** para guiarte en el portal, alertarte de plazos o prioridades, y recordar cualquier dato, clave, responsable o reunión que desees enseñarme. ¡Solo dime *"Recuerda que..."*!'
+      };
+    }
+
     // 0. CHECK LEARNED ASSOCIATIONS FROM LOCALSTORAGE (DYNAMIC LEARNING)
     try {
       const learned = JSON.parse(localStorage.getItem('soly_learned_associations') || '[]');
@@ -756,10 +887,38 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
       }
     }
 
+    // 5. SEARCH IN PERSONAL MEMORY (MATCH KEYWORDS)
+    try {
+      const memory = JSON.parse(localStorage.getItem('soly_personal_memory') || '[]');
+      if (memory.length > 0) {
+        const stopwords = ['como', 'para', 'cuando', 'quien', 'quién', 'donde', 'dónde', 'tiene', 'tienen', 'sobre', 'algun', 'algún', 'saber', 'dime', 'busca', 'qué', 'que', 'del', 'los', 'las', 'con', 'una', 'uno'];
+        const queryWords = q.replace(/[¿?¡!.,;:]/g, '')
+          .split(/\s+/)
+          .filter(w => w.length > 3 && !stopwords.includes(w));
+
+        const matches = memory.filter((item: any) => {
+          return queryWords.some(qw => 
+            item.originalText.toLowerCase().includes(qw) || 
+            (item.keywords && item.keywords.includes(qw))
+          );
+        });
+
+        if (matches.length > 0) {
+          let reply = '🧠 *He consultado mi memoria y esto es lo que recuerdo:* \n\n';
+          matches.forEach((m: any) => {
+            reply += `• "${m.originalText}" *(Guardado el ${m.timestamp})*\n`;
+          });
+          return { sender: 'soly', text: reply };
+        }
+      }
+    } catch (err) {
+      console.error("Error searching personal memory:", err);
+    }
+
     // DEFAULT friendly fallback
     return {
       sender: 'soly',
-      text: '¡Hola! No he logrado comprender tu consulta exacta. Puedes preguntarme sobre:\n\n• *¿Cuáles son los plazos urgentes?*\n• *Genera el top 5 de prioridades.*\n• *Información de cualquier módulo (ej. "Háblame del Simulador GMROI", "Normativas NTP" o "Reclamos")*\n\n*(¡Iré aprendiendo de lo que navegues y selecciones!)*'
+      text: '¡Hola! No he logrado comprender tu consulta exacta ni tengo notas guardadas al respecto. Puedes:\n\n• *¿Cuáles son los plazos urgentes?*\n• *Genera el top 5 de prioridades.*\n• *Preguntarme sobre un módulo (ej. "Háblame del Simulador GMROI", "Normativas NTP" o "Reclamos")*\n• *Pedirme que memorice algo: "Recuerda que Carlos Hoyos es el Coordinador de I+D" o "Guarda que la clave es 1234"*'
     };
   };
 
