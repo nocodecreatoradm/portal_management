@@ -446,6 +446,197 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
 
+    // --- MATHEMATICAL CALCULATIONS & PERCENTAGES ---
+    const cleanMathQuery = q.replace(/¿|\?/g, '');
+    const isMathQuery = cleanMathQuery.startsWith('calcula') || 
+                        cleanMathQuery.startsWith('cuánto es') || 
+                        cleanMathQuery.startsWith('cuanto es') || 
+                        /[0-9]/.test(cleanMathQuery) && (cleanMathQuery.includes('%') || cleanMathQuery.includes('+') || cleanMathQuery.includes('-') || cleanMathQuery.includes('*') || cleanMathQuery.includes('/') || cleanMathQuery.includes('x') || cleanMathQuery.includes('igv'));
+
+    if (isMathQuery) {
+      // 1. MODULE-SPECIFIC FORMULA CALCULATIONS (GMROI, MARGEN, PVP)
+      if (q.includes('gmroi')) {
+        const numbers = q.match(/\d+([.,]\d+)?/g);
+        if (numbers && numbers.length >= 2) {
+          const sales = parseFloat(numbers[0].replace(',', '.'));
+          const stock = parseFloat(numbers[1].replace(',', '.'));
+          const margin = numbers.length >= 3 ? parseFloat(numbers[2].replace(',', '.')) / 100 : 0.40;
+          const gmroi = (sales * margin) / stock;
+          return {
+            sender: 'soly',
+            text: `📊 *Cálculo de GMROI (Retorno de Stock):* \n\n` +
+                  `• Ventas Anuales: **S/. ${sales.toLocaleString('es-PE')}**\n` +
+                  `• Stock Promedio: **S/. ${stock.toLocaleString('es-PE')}**\n` +
+                  `• Margen Estimado: **${(margin * 100).toFixed(1)}%**\n\n` +
+                  `👉 **GMROI Proyectado: ${(gmroi * 100).toFixed(1)}%** (Retorna S/. ${(gmroi).toFixed(2)} por cada S/. 1.00 invertido en stock).\n\n` +
+                  `*(Fórmula: Ventas * Margen % / Stock Promedio)*`
+          };
+        }
+        return {
+          sender: 'soly',
+          text: `📊 *Cálculo de GMROI:* \n\nPara calcular el GMROI, facilítame las Ventas y el Stock Promedio. \n\n*Ejemplo*: "calcula GMROI de 150000 ventas y 30000 stock con 35% de margen"`
+        };
+      }
+
+      if (q.includes('margen') || q.includes('utilidad')) {
+        const numbers = q.match(/\d+([.,]\d+)?/g);
+        if (numbers && numbers.length >= 2) {
+          const pvp = parseFloat(numbers[0].replace(',', '.'));
+          const cost = parseFloat(numbers[1].replace(',', '.'));
+          const pvpWithoutIgv = pvp / 1.18;
+          const margin = ((pvpWithoutIgv - cost) / pvpWithoutIgv) * 100;
+          return {
+            sender: 'soly',
+            text: `📈 *Cálculo de Margen Comercial (Fórmula Grupo Sole):* \n\n` +
+                  `• PVP Lista (con IGV): **S/. ${pvp.toFixed(2)}**\n` +
+                  `• PVP Neto (sin IGV): **S/. ${pvpWithoutIgv.toFixed(2)}**\n` +
+                  `• Costo del Producto: **S/. ${cost.toFixed(2)}**\n\n` +
+                  `👉 **Margen Comercial Neto: ${margin.toFixed(2)}%**\n\n` +
+                  `*(Fórmula Sole: ((PVP / 1.18) - Costo) / (PVP / 1.18) * 100)*`
+          };
+        }
+        return {
+          sender: 'soly',
+          text: `📈 *Cálculo de Margen Neto:* \n\nIndícame el PVP y el Costo. \n\n*Ejemplo*: "calcula margen de PVP 250 y costo 120"`
+        };
+      }
+
+      if (q.includes('pvp') || q.includes('precio de venta')) {
+        const numbers = q.match(/\d+([.,]\d+)?/g);
+        if (numbers && numbers.length >= 2) {
+          const cost = parseFloat(numbers[0].replace(',', '.'));
+          const margin = parseFloat(numbers[1].replace(',', '.')) / 100;
+          const pvpNet = cost / (1 - margin);
+          const pvp = pvpNet * 1.18;
+          return {
+            sender: 'soly',
+            text: `🏷️ *Cálculo de PVP Sugerido (Fórmula Grupo Sole):* \n\n` +
+                  `• Costo Base: **S/. ${cost.toFixed(2)}**\n` +
+                  `• Margen Requerido: **${(margin * 100).toFixed(1)}%**\n\n` +
+                  `👉 **PVP Sugerido (con IGV 18%): S/. ${pvp.toFixed(2)}**\n` +
+                  `• PVP Neto (sin IGV): **S/. ${pvpNet.toFixed(2)}**\n\n` +
+                  `*(Fórmula Sole: Costo / (1 - Margen %) * 1.18)*`
+          };
+        }
+        return {
+          sender: 'soly',
+          text: `🏷️ *Cálculo de PVP Sugerido:* \n\nFacilítame el Costo y el Margen deseado. \n\n*Ejemplo*: "calcula PVP de costo 150 con margen de 35%"`
+        };
+      }
+
+      // 2. STANDARD BASIC MATH & PERCENTAGE EXPRESSIONS
+      try {
+        let expression = cleanMathQuery
+          .replace(/calcula|cuánto es|cuanto es/gi, '')
+          .replace(/más|mas/gi, '+')
+          .replace(/menos/gi, '-')
+          .replace(/por/gi, '*')
+          .replace(/entre|dividido/gi, '/')
+          .replace(/igv/gi, '* 0.18')
+          .replace(/x/gi, '*')
+          .trim();
+
+        const percentOfPattern = /(\d+([.,]\d+)?)\s*%\s*de\s*(\d+([.,]\d+)?)/i;
+        if (percentOfPattern.test(expression)) {
+          const match = expression.match(percentOfPattern);
+          if (match) {
+            const percent = parseFloat(match[1]);
+            const total = parseFloat(match[3]);
+            const res = (percent / 100) * total;
+            return {
+              sender: 'soly',
+              text: `🔢 *Resultado matemático:* \n\n👉 **El ${percent}% de ${total} es: ${res.toLocaleString('es-PE')}**`
+            };
+          }
+        }
+
+        const addPercentPattern = /(\d+([.,]\d+)?)\s*\+\s*(\d+([.,]\d+)?)\s*%/i;
+        if (addPercentPattern.test(expression)) {
+          const match = expression.match(addPercentPattern);
+          if (match) {
+            const base = parseFloat(match[1]);
+            const percent = parseFloat(match[3]);
+            const res = base * (1 + percent / 100);
+            return {
+              sender: 'soly',
+              text: `🔢 *Resultado matemático:* \n\n👉 **${base} más el ${percent}% es: ${res.toLocaleString('es-PE')}**`
+            };
+          }
+        }
+
+        const subPercentPattern = /(\d+([.,]\d+)?)\s*-\s*(\d+([.,]\d+)?)\s*%/i;
+        if (subPercentPattern.test(expression)) {
+          const match = expression.match(subPercentPattern);
+          if (match) {
+            const base = parseFloat(match[1]);
+            const percent = parseFloat(match[3]);
+            const res = base * (1 - percent / 100);
+            return {
+              sender: 'soly',
+              text: `🔢 *Resultado matemático:* \n\n👉 **${base} menos el ${percent}% es: ${res.toLocaleString('es-PE')}**`
+            };
+          }
+        }
+
+        const sanitized = expression.replace(/,/g, '.').replace(/[^0-9.+\-*/%() \t]/g, '');
+        if (sanitized.trim().length > 0) {
+          const result = new Function(`return (${sanitized})`)();
+          if (typeof result === 'number' && !isNaN(result)) {
+            return {
+              sender: 'soly',
+              text: `🔢 *Resultado matemático:* \n\n👉 **${expression} = ${result.toLocaleString('es-PE')}**`
+            };
+          }
+        }
+      } catch (err) {
+        // Fallback silently if math evaluation fails
+      }
+    }
+
+    // --- GENERAL CULTURE KNOWLEDGE DATABASE ---
+    const generalCulture = [
+      {
+        keys: ['capital de peru', 'capital del peru', 'capital de perú', 'capital del perú'],
+        ans: 'La capital de la República del Perú es **Lima**, fundada el 18 de enero de 1535 con el nombre de "La Ciudad de los Reyes".'
+      },
+      {
+        keys: ['rio mas largo', 'río más largo', 'rio mas grande', 'río más grande'],
+        ans: 'El río más largo del mundo es el **Amazonas**, que nace en el departamento de Arequipa (Perú) y recorre Sudamérica desembocando en el océano Atlántico.'
+      },
+      {
+        keys: ['poblacion de peru', 'población de perú', 'habitantes de peru', 'habitantes en peru'],
+        ans: 'La población estimada de Perú es de aproximadamente **34 millones** de habitantes, siendo Lima la metrópolis más poblada.'
+      },
+      {
+        keys: ['quien descubrio america', 'quién descubrió américa', 'descubrimiento de america', 'descubrimiento de américa'],
+        ans: 'América fue descubierta oficialmente por la expedición de **Cristóbal Colón** el **12 de octubre de 1492**, llegando a la isla de Guanahani.'
+      },
+      {
+        keys: ['gravedad de la tierra', 'valor de la gravedad', 'gravedad terrestre'],
+        ans: 'El valor estándar de la aceleración de la gravedad en la superficie terrestre es de aproximadamente **9.81 m/s²**.'
+      },
+      {
+        keys: ['velocidad de la luz'],
+        ans: 'La velocidad de la luz en el vacío es de aproximadamente **299,792 km/s** (o cerca de 300,000 kilómetros por segundo).'
+      },
+      {
+        keys: ['que es el igv', 'que es igv', 'igv en peru'],
+        ans: 'El **Impuesto General a las Ventas (IGV)** en Perú es un impuesto al consumo con una tasa del **18%** (16% de IGV + 2% de Impuesto de Promoción Municipal).'
+      },
+      {
+        keys: ['primer hombre en la luna', 'llego a la luna', 'llegó a la luna'],
+        ans: 'El primer ser humano en pisar la Luna fue el astronauta estadounidense **Neil Armstrong** el 20 de julio de 1969 durante la misión de la NASA Apolo 11.'
+      }
+    ];
+
+    const cultureMatch = generalCulture.find(item => item.keys.some(k => q.includes(k)));
+    if (cultureMatch) {
+      return {
+        sender: 'soly',
+        text: `🌍 *Cultura General:* \n\n${cultureMatch.ans}`
+      };
+    }
+
     // --- PERSONAL MEMORY COMMANDS (ADD, DELETE, LIST, SMALL TALK) ---
     // 1. ADD FACT
     const memoryTriggers = ['recuerda que', 'guarda que', 'memoriza que', 'anota que', 'registra que', 'recuerda', 'guarda'];
