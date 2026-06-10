@@ -4,7 +4,8 @@ import {
   ClipboardList, Tag, Layers, Briefcase, 
   ChevronRight, GripVertical, Type, AlignLeft, 
   CheckSquare, CircleDot, Camera, PenTool,
-  PlusCircle, MinusCircle, ArrowRight, FileText, Upload
+  PlusCircle, MinusCircle, ArrowRight, FileText, Upload,
+  ChevronUp, ChevronDown
 } from 'lucide-react';
 import { Brand, ProductLine, Category, InspectionTemplate, InspectionFormField, WorkflowStage, FileInfo } from '../types';
 import { SupabaseService } from '../lib/SupabaseService';
@@ -485,6 +486,58 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
     }));
   };
 
+  const moveSection = (index: number, direction: 'up' | 'down') => {
+    const newIdx = direction === 'up' ? index - 1 : index + 1;
+    if (newIdx < 0 || newIdx >= sections.length) return;
+    const newSections = [...sections];
+    const temp = newSections[index];
+    newSections[index] = newSections[newIdx];
+    newSections[newIdx] = temp;
+    setSections(newSections);
+  };
+
+  const moveWorkflowSection = (index: number, direction: 'up' | 'down') => {
+    const newIdx = direction === 'up' ? index - 1 : index + 1;
+    if (newIdx < 0 || newIdx >= workflowSections.length) return;
+    const newWorkflowSections = [...workflowSections];
+    const temp = newWorkflowSections[index];
+    newWorkflowSections[index] = newWorkflowSections[newIdx];
+    newWorkflowSections[newIdx] = temp;
+    setWorkflowSections(newWorkflowSections);
+  };
+
+  const moveField = (sectionId: string, index: number, direction: 'up' | 'down') => {
+    const newIdx = direction === 'up' ? index - 1 : index + 1;
+    setSections(sections.map(s => {
+      if (s.id === sectionId) {
+        const newFields = [...s.fields];
+        if (newIdx >= 0 && newIdx < newFields.length) {
+          const temp = newFields[index];
+          newFields[index] = newFields[newIdx];
+          newFields[newIdx] = temp;
+        }
+        return { ...s, fields: newFields };
+      }
+      return s;
+    }));
+  };
+
+  const moveWorkflowStage = (sectionId: string, index: number, direction: 'up' | 'down') => {
+    const newIdx = direction === 'up' ? index - 1 : index + 1;
+    setWorkflowSections(workflowSections.map(s => {
+      if (s.id === sectionId) {
+        const newStages = [...s.stages];
+        if (newIdx >= 0 && newIdx < newStages.length) {
+          const temp = newStages[index];
+          newStages[index] = newStages[newIdx];
+          newStages[newIdx] = temp;
+        }
+        return { ...s, stages: newStages };
+      }
+      return s;
+    }));
+  };
+
   const handleStagePhotoUpload = async (sectionId: string, stageId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -703,6 +756,26 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
                 <div key={section.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={sIdx === 0}
+                          onClick={() => moveSection(sIdx, 'up')}
+                          className="p-1 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                          title="Mover arriba"
+                        >
+                          <ChevronUp size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={sIdx === sections.length - 1}
+                          onClick={() => moveSection(sIdx, 'down')}
+                          className="p-1 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                          title="Mover abajo"
+                        >
+                          <ChevronDown size={16} />
+                        </button>
+                      </div>
                       <GripVertical size={16} className="text-slate-300 cursor-move" />
                       <input 
                         value={section.title}
@@ -768,8 +841,26 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
                               </div>
                             )}
                           </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                             <button 
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity items-center">
+                            <button
+                              type="button"
+                              disabled={fIdx === 0}
+                              onClick={() => moveField(section.id, fIdx, 'up')}
+                              className="p-1 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-indigo-600 disabled:opacity-25 disabled:cursor-not-allowed transition-all"
+                              title="Mover arriba"
+                            >
+                              <ChevronUp size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={fIdx === section.fields.length - 1}
+                              onClick={() => moveField(section.id, fIdx, 'down')}
+                              className="p-1 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-indigo-600 disabled:opacity-25 disabled:cursor-not-allowed transition-all"
+                              title="Mover abajo"
+                            >
+                              <ChevronDown size={14} />
+                            </button>
+                            <button 
                               onClick={() => removeField(section.id, field.id)}
                               className="p-2 text-slate-300 hover:text-red-500 transition-colors"
                             >
@@ -779,6 +870,31 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
                         </div>
                       </div>
                     ))}
+
+                    <div className="mt-6 pt-6 border-t border-slate-100 flex flex-col gap-2 bg-slate-50/30 p-4 rounded-2xl">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Añadir Campo a esta Sección</p>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { type: 'text', label: 'T. Corto', icon: Type },
+                          { type: 'textarea', label: 'T. Largo', icon: AlignLeft },
+                          { type: 'select', label: 'Desplegable', icon: ChevronRight },
+                          { type: 'radio', label: 'Op. Única', icon: CircleDot },
+                          { type: 'checkbox', label: 'Mult. Op.', icon: CheckSquare },
+                          { type: 'photo', label: 'Foto', icon: Camera },
+                          { type: 'signature', label: 'Firma', icon: PenTool }
+                        ].map(ft => (
+                          <button
+                            key={ft.type}
+                            type="button"
+                            onClick={() => addField(section.id, ft.type as any)}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-xl hover:border-indigo-300 hover:text-indigo-600 transition-all text-[10px] font-black uppercase text-slate-600 shadow-sm hover:scale-105"
+                          >
+                            <ft.icon size={12} className="text-slate-400 group-hover:text-indigo-500" />
+                            {ft.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     
                     {section.fields.length === 0 && (
                       <div className="p-12 border-2 border-dashed border-slate-100 rounded-3xl flex flex-col items-center justify-center text-slate-300 gap-4">
@@ -798,6 +914,26 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
                 <div key={section.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={sIdx === 0}
+                          onClick={() => moveWorkflowSection(sIdx, 'up')}
+                          className="p-1 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                          title="Mover arriba"
+                        >
+                          <ChevronUp size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={sIdx === workflowSections.length - 1}
+                          onClick={() => moveWorkflowSection(sIdx, 'down')}
+                          className="p-1 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                          title="Mover abajo"
+                        >
+                          <ChevronDown size={16} />
+                        </button>
+                      </div>
                       <GripVertical size={16} className="text-slate-300 cursor-move" />
                       <input 
                         value={section.title}
