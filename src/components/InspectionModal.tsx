@@ -281,17 +281,20 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
     const files = e.target.files;
     if (!files || files.length === 0 || !uploadingTo) return;
 
+    // Capture files into a plain array BEFORE resetting the input,
+    // because clearing fileInputRef.current.value also clears the FileList reference.
+    const fileList = Array.from(files);
     const capturedUploadingTo = { ...uploadingTo };
     setUploadingTo(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
 
     setIsUploading(true);
-    const toastId = toast.loading(`Subiendo ${files.length} archivo(s)...`);
+    const toastId = toast.loading(`Subiendo ${fileList.length} archivo(s)...`);
 
     let successCount = 0;
     let errorCount = 0;
 
-    for (const file of Array.from(files)) {
+    for (const file of fileList) {
       try {
         const folder = capturedUploadingTo.type === 'form'
           ? `inspections/${sample.id}/form/${capturedUploadingTo.sectionId}/${capturedUploadingTo.fieldId}`
