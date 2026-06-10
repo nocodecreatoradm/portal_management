@@ -235,7 +235,13 @@ export default function ArtworkGantt({ data, onBack }: ArtworkGanttProps) {
 
         const status        = getRecordStatus(r);
         const approval      = getApprovalBreakdown(r);
-        const isDelayed     = plannedEnd && isAfter(today, plannedEnd) && status !== 'approved' && !!assignment?.designer;
+        const isDelayed = (() => {
+          if (!plannedEnd || !assignment?.designer) return false;
+          if (actualEnd) {
+            return isAfter(actualEnd, plannedEnd);
+          }
+          return isAfter(today, plannedEnd);
+        })();
         const daysRemaining = plannedEnd ? differenceInDays(plannedEnd, today) : null;
 
         return { record: r, plannedStart, plannedEnd, actualEnd, status, approval, isDelayed, daysRemaining, isEstimated };

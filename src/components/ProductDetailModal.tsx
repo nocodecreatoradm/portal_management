@@ -141,21 +141,9 @@ export default function ProductDetailModal({
     
     const realStart = firstVer ? firstVer.uploadDate : null;
     
-    let realEnd = null;
-    let isCompleted = false;
-    if (latestVer) {
-      if (type === 'artwork') {
-        if (latestVer.planApproval?.status === 'approved') {
-          realEnd = latestVer.planApproval.date;
-          isCompleted = true;
-        }
-      } else {
-        if (latestVer.idApproval?.status === 'approved') {
-          realEnd = latestVer.idApproval.date;
-          isCompleted = true;
-        }
-      }
-    }
+    // Fin Real is the upload date of the latest version (designer/technician upload)
+    const realEnd = latestVer ? latestVer.uploadDate : null;
+    const isCompleted = versions.length > 0;
     
     let deviationDays = null;
     if (plannedEnd) {
@@ -187,6 +175,52 @@ export default function ProductDetailModal({
       }
     };
     
+    // Approval Status Logic
+    let approvalStatusLabel = 'No Iniciado';
+    let approvalStatusColor = 'bg-slate-100 text-slate-500 border border-slate-200';
+    
+    if (latestVer) {
+      const hasRejected = 
+        latestVer.idApproval?.status === 'rejected' || 
+        (type === 'artwork' && (latestVer.mktApproval?.status === 'rejected' || latestVer.provApproval?.status === 'rejected' || latestVer.planApproval?.status === 'rejected'));
+      
+      const allApproved = 
+        latestVer.idApproval?.status === 'approved' &&
+        (type !== 'artwork' || (latestVer.mktApproval?.status === 'approved' && latestVer.provApproval?.status === 'approved' && latestVer.planApproval?.status === 'approved'));
+      
+      if (hasRejected) {
+        approvalStatusLabel = 'Observado';
+        approvalStatusColor = 'bg-rose-50 text-rose-700 border-rose-200';
+      } else if (allApproved) {
+        approvalStatusLabel = 'Aprobado Final';
+        approvalStatusColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      } else {
+        const hasIdPending = latestVer.idApproval?.status === 'pending';
+        if (hasIdPending) {
+          approvalStatusLabel = 'En Revisión I+D';
+          approvalStatusColor = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+        } else if (type === 'artwork') {
+          const hasMktPending = latestVer.mktApproval?.status === 'pending';
+          if (hasMktPending) {
+            approvalStatusLabel = 'En Revisión MKT';
+            approvalStatusColor = 'bg-orange-50 text-orange-700 border-orange-200';
+          } else {
+            const hasProvPending = latestVer.provApproval?.status === 'pending';
+            if (hasProvPending) {
+              approvalStatusLabel = 'En Revisión PROV';
+              approvalStatusColor = 'bg-purple-50 text-purple-700 border-purple-200';
+            } else {
+              approvalStatusLabel = 'En Aprobación';
+              approvalStatusColor = 'bg-amber-50 text-amber-700 border-amber-200';
+            }
+          }
+        } else {
+          approvalStatusLabel = 'En Aprobación';
+          approvalStatusColor = 'bg-amber-50 text-amber-700 border-amber-200';
+        }
+      }
+    }
+    
     return {
       designer: assignment.designer || 'No asignado',
       plannedStart: formatDateStr(plannedStart) || 'No establecida',
@@ -195,7 +229,9 @@ export default function ProductDetailModal({
       realEnd: formatDateStr(realEnd) || (isCompleted ? 'Finalizado (Fecha N/A)' : 'En proceso'),
       isCompleted,
       deviationDays,
-      hasRealDates: !!realStart
+      hasRealDates: !!realStart,
+      approvalStatusLabel,
+      approvalStatusColor
     };
   };
 
@@ -699,9 +735,17 @@ export default function ProductDetailModal({
                           {artworkDates.isCompleted ? 'Completado' : (artworkDates.hasRealDates ? 'En Proceso' : 'Pendiente')}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 font-bold mb-3">
+                      <p className="text-xs text-slate-500 font-bold mb-1">
                         Asignado a: <span className="text-slate-900 font-black">{artworkDates.designer}</span>
                       </p>
+                      <div className="flex items-center gap-1.5 mb-3 text-xs">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Aprobación:</span>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+                          artworkDates.approvalStatusColor
+                        }`}>
+                          {artworkDates.approvalStatusLabel}
+                        </span>
+                      </div>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs border-t border-slate-100 pt-3">
                         <div>
                           <p className="text-[9px] font-bold text-slate-400 uppercase">Inicio Planeado</p>
@@ -751,9 +795,17 @@ export default function ProductDetailModal({
                           {technicalDates.isCompleted ? 'Completado' : (technicalDates.hasRealDates ? 'En Proceso' : 'Pendiente')}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 font-bold mb-3">
+                      <p className="text-xs text-slate-500 font-bold mb-1">
                         Asignado a: <span className="text-slate-900 font-black">{technicalDates.designer}</span>
                       </p>
+                      <div className="flex items-center gap-1.5 mb-3 text-xs">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Aprobación:</span>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+                          technicalDates.approvalStatusColor
+                        }`}>
+                          {technicalDates.approvalStatusLabel}
+                        </span>
+                      </div>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs border-t border-slate-100 pt-3">
                         <div>
                           <p className="text-[9px] font-bold text-slate-400 uppercase">Inicio Planeado</p>
@@ -803,9 +855,17 @@ export default function ProductDetailModal({
                           {commercialDates.isCompleted ? 'Completado' : (commercialDates.hasRealDates ? 'En Proceso' : 'Pendiente')}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 font-bold mb-3">
+                      <p className="text-xs text-slate-500 font-bold mb-1">
                         Asignado a: <span className="text-slate-900 font-black">{commercialDates.designer}</span>
                       </p>
+                      <div className="flex items-center gap-1.5 mb-3 text-xs">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Aprobación:</span>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border uppercase tracking-wider ${
+                          commercialDates.approvalStatusColor
+                        }`}>
+                          {commercialDates.approvalStatusLabel}
+                        </span>
+                      </div>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs border-t border-slate-100 pt-3">
                         <div>
                           <p className="text-[9px] font-bold text-slate-400 uppercase">Inicio Planeado</p>

@@ -249,11 +249,54 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
       const docDates = docs.map(d => parseISO(d.uploadDate)).sort((a, b) => a.getTime() - b.getTime());
       const actualCompletionDate = docDates.length > 0 ? format(docDates[docDates.length - 1], 'yyyy-MM-dd') : 'N/A';
 
+      let estado = 'No Iniciado';
+      if (docs.length > 0) {
+        const latestVer = docs[docs.length - 1];
+        const hasRejected = 
+          latestVer.idApproval?.status === 'rejected' || 
+          (activeModule === 'artwork_followup' && (latestVer.mktApproval?.status === 'rejected' || latestVer.provApproval?.status === 'rejected' || latestVer.planApproval?.status === 'rejected'));
+        
+        const allApproved = 
+          latestVer.idApproval?.status === 'approved' &&
+          (activeModule !== 'artwork_followup' || (latestVer.mktApproval?.status === 'approved' && latestVer.provApproval?.status === 'approved' && latestVer.planApproval?.status === 'approved'));
+        
+        if (hasRejected) {
+          estado = 'Observado';
+        } else if (allApproved) {
+          estado = 'Aprobado Final';
+        } else {
+          const hasIdPending = latestVer.idApproval?.status === 'pending';
+          if (hasIdPending) {
+            estado = 'En Revisión I+D';
+          } else if (activeModule === 'artwork_followup') {
+            const hasMktPending = latestVer.mktApproval?.status === 'pending';
+            if (hasMktPending) {
+              estado = 'En Revisión MKT';
+            } else {
+              const hasProvPending = latestVer.provApproval?.status === 'pending';
+              if (hasProvPending) {
+                estado = 'En Revisión PROV';
+              } else {
+                estado = 'En Aprobación';
+              }
+            }
+          } else {
+            estado = 'En Aprobación';
+          }
+        }
+      } else {
+        if (!assignment?.designer) {
+          estado = 'Sin Asignar';
+        } else {
+          estado = 'Pendiente de Documento';
+        }
+      }
+
       return {
         'Producto': record.descripcionSAP,
         'Marca': record.marca,
         'Categoría': record.linea,
-        'Estado': docs.length > 0 ? docs[docs.length - 1].idApproval.status : 'Pendiente',
+        'Estado': estado,
         'Diseñador': assignment?.designer || 'N/A',
         'Fecha Asignación': assignment?.plannedStartDate || assignment?.assignmentDate || 'N/A',
         'Fecha Fin Real': actualCompletionDate,
