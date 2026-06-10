@@ -55,6 +55,37 @@ export default function PriceGMROISimulator() {
   const [isThresholdModalOpen, setIsThresholdModalOpen] = useState(false);
   const [editedThresholds, setEditedThresholds] = useState<Record<string, { minMedio: number; minAlto: number }>>({});
 
+  // Dynamic categories filter for the dropdowns
+  const filteredCategories = useMemo(() => {
+    if (selectedLineId === 'all') return categories;
+    return categories.filter(c => c.productLineId === selectedLineId);
+  }, [categories, selectedLineId]);
+
+  const formFilteredCategories = useMemo(() => {
+    if (!lineId) return [];
+    return categories.filter(c => c.productLineId === lineId);
+  }, [categories, lineId]);
+
+  // Adjust selections automatically on line changes
+  useEffect(() => {
+    if (selectedLineId !== 'all') {
+      const isValid = categories.some(c => c.id === selectedCategoryId && c.productLineId === selectedLineId);
+      if (!isValid && selectedCategoryId !== 'all') {
+        setSelectedCategoryId('all');
+      }
+    }
+  }, [selectedLineId, selectedCategoryId, categories]);
+
+  useEffect(() => {
+    if (lineId) {
+      const lineCats = categories.filter(c => c.productLineId === lineId);
+      const isValid = lineCats.some(c => c.id === categoryId);
+      if (!isValid) {
+        setCategoryId(lineCats.length > 0 ? lineCats[0].id : '');
+      }
+    }
+  }, [lineId, categories, categoryId]);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -537,8 +568,8 @@ export default function PriceGMROISimulator() {
               onChange={(e) => setSelectedCategoryId(e.target.value)}
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-bold text-slate-700 text-xs"
             >
-              <option value="all">Todas las Categorías ({categories.length})</option>
-              {categories.map(c => (
+              <option value="all">Todas las Categorías ({filteredCategories.length})</option>
+              {filteredCategories.map(c => (
                 <option key={c.id} value={c.id}>{c.name.toUpperCase()}</option>
               ))}
             </select>
@@ -700,9 +731,13 @@ export default function PriceGMROISimulator() {
                       onChange={(e) => setCategoryId(e.target.value)}
                       className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-bold text-slate-700 text-xs"
                     >
-                      {categories.map(c => (
-                        <option key={c.id} value={c.id}>{c.name.toUpperCase()}</option>
-                      ))}
+                      {formFilteredCategories.length === 0 ? (
+                        <option value="">Sin Categorías</option>
+                      ) : (
+                        formFilteredCategories.map(c => (
+                          <option key={c.id} value={c.id}>{c.name.toUpperCase()}</option>
+                        ))
+                      )}
                     </select>
                   </div>
                 </div>
