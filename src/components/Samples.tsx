@@ -706,7 +706,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
         </div>
 
         <div ref={tableContainerRef} className="overflow-x-auto min-h-[420px] hide-scrollbar">
-          <table className="w-full text-left border-collapse min-w-[1500px]">
+          <table id="samples-table" className="w-full text-left border-collapse min-w-[1500px]">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 {isComparisonMode && (
@@ -913,6 +913,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                             setSelectedSample(sample);
                             setIsAssignModalOpen(true);
                           }}
+                          data-soly="samples-assign-btn"
                           className="text-[10px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-widest flex items-center gap-1 mx-auto"
                         >
                           <Plus size={14} />
@@ -1003,6 +1004,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                                     setIsInspectionModalOpen(true);
                                   }
                                 }}
+                                data-soly="samples-play-btn"
                                 className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all"
                                 title={sample.inspectionProgress === 'pending' ? "Iniciar Inspección" : "Continuar Inspección"}
                               >

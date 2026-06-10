@@ -519,6 +519,7 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
               </button>
               <button 
                 onClick={() => setViewMode('gantt')}
+                data-soly="calendar-gantt-btn"
                 className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${viewMode === 'gantt' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 Gantt
@@ -547,6 +548,7 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
                     <div 
                       key={idx}
                       onClick={() => setSelectedDay(day)}
+                      data-soly="calendar-cell"
                       className={`h-[90px] p-1.5 border-b border-r border-slate-100 transition-all cursor-pointer hover:bg-slate-50/50 flex flex-col gap-0.5 ${
                         !isCurrentMonth ? 'bg-slate-50/30 opacity-40' : ''
                       } ${isToday ? 'bg-indigo-50/30' : ''}`}
@@ -576,6 +578,7 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
                           return (
                             <div 
                               key={task.id}
+                              data-soly={isFixed ? "calendar-fixed-task" : undefined}
                               onClick={(e) => {
                                 if (isFixed) {
                                   e.stopPropagation();

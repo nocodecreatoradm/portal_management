@@ -892,7 +892,11 @@ export default function DataTable({
                   </td>
                   <td className="px-3 py-3 border-r border-gray-100">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
+                      <span 
+                        onClick={() => onViewDetail(record)}
+                        data-soly="datatable-correlative"
+                        className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 cursor-pointer hover:bg-indigo-100 hover:text-indigo-800 transition-all"
+                      >
                         {record.correlativeId || '-'}
                       </span>
                       {record.artworkAssignment?.infoRequests?.some(r => !r.response) && (

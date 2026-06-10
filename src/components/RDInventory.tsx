@@ -957,7 +957,10 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
                       </span>
                     </td>
                     <td className="px-6 py-5">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase ${getCalibrationStatusColor(item.calibrationStatus)}`}>
+                      <span 
+                        data-soly="inventory-status-cell"
+                        className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase ${getCalibrationStatusColor(item.calibrationStatus)}`}
+                      >
                         {item.calibrationStatus}
                       </span>
                     </td>
@@ -1022,6 +1025,7 @@ export default function RDInventory({ initialItems, onExportPPT: propOnExportPPT
                             e.stopPropagation();
                             setEditingItem(item);
                           }}
+                          data-soly="inventory-edit-btn"
                           className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
                           title="Editar"
                         >

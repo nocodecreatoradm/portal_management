@@ -1149,6 +1149,7 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
                                 return (
                                   <div 
                                     key={day.toString()} 
+                                    data-soly="workplan-timeline-cell"
                                     className="flex-1 min-w-[30px] border-r border-slate-100 cursor-pointer transition-colors relative group/cell hover:bg-indigo-50/20"
                                     onClick={() => handleLogProgress(project.id, activity, day)}
                                     title={hasProgress ? `Avance: ${dailyData.progress}% - ${dailyData.comments}` : `Click para registrar avance`}

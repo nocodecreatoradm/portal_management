@@ -92,6 +92,7 @@ export default function MasterDataModule() {
         </div>
         <button 
           onClick={() => handleOpenModal(activeTab)}
+          data-soly="master-add-btn"
           className="flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 hover:scale-105 active:scale-95"
         >
           <Plus size={20} />
@@ -102,7 +103,7 @@ export default function MasterDataModule() {
         </button>
       </div>
 
-      <div className="flex gap-2 p-2 bg-slate-100/50 rounded-[28px] w-fit">
+      <div data-soly="master-tabs" className="flex gap-2 p-2 bg-slate-100/50 rounded-[28px] w-fit">
         {[
           { id: 'brands', label: 'Marcas', icon: Tag },
           { id: 'lines', label: 'Líneas', icon: Layers },

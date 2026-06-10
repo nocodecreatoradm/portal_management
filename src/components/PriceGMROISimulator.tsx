@@ -552,6 +552,7 @@ export default function PriceGMROISimulator() {
             <select
               value={selectedLineId}
               onChange={(e) => setSelectedLineId(e.target.value)}
+              data-soly="gmroi-line-select"
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-bold text-slate-700 text-xs"
             >
               <option value="all">Todas las Líneas ({lines.length})</option>
@@ -566,6 +567,7 @@ export default function PriceGMROISimulator() {
             <select
               value={selectedCategoryId}
               onChange={(e) => setSelectedCategoryId(e.target.value)}
+              data-soly="gmroi-category-select"
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-bold text-slate-700 text-xs"
             >
               <option value="all">Todas las Categorías ({filteredCategories.length})</option>
@@ -666,6 +668,7 @@ export default function PriceGMROISimulator() {
         </button>
         <button
           onClick={() => setActiveTab('sheet')}
+          data-soly="gmroi-tab-sheet"
           className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'sheet' ? 'bg-white text-blue-600 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}
         >
           2. Planilla 12 Meses e Índice GMROI
@@ -761,6 +764,7 @@ export default function PriceGMROISimulator() {
                         step="10"
                         value={pvpLista} 
                         onChange={(e) => setPvpLista(parseInt(e.target.value))}
+                        data-soly="gmroi-pvp-lista-slider"
                         className="flex-1 accent-blue-600 h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer"
                       />
                       <button onClick={() => setPvpLista(prev => prev + 10)} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black">+</button>
@@ -781,6 +785,7 @@ export default function PriceGMROISimulator() {
                         step="10"
                         value={pvpPromocion} 
                         onChange={(e) => setPvpPromocion(parseInt(e.target.value))}
+                        data-soly="gmroi-pvp-promo-slider"
                         className="flex-1 accent-blue-600 h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer"
                       />
                       <button onClick={() => setPvpPromocion(prev => prev + 10)} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black">+</button>

@@ -292,6 +292,7 @@ export default function Brandbook({ onExportPPT }: { onExportPPT?: () => void })
         {sortedBrands.map((brand, index) => (
           <motion.div
             key={brand.id}
+            data-soly="brand-card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1, duration: 0.5 }}

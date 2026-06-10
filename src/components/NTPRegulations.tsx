@@ -353,6 +353,7 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
                 </div>
                 <button 
                   onClick={() => handleOpen(reg)}
+                  data-soly="ntp-open-btn"
                   className="flex items-center gap-2 text-blue-600 font-black uppercase text-[10px] tracking-widest hover:gap-3 transition-all"
                 >
                   Abrir
