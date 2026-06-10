@@ -46,7 +46,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
   const { hasPermission } = usePermissions();
   const [isMinimized, setIsMinimized] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [activeTab, setActiveTab] = useState<'tour' | 'chat'>('tour');
+  const [activeTab, setActiveTab] = useState<'tour' | 'chat' | 'reminder'>('tour');
   
   // Chat states
   const [chatInput, setChatInput] = useState('');
@@ -76,6 +76,11 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
 
   // Reminders state & handlers
   const [activeReminders, setActiveReminders] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [reminderReceiverName, setReminderReceiverName] = useState('');
+  const [reminderMessage, setReminderMessage] = useState('');
+  const [reminderStatusMsg, setReminderStatusMsg] = useState<{ type: 'success' | 'error' | ''; text: string }>({ type: '', text: '' });
+  const [isSendingReminder, setIsSendingReminder] = useState(false);
 
   useEffect(() => {
     if (!profile?.full_name) return;
@@ -94,12 +99,65 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
     return () => clearInterval(interval);
   }, [profile?.full_name]);
 
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      try {
+        const data = await SupabaseService.getProfiles();
+        setProfiles(data || []);
+      } catch (err) {
+        console.error('Error fetching profiles:', err);
+      }
+    };
+    fetchProfiles();
+  }, []);
+
   const handleDismissReminder = async (id: string) => {
     try {
       await SupabaseService.updateReminder(id, { status: 'read' });
       setActiveReminders(prev => prev.filter(r => r.id !== id));
     } catch (err) {
       console.error('Error dismissing reminder:', err);
+    }
+  };
+
+  const handleSendReminderFromTab = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reminderReceiverName) {
+      setReminderStatusMsg({ type: 'error', text: 'Selecciona un destinatario.' });
+      return;
+    }
+    if (!reminderMessage.trim()) {
+      setReminderStatusMsg({ type: 'error', text: 'Escribe el recordatorio.' });
+      return;
+    }
+
+    setIsSendingReminder(true);
+    setReminderStatusMsg({ type: '', text: '' });
+
+    try {
+      const receiver = profiles.find(p => p.full_name === reminderReceiverName);
+      if (!receiver) {
+        setReminderStatusMsg({ type: 'error', text: 'Usuario no encontrado.' });
+        setIsSendingReminder(false);
+        return;
+      }
+
+      await SupabaseService.createReminder({
+        senderName: profile?.full_name || 'Usuario',
+        senderEmail: profile?.email || '',
+        receiverName: receiver.full_name,
+        receiverEmail: receiver.email,
+        message: reminderMessage.trim(),
+        status: 'pending'
+      });
+
+      setReminderStatusMsg({ type: 'success', text: `¡Recordatorio enviado a ${receiver.full_name}! 🚀` });
+      setReminderMessage('');
+    } catch (err) {
+      console.error('Error sending reminder:', err);
+      setReminderStatusMsg({ type: 'error', text: 'Error al enviar recordatorio.' });
+    } finally {
+      setIsSendingReminder(false);
     }
   };
 
@@ -1920,7 +1978,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
                 </div>
 
                 {/* Tabs selection */}
-                <div className="flex border-b border-slate-100 mb-3 text-xs">
+                <div className="flex border-b border-slate-100 mb-3 text-[10px] sm:text-xs">
                   <button 
                     onClick={() => setActiveTab('tour')}
                     className={`flex-1 pb-1.5 font-black uppercase tracking-wider text-center transition-all ${
@@ -1940,6 +1998,19 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
                     }`}
                   >
                     Preguntar a Soly
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setActiveTab('reminder');
+                      setReminderStatusMsg({ type: '', text: '' });
+                    }}
+                    className={`flex-1 pb-1.5 font-black uppercase tracking-wider text-center transition-all ${
+                      activeTab === 'reminder' 
+                        ? 'text-indigo-600 border-b-2 border-indigo-600' 
+                        : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    Recordatorio
                   </button>
                 </div>
 
@@ -2062,6 +2133,74 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
                       </button>
                     </form>
                   </div>
+                )}
+
+                {/* Reminder Tab Content */}
+                {activeTab === 'reminder' && (
+                  <form onSubmit={handleSendReminderFromTab} className="flex-1 flex flex-col justify-between min-h-[220px]">
+                    <div className="flex-1 flex flex-col overflow-y-auto pr-1 max-h-[240px] custom-scrollbar">
+                      <p className="text-[10px] text-slate-500 font-semibold mb-2 leading-tight">
+                        Envía una alerta a otro usuario del portal. Le aparecerá a la derecha de su pantalla.
+                      </p>
+                      
+                      <div className="mb-2">
+                        <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                          Destinatario:
+                        </label>
+                        <select
+                          value={reminderReceiverName}
+                          onChange={(e) => {
+                            setReminderReceiverName(e.target.value);
+                            setReminderStatusMsg({ type: '', text: '' });
+                          }}
+                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 font-semibold"
+                        >
+                          <option value="">-- Selecciona un usuario --</option>
+                          {profiles
+                            .filter(p => p.full_name !== profile?.full_name && p.is_active !== false)
+                            .map((p) => (
+                              <option key={p.id} value={p.full_name}>
+                                {p.full_name} ({p.department || 'Sin área'})
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+
+                      <div className="mb-2">
+                        <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                          Mensaje del Recordatorio:
+                        </label>
+                        <textarea
+                          placeholder="Escribe la actividad a recordar aquí..."
+                          value={reminderMessage}
+                          onChange={(e) => {
+                            setReminderMessage(e.target.value);
+                            setReminderStatusMsg({ type: '', text: '' });
+                          }}
+                          className="w-full h-16 p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 font-medium resize-none leading-relaxed"
+                        />
+                      </div>
+
+                      {reminderStatusMsg.text && (
+                        <div className={`text-[10px] font-bold py-1 px-2.5 rounded-lg mb-2 leading-relaxed ${
+                          reminderStatusMsg.type === 'success' 
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
+                            : 'bg-red-50 text-red-700 border border-red-100'
+                        }`}>
+                          {reminderStatusMsg.text}
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSendingReminder}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-xl py-2 text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none shadow-md shadow-indigo-600/10 shrink-0"
+                    >
+                      <Send size={12} />
+                      {isSendingReminder ? 'Enviando...' : 'Enviar Recordatorio'}
+                    </button>
+                  </form>
                 )}
 
                 {/* Speech bubble pointer tail pointing to the avatar */}
