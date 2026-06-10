@@ -14,6 +14,7 @@ import { exportToExcel, generateReportPDF, exportToPPT } from '../lib/exportUtil
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { SupabaseService } from '../lib/SupabaseService';
+import { openFileUrl } from '../utils/fileViewer';
 import { Loader2 } from 'lucide-react';
 import HeaderFilterPopover from './HeaderFilterPopover';
 
@@ -1715,6 +1716,10 @@ export default function ProductsModule({
                             href={doc.url}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              openFileUrl(doc.url);
+                            }}
                             className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl hover:border-emerald-300 hover:shadow-md transition-all group"
                           >
                             <div className="flex items-center gap-4 min-w-0">
@@ -1755,6 +1760,10 @@ export default function ProductsModule({
                         href={file.url}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openFileUrl(file.url);
+                        }}
                         className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl hover:border-blue-300 hover:shadow-md transition-all group"
                       >
                         <div className="flex items-center gap-4 min-w-0">
@@ -1787,6 +1796,10 @@ export default function ProductsModule({
                         href={file.url}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openFileUrl(file.url);
+                        }}
                         className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl hover:border-amber-300 hover:shadow-md transition-all group"
                       >
                         <div className="flex items-center gap-4 min-w-0">
@@ -1835,7 +1848,16 @@ export default function ProductsModule({
                                 referrerPolicy="no-referrer"
                               />
                               <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center">
-                                <a href={photo.url} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-white/40 transition-all">
+                                <a 
+                                  href={photo.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    openFileUrl(photo.url);
+                                  }}
+                                  className="p-2 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-white/40 transition-all"
+                                >
                                   <Eye size={16} />
                                 </a>
                               </div>

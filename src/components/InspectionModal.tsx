@@ -9,6 +9,7 @@ import { SupabaseService } from '../lib/SupabaseService';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { isBusinessTime, getBusinessMsBetween } from '../utils/businessHours';
+import { openFileUrl } from '../utils/fileViewer';
 
 function normalizeWorkflow(rawWorkflow: any): any[] {
   if (!rawWorkflow) return [];
@@ -904,7 +905,17 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
                                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Fotos Referenciales</span>
                                     <div className="flex flex-wrap gap-2">
                                       {stage.referencePhotos.map((photo: any, pIdx: number) => (
-                                        <a key={pIdx} href={photo.url} target="_blank" rel="noopener noreferrer" className="block w-14 h-14 rounded-lg overflow-hidden border border-slate-200 bg-white hover:opacity-90 transition-opacity shrink-0">
+                                        <a 
+                                          key={pIdx} 
+                                          href={photo.url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer" 
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            openFileUrl(photo.url);
+                                          }}
+                                          className="block w-14 h-14 rounded-lg overflow-hidden border border-slate-200 bg-white hover:opacity-90 transition-opacity shrink-0"
+                                        >
                                           <img src={photo.url} alt="Referencial" className="w-full h-full object-cover" />
                                         </a>
                                       ))}
@@ -938,6 +949,10 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
                                           href={file.url} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            openFileUrl(file.url);
+                                          }}
                                           className="text-indigo-600 hover:text-indigo-700 text-[10px] font-black uppercase"
                                         >
                                           Ver
@@ -1002,6 +1017,10 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
                     href={template.procedureFile.url} 
                     target="_blank" 
                     rel="noopener noreferrer"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openFileUrl(template.procedureFile.url);
+                    }}
                     className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
                     title="Abrir en pestaña nueva"
                   >

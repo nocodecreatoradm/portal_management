@@ -22,6 +22,7 @@ import { SupabaseService } from '../lib/SupabaseService';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { outlookService } from '../services/outlookService';
+import { openFileUrl } from '../utils/fileViewer';
 
 interface SamplesProps {
   samples: SampleRecord[];
@@ -957,6 +958,10 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                             href={sample.reportFile.url} 
                             target="_blank" 
                             rel="noopener noreferrer"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              openFileUrl(sample.reportFile.url);
+                            }}
                             className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all" 
                             title="Ver Informe"
                           >
@@ -1105,6 +1110,10 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                           href={doc.url} 
                           target="_blank" 
                           rel="noopener noreferrer"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            openFileUrl(doc.url);
+                          }}
                           className="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all"
                         >
                           <Download size={18} />
@@ -1790,7 +1799,16 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                                 referrerPolicy="no-referrer"
                               />
                               <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center">
-                                <a href={photo.url} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-white/40 transition-all">
+                                <a 
+                                  href={photo.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    openFileUrl(photo.url);
+                                  }}
+                                  className="p-2 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-white/40 transition-all"
+                                >
                                   <Maximize2 size={16} />
                                 </a>
                               </div>
@@ -1880,6 +1898,10 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                             href={doc.url} 
                             target="_blank" 
                             rel="noopener noreferrer"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              openFileUrl(doc.url);
+                            }}
                             className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                           >
                             <Download size={16} />
@@ -2141,6 +2163,10 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                                         href={p.url} 
                                         target="_blank" 
                                         rel="noopener noreferrer" 
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          openFileUrl(p.url);
+                                        }}
                                         className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shadow-sm block hover:scale-105 transition-all"
                                       >
                                         <img src={p.url} className="w-full h-full object-cover cursor-pointer" referrerPolicy="no-referrer" />
@@ -2203,6 +2229,10 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                                             href={p.url} 
                                             target="_blank" 
                                             rel="noopener noreferrer" 
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              openFileUrl(p.url);
+                                            }}
                                             className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shadow-sm block hover:scale-105 transition-all"
                                           >
                                             <img src={p.url} className="w-full h-full object-cover cursor-pointer" referrerPolicy="no-referrer" />

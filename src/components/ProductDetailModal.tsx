@@ -5,6 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import PDFReviewer from './PDFReviewer';
 import { SupabaseService } from '../lib/SupabaseService';
+import { openFileUrl } from '../utils/fileViewer';
 
 interface ProductDetailModalProps {
   record: ProductRecord | null;
@@ -548,6 +549,10 @@ export default function ProductDetailModal({
                                 href={f.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  openFileUrl(f.url);
+                                }}
                                 className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 transition-colors group"
                               >
                                 <FileText size={14} className="text-slate-400 group-hover:text-indigo-500" />
@@ -1061,7 +1066,16 @@ export default function ProductDetailModal({
                               </div>
                             )}
                             <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center z-10">
-                              <a href={photo.url} target="_blank" rel="noopener noreferrer" className="p-2 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-white/40 transition-all">
+                              <a 
+                                href={photo.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  openFileUrl(photo.url);
+                                }}
+                                className="p-2 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-white/40 transition-all"
+                              >
                                 <Eye size={16} />
                               </a>
                             </div>

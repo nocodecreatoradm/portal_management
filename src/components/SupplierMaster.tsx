@@ -33,6 +33,7 @@ import { exportToExcel, generateReportPDF } from '../lib/exportUtils';
 import { saveCalculationRecord } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { openFileUrl } from '../utils/fileViewer';
 import { format } from 'date-fns';
 import { SupabaseService } from '../lib/SupabaseService';
 
@@ -491,6 +492,10 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
                           href={q.url}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            openFileUrl(q.url);
+                          }}
                           className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
                           title={q.name}
                         >
@@ -924,6 +929,10 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
                                 href={file.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  openFileUrl(file.url);
+                                }}
                                 className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors"
                               >
                                 <Download size={14} />

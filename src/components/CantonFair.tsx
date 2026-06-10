@@ -34,6 +34,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MapContainer, TileLayer, Marker, useMapEvents, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { openFileUrl } from '../utils/fileViewer';
 
 // Fix Leaflet marker icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -698,12 +699,23 @@ const CantonFair: React.FC = () => {
 
                   <div className="aspect-[4/3] relative overflow-hidden bg-white">
                     {supplier.images.length > 0 ? (
-                      <img 
-                        src={supplier.images[0].file.url} 
-                        alt={supplier.name}
-                        className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110"
-                        referrerPolicy="no-referrer"
-                      />
+                      <a 
+                        href={supplier.images[0].file.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openFileUrl(supplier.images[0].file.url);
+                        }}
+                        className="block w-full h-full cursor-pointer"
+                      >
+                        <img 
+                          src={supplier.images[0].file.url} 
+                          alt={supplier.name}
+                          className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110"
+                          referrerPolicy="no-referrer"
+                        />
+                      </a>
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 bg-slate-50">
                         <ImageIcon size={48} className="mb-2 opacity-20" />
@@ -1111,12 +1123,23 @@ const CantonFair: React.FC = () => {
             >
               <div className="relative h-64 md:h-80 overflow-hidden bg-white">
                 {selectedSupplier.images.length > 0 ? (
-                  <img 
-                    src={selectedSupplier.images[0].file.url} 
-                    alt={selectedSupplier.name}
-                    className="w-full h-full object-contain p-8"
-                    referrerPolicy="no-referrer"
-                  />
+                  <a 
+                    href={selectedSupplier.images[0].file.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openFileUrl(selectedSupplier.images[0].file.url);
+                    }}
+                    className="block w-full h-full cursor-pointer"
+                  >
+                    <img 
+                      src={selectedSupplier.images[0].file.url} 
+                      alt={selectedSupplier.name}
+                      className="w-full h-full object-contain p-8"
+                      referrerPolicy="no-referrer"
+                    />
+                  </a>
                 ) : (
                   <div className="w-full h-full bg-slate-900 flex items-center justify-center">
                     <ImageIcon size={64} className="text-slate-700" />
@@ -1263,7 +1286,17 @@ const CantonFair: React.FC = () => {
                             {product.images.length > 0 && (
                               <div className="grid grid-cols-4 gap-2">
                                 {product.images.map((img, i) => (
-                                  <a key={i} href={img.url} target="_blank" rel="noopener noreferrer" className="block hover:scale-105 transition-all">
+                                  <a 
+                                    key={i} 
+                                    href={img.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      openFileUrl(img.url);
+                                    }}
+                                    className="block hover:scale-105 transition-all"
+                                  >
                                     <img src={img.url} alt="Product" className="aspect-square w-full object-contain p-2 bg-white rounded-xl border border-slate-200 cursor-pointer" referrerPolicy="no-referrer" />
                                   </a>
                                 ))}
@@ -1460,7 +1493,16 @@ const CantonFair: React.FC = () => {
                       {selectedSupplier.images.map((img, idx) => (
                         <div key={idx} className="group bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all relative">
                           <div className="aspect-video relative bg-white">
-                            <a href={img.file.url} target="_blank" rel="noopener noreferrer" className="block hover:scale-[1.02] transition-all cursor-pointer">
+                            <a 
+                              href={img.file.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              onClick={(e) => {
+                                e.preventDefault();
+                                openFileUrl(img.file.url);
+                              }}
+                              className="block hover:scale-[1.02] transition-all cursor-pointer"
+                            >
                               <img 
                                 src={img.file.url} 
                                 alt={`Gallery ${idx}`} 
