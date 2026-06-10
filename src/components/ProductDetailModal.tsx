@@ -655,6 +655,10 @@ export default function ProductDetailModal({
                 <p className="text-sm font-semibold text-slate-900">{record.linea}</p>
               </div>
               <div>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Categoría</p>
+                <p className="text-sm font-semibold text-slate-900">{record.categoria || <span className="text-slate-300">-</span>}</p>
+              </div>
+              <div>
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Muestra Vinculada</p>
                 {linkedSample ? (
                   <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">

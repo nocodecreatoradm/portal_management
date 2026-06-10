@@ -842,6 +842,16 @@ export default function App() {
             }
           }
         }
+        if (record.categoria) {
+          const currentLineId = resolved.linea;
+          const cat = categories.find(c => c.name.toLowerCase() === record.categoria.toLowerCase() && c.productLineId === currentLineId);
+          if (cat) {
+            resolved.categoryId = cat.id;
+          } else if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record.categoria)) {
+            const generalCat = categories.find(c => c.name.toLowerCase() === record.categoria.toLowerCase());
+            if (generalCat) resolved.categoryId = generalCat.id;
+          }
+        }
         if (record.proveedor) {
           const supplier = suppliers.find(s => s.legalName === record.proveedor || s.commercialAlias === record.proveedor);
           if (supplier) {

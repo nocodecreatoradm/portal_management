@@ -189,7 +189,7 @@ export default function NewRequestModal({
         setFormData(prev => ({ ...prev, ...updates }));
       }
     }
-  }, [isOpen, initialData, existingData, formData.linea, formData.marca, productLines, brands]);
+  }, [isOpen, initialData, existingData, formData.linea, formData.marca, productLines, brands, categories]);
 
   const [newEmail, setNewEmail] = useState('');
   const [autoFilled, setAutoFilled] = useState(false);

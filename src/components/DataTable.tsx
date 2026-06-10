@@ -357,6 +357,7 @@ export default function DataTable({
   const uniqueSapCodes = useMemo(() => Array.from(new Set(data.map(item => item.codigoSAP || '').filter(Boolean))), [data]);
   const uniqueSapDescriptions = useMemo(() => Array.from(new Set(data.map(item => item.descripcionSAP || '').filter(Boolean))), [data]);
   const uniqueLines = useMemo(() => Array.from(new Set(data.map(item => item.linea || '').filter(Boolean))), [data]);
+  const uniqueCategories = useMemo(() => Array.from(new Set(data.map(item => item.categoria || '').filter(Boolean))), [data]);
   const uniqueBrands = useMemo(() => Array.from(new Set(data.map(item => item.marca || '').filter(Boolean))), [data]);
   const uniqueComments = useMemo(() => Array.from(new Set(data.map(item => item.comments || '').filter(Boolean))), [data]);
   const uniqueSamples = useMemo(() => Array.from(new Set(data.map(item => getSampleCorrelative(item.sampleId) || '').filter(Boolean))), [data, samples]);
@@ -484,6 +485,16 @@ export default function DataTable({
                   <p className="text-[11px] font-bold text-slate-600 mt-1 uppercase line-clamp-2 leading-tight">
                     {record.descripcionSAP}
                   </p>
+                  <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                    <span className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium uppercase">
+                      Línea: {record.linea}
+                    </span>
+                    {record.categoria && (
+                      <span className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium uppercase">
+                        Cat: {record.categoria}
+                      </span>
+                    )}
+                  </div>
                   {record.comments && (
                     <p className="text-[10px] text-slate-500 mt-1.5 italic bg-slate-50 p-2 rounded border border-slate-100 font-medium">
                       <span className="font-bold text-slate-600 not-italic block mb-0.5 text-[9px] uppercase tracking-wider">Comentarios del Arte:</span>
@@ -767,6 +778,24 @@ export default function DataTable({
               <th 
                 rowSpan={2} 
                 className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                onClick={() => toggleSort('categoria')}
+              >
+                <div className="inline-flex items-center gap-1">
+                  <span>Categoría</span>
+                  <HeaderFilterPopover 
+                    column="categoria" 
+                    label="Categoría" 
+                    currentFilter={columnFilters.categoria || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                    uniqueValues={uniqueCategories}
+                  />
+                </div>
+              </th>
+              <th 
+                rowSpan={2} 
+                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
                 onClick={() => toggleSort('marca')}
               >
                 <div className="inline-flex items-center gap-1">
@@ -981,6 +1010,9 @@ export default function DataTable({
                   </td>
                   <td className="px-3 py-3 border-r border-gray-100 text-[10px] text-slate-500 font-medium uppercase tracking-tight text-center">
                     {record.linea}
+                  </td>
+                  <td className="px-3 py-3 border-r border-gray-100 text-[10px] text-slate-500 font-medium uppercase tracking-tight text-center">
+                    {record.categoria || <span className="text-slate-300">-</span>}
                   </td>
                   <td className="px-3 py-3 border-r border-gray-100 text-center">
                     <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${

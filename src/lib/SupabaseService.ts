@@ -168,7 +168,36 @@ const invalidateMetadataCache = () => {
   cachedSuppliers = null;
   metadataCacheTimestamp = 0;
 };
+const resolveProductsMetadata = async (products: ProductRecord | ProductRecord[]): Promise<any> => {
+  const list = Array.isArray(products) ? products : [products];
+  const [brands, lines, categories, suppliers] = await Promise.all([
+    getCachedBrands(),
+    getCachedLines(),
+    getCachedCategories(),
+    getCachedSuppliers()
+  ]);
 
+  list.forEach(p => {
+    if (!p.marca || isUUID(p.marca)) {
+      const b = brands.find(x => x.id === p.brandId || x.id === p.marca);
+      if (b) p.marca = b.name;
+    }
+    if (!p.linea || isUUID(p.linea)) {
+      const l = lines.find(x => x.id === p.lineId || x.id === p.linea);
+      if (l) p.linea = l.name as any;
+    }
+    if (!p.categoria || isUUID(p.categoria)) {
+      const c = categories.find(x => x.id === p.categoryId || x.id === p.categoria);
+      if (c) p.categoria = c.name;
+    }
+    if (!p.proveedor || isUUID(p.proveedor)) {
+      const s = suppliers.find(x => x.id === p.proveedor);
+      if (s) p.proveedor = s.commercialAlias || s.legalName;
+    }
+  });
+
+  return products;
+};
 
 export const SupabaseService = {
   // MASTER DATA
@@ -468,7 +497,7 @@ export const SupabaseService = {
         id, correlative_id, sap_code, ean_code, sap_description, brand_id, supplier_id, line_id, sample_id, category_id,
         commercial_status, quality_inspection_date, fob_price, fob_price_history, explode_files, 
         additional_provider_documents, gallery, created_at, updated_at, 
-        artwork_assignment, technical_assignment, commercial_assignment, tracking_type, linked_group_id,
+        artwork_assignment, technical_assignment, commercial_assignment, tracking_type, linked_group_id, comments,
         brand:brands(name),
         supplier:suppliers(legal_name, commercial_alias, erp_code, email),
         line:product_lines(name),
@@ -482,7 +511,9 @@ export const SupabaseService = {
 
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
-    return data.map(mapDBToProduct);
+    
+    const mapped = data.map(mapDBToProduct);
+    return resolveProductsMetadata(mapped);
   },
 
   async createProduct(product: Omit<ProductRecord, 'id' | 'createdAt'>) {
@@ -507,7 +538,9 @@ export const SupabaseService = {
       `)
       .single();
     if (error) throw error;
-    return mapDBToProduct(data);
+    
+    const mapped = mapDBToProduct(data);
+    return resolveProductsMetadata(mapped);
   },
 
   async updateProduct(id: string, updates: Partial<ProductRecord & any>) {
@@ -548,7 +581,9 @@ export const SupabaseService = {
       `)
       .single();
     if (error) throw error;
-    return mapDBToProduct(data);
+    
+    const mapped = mapDBToProduct(data);
+    return resolveProductsMetadata(mapped);
   },
 
   async updateProductBySAP(codigoSAP: string, updates: Partial<ProductRecord & any>) {
@@ -588,7 +623,9 @@ export const SupabaseService = {
       `)
       .single();
     if (error) throw error;
-    return mapDBToProduct(data);
+    
+    const mapped = mapDBToProduct(data);
+    return resolveProductsMetadata(mapped);
   },
 
   async deleteProduct(id: string) {
