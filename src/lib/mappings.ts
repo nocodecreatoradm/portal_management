@@ -179,7 +179,7 @@ export const mapActivityToDB = (activity: Partial<ProjectActivity>) => ({
   actual_end_date: activity.actualEndDate,
   status: activity.status,
   daily_progress: activity.dailyProgress,
-  responsibles: activity.responsible
+  responsible: activity.responsible
 });
 
 export const mapDBToActivity = (dbActivity: any): ProjectActivity => ({
@@ -196,7 +196,7 @@ export const mapDBToActivity = (dbActivity: any): ProjectActivity => ({
   actualEndDate: dbActivity.actual_end_date,
   status: dbActivity.status || 'NO INICIADO',
   dailyProgress: dbActivity.daily_progress || {},
-  responsible: dbActivity.responsibles || []
+  responsible: dbActivity.responsible || []
 });
 
 export const mapTaskToDB = (task: Partial<CalendarTask>) => {

@@ -225,9 +225,23 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
             addAuditLog('delete', 'ACTIVITY', activityId, activityToDelete.name, activityToDelete);
             setProjects(prev => prev.map(p => {
               if (p.id === projectId) {
+                const newActivities = p.activities.filter(a => a.id !== activityId);
+                const totalProgress = newActivities.reduce((acc, curr) => acc + curr.progress, 0);
+                const avgProgress = newActivities.length > 0 ? Math.round(totalProgress / newActivities.length) : 0;
+                
+                let newStatus: Project['status'] = 'NO INICIADO';
+                if (avgProgress === 100) newStatus = 'COMPLETADO';
+                else if (avgProgress > 0) newStatus = 'EN PROCESO';
+
+                SupabaseService.updateProject(projectId, { progress: avgProgress, status: newStatus }).catch(err => {
+                  console.error('Error updating project overall progress on delete:', err);
+                });
+
                 return {
                   ...p,
-                  activities: p.activities.filter(a => a.id !== activityId)
+                  activities: newActivities,
+                  progress: avgProgress,
+                  status: newStatus
                 };
               }
               return p;
@@ -452,10 +466,19 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
             const totalProgress = newActivities.reduce((acc, curr) => acc + curr.progress, 0);
             const avgProgress = newActivities.length > 0 ? Math.round(totalProgress / newActivities.length) : 0;
             
+            let newStatus: Project['status'] = 'NO INICIADO';
+            if (avgProgress === 100) newStatus = 'COMPLETADO';
+            else if (avgProgress > 0) newStatus = 'EN PROCESO';
+
+            SupabaseService.updateProject(editingActivity.projectId, { progress: avgProgress, status: newStatus }).catch(err => {
+              console.error('Error updating project overall progress on save:', err);
+            });
+
             return {
               ...p,
               activities: newActivities,
-              progress: avgProgress
+              progress: avgProgress,
+              status: newStatus
             };
           }
           return p;
@@ -490,44 +513,99 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
     setIsLogProgressModalOpen(true);
   };
 
-  const handleSaveLoggedProgress = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveLoggedProgress = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const additionalProgress = parseInt(formData.get('additionalProgress') as string);
+    const startDate = formData.get('startDate') as string;
+    const endDate = formData.get('endDate') as string;
+    const totalProgress = parseInt(formData.get('totalProgress') as string);
     const comments = formData.get('comments') as string;
 
     if (loggingProgress) {
       const currentProgress = loggingProgress.activity.progress;
-      const newProgress = Math.min(100, currentProgress + additionalProgress);
-      const dateKey = format(loggingProgress.date, 'yyyy-MM-dd');
+      const additionalProgress = Math.max(0, totalProgress - currentProgress);
+
+      const startD = parseISO(startDate);
+      const endD = parseISO(endDate);
+      if (isNaN(startD.getTime()) || isNaN(endD.getTime()) || startD > endD) {
+        toast.error('Rango de fechas inválido');
+        return;
+      }
+
+      const days = eachDayOfInterval({ start: startD, end: endD });
+      const numDays = days.length;
+      const progressPerDay = numDays > 0 ? (additionalProgress / numDays) : 0;
+
+      const newDailyProgress = { ...(loggingProgress.activity.dailyProgress || {}) };
+      days.forEach(d => {
+        const dayKey = format(d, 'yyyy-MM-dd');
+        newDailyProgress[dayKey] = {
+          progress: Math.round(progressPerDay * 100) / 100,
+          comments: comments
+        };
+      });
+
+      const dateRangeStr = numDays > 1 
+        ? `${format(startD, 'dd/MM/yyyy')} al ${format(endD, 'dd/MM/yyyy')}`
+        : `${format(startD, 'dd/MM/yyyy')}`;
       
+      const commentsLog = comments 
+        ? `${loggingProgress.activity.comments || ''}\n[${dateRangeStr}]: ${comments} (${totalProgress}% total)` 
+        : loggingProgress.activity.comments;
+
+      const newStatus = totalProgress === 100 ? 'COMPLETADO' : (totalProgress > 0 ? 'EN PROCESO' : 'NO INICIADO');
+
       const updatedActivity: ProjectActivity = {
         ...loggingProgress.activity,
-        progress: newProgress,
-        comments: comments ? `${loggingProgress.activity.comments || ''}\n[${format(loggingProgress.date, 'dd/MM/yyyy')}]: ${comments}` : loggingProgress.activity.comments,
-        status: newProgress === 100 ? 'COMPLETADO' : 'EN PROCESO',
-        dailyProgress: {
-          ...(loggingProgress.activity.dailyProgress || {}),
-          [dateKey]: { progress: additionalProgress, comments }
-        }
+        progress: totalProgress,
+        comments: commentsLog,
+        status: newStatus,
+        dailyProgress: newDailyProgress
       };
 
-      addAuditLog('update', 'ACTIVITY', loggingProgress.activity.id, loggingProgress.activity.name, loggingProgress.activity, updatedActivity);
-
-      setProjects(prev => prev.map(p => {
-        if (p.id === loggingProgress.projectId) {
-          const newActivities = p.activities.map(a => a.id === loggingProgress.activity.id ? updatedActivity : a);
-          const totalProgress = newActivities.reduce((acc, curr) => acc + curr.progress, 0);
-          const avgProgress = newActivities.length > 0 ? Math.round(totalProgress / newActivities.length) : 0;
-
-          return {
-            ...p,
-            activities: newActivities,
-            progress: avgProgress
-          };
+      try {
+        // Save activity to database
+        const savedActivity = await SupabaseService.updateProjectActivity(loggingProgress.activity.id, updatedActivity);
+        if (!savedActivity) {
+          throw new Error('Supabase return value was empty');
         }
-        return p;
-      }));
+        
+        // Log audit trail
+        addAuditLog('update', 'ACTIVITY', loggingProgress.activity.id, loggingProgress.activity.name, loggingProgress.activity, savedActivity);
+
+        let finalAvgProgress = 0;
+        let finalProjStatus: Project['status'] = 'NO INICIADO';
+
+        setProjects(prev => prev.map(p => {
+          if (p.id === loggingProgress.projectId) {
+            const newActivities = p.activities.map(a => a.id === loggingProgress.activity.id ? savedActivity : a);
+            const totalProgressVal = newActivities.reduce((acc, curr) => acc + curr.progress, 0);
+            finalAvgProgress = newActivities.length > 0 ? Math.round(totalProgressVal / newActivities.length) : 0;
+
+            if (finalAvgProgress === 100) finalProjStatus = 'COMPLETADO';
+            else if (finalAvgProgress > 0) finalProjStatus = 'EN PROCESO';
+
+            // Update project overall status in DB
+            SupabaseService.updateProject(loggingProgress.projectId, { progress: finalAvgProgress, status: finalProjStatus }).catch(err => {
+              console.error('Error updating project overall progress in DB:', err);
+            });
+
+            return {
+              ...p,
+              activities: newActivities,
+              progress: finalAvgProgress,
+              status: finalProjStatus
+            };
+          }
+          return p;
+        }));
+
+        toast.success('Progreso y avance de proyecto actualizados');
+      } catch (error) {
+        console.error('Error saving logged progress:', error);
+        toast.error('Error al guardar el progreso en el servidor');
+        return;
+      }
     }
     setIsLogProgressModalOpen(false);
     setLoggingProgress(null);
@@ -1349,14 +1427,37 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Fecha de Inicio</label>
+                  <input
+                    name="startDate"
+                    type="date"
+                    required
+                    defaultValue={format(loggingProgress.date, 'yyyy-MM-dd')}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Fecha de Fin</label>
+                  <input
+                    name="endDate"
+                    type="date"
+                    required
+                    defaultValue={format(loggingProgress.date, 'yyyy-MM-dd')}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+              </div>
+
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-bold text-slate-700">¿Cuánto avanzaste hoy? (%)</label>
+                  <label className="block text-sm font-bold text-slate-700">Progreso Total Alcanzado (%)</label>
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => {
-                        const input = document.querySelector('input[name="additionalProgress"]') as HTMLInputElement;
+                        const input = document.querySelector('input[name="totalProgress"]') as HTMLInputElement;
                         const textarea = document.querySelector('textarea[name="comments"]') as HTMLTextAreaElement;
                         if (input && textarea) {
                           setCopiedProgress({
@@ -1373,11 +1474,10 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
                       <button
                         type="button"
                         onClick={() => {
-                          const input = document.querySelector('input[name="additionalProgress"]') as HTMLInputElement;
+                          const input = document.querySelector('input[name="totalProgress"]') as HTMLInputElement;
                           const textarea = document.querySelector('textarea[name="comments"]') as HTMLTextAreaElement;
                           if (input && textarea && loggingProgress) {
-                            const maxAllowed = 100 - loggingProgress.activity.progress;
-                            input.value = Math.min(copiedProgress.progress, maxAllowed).toString();
+                            input.value = copiedProgress.progress.toString();
                             textarea.value = copiedProgress.comments;
                           }
                         }}
@@ -1389,15 +1489,16 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
                   </div>
                 </div>
                 <input
-                  name="additionalProgress"
+                  name="totalProgress"
                   type="number"
                   min="0"
-                  max={100 - loggingProgress.activity.progress}
+                  max="100"
                   required
-                  placeholder="Ej: 5"
+                  defaultValue={Math.min(100, loggingProgress.activity.progress + 10)}
+                  placeholder="Ej: 50"
                   className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">Ingresa el porcentaje de contribución de hoy (puede ser 0).</p>
+                <p className="text-[10px] text-slate-400 mt-1">Ingresa el porcentaje acumulado al finalizar el rango elegido.</p>
               </div>
 
               <div>
@@ -1405,8 +1506,9 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
                 <textarea
                   name="comments"
                   rows={3}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none resize-none"
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none resize-none text-sm font-medium"
                   placeholder="Describe lo que hiciste..."
+                  required
                 ></textarea>
               </div>
 
