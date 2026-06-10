@@ -370,9 +370,25 @@ export const mapPMRecordToDB = (record: Partial<ProductManagementRecord>) => {
   if (record.commercialAssignment !== undefined) dbRecord.commercial_assignment = record.commercialAssignment;
   if (record.categoryId !== undefined) dbRecord.category_id = isUUID(record.categoryId) ? record.categoryId : null;
   else if (record.categoria !== undefined && isUUID(record.categoria)) dbRecord.category_id = record.categoria;
+  // Lineal de Productos fields
+  if (record.commercialName !== undefined) dbRecord.commercial_name = record.commercialName;
+  if (record.detailedDescription !== undefined) dbRecord.detailed_description = record.detailedDescription;
+  if (record.segment !== undefined) dbRecord.segment = record.segment;
+  if (record.productStatus !== undefined) dbRecord.product_status = record.productStatus;
+  if (record.habilitado !== undefined) dbRecord.habilitado = record.habilitado;
+  if (record.incluyeKit !== undefined) dbRecord.incluye_kit = record.incluyeKit;
+  if (record.habilitacionCosto !== undefined) dbRecord.habilitacion_costo = record.habilitacionCosto;
+  if (record.pvp !== undefined) dbRecord.pvp = record.pvp;
+  if (record.pvpDescuento !== undefined) dbRecord.pvp_descuento = record.pvpDescuento;
+  if (record.salesCurrentYear !== undefined) dbRecord.sales_current_year = record.salesCurrentYear;
+  if (record.salesPreviousYear !== undefined) dbRecord.sales_previous_year = record.salesPreviousYear;
+  if (record.currentYear !== undefined) dbRecord.current_year = record.currentYear;
+  if (record.previousYear !== undefined) dbRecord.previous_year = record.previousYear;
+  if (record.catalogComments !== undefined) dbRecord.catalog_comments = record.catalogComments;
   
   return dbRecord;
 };
+
 
 
 export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
@@ -414,11 +430,25 @@ export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
   codigoEAN: dbRecord.ean_code || '',
   eanCode: dbRecord.ean_code || '',
   descripcionSAP: dbRecord.sap_description || '',
-  marca: dbRecord.brand?.name || dbRecord.brand_id || 'SOLE',
+  commercialName: dbRecord.commercial_name || '',
+  detailedDescription: dbRecord.detailed_description || '',
+  segment: dbRecord.segment || undefined,
+  productStatus: dbRecord.product_status || 'vigente',
+  habilitado: dbRecord.habilitado === true || dbRecord.habilitado === 1,
+  incluyeKit: dbRecord.incluye_kit === true || dbRecord.incluye_kit === 1,
+  habilitacionCosto: dbRecord.habilitacion_costo != null ? Number(dbRecord.habilitacion_costo) : undefined,
+  pvp: dbRecord.pvp != null ? Number(dbRecord.pvp) : undefined,
+  pvpDescuento: dbRecord.pvp_descuento != null ? Number(dbRecord.pvp_descuento) : undefined,
+  salesCurrentYear: dbRecord.sales_current_year != null ? Number(dbRecord.sales_current_year) : undefined,
+  salesPreviousYear: dbRecord.sales_previous_year != null ? Number(dbRecord.sales_previous_year) : undefined,
+  currentYear: dbRecord.current_year != null ? Number(dbRecord.current_year) : undefined,
+  previousYear: dbRecord.previous_year != null ? Number(dbRecord.previous_year) : undefined,
+  catalogComments: dbRecord.catalog_comments || '',
+  marca: dbRecord.brand?.name || dbRecord.brand_name || dbRecord.brand_id || 'SOLE',
   brandId: dbRecord.brand_id,
-  proveedor: dbRecord.supplier?.commercial_alias || dbRecord.supplier?.legal_name || dbRecord.supplier_id || 'Desconocido',
+  proveedor: dbRecord.supplier?.commercial_alias || dbRecord.supplier?.legal_name || dbRecord.supplier_commercial_alias || dbRecord.supplier_legal_name || dbRecord.supplier_id || 'Desconocido',
   supplierId: dbRecord.supplier_id,
-  linea: dbRecord.line?.name || dbRecord.line_id || 'AGUA CALIENTE',
+  linea: dbRecord.line?.name || dbRecord.line_name || dbRecord.line_id || 'AGUA CALIENTE',
   lineId: dbRecord.line_id,
   sampleId: dbRecord.sample_id,
   fobPrice: dbRecord.fob_price || 0,
@@ -431,7 +461,7 @@ export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
   technicalAssignment: dbRecord.technical_assignment,
   commercialAssignment: dbRecord.commercial_assignment,
   categoryId: dbRecord.category_id || '',
-  categoria: (dbRecord.category?.name || dbRecord.category_id || '').toUpperCase(),
+  categoria: (dbRecord.category?.name || dbRecord.category_name || dbRecord.category_id || '').toUpperCase(),
   createdAt: dbRecord.created_at || new Date().toISOString()
 });
 

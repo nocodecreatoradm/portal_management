@@ -261,6 +261,54 @@ async function startServer() {
     }
   });
 
+  // Migration: Add Lineal de Productos columns to product_management
+  app.post("/api/migrate/lineal-productos", requireAuth, async (req, res) => {
+    try {
+      const migrations = [
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'commercial_name')
+          ALTER TABLE ID_PORTAL.product_management ADD commercial_name NVARCHAR(500)`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'detailed_description')
+          ALTER TABLE ID_PORTAL.product_management ADD detailed_description NVARCHAR(MAX)`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'segment')
+          ALTER TABLE ID_PORTAL.product_management ADD segment NVARCHAR(50)`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'product_status')
+          ALTER TABLE ID_PORTAL.product_management ADD product_status NVARCHAR(50) DEFAULT 'vigente'`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'habilitado')
+          ALTER TABLE ID_PORTAL.product_management ADD habilitado BIT DEFAULT 0`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'incluye_kit')
+          ALTER TABLE ID_PORTAL.product_management ADD incluye_kit BIT DEFAULT 0`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'habilitacion_costo')
+          ALTER TABLE ID_PORTAL.product_management ADD habilitacion_costo DECIMAL(10,2)`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'pvp')
+          ALTER TABLE ID_PORTAL.product_management ADD pvp DECIMAL(10,2)`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'pvp_descuento')
+          ALTER TABLE ID_PORTAL.product_management ADD pvp_descuento DECIMAL(10,2)`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'sales_current_year')
+          ALTER TABLE ID_PORTAL.product_management ADD sales_current_year INT`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'sales_previous_year')
+          ALTER TABLE ID_PORTAL.product_management ADD sales_previous_year INT`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'current_year')
+          ALTER TABLE ID_PORTAL.product_management ADD current_year INT`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'previous_year')
+          ALTER TABLE ID_PORTAL.product_management ADD previous_year INT`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'catalog_comments')
+          ALTER TABLE ID_PORTAL.product_management ADD catalog_comments NVARCHAR(MAX)`,
+      ];
+
+      const results: string[] = [];
+      for (const sql of migrations) {
+        await dbPool.request().query(sql);
+        const colName = sql.match(/name = '([^']+)'/)?.[1] || '?';
+        results.push(`✅ ${colName}`);
+      }
+
+      res.json({ success: true, applied: results });
+    } catch (error: any) {
+      console.error("Migration error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Endpoint to migrate existing files from Supabase to Azure via Server-Sent Events (Protected)
   app.get("/api/azure-migrate", requireAuth, async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');

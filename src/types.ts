@@ -422,6 +422,22 @@ export interface ProductManagementRecord {
   codigoEAN?: string;
   eanCode?: string;
   descripcionSAP: string;
+  // Lineal de Productos fields
+  commercialName?: string;           // Nombre comercial
+  detailedDescription?: string;      // Descripción detallada
+  segment?: 'ticket_value' | 'mainstream' | 'premium'; // Posicionamiento
+  productStatus?: 'vigente' | 'reemplazo' | 'descontinuado';
+  habilitado?: boolean;              // ¿Requiere habilitación/kit?
+  incluyeKit?: boolean;              // ¿El proveedor provee el kit?
+  habilitacionCosto?: number;        // Costo adicional de habilitación (USD)
+  pvp?: number;                      // Precio de venta al público (S/)
+  pvpDescuento?: number;             // PVP con descuento/oferta (S/)
+  salesCurrentYear?: number;         // Ventas año actual (unidades)
+  salesPreviousYear?: number;        // Ventas año anterior (unidades)
+  currentYear?: number;              // Año actual (e.g. 2024)
+  previousYear?: number;             // Año anterior (e.g. 2023)
+  catalogComments?: string;          // Comentarios (uno por línea, separados por \n)
+  // Existing fields
   marca: string;
   brandId?: string;
   proveedor: string;
@@ -462,6 +478,7 @@ export interface ProductManagementRecord {
   commercialAssignment?: AssignmentInfo;
   createdAt: string;
 }
+
 
 export interface EnergyEfficiencyDocument extends FileInfo {
   version: number;
