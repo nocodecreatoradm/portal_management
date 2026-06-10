@@ -539,7 +539,7 @@ export default function PriceGMROISimulator() {
             >
               <option value="all">Todas las Categorías ({categories.length})</option>
               {categories.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>{c.name.toUpperCase()}</option>
               ))}
             </select>
           </div>
@@ -701,7 +701,7 @@ export default function PriceGMROISimulator() {
                       className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-bold text-slate-700 text-xs"
                     >
                       {categories.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
+                        <option key={c.id} value={c.id}>{c.name.toUpperCase()}</option>
                       ))}
                     </select>
                   </div>
@@ -1149,7 +1149,7 @@ export default function PriceGMROISimulator() {
                 <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Paso 3: Retorno sobre Inversión (GMROI)</span>
                 <div className="text-lg font-black text-blue-600">{spreadsheetData.gmroi.toFixed(2)} Soles retornados</div>
                 <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
-                  Dividiendo la utilidad acumulada por el inventario promedio. Al año, este producto retorna {spreadsheetData.gmroi.toFixed(2)} Soles de ganancia neta por cada 1 Sol detenido en almacén de {categories.find(c => c.id === categoryId)?.name || 'N/A'}.
+                  Dividiendo la utilidad acumulada por el inventario promedio. Al año, este producto retorna {spreadsheetData.gmroi.toFixed(2)} Soles de ganancia neta por cada 1 Sol detenido en almacén de {(categories.find(c => c.id === categoryId)?.name || 'N/A').toUpperCase()}.
                 </p>
               </div>
             </div>
@@ -1178,7 +1178,7 @@ export default function PriceGMROISimulator() {
             </div>
 
             <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-[10px] text-blue-900 leading-relaxed font-bold">
-              <strong>¿Cómo optimizar y usar esta plantilla de {categories.find(c=>c.id===categoryId)?.name || 'N/A'}?</strong><br />
+              <strong>¿Cómo optimizar y usar esta plantilla de {(categories.find(c=>c.id===categoryId)?.name || 'N/A').toUpperCase()}?</strong><br />
               El indicador GMROI de <strong>{spreadsheetData.gmroi.toFixed(2)}</strong> significa que por cada Sol capitalizado que tienes dormido en inventario promedio mensual de {productName}, recuperas S/ {spreadsheetData.gmroi.toFixed(2)} en utilidad. Si deseas subir tu índice, puedes hacer ingresos fraccionados (Menos unidades en Mes 0 y más ingresos distribuidos) para achicar el inventario retenido promedio.
             </div>
           </div>
@@ -1295,7 +1295,7 @@ export default function PriceGMROISimulator() {
                 return (
                   <div key={cat.id} className="grid grid-cols-1 md:grid-cols-4 items-center gap-4 py-3.5 first:pt-0">
                     <div className="md:col-span-1">
-                      <span className="text-xs font-black text-slate-800 uppercase tracking-tight block">{cat.name}</span>
+                      <span className="text-xs font-black text-slate-800 uppercase tracking-tight block">{cat.name.toUpperCase()}</span>
                       <span className="text-[8px] text-slate-400 uppercase font-black tracking-widest block mt-0.5">Estándar Sole Group</span>
                     </div>
 

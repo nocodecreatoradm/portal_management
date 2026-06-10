@@ -169,7 +169,7 @@ export default function NewRequestModal({
           updates.lineId = line.id;
           // If we also have a category name but no ID, recover it too
           if (formData.categoria && !formData.categoryId && categories.length > 0) {
-            const cat = categories.find(c => c.name === formData.categoria && c.productLineId === line.id);
+            const cat = categories.find(c => c.name.toLowerCase() === formData.categoria.toLowerCase() && c.productLineId === line.id);
             if (cat) updates.categoryId = cat.id;
           }
         }
@@ -287,7 +287,7 @@ export default function NewRequestModal({
 
     if (name === 'categoria') {
       const currentLineId = formData.lineId || productLines.find(l => l.name === formData.linea)?.id;
-      const cat = categories.find(c => c.name === value && c.productLineId === currentLineId);
+      const cat = categories.find(c => c.name.toLowerCase() === value.toLowerCase() && c.productLineId === currentLineId);
       setFormData(prev => ({ ...prev, categoria: value, categoryId: cat?.id || '' }));
       return;
     }
@@ -530,7 +530,7 @@ export default function NewRequestModal({
                       value={formData.categoria}
                       onChange={(val) => {
                         const currentLineId = formData.lineId || productLines.find(l => l.name === formData.linea)?.id;
-                        const cat = categories.find(c => c.name === val && c.productLineId === currentLineId);
+                        const cat = categories.find(c => c.name.toLowerCase() === val.toLowerCase() && c.productLineId === currentLineId);
                         setFormData(prev => ({ ...prev, categoria: val, categoryId: cat?.id || '' }));
                       }}
                       placeholder="-- SELECCIONAR CATEGORÍA --"

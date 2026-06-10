@@ -39,7 +39,7 @@ export const SamplesProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (l) (resolved as any).linea = l.id;
     }
     if (sample.categoria) {
-      const c = categories.find(x => x.name === sample.categoria);
+      const c = categories.find(x => x.name.toLowerCase() === sample.categoria.toLowerCase());
       if (c) (resolved as any).categoria = c.id;
     }
     if (sample.proveedor) {

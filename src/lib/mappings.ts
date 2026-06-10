@@ -641,13 +641,13 @@ export const mapDBToProductLine = (dbLine: any): ProductLine => ({
 });
 
 export const mapCategoryToDB = (cat: Partial<Category>) => ({
-  name: cat.name,
+  name: cat.name ? cat.name.toUpperCase() : cat.name,
   line_id: cat.productLineId
 });
 
 export const mapDBToCategory = (dbCat: any): Category => ({
   id: dbCat.id,
-  name: dbCat.name,
+  name: (dbCat.name || '').toUpperCase(),
   productLineId: dbCat.line_id
 });
 

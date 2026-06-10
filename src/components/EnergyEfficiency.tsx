@@ -305,7 +305,7 @@ export default function EnergyEfficiency({
           }
           if (col === 'linea') {
             const lineName = productLines.find(l => l.id === r.lineId || l.name === r.linea)?.name || r.linea || '';
-            const catName = categories.find(c => c.id === r.categoryId || c.name === r.categoria)?.name || r.categoria || '';
+            const catName = categories.find(c => c.id === r.categoryId || c.name.toLowerCase() === r.categoria?.toLowerCase())?.name || r.categoria || '';
             return lineName.toLowerCase().includes(filterVal) || catName.toLowerCase().includes(filterVal);
           }
           return false;
@@ -903,7 +903,7 @@ export default function EnergyEfficiency({
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Categoría</p>
                     <p className="text-sm font-bold text-slate-700">
-                      {categories.find(c => c.id === record.categoryId || c.name === record.categoria)?.name || record.categoria}
+                      {categories.find(c => c.id === record.categoryId || c.name.toLowerCase() === record.categoria?.toLowerCase())?.name || record.categoria}
                     </p>
                   </div>
                 </div>
@@ -1172,7 +1172,7 @@ export default function EnergyEfficiency({
       'Emisión': r.fechaEmision ? r.fechaEmision.split('T')[0] : '',
       'Vigilancia': r.fechaVigilancia ? r.fechaVigilancia.split('T')[0] : '',
       'Línea': productLines.find(l => l.id === r.lineId || l.name === r.linea)?.name || r.linea || '',
-      'Categoría': categories.find(c => c.id === r.categoryId || c.name === r.categoria)?.name || r.categoria || ''
+      'Categoría': categories.find(c => c.id === r.categoryId || c.name.toLowerCase() === r.categoria?.toLowerCase())?.name || r.categoria || ''
     }));
     exportToExcel(data, 'Eficiencia_Energetica');
     toast.success('Excel exportado correctamente');
@@ -1373,7 +1373,7 @@ export default function EnergyEfficiency({
                         {productLines.find(l => l.id === record.lineId || l.name === record.linea)?.name || record.linea}
                       </span>
                       <span className="text-[10px] text-slate-400 font-medium uppercase">
-                        {categories.find(c => c.id === record.categoryId || c.name === record.categoria)?.name || record.categoria}
+                        {categories.find(c => c.id === record.categoryId || c.name.toLowerCase() === record.categoria?.toLowerCase())?.name || record.categoria}
                       </span>
                     </div>
                   </td>
