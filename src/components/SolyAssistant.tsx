@@ -1703,17 +1703,13 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
               {/* Decorative top border gradient line */}
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
               
-              {/* Soly Avatar Indicator */}
-              <div className="shrink-0 flex items-center justify-center">
-                <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-full p-[2px] shadow-lg shadow-indigo-950/30">
-                  <div className="w-full h-full bg-slate-800 rounded-full overflow-hidden flex items-end justify-center">
-                    <img 
-                      src={celebrating} 
-                      alt="Soly Avatar" 
-                      className="w-10 h-10 object-contain object-bottom"
-                    />
-                  </div>
-                </div>
+              {/* Soly Avatar Indicator - Standing Character without Ring */}
+              <div className="shrink-0 flex items-end justify-center w-16 h-20 select-none">
+                <img 
+                  src={celebrating} 
+                  alt="Soly Avatar" 
+                  className="w-full h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.25)]"
+                />
               </div>
               
               {/* Content */}
@@ -1724,7 +1720,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
                 <span className="text-xs font-semibold text-slate-100">
                   Recordatorio de <span className="text-purple-400 font-bold">{reminder.senderName}</span>:
                 </span>
-                <p className="text-xs text-slate-350 leading-relaxed italic bg-slate-950/40 p-2 rounded-lg border border-slate-800/60 mt-1">
+                <p className="text-xs text-white font-medium leading-relaxed bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80 mt-1">
                   "{reminder.message}"
                 </p>
                 <div className="flex justify-end mt-2">
@@ -1863,17 +1859,13 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
               {/* Decorative top border gradient line */}
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
               
-              {/* Soly Avatar Indicator */}
-              <div className="shrink-0 flex items-center justify-center">
-                <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-full p-[2px] shadow-lg shadow-indigo-950/30">
-                  <div className="w-full h-full bg-slate-800 rounded-full overflow-hidden flex items-end justify-center">
-                    <img 
-                      src={celebrating} 
-                      alt="Soly Avatar" 
-                      className="w-10 h-10 object-contain object-bottom"
-                    />
-                  </div>
-                </div>
+              {/* Soly Avatar Indicator - Standing Character without Ring */}
+              <div className="shrink-0 flex items-end justify-center w-16 h-20 select-none">
+                <img 
+                  src={celebrating} 
+                  alt="Soly Avatar" 
+                  className="w-full h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.25)]"
+                />
               </div>
               
               {/* Content */}
@@ -1884,7 +1876,7 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
                 <span className="text-xs font-semibold text-slate-100">
                   Recordatorio de <span className="text-purple-400 font-bold">{reminder.senderName}</span>:
                 </span>
-                <p className="text-xs text-slate-350 leading-relaxed italic bg-slate-950/40 p-2 rounded-lg border border-slate-800/60 mt-1">
+                <p className="text-xs text-white font-medium leading-relaxed bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80 mt-1">
                   "{reminder.message}"
                 </p>
                 <div className="flex justify-end mt-2">
