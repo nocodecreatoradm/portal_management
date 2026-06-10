@@ -998,11 +998,19 @@ export const SupabaseService = {
   async createCalendarTask(task: Partial<CalendarTask>) {
     const profiles = await getCachedProfiles();
     if (task.requester) {
-      const req = profiles.find(x => x.full_name === task.requester);
+      const cleanRequester = task.requester.trim().toLowerCase();
+      const req = profiles.find(x => 
+        (x.full_name && x.full_name.trim().toLowerCase() === cleanRequester) || 
+        x.id === task.requester
+      );
       if (req) task.requester = req.id;
     }
     if (task.assignee) {
-      const ass = profiles.find(x => x.full_name === task.assignee);
+      const cleanAssignee = task.assignee.trim().toLowerCase();
+      const ass = profiles.find(x => 
+        (x.full_name && x.full_name.trim().toLowerCase() === cleanAssignee) || 
+        x.id === task.assignee
+      );
       if (ass) task.assignee = ass.id;
     }
     const dbTask = mapTaskToDB(task);
@@ -1025,11 +1033,19 @@ export const SupabaseService = {
     if (!isUUID(id)) return null;
     const profiles = await getCachedProfiles();
     if (updates.requester) {
-      const req = profiles.find(x => x.full_name === updates.requester);
+      const cleanRequester = updates.requester.trim().toLowerCase();
+      const req = profiles.find(x => 
+        (x.full_name && x.full_name.trim().toLowerCase() === cleanRequester) || 
+        x.id === updates.requester
+      );
       if (req) updates.requester = req.id;
     }
     if (updates.assignee) {
-      const ass = profiles.find(x => x.full_name === updates.assignee);
+      const cleanAssignee = updates.assignee.trim().toLowerCase();
+      const ass = profiles.find(x => 
+        (x.full_name && x.full_name.trim().toLowerCase() === cleanAssignee) || 
+        x.id === updates.assignee
+      );
       if (ass) updates.assignee = ass.id;
     }
     const dbUpdates = mapTaskToDB(updates);
@@ -1426,8 +1442,9 @@ export const SupabaseService = {
       .select('id, full_name, email, role, is_active, department, scopes, avatar_url')
       .order('full_name');
     if (error) throw error;
-    // Refresh the cached profiles whenever full profiles are fetched
-    invalidateProfilesCache();
+    // Update the cached profiles whenever full profiles are fetched
+    cachedProfiles = data.map(p => ({ id: p.id, full_name: p.full_name, department: p.department }));
+    profilesCacheTimestamp = Date.now();
     return data;
   },
 

@@ -31,7 +31,7 @@ interface CalendarModuleProps {
 }
 
 export default function CalendarModule({ onNavigateToModule }: CalendarModuleProps = {}) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [tasks, setTasks] = useState<CalendarTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(getLimaNow());
@@ -323,7 +323,7 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
     const change: ChangeLog = {
       id: `LOG-${Date.now()}`,
       timestamp: getLimaNow().toISOString(),
-      user: user?.name || 'Sistema',
+      user: profile?.full_name || 'Sistema',
       action: 'Cambio de Estado',
       details: `Se cambió el estado de la tarea a: ${
         newStatus === 'completed' ? 'Completado' :
@@ -373,7 +373,7 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
       startDate: resolvedStartDate,
       endDate: resolvedEndDate,
       type: formData.get('type') as CalendarTask['type'],
-      requester: (formData.get('requester') as string) || user?.name || 'Sistema',
+      requester: (formData.get('requester') as string) || profile?.full_name || 'Sistema',
       assignee: formData.get('assignee') as string || undefined,
       status: formData.get('status') as CalendarTask['status'] || 'pending',
       deliveryStatus: formData.get('deliveryStatus') as CalendarTask['deliveryStatus'] || 'pending',
@@ -385,7 +385,7 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
         const change: ChangeLog = {
           id: `LOG-${Date.now()}`,
           timestamp: getLimaNow().toISOString(),
-          user: user?.name || 'Sistema',
+          user: profile?.full_name || 'Sistema',
           action: 'Actualización',
           details: `Se actualizó la tarea: ${taskData.title}`
         };
@@ -413,7 +413,7 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
           changeLog: [{
             id: `LOG-${Date.now()}`,
             timestamp: getLimaNow().toISOString(),
-            user: user?.name || 'Sistema',
+            user: profile?.full_name || 'Sistema',
             action: 'Creación',
             details: 'Registro inicial de la tarea'
           }]
@@ -475,7 +475,7 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
           <button 
             onClick={() => {
               setEditingTask(null);
-              setRequester(user?.name || '');
+              setRequester(profile?.full_name || '');
               setAssignee('');
               setEntryType('work');
               setIsModalOpen(true);
