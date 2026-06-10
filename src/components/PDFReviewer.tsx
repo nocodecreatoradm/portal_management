@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, User, Calendar, MessageSquare, CheckCircle, Clock, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download } from 'lucide-react';
 import { PDFComment, FileInfo } from '../types';
 import { format } from 'date-fns';
@@ -37,6 +37,52 @@ export default function PDFReviewer({
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [clickPosition, setClickPosition] = useState<{ x: number, y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const [lastLoadedFileIndex, setLastLoadedFileIndex] = useState<number | null>(null);
+  const [imageDimensions, setImageDimensions] = useState<{ width: number, height: number } | null>(null);
+
+  useEffect(() => {
+    setLastLoadedFileIndex(null);
+    setImageDimensions(null);
+  }, [activeFileIndex]);
+
+  const onPageLoadSuccess = (page: any) => {
+    if (lastLoadedFileIndex !== activeFileIndex) {
+      if (containerRef.current && containerRef.current.parentElement) {
+        const workspace = containerRef.current.parentElement;
+        const containerWidth = workspace.clientWidth - 96; // 96px for p-12 padding (48px each side)
+        const containerHeight = workspace.clientHeight - 96;
+        
+        const { originalWidth, originalHeight } = page;
+        const widthScale = containerWidth / originalWidth;
+        const heightScale = containerHeight / originalHeight;
+        
+        const fitScale = Math.min(widthScale, heightScale, 1.5);
+        setScale(fitScale);
+        setLastLoadedFileIndex(activeFileIndex);
+      }
+    }
+  };
+
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    setImageDimensions({ width: naturalWidth, height: naturalHeight });
+    
+    if (lastLoadedFileIndex !== activeFileIndex) {
+      if (containerRef.current && containerRef.current.parentElement) {
+        const workspace = containerRef.current.parentElement;
+        const containerWidth = workspace.clientWidth - 96;
+        const containerHeight = workspace.clientHeight - 96;
+        
+        const widthScale = containerWidth / naturalWidth;
+        const heightScale = containerHeight / naturalHeight;
+        
+        const fitScale = Math.min(widthScale, heightScale, 1.5);
+        setScale(fitScale);
+        setLastLoadedFileIndex(activeFileIndex);
+      }
+    }
+  };
 
   const activeFile = files[activeFileIndex];
   const isImage = activeFile?.type.startsWith('image/') || 
@@ -104,43 +150,47 @@ export default function PDFReviewer({
         </div>
         
         <div className="flex items-center gap-8">
-          {/* PDF Controls - Only visible if not an image */}
-          {!isImage && (
-            <div className="flex items-center gap-3 bg-white/5 p-1 rounded-2xl border border-white/10 shadow-inner">
-              <button 
-                onClick={() => setPageNumber(p => Math.max(1, p - 1))}
-                disabled={pageNumber <= 1}
-                className="p-2.5 hover:bg-white/10 rounded-xl text-white/70 disabled:opacity-20 transition-all"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <div className="px-3 min-w-[80px] text-center text-[10px] font-black text-white uppercase tracking-widest group">
-                <span className="group-hover:text-indigo-400 transition-colors">Página {pageNumber}</span>
-                <span className="text-white/30 mx-1">/</span>
-                <span className="text-white/40">{numPages || '?'}</span>
-              </div>
-              <button 
-                onClick={() => setPageNumber(p => Math.min(numPages || 1, p + 1))}
-                disabled={pageNumber >= (numPages || 1)}
-                className="p-2.5 hover:bg-white/10 rounded-xl text-white/70 disabled:opacity-20 transition-all"
-              >
-                <ChevronRight size={20} />
-              </button>
-              <div className="w-px h-6 bg-white/10 mx-2"></div>
-              <button 
-                onClick={() => setScale(s => Math.min(3, s + 0.2))}
-                className="p-2.5 hover:bg-white/10 rounded-xl text-white/70 transition-all"
-              >
-                <ZoomIn size={20} />
-              </button>
-              <button 
-                onClick={() => setScale(s => Math.max(0.5, s - 0.2))}
-                className="p-2.5 hover:bg-white/10 rounded-xl text-white/70 transition-all"
-              >
-                <ZoomOut size={20} />
-              </button>
-            </div>
-          )}
+          {/* Controls - Zoom is visible for both, pagination only for PDFs */}
+          <div className="flex items-center gap-3 bg-white/5 p-1 rounded-2xl border border-white/10 shadow-inner">
+            {!isImage && (
+              <>
+                <button 
+                  onClick={() => setPageNumber(p => Math.max(1, p - 1))}
+                  disabled={pageNumber <= 1}
+                  className="p-2.5 hover:bg-white/10 rounded-xl text-white/70 disabled:opacity-20 transition-all"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <div className="px-3 min-w-[80px] text-center text-[10px] font-black text-white uppercase tracking-widest group">
+                  <span className="group-hover:text-indigo-400 transition-colors">Página {pageNumber}</span>
+                  <span className="text-white/30 mx-1">/</span>
+                  <span className="text-white/40">{numPages || '?'}</span>
+                </div>
+                <button 
+                  onClick={() => setPageNumber(p => Math.min(numPages || 1, p + 1))}
+                  disabled={pageNumber >= (numPages || 1)}
+                  className="p-2.5 hover:bg-white/10 rounded-xl text-white/70 disabled:opacity-20 transition-all"
+                >
+                  <ChevronRight size={20} />
+                </button>
+                <div className="w-px h-6 bg-white/10 mx-2"></div>
+              </>
+            )}
+            <button 
+              onClick={() => setScale(s => Math.min(3, s + 0.2))}
+              className="p-2.5 hover:bg-white/10 rounded-xl text-white/70 transition-all"
+              title="Acercar (Zoom In)"
+            >
+              <ZoomIn size={20} />
+            </button>
+            <button 
+              onClick={() => setScale(s => Math.max(0.5, s - 0.2))}
+              className="p-2.5 hover:bg-white/10 rounded-xl text-white/70 transition-all"
+              title="Alejar (Zoom Out)"
+            >
+              <ZoomOut size={20} />
+            </button>
+          </div>
 
           <div className="flex items-center gap-4">
             <a 
@@ -171,13 +221,21 @@ export default function PDFReviewer({
             className="relative shadow-[0_60px_120px_-30px_rgba(0,0,0,0.9)] cursor-crosshair group/view overflow-visible"
           >
             {isImage ? (
-              <div className="relative w-full bg-white rounded-sm overflow-hidden" onClick={handleCanvasClick}>
+              <div 
+                className="relative bg-white rounded-sm overflow-hidden" 
+                style={{ 
+                  width: imageDimensions ? `${imageDimensions.width * scale}px` : 'auto',
+                  height: imageDimensions ? `${imageDimensions.height * scale}px` : 'auto'
+                }} 
+                onClick={handleCanvasClick}
+              >
                 <img 
                   src={activeFile.url} 
                   alt={activeFile.name}
-                  className="w-full h-auto block select-none"
+                  className="w-full h-full block select-none"
                   referrerPolicy="no-referrer"
                   loading="lazy"
+                  onLoad={handleImageLoad}
                 />
                 <div className="absolute inset-0 bg-indigo-900/5 opacity-0 group-hover/view:opacity-100 transition-opacity pointer-events-none"></div>
               </div>
@@ -210,6 +268,7 @@ export default function PDFReviewer({
                     <Page 
                       pageNumber={pageNumber} 
                       scale={scale}
+                      onLoadSuccess={onPageLoadSuccess}
                       className="shadow-2xl select-none"
                       renderAnnotationLayer={false}
                       renderTextLayer={false}
