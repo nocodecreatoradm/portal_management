@@ -412,6 +412,7 @@ export interface CalendarTask {
   changeLog: ChangeLog[];
   sapCode?: string;
   referenceId?: string;
+  fullTitle?: string;
 }
 
 export interface ProductManagementRecord {

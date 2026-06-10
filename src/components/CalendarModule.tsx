@@ -118,7 +118,8 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
 
           fixedActivities.push({
             id: `artwork-${product.id}`,
-            title: `[Arte] ${product.correlativeId || product.codigoSAP}${product.descripcionSAP ? ` | ${product.descripcionSAP}` : ''}`,
+            title: `[Arte] ${product.correlativeId || product.codigoSAP}`,
+            fullTitle: `[Arte] ${product.correlativeId || product.codigoSAP}${product.descripcionSAP ? ` | ${product.descripcionSAP}` : ''}`,
             description: `Diseñador: ${assign?.designer || 'No asignado'}. Ficha relacionada: ${product.correlativeId || ''}`,
             startDate,
             endDate,
@@ -166,7 +167,8 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
 
           fixedActivities.push({
             id: `technical-${product.id}`,
-            title: `[F. Téc] ${product.correlativeId || product.codigoSAP}${product.descripcionSAP ? ` | ${product.descripcionSAP}` : ''}`,
+            title: `[F. Téc] ${product.correlativeId || product.codigoSAP}`,
+            fullTitle: `[F. Téc] ${product.correlativeId || product.codigoSAP}${product.descripcionSAP ? ` | ${product.descripcionSAP}` : ''}`,
             description: `Asignado a: ${assign?.designer || 'No asignado'}. Ficha relacionada: ${product.correlativeId || ''}`,
             startDate,
             endDate,
@@ -214,7 +216,8 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
 
           fixedActivities.push({
             id: `commercial-${product.id}`,
-            title: `[F. Com] ${product.correlativeId || product.codigoSAP}${product.descripcionSAP ? ` | ${product.descripcionSAP}` : ''}`,
+            title: `[F. Com] ${product.correlativeId || product.codigoSAP}`,
+            fullTitle: `[F. Com] ${product.correlativeId || product.codigoSAP}${product.descripcionSAP ? ` | ${product.descripcionSAP}` : ''}`,
             description: `Asignado a: ${assign?.designer || 'No asignado'}. Ficha relacionada: ${product.correlativeId || ''}`,
             startDate,
             endDate,
@@ -243,7 +246,8 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
 
         fixedActivities.push({
           id: `claim-${claim.id}`,
-          title: `[Reclamo] ${claim.sapCode || ''}${claim.sapCode ? ' | ' : ''}${claim.defectType} - ${claim.documentCategory}`,
+          title: `[Reclamo] ${claim.sapCode || claim.defectType}`,
+          fullTitle: `[Reclamo] ${claim.sapCode || ''}${claim.sapCode ? ' | ' : ''}${claim.defectType} - ${claim.documentCategory}`,
           description: `Responsable: ${claim.responsibleName}. Tipo Defecto: ${claim.defectType}. Comentarios: ${claim.comments || 'Sin comentarios'}`,
           startDate: claimStartStr,
           endDate: claimEndStr,
@@ -286,6 +290,7 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => 
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (task.fullTitle && task.fullTitle.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (task.requester && task.requester.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (task.assignee && task.assignee.toLowerCase().includes(searchTerm.toLowerCase()))
     );
@@ -816,7 +821,7 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
                         </span>
                       </div>
                       <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight group-hover:text-indigo-600 transition-colors">
-                        {task.title}
+                        {task.fullTitle || task.title}
                       </h4>
                       {task.description && (
                         <p className="text-xs text-slate-500 mt-1 line-clamp-2">{task.description}</p>
@@ -893,7 +898,17 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
                           <Clock size={10} className="text-slate-400" /> Programado:
                         </span>
                         <span className="text-slate-800">
-                          {format(parseLocalISO(task.startDate), 'd MMM')} al {format(parseLocalISO(task.endDate), 'd MMM yyyy')}
+                          {format(parseLocalISO(task.startDate), 'd MMM')} al {format(parseLocalISO(task.deadline ? task.deadline.split('T')[0] : task.endDate), 'd MMM yyyy')}
+                        </span>
+                      </div>
+                    )}
+                    {task.status === 'completed' && task.endDate && (
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <CheckCircle2 size={10} className="text-emerald-500" /> Fecha Fin Real:
+                        </span>
+                        <span className="text-emerald-600 font-extrabold">
+                          {format(parseLocalISO(task.endDate), "d MMM yyyy", { locale: es })}
                         </span>
                       </div>
                     )}
