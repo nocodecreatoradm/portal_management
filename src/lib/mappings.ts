@@ -342,6 +342,7 @@ export const mapProductToDB = (product: Partial<ProductRecord & ProductManagemen
   if (product.linkedGroupId !== undefined) dbProduct.linked_group_id = product.linkedGroupId;
   if (product.categoryId !== undefined) dbProduct.category_id = isUUID(product.categoryId) ? product.categoryId : null;
   else if (product.categoria !== undefined && isUUID(product.categoria)) dbProduct.category_id = product.categoria;
+  if (product.comments !== undefined) dbProduct.comments = product.comments;
   return dbProduct;
 };
 
@@ -402,7 +403,8 @@ export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
   trackingType: dbProduct.tracking_type,
   linkedGroupId: dbProduct.linked_group_id,
   categoryId: dbProduct.category_id || dbProduct.sample?.category_id || '',
-  categoria: dbProduct.category?.name || dbProduct.sample?.category?.name || ''
+  categoria: dbProduct.category?.name || dbProduct.sample?.category?.name || '',
+  comments: dbProduct.comments || ''
 });
 
 export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({

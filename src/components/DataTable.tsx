@@ -358,6 +358,7 @@ export default function DataTable({
   const uniqueSapDescriptions = useMemo(() => Array.from(new Set(data.map(item => item.descripcionSAP || '').filter(Boolean))), [data]);
   const uniqueLines = useMemo(() => Array.from(new Set(data.map(item => item.linea || '').filter(Boolean))), [data]);
   const uniqueBrands = useMemo(() => Array.from(new Set(data.map(item => item.marca || '').filter(Boolean))), [data]);
+  const uniqueComments = useMemo(() => Array.from(new Set(data.map(item => item.comments || '').filter(Boolean))), [data]);
   const uniqueSamples = useMemo(() => Array.from(new Set(data.map(item => getSampleCorrelative(item.sampleId) || '').filter(Boolean))), [data, samples]);
   const uniqueStatuses = useMemo(() => {
     return Array.from(
@@ -483,6 +484,12 @@ export default function DataTable({
                   <p className="text-[11px] font-bold text-slate-600 mt-1 uppercase line-clamp-2 leading-tight">
                     {record.descripcionSAP}
                   </p>
+                  {record.comments && (
+                    <p className="text-[10px] text-slate-500 mt-1.5 italic bg-slate-50 p-2 rounded border border-slate-100 font-medium">
+                      <span className="font-bold text-slate-600 not-italic block mb-0.5 text-[9px] uppercase tracking-wider">Comentarios del Arte:</span>
+                      {record.comments}
+                    </p>
+                  )}
                   {assignment && (
                     <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
                       <div className="flex items-center gap-2">
@@ -724,6 +731,24 @@ export default function DataTable({
               <th 
                 rowSpan={2} 
                 className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                onClick={() => toggleSort('comments')}
+              >
+                <div className="inline-flex items-center gap-1">
+                  <span>Comentarios</span>
+                  <HeaderFilterPopover 
+                    column="comments" 
+                    label="Comentarios" 
+                    currentFilter={columnFilters.comments || ''} 
+                    onFilterChange={handleFilterChange} 
+                    currentSort={sortConfig} 
+                    onSortChange={handleSortChange} 
+                    uniqueValues={uniqueComments}
+                  />
+                </div>
+              </th>
+              <th 
+                rowSpan={2} 
+                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
                 onClick={() => toggleSort('linea')}
               >
                 <div className="inline-flex items-center gap-1">
@@ -950,6 +975,9 @@ export default function DataTable({
                   </td>
                   <td className="px-3 py-3 border-r border-gray-100 text-slate-700 font-bold uppercase text-[11px] leading-tight max-w-[200px]">
                     {record.descripcionSAP}
+                  </td>
+                  <td className="px-3 py-3 border-r border-gray-100 text-[11px] leading-tight text-slate-500 font-medium italic max-w-[150px] truncate" title={record.comments}>
+                    {record.comments || <span className="text-slate-300">-</span>}
                   </td>
                   <td className="px-3 py-3 border-r border-gray-100 text-[10px] text-slate-500 font-medium uppercase tracking-tight text-center">
                     {record.linea}

@@ -58,6 +58,7 @@ export default function NewRequestModal({
         categoryId: (initialData as any).categoryId || '',
         sampleId: initialData.sampleId || '',
         correlativeId: initialData.correlativeId || '',
+        comments: initialData.comments || '',
       };
     }
 
@@ -76,6 +77,7 @@ export default function NewRequestModal({
       categoryId: '',
       sampleId: '',
       correlativeId: '',
+      comments: '',
     };
   });
 
@@ -123,6 +125,7 @@ export default function NewRequestModal({
           categoryId: (initialData as any).categoryId || '',
           sampleId: initialData.sampleId || '',
           correlativeId: initialData.correlativeId || '',
+          comments: initialData.comments || '',
         });
         setArtworkType(initialData.proveedor === 'LOCAL' ? 'local' : 'imported');
         setStep(2);
@@ -145,6 +148,7 @@ export default function NewRequestModal({
           categoryId: '',
           sampleId: '',
           correlativeId: nextId,
+          comments: '',
         });
         setStep(1);
         setArtworkType(null);
@@ -233,7 +237,7 @@ export default function NewRequestModal({
     }));
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
     // Auto-fill logic when SAP code is entered
@@ -255,6 +259,7 @@ export default function NewRequestModal({
           categoria: (existingProduct as any).categoria || '',
           categoryId: (existingProduct as any).categoryId || '',
           correlativeId: existingProduct.correlativeId || '',
+          comments: existingProduct.comments || '',
         }));
         setAutoFilled(true);
         setTimeout(() => setAutoFilled(false), 3000);
@@ -535,6 +540,18 @@ export default function NewRequestModal({
                       }}
                       placeholder="-- SELECCIONAR CATEGORÍA --"
                       disabled={!formData.linea}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Comentarios / Especificaciones del Arte</label>
+                    <textarea 
+                      name="comments"
+                      value={formData.comments}
+                      onChange={handleChange}
+                      rows={3}
+                      className="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="Ej. Deseamos que el arte incluya el logo de Sole en fondo azul con los iconos de eficiencia energética..."
                     />
                   </div>
 

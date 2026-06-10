@@ -711,6 +711,17 @@ export default function ProductDetailModal({
                   ))}
                 </div>
               </div>
+              {record.comments && (
+                <div className="col-span-2 md:col-span-4 bg-blue-50/40 p-4 rounded-xl border border-blue-100/60 mt-2">
+                  <p className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <MessageSquare size={14} className="text-blue-600" />
+                    Comentarios / Especificaciones del Arte
+                  </p>
+                  <p className="text-xs text-slate-700 font-medium whitespace-pre-wrap italic">
+                    "{record.comments}"
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

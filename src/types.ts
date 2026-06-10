@@ -158,6 +158,7 @@ export interface ProductRecord {
   commercialAssignment?: AssignmentInfo;
   trackingType?: 'artwork' | 'technical' | 'commercial';
   linkedGroupId?: string;
+  comments?: string;
 }
 
 export type SampleStatus = 'Aprobado' | 'Pasó a Comité' | 'Rechazado' | 'Observado' | 'Tolerado' | 'Inspeccionado sin informe';

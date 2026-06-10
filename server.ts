@@ -1205,6 +1205,12 @@ async function startServer() {
             ALTER TABLE ID_PORTAL.products ADD CONSTRAINT UQ_products_sap_code_tracking_type UNIQUE (sap_code, tracking_type);
         END
 
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.products') AND name = 'comments')
+        BEGIN
+            ALTER TABLE ID_PORTAL.products ADD comments nvarchar(max);
+        END
+
+
         IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('ID_PORTAL.quality_claims') AND type in (N'U'))
         BEGIN
             CREATE TABLE ID_PORTAL.quality_claims (
