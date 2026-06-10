@@ -43,6 +43,138 @@ const getGrowthPct = (r: ProductManagementRecord) => {
 };
 
 
+interface LinealViewProps {
+  filteredRecords: ProductManagementRecord[];
+  handleOpenEditModal: (record: ProductManagementRecord) => void;
+}
+
+function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const segments = ['ticket_value', 'mainstream', 'premium'] as const;
+  const allFobs = filteredRecords.map(getFobEffective).filter(v => v > 0);
+  const allPvps = filteredRecords.map(r => r.pvp || 0).filter(v => v > 0);
+  const maxFob = allFobs.length ? Math.max(...allFobs) * 1.1 : 50;
+  const maxPvp = allPvps.length ? Math.max(...allPvps) * 1.1 : 1000;
+  const minPvp = allPvps.length ? Math.min(...allPvps) * 0.9 : 0;
+  const COL_W = 320;
+  const CHART_H = 520;
+  const PAD = 48;
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h3 className="text-base font-black text-slate-900">Posicionamiento de Productos</h3>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">Eje Y: PVP (S/)  ·  Eje X: FOB efectivo ($)</p>
+        </div>
+        <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
+          {segments.map(s => (
+            <div key={s} className="flex items-center gap-1.5">
+              <div className={`w-2.5 h-2.5 rounded-full ${SEGMENT_CONFIG[s].dot}`}/>
+              {SEGMENT_CONFIG[s].label}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <div style={{ display: 'flex', minWidth: segments.length * COL_W + PAD + 60 }}>
+          {/* Y-axis */}
+          <div style={{ width: 60, flexShrink: 0, paddingTop: PAD, paddingBottom: PAD, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-end', paddingRight: 8 }}>
+            {[...Array(6)].map((_, i) => {
+              const val = Math.round(maxPvp - (i / 5) * (maxPvp - minPvp));
+              return <span key={i} className="text-[9px] font-black text-slate-400">S/{val}</span>;
+            })}
+          </div>
+          {/* Columns */}
+          {segments.map(seg => {
+            const segRecords = filteredRecords.filter(r => r.segment === seg);
+            const cfg = SEGMENT_CONFIG[seg];
+            return (
+              <div key={seg} style={{ width: COL_W, flexShrink: 0, position: 'relative', borderLeft: '1px dashed #e2e8f0' }}>
+                {/* Column header */}
+                <div className="text-center py-3 border-b border-slate-100">
+                  <span className={`text-xs font-black uppercase tracking-widest ${seg === 'ticket_value' ? 'text-blue-600' : seg === 'mainstream' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    {cfg.label}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-bold ml-2">({segRecords.length})</span>
+                </div>
+                {/* Chart area */}
+                <div style={{ height: CHART_H, position: 'relative', overflow: 'visible', padding: `${PAD}px 24px` }}>
+                  {/* Horizontal grid lines */}
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} style={{ position: 'absolute', left: 0, right: 0, top: PAD + (i / 4) * (CHART_H - PAD * 2), borderTop: '1px dashed #f1f5f9' }}/>
+                  ))}
+                  {segRecords.map(record => {
+                    const fob = getFobEffective(record);
+                    const pvp = record.pvp || 0;
+                    if (!pvp && !fob) return null;
+                    const yPct = maxPvp === minPvp ? 0.5 : 1 - (pvp - minPvp) / (maxPvp - minPvp);
+                    const top = PAD + yPct * (CHART_H - PAD * 2);
+                    const growth = getGrowthPct(record);
+                    const isHovered = hoveredId === record.id;
+                    return (
+                      <div key={record.id} style={{ position: 'absolute', top, left: '50%', transform: 'translateX(-50%)', zIndex: isHovered ? 50 : 10 }}>
+                        {/* Tooltip */}
+                        {isHovered && (
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-52 pointer-events-none">
+                            <p className="text-[9px] font-black text-slate-400 uppercase">{record.linea}{record.categoria ? ` | ${record.categoria}` : ''}</p>
+                            <p className="text-xs font-black mt-0.5">{record.commercialName || record.descripcionSAP}</p>
+                            {record.catalogComments && (
+                              <div className="mt-2 border-t border-slate-700 pt-2">
+                                {(record.catalogComments || '').split('\n').slice(0, 3).map((c, i) => (
+                                  <p key={i} className="text-[9px] text-slate-300">• {c}</p>
+                                ))}
+                              </div>
+                            )}
+                            <div className="mt-2 flex justify-between text-[9px]">
+                              <span className="text-slate-400">Precio PVP <span className="text-white font-black">S/ {pvp}</span></span>
+                              <span className="text-slate-400">FOB <span className="text-white font-black">${fob.toFixed(2)}</span></span>
+                            </div>
+                          </div>
+                        )}
+                        {/* Card */}
+                        <button
+                          onMouseEnter={() => setHoveredId(record.id)}
+                          onMouseLeave={() => setHoveredId(null)}
+                          onClick={() => handleOpenEditModal(record)}
+                          className="bg-white border-2 border-slate-200 rounded-xl p-2.5 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all w-[130px] text-left"
+                          style={{ borderColor: isHovered ? cfg.accent : undefined }}
+                        >
+                          <div className={`w-2 h-2 rounded-full ${cfg.dot} mb-1`}/>
+                          <p className="text-[9px] font-black text-slate-900 line-clamp-2">{record.commercialName || record.descripcionSAP}</p>
+                          <div className="mt-1.5 flex items-center justify-between">
+                            <span className="text-[9px] font-black text-indigo-600">S/ {pvp || '—'}</span>
+                            <span className="text-[9px] font-bold text-slate-400">${fob.toFixed(2)}</span>
+                          </div>
+                          {growth !== null && (
+                            <div className={`text-[8px] font-black flex items-center gap-0.5 mt-0.5 ${growth >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
+                              {growth >= 0 ? <ArrowUp size={8}/> : <ArrowDown size={8}/>}
+                              {Math.abs(growth).toFixed(1)}%
+                            </div>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {segRecords.length === 0 && (
+                    <div className="h-full flex items-center justify-center">
+                      <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Sin productos</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {/* X-axis label */}
+      <div className="text-center py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border-t border-slate-100">
+        Costo FOB Unitario (Dólares Americanos — USD) ↗
+      </div>
+    </div>
+  );
+}
+
 interface ProductsModuleProps {
   onExportPPT?: () => void;
 }
@@ -1018,132 +1150,9 @@ export default function ProductsModule({
         </div>
 
       /* ── LINEAL VIEW ── */
-      ) : viewMode === 'lineal' ? (() => {
-        const segments = ['ticket_value', 'mainstream', 'premium'] as const;
-        const allFobs = filteredRecords.map(getFobEffective).filter(v => v > 0);
-        const allPvps = filteredRecords.map(r => r.pvp || 0).filter(v => v > 0);
-        const maxFob = allFobs.length ? Math.max(...allFobs) * 1.1 : 50;
-        const maxPvp = allPvps.length ? Math.max(...allPvps) * 1.1 : 1000;
-        const minPvp = allPvps.length ? Math.min(...allPvps) * 0.9 : 0;
-        const [hoveredId, setHoveredId] = React.useState<string|null>(null);
-        const COL_W = 320;
-        const CHART_H = 520;
-        const PAD = 48;
-
-        return (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-black text-slate-900">Posicionamiento de Productos</h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">Eje Y: PVP (S/)  ·  Eje X: FOB efectivo ($)</p>
-              </div>
-              <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
-                {segments.map(s => (
-                  <div key={s} className="flex items-center gap-1.5">
-                    <div className={`w-2.5 h-2.5 rounded-full ${SEGMENT_CONFIG[s].dot}`}/>
-                    {SEGMENT_CONFIG[s].label}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <div style={{ display: 'flex', minWidth: segments.length * COL_W + PAD + 60 }}>
-                {/* Y-axis */}
-                <div style={{ width: 60, flexShrink: 0, paddingTop: PAD, paddingBottom: PAD, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-end', paddingRight: 8 }}>
-                  {[...Array(6)].map((_, i) => {
-                    const val = Math.round(maxPvp - (i / 5) * (maxPvp - minPvp));
-                    return <span key={i} className="text-[9px] font-black text-slate-400">S/{val}</span>;
-                  })}
-                </div>
-                {/* Columns */}
-                {segments.map(seg => {
-                  const segRecords = filteredRecords.filter(r => r.segment === seg);
-                  const cfg = SEGMENT_CONFIG[seg];
-                  return (
-                    <div key={seg} style={{ width: COL_W, flexShrink: 0, position: 'relative', borderLeft: '1px dashed #e2e8f0' }}>
-                      {/* Column header */}
-                      <div className="text-center py-3 border-b border-slate-100">
-                        <span className={`text-xs font-black uppercase tracking-widest ${seg === 'ticket_value' ? 'text-blue-600' : seg === 'mainstream' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                          {cfg.label}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-bold ml-2">({segRecords.length})</span>
-                      </div>
-                      {/* Chart area */}
-                      <div style={{ height: CHART_H, position: 'relative', overflow: 'visible', padding: `${PAD}px 24px` }}>
-                        {/* Horizontal grid lines */}
-                        {[...Array(5)].map((_, i) => (
-                          <div key={i} style={{ position: 'absolute', left: 0, right: 0, top: PAD + (i / 4) * (CHART_H - PAD * 2), borderTop: '1px dashed #f1f5f9' }}/>
-                        ))}
-                        {segRecords.map(record => {
-                          const fob = getFobEffective(record);
-                          const pvp = record.pvp || 0;
-                          if (!pvp && !fob) return null;
-                          const yPct = maxPvp === minPvp ? 0.5 : 1 - (pvp - minPvp) / (maxPvp - minPvp);
-                          const top = PAD + yPct * (CHART_H - PAD * 2);
-                          const growth = getGrowthPct(record);
-                          const isHovered = hoveredId === record.id;
-                          return (
-                            <div key={record.id} style={{ position: 'absolute', top, left: '50%', transform: 'translateX(-50%)', zIndex: isHovered ? 50 : 10 }}>
-                              {/* Tooltip */}
-                              {isHovered && (
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-52 pointer-events-none">
-                                  <p className="text-[9px] font-black text-slate-400 uppercase">{record.linea}{record.categoria ? ` | ${record.categoria}` : ''}</p>
-                                  <p className="text-xs font-black mt-0.5">{record.commercialName || record.descripcionSAP}</p>
-                                  {record.catalogComments && (
-                                    <div className="mt-2 border-t border-slate-700 pt-2">
-                                      {(record.catalogComments || '').split('\n').slice(0,3).map((c, i) => (
-                                        <p key={i} className="text-[9px] text-slate-300">• {c}</p>
-                                      ))}
-                                    </div>
-                                  )}
-                                  <div className="mt-2 flex justify-between text-[9px]">
-                                    <span className="text-slate-400">Precio PVP <span className="text-white font-black">S/ {pvp}</span></span>
-                                    <span className="text-slate-400">FOB <span className="text-white font-black">${fob.toFixed(2)}</span></span>
-                                  </div>
-                                </div>
-                              )}
-                              {/* Card */}
-                              <button
-                                onMouseEnter={() => setHoveredId(record.id)}
-                                onMouseLeave={() => setHoveredId(null)}
-                                onClick={() => handleOpenEditModal(record)}
-                                className="bg-white border-2 border-slate-200 rounded-xl p-2.5 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all w-[130px] text-left"
-                                style={{ borderColor: isHovered ? cfg.accent : undefined }}
-                              >
-                                <div className={`w-2 h-2 rounded-full ${cfg.dot} mb-1`}/>
-                                <p className="text-[9px] font-black text-slate-900 line-clamp-2">{record.commercialName || record.descripcionSAP}</p>
-                                <div className="mt-1.5 flex items-center justify-between">
-                                  <span className="text-[9px] font-black text-indigo-600">S/ {pvp || '—'}</span>
-                                  <span className="text-[9px] font-bold text-slate-400">${fob.toFixed(2)}</span>
-                                </div>
-                                {growth !== null && (
-                                  <div className={`text-[8px] font-black flex items-center gap-0.5 mt-0.5 ${growth >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
-                                    {growth >= 0 ? <ArrowUp size={8}/> : <ArrowDown size={8}/>}
-                                    {Math.abs(growth).toFixed(1)}%
-                                  </div>
-                                )}
-                              </button>
-                            </div>
-                          );
-                        })}
-                        {segRecords.length === 0 && (
-                          <div className="h-full flex items-center justify-center">
-                            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Sin productos</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            {/* X-axis label */}
-            <div className="text-center py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border-t border-slate-100">
-              Costo FOB Unitario (Dólares Americanos — USD) ↗
-            </div>
-          </div>
-        );
-      })()
+      ) : viewMode === 'lineal' ? (
+        <LinealView filteredRecords={filteredRecords} handleOpenEditModal={handleOpenEditModal} />
+      )
 
       /* ── DASHBOARD VIEW ── */
       ) : viewMode === 'dashboard' ? (() => {
