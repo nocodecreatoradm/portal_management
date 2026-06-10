@@ -2136,12 +2136,15 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                                   <p className="text-[9px] font-black text-slate-500 uppercase text-center bg-slate-100 py-1 px-2 rounded-md">{item.category}</p>
                                   <div className="flex gap-2 justify-center">
                                     {item.photos.slice(0, 3).map((p, i) => (
-                                      <div key={i} className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shadow-sm group relative">
-                                        <img src={p.url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                                        <a href={p.url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                          <Maximize2 size={12} className="text-white" />
-                                        </a>
-                                      </div>
+                                      <a 
+                                        key={i} 
+                                        href={p.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shadow-sm block hover:scale-105 transition-all"
+                                      >
+                                        <img src={p.url} className="w-full h-full object-cover cursor-pointer" referrerPolicy="no-referrer" />
+                                      </a>
                                     ))}
                                     {item.photos.length > 3 && (
                                       <div className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-black text-slate-400">
@@ -2195,12 +2198,15 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                                     {field?.photos && field.photos.length > 0 && (
                                       <div className="flex flex-wrap gap-2 justify-center mt-3">
                                         {field.photos.map((p, i) => (
-                                          <div key={i} className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shadow-sm group relative">
-                                            <img src={p.url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                                            <a href={p.url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                              <Maximize2 size={12} className="text-white" />
-                                            </a>
-                                          </div>
+                                          <a 
+                                            key={i} 
+                                            href={p.url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer" 
+                                            className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shadow-sm block hover:scale-105 transition-all"
+                                          >
+                                            <img src={p.url} className="w-full h-full object-cover cursor-pointer" referrerPolicy="no-referrer" />
+                                          </a>
                                         ))}
                                       </div>
                                     )}

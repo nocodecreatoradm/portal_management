@@ -1263,7 +1263,9 @@ const CantonFair: React.FC = () => {
                             {product.images.length > 0 && (
                               <div className="grid grid-cols-4 gap-2">
                                 {product.images.map((img, i) => (
-                                  <img key={i} src={img.url} alt="Product" className="aspect-square w-full object-contain p-2 bg-white rounded-xl border border-slate-200" referrerPolicy="no-referrer" />
+                                  <a key={i} href={img.url} target="_blank" rel="noopener noreferrer" className="block hover:scale-105 transition-all">
+                                    <img src={img.url} alt="Product" className="aspect-square w-full object-contain p-2 bg-white rounded-xl border border-slate-200 cursor-pointer" referrerPolicy="no-referrer" />
+                                  </a>
                                 ))}
                               </div>
                             )}
@@ -1458,12 +1460,14 @@ const CantonFair: React.FC = () => {
                       {selectedSupplier.images.map((img, idx) => (
                         <div key={idx} className="group bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all relative">
                           <div className="aspect-video relative bg-white">
-                            <img 
-                              src={img.file.url} 
-                              alt={`Gallery ${idx}`} 
-                              className="w-full h-full object-contain p-4"
-                              referrerPolicy="no-referrer"
-                            />
+                            <a href={img.file.url} target="_blank" rel="noopener noreferrer" className="block hover:scale-[1.02] transition-all cursor-pointer">
+                              <img 
+                                src={img.file.url} 
+                                alt={`Gallery ${idx}`} 
+                                className="w-full h-full object-contain p-4"
+                                referrerPolicy="no-referrer"
+                              />
+                            </a>
                             <button 
                               onClick={() => {
                                 setEditingImageIdx(idx);
