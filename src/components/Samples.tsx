@@ -191,6 +191,40 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const uniqueIDs = useMemo(() => Array.from(new Set(samples.map(s => s.correlativeId || '').filter(Boolean))), [samples]);
+  const uniqueProveedores = useMemo(() => Array.from(new Set(samples.map(s => s.proveedor || '').filter(Boolean))), [samples]);
+  const uniqueDescripciones = useMemo(() => Array.from(new Set(samples.map(s => s.descripcionSAP || '').filter(Boolean))), [samples]);
+  const uniqueLineas = useMemo(() => Array.from(new Set(samples.map(s => s.linea || '').filter(Boolean))), [samples]);
+  const uniqueMarcas = useMemo(() => Array.from(new Set(samples.map(s => s.marca || '').filter(Boolean))), [samples]);
+  const uniqueTechnicians = useMemo(() => Array.from(new Set(samples.map(s => s.technician || '').filter(Boolean))), [samples]);
+
+  const uniqueStatuses = useMemo(() => {
+    const rawStatuses = Array.from(new Set(samples.map(s => s.inspectionStatus || 'Inspeccionado sin informe')));
+    return rawStatuses.map(s => s === 'Inspeccionado sin informe' ? 'Sin Informe' : s).filter(Boolean);
+  }, [samples]);
+
+  const uniqueProgresses = useMemo(() => {
+    const rawProgresses = Array.from(new Set(samples.map(s => s.inspectionProgress || 'pending')));
+    return rawProgresses.map(p => {
+      if (p === 'completed') return 'Finalizado';
+      if (p === 'in_progress') return 'En Curso';
+      if (p === 'paused') return 'Pausado';
+      return 'Pendiente';
+    });
+  }, [samples]);
+
+  const toggleSort = (column: string) => {
+    let nextDirection: 'asc' | 'desc' | null = 'asc';
+    if (sortConfig.column === column) {
+      if (sortConfig.direction === 'asc') {
+        nextDirection = 'desc';
+      } else if (sortConfig.direction === 'desc') {
+        nextDirection = null;
+      }
+    }
+    handleSortChange(column, nextDirection);
+  };
+
   const filteredSamples = useMemo(() => {
     let result = [...samples];
 
@@ -214,6 +248,16 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
       if (!value) return;
       const lowerValue = value.toLowerCase();
       result = result.filter(item => {
+        if (key === 'inspectionStatus') {
+          const s = item.inspectionStatus || 'Inspeccionado sin informe';
+          const display = s === 'Inspeccionado sin informe' ? 'sin informe' : s.toLowerCase();
+          return display.includes(lowerValue) || s.toLowerCase().includes(lowerValue);
+        }
+        if (key === 'inspectionProgress') {
+          const p = item.inspectionProgress || 'pending';
+          const display = p === 'completed' ? 'finalizado' : p === 'in_progress' ? 'en curso' : p === 'paused' ? 'pausado' : 'pendiente';
+          return display.includes(lowerValue);
+        }
         const itemValue = String((item as any)[key] || '').toLowerCase();
         return itemValue.includes(lowerValue);
       });
@@ -761,93 +805,141 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                     Sel.
                   </th>
                 )}
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
-                  ID
-                  <HeaderFilterPopover 
-                    column="correlativeId" 
-                    label="ID" 
-                    currentFilter={columnFilters.correlativeId || ''} 
-                    onFilterChange={handleFilterChange} 
-                    currentSort={sortConfig} 
-                    onSortChange={handleSortChange} 
-                  />
+                <th 
+                  className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:bg-slate-100/80 transition-colors select-none sticky top-0 z-20"
+                  onClick={() => toggleSort('correlativeId')}
+                >
+                  <div className="flex items-center justify-between gap-1 w-full">
+                    <span>ID</span>
+                    <HeaderFilterPopover 
+                      column="correlativeId" 
+                      label="ID" 
+                      currentFilter={columnFilters.correlativeId || ''} 
+                      onFilterChange={handleFilterChange} 
+                      currentSort={sortConfig} 
+                      onSortChange={handleSortChange} 
+                      uniqueValues={uniqueIDs}
+                    />
+                  </div>
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
-                  Proveedor
-                  <HeaderFilterPopover 
-                    column="proveedor" 
-                    label="Proveedor" 
-                    currentFilter={columnFilters.proveedor || ''} 
-                    onFilterChange={handleFilterChange} 
-                    currentSort={sortConfig} 
-                    onSortChange={handleSortChange} 
-                  />
+                <th 
+                  className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:bg-slate-100/80 transition-colors select-none sticky top-0 z-20"
+                  onClick={() => toggleSort('proveedor')}
+                >
+                  <div className="flex items-center justify-between gap-1 w-full">
+                    <span>Proveedor</span>
+                    <HeaderFilterPopover 
+                      column="proveedor" 
+                      label="Proveedor" 
+                      currentFilter={columnFilters.proveedor || ''} 
+                      onFilterChange={handleFilterChange} 
+                      currentSort={sortConfig} 
+                      onSortChange={handleSortChange} 
+                      uniqueValues={uniqueProveedores}
+                    />
+                  </div>
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
-                  Descripción / Categoría / Versión
-                  <HeaderFilterPopover 
-                    column="descripcionSAP" 
-                    label="Descripción" 
-                    currentFilter={columnFilters.descripcionSAP || ''} 
-                    onFilterChange={handleFilterChange} 
-                    currentSort={sortConfig} 
-                    onSortChange={handleSortChange} 
-                  />
+                <th 
+                  className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:bg-slate-100/80 transition-colors select-none sticky top-0 z-20"
+                  onClick={() => toggleSort('descripcionSAP')}
+                >
+                  <div className="flex items-center justify-between gap-1 w-full">
+                    <span>Descripción / Categoría / Versión</span>
+                    <HeaderFilterPopover 
+                      column="descripcionSAP" 
+                      label="Descripción" 
+                      currentFilter={columnFilters.descripcionSAP || ''} 
+                      onFilterChange={handleFilterChange} 
+                      currentSort={sortConfig} 
+                      onSortChange={handleSortChange} 
+                      uniqueValues={uniqueDescripciones}
+                    />
+                  </div>
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
-                  Línea
-                  <HeaderFilterPopover 
-                    column="linea" 
-                    label="Línea" 
-                    currentFilter={columnFilters.linea || ''} 
-                    onFilterChange={handleFilterChange} 
-                    currentSort={sortConfig} 
-                    onSortChange={handleSortChange} 
-                  />
+                <th 
+                  className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:bg-slate-100/80 transition-colors select-none sticky top-0 z-20"
+                  onClick={() => toggleSort('linea')}
+                >
+                  <div className="flex items-center justify-between gap-1 w-full">
+                    <span>Línea</span>
+                    <HeaderFilterPopover 
+                      column="linea" 
+                      label="Línea" 
+                      currentFilter={columnFilters.linea || ''} 
+                      onFilterChange={handleFilterChange} 
+                      currentSort={sortConfig} 
+                      onSortChange={handleSortChange} 
+                      uniqueValues={uniqueLineas}
+                    />
+                  </div>
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
-                  Marca
-                  <HeaderFilterPopover 
-                    column="marca" 
-                    label="Marca" 
-                    currentFilter={columnFilters.marca || ''} 
-                    onFilterChange={handleFilterChange} 
-                    currentSort={sortConfig} 
-                    onSortChange={handleSortChange} 
-                  />
+                <th 
+                  className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:bg-slate-100/80 transition-colors select-none sticky top-0 z-20"
+                  onClick={() => toggleSort('marca')}
+                >
+                  <div className="flex items-center justify-between gap-1 w-full">
+                    <span>Marca</span>
+                    <HeaderFilterPopover 
+                      column="marca" 
+                      label="Marca" 
+                      currentFilter={columnFilters.marca || ''} 
+                      onFilterChange={handleFilterChange} 
+                      currentSort={sortConfig} 
+                      onSortChange={handleSortChange} 
+                      uniqueValues={uniqueMarcas}
+                    />
+                  </div>
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
-                  Técnico Asignado
-                  <HeaderFilterPopover 
-                    column="technician" 
-                    label="Técnico" 
-                    currentFilter={columnFilters.technician || ''} 
-                    onFilterChange={handleFilterChange} 
-                    currentSort={sortConfig} 
-                    onSortChange={handleSortChange} 
-                  />
+                <th 
+                  className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:bg-slate-100/80 transition-colors select-none sticky top-0 z-20"
+                  onClick={() => toggleSort('technician')}
+                >
+                  <div className="flex items-center justify-between gap-1 w-full">
+                    <span>Técnico Asignado</span>
+                    <HeaderFilterPopover 
+                      column="technician" 
+                      label="Técnico" 
+                      currentFilter={columnFilters.technician || ''} 
+                      onFilterChange={handleFilterChange} 
+                      currentSort={sortConfig} 
+                      onSortChange={handleSortChange} 
+                      uniqueValues={uniqueTechnicians}
+                    />
+                  </div>
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
-                  Progreso
-                  <HeaderFilterPopover 
-                    column="inspectionProgress" 
-                    label="Progreso" 
-                    currentFilter={columnFilters.inspectionProgress || ''} 
-                    onFilterChange={handleFilterChange} 
-                    currentSort={sortConfig} 
-                    onSortChange={handleSortChange} 
-                  />
+                <th 
+                  className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:bg-slate-100/80 transition-colors select-none sticky top-0 z-20"
+                  onClick={() => toggleSort('inspectionProgress')}
+                >
+                  <div className="flex items-center justify-between gap-1 w-full">
+                    <span>Progreso</span>
+                    <HeaderFilterPopover 
+                      column="inspectionProgress" 
+                      label="Progreso" 
+                      currentFilter={columnFilters.inspectionProgress || ''} 
+                      onFilterChange={handleFilterChange} 
+                      currentSort={sortConfig} 
+                      onSortChange={handleSortChange} 
+                      uniqueValues={uniqueProgresses}
+                    />
+                  </div>
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">
-                  Estado
-                  <HeaderFilterPopover 
-                    column="inspectionStatus" 
-                    label="Estado" 
-                    currentFilter={columnFilters.inspectionStatus || ''} 
-                    onFilterChange={handleFilterChange} 
-                    currentSort={sortConfig} 
-                    onSortChange={handleSortChange} 
-                  />
+                <th 
+                  className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:bg-slate-100/80 transition-colors select-none sticky top-0 z-20"
+                  onClick={() => toggleSort('inspectionStatus')}
+                >
+                  <div className="flex items-center justify-between gap-1 w-full">
+                    <span>Estado</span>
+                    <HeaderFilterPopover 
+                      column="inspectionStatus" 
+                      label="Estado" 
+                      currentFilter={columnFilters.inspectionStatus || ''} 
+                      onFilterChange={handleFilterChange} 
+                      currentSort={sortConfig} 
+                      onSortChange={handleSortChange} 
+                      uniqueValues={uniqueStatuses}
+                    />
+                  </div>
                 </th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">Informe</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center sticky top-0 z-20">Timeline</th>
