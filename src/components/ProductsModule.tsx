@@ -1154,7 +1154,7 @@ export default function ProductsModule({
         <LinealView filteredRecords={filteredRecords} handleOpenEditModal={handleOpenEditModal} />
 
       /* ── DASHBOARD VIEW ── */
-      ) : viewMode === 'dashboard' ? (() => {
+      ) : viewMode === 'dashboard' ? ( (() => {
         // Segment distribution
         const segCounts = {
           ticket_value: records.filter(r => r.segment === 'ticket_value').length,
@@ -1341,7 +1341,7 @@ export default function ProductsModule({
             </div>
           </div>
         );
-      })()
+      })() )
 
       /* ── TABLE VIEW ── */
       ) : (
