@@ -122,8 +122,8 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
       'Marca': s.marca,
       'Técnico': s.technician || 'No asignado',
       'Estado': s.inspectionStatus,
-      'Fecha Recepción': s.warehouseEntryDate,
-      'Fecha Informe': s.reportDate || '-'
+      'Fecha Recepción': s.warehouseEntryDate ? s.warehouseEntryDate.split('T')[0] : '-',
+      'Fecha Informe': s.reportDate ? s.reportDate.split('T')[0] : '-'
     }));
 
     exportToExcel(exportData, `Muestras_R&D_${format(new Date(), 'yyyyMMdd')}`);
@@ -948,7 +948,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                             <User size={12} />
                             {sample.technician}
                           </div>
-                          <span className="text-[9px] font-bold text-slate-400 uppercase">Inicio: {sample.plannedStartDate}</span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">Inicio: {sample.plannedStartDate ? sample.plannedStartDate.split('T')[0] : '-'}</span>
                         </div>
                       ) : (
                         <button 
@@ -1009,7 +1009,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                           >
                             <FileText size={20} />
                           </a>
-                          <span className="text-[9px] font-bold text-slate-400">{sample.reportDate}</span>
+                          <span className="text-[9px] font-bold text-slate-400">{sample.reportDate ? sample.reportDate.split('T')[0] : '-'}</span>
                         </div>
                       ) : (
                         <button 
@@ -1838,7 +1838,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                 <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col justify-between">
                   <div>
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Recepción</span>
-                    <p className="text-xs font-bold text-slate-700">Fecha: {selectedSampleForDetail.warehouseEntryDate || '-'}</p>
+                    <p className="text-xs font-bold text-slate-700">Fecha: {selectedSampleForDetail.warehouseEntryDate ? selectedSampleForDetail.warehouseEntryDate.split('T')[0] : '-'}</p>
                     <p className="text-xs font-bold text-slate-700 mt-1">Recibido por: {selectedSampleForDetail.receivedBy || '-'}</p>
                   </div>
                   {selectedSampleForDetail.receptionPhoto && (
