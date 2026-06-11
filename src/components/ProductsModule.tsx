@@ -1152,7 +1152,6 @@ export default function ProductsModule({
       /* ── LINEAL VIEW ── */
       ) : viewMode === 'lineal' ? (
         <LinealView filteredRecords={filteredRecords} handleOpenEditModal={handleOpenEditModal} />
-      )
 
       /* ── DASHBOARD VIEW ── */
       ) : viewMode === 'dashboard' ? (() => {
