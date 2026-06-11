@@ -1514,13 +1514,7 @@ export default function ProductsModule({
                     value={formData.commercialName || ''} onChange={e => setFormData({ ...formData, commercialName: e.target.value })}/>
                 </div>
               </div>
-              {/* Descripción detallada */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Descripción Detallada</label>
-                <textarea rows={2} placeholder="Características principales..."
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 outline-none resize-none"
-                  value={formData.detailedDescription || ''} onChange={e => setFormData({ ...formData, detailedDescription: e.target.value })}/>
-              </div>
+
               {/* Segmento + Estado */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
