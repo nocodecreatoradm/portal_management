@@ -365,8 +365,15 @@ export default function ProductDetailModal({
     setGalleryCategory('');
   };
 
+  const findSupplier = (prov?: string, cod?: string) => {
+    return suppliers.find(s => 
+      (prov && (s.id === prov || s.commercialAlias === prov || s.legalName === prov)) ||
+      (cod && s.erpCode === cod)
+    );
+  };
+
   const getSupplierLogo = (recordObj: ProductRecord) => {
-    const supplier = suppliers.find(s => (recordObj.proveedor && (s.id === recordObj.proveedor || s.legalName === recordObj.proveedor)) || (recordObj.codProv && s.erpCode === recordObj.codProv));
+    const supplier = findSupplier(recordObj.proveedor, recordObj.codProv);
     return supplier?.logoUrl;
   };
 
@@ -702,7 +709,7 @@ export default function ProductDetailModal({
                         referrerPolicy="no-referrer"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            const provName = suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor;
+                            const provName = findSupplier(record.proveedor, record.codProv)?.commercialAlias || record.proveedor;
                             target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(provName)}&background=f1f5f9&color=64748b&bold=true`;
                           }}
                       />
@@ -713,9 +720,9 @@ export default function ProductDetailModal({
                   <div className="flex-1 min-w-0">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Proveedor</span>
                     <p className="text-sm font-black text-slate-900 uppercase">
-                      {suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)) || (record.codProv && s.erpCode === record.codProv))?.commercialAlias || record.proveedor}
+                      {findSupplier(record.proveedor, record.codProv)?.commercialAlias || record.proveedor}
                     </p>
-                    <p className="text-xs font-bold text-slate-500 uppercase">Cod: {record.codProv || suppliers.find(s => (record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor)))?.erpCode || 'N/A'}</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase">Cod: {record.codProv || findSupplier(record.proveedor)?.erpCode || 'N/A'}</p>
                   </div>
                 </div>
               </div>

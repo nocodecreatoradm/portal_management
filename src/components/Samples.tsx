@@ -268,11 +268,15 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
     }
   };
 
-  const getSupplierLogo = (sample: SampleRecord) => {
-    const supplier = suppliers.find(s => 
-      (sample.proveedor && (s.id === sample.proveedor || s.commercialAlias === sample.proveedor || s.legalName === sample.proveedor)) ||
-      (sample.codProv && s.erpCode === sample.codProv)
+  const findSupplier = (prov?: string, cod?: string) => {
+    return suppliers.find(s => 
+      (prov && (s.id === prov || s.commercialAlias === prov || s.legalName === prov)) ||
+      (cod && s.erpCode === cod)
     );
+  };
+
+  const getSupplierLogo = (sample: SampleRecord) => {
+    const supplier = findSupplier(sample.proveedor, sample.codProv);
     return supplier?.logoUrl;
   };
 
@@ -904,7 +908,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">
-                            {suppliers.find(s => (sample.proveedor && (s.id === sample.proveedor || s.legalName === sample.proveedor)) || (sample.codProv && s.erpCode === sample.codProv))?.commercialAlias || sample.proveedor}
+                            {findSupplier(sample.proveedor, sample.codProv)?.commercialAlias || sample.proveedor}
                           </span>
                           <span className="text-[9px] font-medium text-slate-400">Cod: {sample.codProv || '-'}</span>
                         </div>
@@ -1415,7 +1419,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Proveedor</label>
-                      <input type="text" readOnly value={suppliers.find(s => (selectedSample.proveedor && (s.id === selectedSample.proveedor || s.legalName === selectedSample.proveedor)) || (selectedSample.codProv && s.erpCode === selectedSample.codProv))?.commercialAlias || selectedSample.proveedor} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 outline-none" />
+                      <input type="text" readOnly value={findSupplier(selectedSample.proveedor, selectedSample.codProv)?.commercialAlias || selectedSample.proveedor} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 outline-none" />
                     </div>
                   </div>
 
@@ -1631,7 +1635,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                           <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest block mb-1">Muestra Actual</span>
                           <p className="text-sm font-black text-blue-900 uppercase">{selectedSample.descripcionSAP}</p>
                           <p className="text-[10px] font-bold text-blue-600">
-                            {suppliers.find(s => (selectedSample.proveedor && (s.id === selectedSample.proveedor || s.legalName === selectedSample.proveedor)) || (selectedSample.codProv && s.erpCode === selectedSample.codProv))?.commercialAlias || selectedSample.proveedor}
+                            {findSupplier(selectedSample.proveedor, selectedSample.codProv)?.commercialAlias || selectedSample.proveedor}
                           </p>
                         </div>
                         {selectedSample.inspectionForm?.map(section => (
@@ -1695,7 +1699,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Comparativa</span>
                               <p className="text-sm font-black text-slate-800 uppercase">{compSample.descripcionSAP}</p>
                               <p className="text-[10px] font-bold text-slate-500">
-                                {suppliers.find(s => (compSample.proveedor && (s.id === compSample.proveedor || s.legalName === compSample.proveedor)) || (compSample.codProv && s.erpCode === compSample.codProv))?.commercialAlias || compSample.proveedor}
+                                {findSupplier(compSample.proveedor, compSample.codProv)?.commercialAlias || compSample.proveedor}
                               </p>
                             </div>
                             {compSample.inspectionForm?.map(section => (
@@ -1818,7 +1822,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                 <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Proveedor</span>
                   <p className="text-sm font-black text-slate-800 uppercase">
-                    {suppliers.find(s => (selectedSampleForDetail.proveedor && (s.id === selectedSampleForDetail.proveedor || s.legalName === selectedSampleForDetail.proveedor)) || (selectedSampleForDetail.codProv && s.erpCode === selectedSampleForDetail.codProv))?.commercialAlias || selectedSampleForDetail.proveedor}
+                    {findSupplier(selectedSampleForDetail.proveedor, selectedSampleForDetail.codProv)?.commercialAlias || selectedSampleForDetail.proveedor}
                   </p>
                   <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">Código: {selectedSampleForDetail.codProv || '-'}</p>
                 </div>
@@ -2381,7 +2385,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                     <td className="p-6 text-xs font-bold text-slate-500 uppercase bg-slate-50/30 sticky left-0 z-10 border-r border-slate-100">Proveedor</td>
                     {comparisonIds.map(id => {
                       const foundSample = samples.find(s => s.id === id);
-                      const provName = foundSample ? (suppliers.find(s => (foundSample.proveedor && (s.id === foundSample.proveedor || s.legalName === foundSample.proveedor)) || (foundSample.codProv && s.erpCode === foundSample.codProv))?.commercialAlias || foundSample.proveedor) : '';
+                      const provName = foundSample ? (findSupplier(foundSample.proveedor, foundSample.codProv)?.commercialAlias || foundSample.proveedor) : '';
                       return (
                         <td key={id} className="p-6 text-xs font-bold text-slate-700 uppercase text-center border-r border-slate-100">
                           {provName}

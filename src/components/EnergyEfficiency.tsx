@@ -534,7 +534,7 @@ export default function EnergyEfficiency({
             e.preventDefault();
             const formData = new FormData(e.currentTarget);
             const providerName = formData.get('proveedor') as string;
-            const selectedSupplier = suppliers.find(s => s.legalName === providerName);
+            const selectedSupplier = suppliers.find(s => s.legalName === providerName || s.commercialAlias === providerName);
             
             const data = {
               codigoMT: formData.get('codigoMT') as string,
@@ -891,7 +891,7 @@ export default function EnergyEfficiency({
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Proveedor</p>
                     <p className="text-sm font-bold text-slate-700">
-                      {suppliers.find(s => record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor))?.commercialAlias || record.proveedor}
+                      {suppliers.find(s => record.proveedor && (s.id === record.proveedor || s.commercialAlias === record.proveedor || s.legalName === record.proveedor))?.commercialAlias || record.proveedor}
                     </p>
                   </div>
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
@@ -1168,7 +1168,7 @@ export default function EnergyEfficiency({
       'Letra': r.letra,
       '% EE': r.porcentajeEE,
       'OCP': r.ocp,
-      'Proveedor': suppliers.find(s => r.proveedor && (s.id === r.proveedor || s.legalName === r.proveedor))?.commercialAlias || r.proveedor,
+      'Proveedor': suppliers.find(s => r.proveedor && (s.id === r.proveedor || s.commercialAlias === r.proveedor || s.legalName === r.proveedor))?.commercialAlias || r.proveedor,
       'Emisión': r.fechaEmision ? r.fechaEmision.split('T')[0] : '',
       'Vigilancia': r.fechaVigilancia ? r.fechaVigilancia.split('T')[0] : '',
       'Línea': productLines.find(l => l.id === r.lineId || l.name === r.linea)?.name || r.linea || '',
@@ -1380,7 +1380,7 @@ export default function EnergyEfficiency({
                   <td className="px-6 py-5">
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-slate-700 uppercase">
-                        {suppliers.find(s => record.proveedor && (s.id === record.proveedor || s.legalName === record.proveedor))?.commercialAlias || record.proveedor}
+                        {suppliers.find(s => record.proveedor && (s.id === record.proveedor || s.commercialAlias === record.proveedor || s.legalName === record.proveedor))?.commercialAlias || record.proveedor}
                       </span>
                       <span className="text-[10px] text-slate-400 font-medium uppercase">{record.ocp}</span>
                     </div>

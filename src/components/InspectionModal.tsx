@@ -64,7 +64,11 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave, suppl
   const [showProcedure, setShowProcedure] = useState(false);
 
   const supplier = suppliers?.find(s => 
-    (sample.proveedor && (s.id === sample.proveedor || s.legalName === sample.proveedor)) ||
+    (sample.proveedor && (
+      s.id === sample.proveedor || 
+      s.legalName === sample.proveedor || 
+      s.commercialAlias === sample.proveedor
+    )) ||
     (sample.codProv && s.erpCode === sample.codProv)
   );
   const supplierName = supplier?.commercialAlias || sample.proveedor || 'Sin Proveedor';
