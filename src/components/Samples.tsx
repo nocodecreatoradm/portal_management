@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { Search, Filter, Plus, FileText, Upload, CheckCircle2, XCircle, 
+import { Search, Filter, Plus, FileText, Upload, CheckCircle2, XCircle, Eye,
   AlertCircle, Clock, History, Edit3, Save, Trash2,
   ChevronRight, ChevronDown, FileCheck, Calendar, User, Play, Pause,
   TrendingUp, FileUp, X, Copy, Maximize2, Image as ImageIcon, LayoutGrid,
@@ -68,6 +68,14 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
   const [selectedLineId, setSelectedLineId] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [selectedSupplierName, setSelectedSupplierName] = useState('');
+  const [receptionPhotoFile, setReceptionPhotoFile] = useState<File | null>(null);
+
+  const handleReceptionPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files[0]) {
+      setReceptionPhotoFile(files[0]);
+    }
+  };
 
   // Load calculations
   useEffect(() => {
@@ -293,50 +301,81 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
     });
   };
 
-  const handleNewSample = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleNewSample = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const nextNumber = samples.length + 1;
-    const correlativeId = `M-${nextNumber.toString().padStart(3, '0')}`;
-    const selectedSupplierName = formData.get('proveedor') as string;
-    const selectedSupplier = suppliers.find(s => s.legalName === selectedSupplierName || s.commercialAlias === selectedSupplierName);
+    const form = e.currentTarget;
+    toast.loading('Registrando muestra...');
+    try {
+      const formData = new FormData(form);
+      const nextNumber = samples.length + 1;
+      const correlativeId = `M-${nextNumber.toString().padStart(3, '0')}`;
+      const selectedSupplierName = formData.get('proveedor') as string;
+      const selectedSupplier = suppliers.find(s => s.legalName === selectedSupplierName || s.commercialAlias === selectedSupplierName);
 
-    const brand = brands.find(b => b.id === selectedBrandId);
-    const line = productLines.find(l => l.id === selectedLineId);
-    const category = categories.find(c => c.id === selectedCategoryId);
+      const brand = brands.find(b => b.id === selectedBrandId);
+      const line = productLines.find(l => l.id === selectedLineId);
+      const category = categories.find(c => c.id === selectedCategoryId);
 
-    const newSample: SampleRecord = {
-      id: `UID-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      correlativeId,
-      createdAt: new Date().toISOString(),
-      version: 1,
-      brandId: selectedBrandId,
-      lineId: selectedLineId,
-      categoryId: selectedCategoryId,
-      descripcionSAP: formData.get('descripcion') as string,
-      marca: brand?.name || '',
-      proveedor: selectedSupplier ? selectedSupplier.id : selectedSupplierName,
-      codProv: selectedSupplier?.erpCode,
-      linea: line?.name || '',
-      categoria: category?.name || '',
-      inspectionDate: new Date().toISOString().split('T')[0],
-      inspectionStatus: 'Inspeccionado sin informe',
-      inspectionProgress: 'pending',
-      history: [
-        { date: new Date().toISOString().split('T')[0], status: 'Inspeccionado sin informe', user: user?.name || 'Sistema', comment: 'Muestra registrada y recepcionada' }
-      ]
-    };
-    addSample(newSample);
-    setIsNewSampleModalOpen(false);
-    
-    // Notify admin and creator
-    outlookService.sendNewTrackingEmail({
-      code: newSample.correlativeId,
-      description: newSample.descripcionSAP,
-      supplier: selectedSupplierName,
-      brand: brand?.name,
-      creatorEmail: user?.email
-    }, 'Muestras');
+      let uploadedPhoto: FileInfo | undefined = undefined;
+      const sampleId = `UID-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      if (receptionPhotoFile) {
+        toast.loading('Subiendo foto de recepción...');
+        const fileInfo = await SupabaseService.uploadFile(
+          'rd-files', 
+          `samples/${sampleId}/reception/${Date.now()}_${receptionPhotoFile.name}`, 
+          receptionPhotoFile
+        ) as any;
+        uploadedPhoto = {
+          name: receptionPhotoFile.name,
+          url: fileInfo.url,
+          type: receptionPhotoFile.type
+        };
+      }
+
+      const newSample: SampleRecord = {
+        id: sampleId,
+        correlativeId,
+        createdAt: new Date().toISOString(),
+        version: 1,
+        brandId: selectedBrandId,
+        lineId: selectedLineId,
+        categoryId: selectedCategoryId,
+        descripcionSAP: formData.get('descripcion') as string,
+        marca: brand?.name || '',
+        proveedor: selectedSupplier ? selectedSupplier.id : selectedSupplierName,
+        codProv: selectedSupplier?.erpCode,
+        linea: line?.name || '',
+        categoria: category?.name || '',
+        inspectionDate: new Date().toISOString().split('T')[0],
+        inspectionStatus: 'Inspeccionado sin informe',
+        inspectionProgress: 'pending',
+        receivedBy: (formData.get('receivedBy') as string) || undefined,
+        warehouseEntryDate: (formData.get('warehouseEntryDate') as string) || undefined,
+        receptionPhoto: uploadedPhoto,
+        history: [
+          { date: new Date().toISOString().split('T')[0], status: 'Inspeccionado sin informe', user: user?.name || 'Sistema', comment: 'Muestra registrada y recepcionada' }
+        ]
+      };
+      await addSample(newSample);
+      setIsNewSampleModalOpen(false);
+      setReceptionPhotoFile(null);
+      toast.dismiss();
+      toast.success('Muestra registrada');
+      
+      // Notify admin and creator
+      outlookService.sendNewTrackingEmail({
+        code: newSample.correlativeId,
+        description: newSample.descripcionSAP,
+        supplier: selectedSupplierName,
+        brand: brand?.name,
+        creatorEmail: user?.email
+      }, 'Muestras');
+    } catch (err) {
+      console.error('Error creating sample:', err);
+      toast.dismiss();
+      toast.error('Error al registrar muestra');
+    }
   };
 
   const handleAssign = (e: React.FormEvent<HTMLFormElement>) => {
@@ -649,6 +688,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
               setSelectedLineId('');
               setSelectedCategoryId('');
               setSelectedSupplierName('');
+              setReceptionPhotoFile(null);
               setIsNewSampleModalOpen(true);
             }}
             className="flex items-center gap-2 bg-[#1e293b] text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 active:scale-95"
@@ -1017,13 +1057,25 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                               </button>
                             )}
                             {sample.inspectionProgress === 'completed' && (
-                              <button 
-                                onClick={() => handleNewInspectionCycle(sample)}
-                                className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
-                                title="Nuevo Ciclo de Inspección (V2+)"
-                              >
-                                <Plus size={18} />
-                              </button>
+                              <div className="flex items-center gap-1">
+                                <button 
+                                  onClick={() => {
+                                    setSelectedSampleForDetail(sample);
+                                    setIsDetailModalOpen(true);
+                                  }}
+                                  className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all"
+                                  title="Ver Resumen de Inspección"
+                                >
+                                  <Eye size={18} />
+                                </button>
+                                <button 
+                                  onClick={() => handleNewInspectionCycle(sample)}
+                                  className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
+                                  title="Nuevo Ciclo de Inspección (V2+)"
+                                >
+                                  <Plus size={18} />
+                                </button>
+                              </div>
                             )}
                           </>
                         )}
@@ -1211,8 +1263,24 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                     required
                   />
                 </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha de Recepción</label>
+                  <input name="warehouseEntryDate" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Recibido Por</label>
+                  <input name="receivedBy" type="text" placeholder="Nombre de quien recibe" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
+                </div>
+                <div className="space-y-1.5 col-span-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Foto de Recepción</label>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleReceptionPhotoSelect}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-all cursor-pointer"
+                  />
+                </div>
               </div>
-
 
 
               <div className="flex items-center justify-end gap-4 pt-4">
@@ -1741,7 +1809,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
 
             <div className="flex-1 overflow-y-auto p-8 space-y-8">
               {/* Info Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Proveedor</span>
                   <p className="text-sm font-black text-slate-800 uppercase">
@@ -1762,6 +1830,30 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                       {selectedSampleForDetail.inspectionStatus}
                     </span>
                   </div>
+                </div>
+                <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Recepción</span>
+                    <p className="text-xs font-bold text-slate-700">Fecha: {selectedSampleForDetail.warehouseEntryDate || '-'}</p>
+                    <p className="text-xs font-bold text-slate-700 mt-1">Recibido por: {selectedSampleForDetail.receivedBy || '-'}</p>
+                  </div>
+                  {selectedSampleForDetail.receptionPhoto && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className="text-[10px] font-black text-indigo-600">Foto:</span>
+                      <a 
+                        href={selectedSampleForDetail.receptionPhoto.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openFileUrl(selectedSampleForDetail.receptionPhoto!.url);
+                        }}
+                        className="text-[10px] font-black text-indigo-500 hover:underline flex items-center gap-1"
+                      >
+                        Ver Foto <Maximize2 size={10} />
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1850,6 +1942,83 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Workflow Summary */}
+              {selectedSampleForDetail.workflow && selectedSampleForDetail.workflow.length > 0 && (
+                <div className="space-y-6 pt-4 border-t border-slate-100">
+                  <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                    <CheckCircle2 size={20} className="text-emerald-500" />
+                    Estado de Procedimientos (Workflow)
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {(() => {
+                      const isSectioned = selectedSampleForDetail.workflow && selectedSampleForDetail.workflow.length > 0 && selectedSampleForDetail.workflow[0].stages !== undefined;
+                      if (isSectioned) {
+                        return selectedSampleForDetail.workflow.map((section: any) => (
+                          <div key={section.id} className="col-span-2 space-y-3">
+                            <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">{section.title}</h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {(section.stages || []).map((stage: any) => (
+                                <div key={stage.id} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between shadow-sm">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                      stage.status === 'approved' ? 'bg-emerald-50 text-emerald-600' :
+                                      stage.status === 'observed' ? 'bg-amber-50 text-amber-600' :
+                                      'bg-slate-50 text-slate-400'
+                                    }`}>
+                                      {stage.status === 'approved' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-bold text-slate-700">{stage.stage || stage.name}</p>
+                                      {stage.comment && <p className="text-[10px] text-slate-400 font-medium">{stage.comment}</p>}
+                                    </div>
+                                  </div>
+                                  <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md shrink-0 ${
+                                    stage.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                                    stage.status === 'observed' ? 'bg-amber-100 text-amber-700' :
+                                    'bg-slate-100 text-slate-500'
+                                  }`}>
+                                    {stage.status === 'approved' ? 'Aprobado' : stage.status === 'observed' ? 'Observado' : 'Pendiente'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ));
+                      } else {
+                        return (
+                          <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {selectedSampleForDetail.workflow?.map((stage: any) => (
+                              <div key={stage.id} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between shadow-sm">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                    stage.status === 'approved' ? 'bg-emerald-50 text-emerald-600' :
+                                    stage.status === 'observed' ? 'bg-amber-50 text-amber-600' :
+                                    'bg-slate-50 text-slate-400'
+                                  }`}>
+                                    {stage.status === 'approved' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-bold text-slate-700">{stage.stage}</p>
+                                    {stage.comment && <p className="text-[10px] text-slate-400 font-medium">{stage.comment}</p>}
+                                  </div>
+                                </div>
+                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md shrink-0 ${
+                                  stage.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                                  stage.status === 'observed' ? 'bg-amber-100 text-amber-700' :
+                                  'bg-slate-100 text-slate-500'
+                                }`}>
+                                  {stage.status === 'approved' ? 'Aprobado' : stage.status === 'observed' ? 'Observado' : 'Pendiente'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                    })()}
                   </div>
                 </div>
               )}
