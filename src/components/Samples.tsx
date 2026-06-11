@@ -1342,6 +1342,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
           onClose={() => setIsInspectionModalOpen(false)}
           sample={selectedSample}
           onSave={onUpdateSample}
+          suppliers={suppliers}
         />
       )}
 

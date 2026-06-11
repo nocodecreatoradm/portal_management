@@ -4,7 +4,7 @@ import {
   Plus, Trash2, Camera, ChevronDown, ChevronUp, Clock,
   FileText, Image as ImageIcon, Loader2, Eye, EyeOff, ExternalLink
 } from 'lucide-react';
-import { SampleRecord, InspectionSection, WorkflowStage, FileInfo, InspectionTimer, InspectionTemplate } from '../types';
+import { SampleRecord, InspectionSection, WorkflowStage, FileInfo, InspectionTimer, InspectionTemplate, Supplier } from '../types';
 import { SupabaseService } from '../lib/SupabaseService';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -56,11 +56,20 @@ interface InspectionModalProps {
   onClose: () => void;
   sample: SampleRecord;
   onSave: (id: string, updates: Partial<SampleRecord>) => void;
+  suppliers: Supplier[];
 }
 
-export default function InspectionModal({ isOpen, onClose, sample, onSave }: InspectionModalProps) {
+export default function InspectionModal({ isOpen, onClose, sample, onSave, suppliers }: InspectionModalProps) {
   const [activeTab, setActiveTab] = useState<'form' | 'workflow'>('form');
   const [showProcedure, setShowProcedure] = useState(false);
+
+  const supplier = suppliers?.find(s => 
+    (sample.proveedor && (s.id === sample.proveedor || s.legalName === sample.proveedor)) ||
+    (sample.codProv && s.erpCode === sample.codProv)
+  );
+  const supplierName = supplier?.commercialAlias || sample.proveedor || 'Sin Proveedor';
+  const supplierLogo = supplier?.logoUrl;
+
   const [form, setForm] = useState<InspectionSection[]>(sample.inspectionForm || [
     {
       id: 'sec1',
@@ -671,15 +680,21 @@ export default function InspectionModal({ isOpen, onClose, sample, onSave }: Ins
         {/* Header */}
         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
-              <FileText size={24} />
+            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg border border-slate-100 overflow-hidden shrink-0">
+              {supplierLogo ? (
+                <img src={supplierLogo} alt={supplierName} className="w-full h-full object-contain p-1.5" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="w-full h-full bg-indigo-600 text-white flex items-center justify-center font-black text-sm uppercase">
+                  {supplierName.substring(0, 2)}
+                </div>
+              )}
             </div>
             <div>
               <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">
-                Inspección de Muestra {template && <span className="text-indigo-600 ml-2">(Dinámica: {template.name})</span>}
+                Inspección de Muestra {template && <span className="text-indigo-600 ml-2">({template.name})</span>}
               </h3>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                {sample.descripcionSAP} | Técnico: {sample.technician || 'No asignado'}
+                {sample.descripcionSAP} | <span className="text-indigo-600 font-extrabold">{supplierName}</span> | Técnico: {sample.technician || 'No asignado'}
               </p>
             </div>
           </div>
