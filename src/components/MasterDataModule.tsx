@@ -756,118 +756,128 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
                 <div key={section.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-0.5 bg-slate-100 rounded-xl p-0.5 border border-slate-200">
                         <button
                           type="button"
                           disabled={sIdx === 0}
                           onClick={() => moveSection(sIdx, 'up')}
-                          className="p-1 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
-                          title="Mover arriba"
+                          className="p-1.5 hover:bg-white rounded-lg text-slate-500 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                          title="Mover sección arriba"
                         >
-                          <ChevronUp size={16} />
+                          <ChevronUp size={14} />
                         </button>
                         <button
                           type="button"
                           disabled={sIdx === sections.length - 1}
                           onClick={() => moveSection(sIdx, 'down')}
-                          className="p-1 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
-                          title="Mover abajo"
+                          className="p-1.5 hover:bg-white rounded-lg text-slate-500 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                          title="Mover sección abajo"
                         >
-                          <ChevronDown size={16} />
+                          <ChevronDown size={14} />
                         </button>
                       </div>
-                      <GripVertical size={16} className="text-slate-300 cursor-move" />
+                      <GripVertical size={18} className="text-slate-400 cursor-grab active:cursor-grabbing hover:text-slate-600 transition-colors" />
                       <input 
                         value={section.title}
                         onChange={e => setSections(sections.map(s => s.id === section.id ? { ...s, title: e.target.value.toUpperCase() } : s))}
-                        className="bg-transparent border-none font-black text-slate-900 uppercase tracking-tight focus:ring-0 text-sm w-64"
+                        className="bg-transparent border-none font-black text-slate-900 uppercase tracking-tight focus:ring-0 text-sm w-64 placeholder-slate-400"
+                        placeholder="NOMBRE DE LA SECCIÓN"
                       />
                     </div>
                     <button 
                       onClick={() => setSections(sections.filter(s => s.id !== section.id))}
-                      className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                      className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                      title="Eliminar sección"
                     >
                       <Trash2 size={16} />
                     </button>
                   </div>
                   <div className="p-8 space-y-6">
                     {section.fields.map((field: any, fIdx: number) => (
-                      <div key={field.id} className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 space-y-4">
-                            <div className="flex items-center gap-2">
-                               <input 
-                                value={field.label}
-                                onChange={e => updateField(section.id, field.id, { label: e.target.value.toUpperCase() })}
-                                className="bg-transparent border-none font-bold text-slate-700 text-sm focus:ring-0 w-full"
-                                placeholder="ESCRIBIR PREGUNTA..."
-                              />
-                              <div className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-black text-slate-400 uppercase">
-                                {field.type}
-                              </div>
-                            </div>
-                            
-                            {['select', 'radio', 'checkbox'].includes(field.type) && (
-                              <div className="space-y-2 pl-4 border-l-2 border-slate-200">
-                                {field.options?.map((opt: string, oIdx: number) => (
-                                  <div key={oIdx} className="flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                                    <input 
-                                      value={opt}
-                                      onChange={e => {
-                                        const newOpts = [...field.options];
-                                        newOpts[oIdx] = e.target.value.toUpperCase();
-                                        updateField(section.id, field.id, { options: newOpts });
-                                      }}
-                                      className="bg-transparent border-none text-xs font-medium text-slate-500 focus:ring-0 p-0"
-                                    />
-                                    <button 
-                                      onClick={() => {
-                                        const newOpts = field.options.filter((_: any, i: number) => i !== oIdx);
-                                        updateField(section.id, field.id, { options: newOpts });
-                                      }}
-                                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-400"
-                                    >
-                                      <MinusCircle size={12} />
-                                    </button>
-                                  </div>
-                                ))}
-                                <button 
-                                  onClick={() => updateField(section.id, field.id, { options: [...(field.options || []), 'NUEVA OPCIÓN'] })}
-                                  className="flex items-center gap-1 text-[10px] font-black text-indigo-600 uppercase mt-2"
-                                >
-                                  <Plus size={12} /> Añadir Opción
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity items-center">
+                      <div key={field.id} className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex items-start gap-4 group">
+                        {/* Left controls: always visible */}
+                        <div className="flex items-center gap-2 shrink-0 bg-slate-100/80 rounded-xl p-1 border border-slate-200/50 self-start">
+                          <div className="flex items-center gap-0.5">
                             <button
                               type="button"
                               disabled={fIdx === 0}
                               onClick={() => moveField(section.id, fIdx, 'up')}
-                              className="p-1 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-indigo-600 disabled:opacity-25 disabled:cursor-not-allowed transition-all"
+                              className="p-1 hover:bg-white rounded-lg text-slate-500 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
                               title="Mover arriba"
                             >
-                              <ChevronUp size={14} />
+                              <ChevronUp size={12} />
                             </button>
                             <button
                               type="button"
                               disabled={fIdx === section.fields.length - 1}
                               onClick={() => moveField(section.id, fIdx, 'down')}
-                              className="p-1 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-indigo-600 disabled:opacity-25 disabled:cursor-not-allowed transition-all"
+                              className="p-1 hover:bg-white rounded-lg text-slate-500 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
                               title="Mover abajo"
                             >
-                              <ChevronDown size={14} />
-                            </button>
-                            <button 
-                              onClick={() => removeField(section.id, field.id)}
-                              className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                            >
-                              <Trash2 size={16} />
+                              <ChevronDown size={12} />
                             </button>
                           </div>
+                          <div className="w-px h-4 bg-slate-200" />
+                          <GripVertical size={14} className="text-slate-400 cursor-grab active:cursor-grabbing hover:text-slate-600 transition-colors mr-0.5" />
                         </div>
+
+                        {/* Center content */}
+                        <div className="flex-1 space-y-4 min-w-0">
+                          <div className="flex items-center gap-2">
+                             <input 
+                              value={field.label}
+                              onChange={e => updateField(section.id, field.id, { label: e.target.value.toUpperCase() })}
+                              className="bg-transparent border-none font-bold text-slate-700 text-sm focus:ring-0 w-full p-0"
+                              placeholder="ESCRIBIR PREGUNTA..."
+                            />
+                            <div className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-black text-slate-400 uppercase shrink-0">
+                              {field.type}
+                            </div>
+                          </div>
+                          
+                          {['select', 'radio', 'checkbox'].includes(field.type) && (
+                            <div className="space-y-2 pl-4 border-l-2 border-slate-200">
+                              {field.options?.map((opt: string, oIdx: number) => (
+                                <div key={oIdx} className="flex items-center gap-2">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                                  <input 
+                                    value={opt}
+                                    onChange={e => {
+                                      const newOpts = [...field.options];
+                                      newOpts[oIdx] = e.target.value.toUpperCase();
+                                      updateField(section.id, field.id, { options: newOpts });
+                                    }}
+                                    className="bg-transparent border-none text-xs font-medium text-slate-500 focus:ring-0 p-0"
+                                  />
+                                  <button 
+                                    onClick={() => {
+                                      const newOpts = field.options.filter((_: any, i: number) => i !== oIdx);
+                                      updateField(section.id, field.id, { options: newOpts });
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-400"
+                                  >
+                                    <MinusCircle size={12} />
+                                  </button>
+                                </div>
+                              ))}
+                              <button 
+                                onClick={() => updateField(section.id, field.id, { options: [...(field.options || []), 'NUEVA OPCIÓN'] })}
+                                className="flex items-center gap-1 text-[10px] font-black text-indigo-600 uppercase mt-2"
+                              >
+                                <Plus size={12} /> Añadir Opción
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Right action */}
+                        <button 
+                          onClick={() => removeField(section.id, field.id)}
+                          className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all self-start shrink-0"
+                          title="Eliminar campo"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     ))}
 
@@ -914,31 +924,32 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
                 <div key={section.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-0.5 bg-slate-100 rounded-xl p-0.5 border border-slate-200">
                         <button
                           type="button"
                           disabled={sIdx === 0}
                           onClick={() => moveWorkflowSection(sIdx, 'up')}
-                          className="p-1 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
-                          title="Mover arriba"
+                          className="p-1.5 hover:bg-white rounded-lg text-slate-500 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                          title="Mover sección arriba"
                         >
-                          <ChevronUp size={16} />
+                          <ChevronUp size={14} />
                         </button>
                         <button
                           type="button"
                           disabled={sIdx === workflowSections.length - 1}
                           onClick={() => moveWorkflowSection(sIdx, 'down')}
-                          className="p-1 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
-                          title="Mover abajo"
+                          className="p-1.5 hover:bg-white rounded-lg text-slate-500 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                          title="Mover sección abajo"
                         >
-                          <ChevronDown size={16} />
+                          <ChevronDown size={14} />
                         </button>
                       </div>
-                      <GripVertical size={16} className="text-slate-300 cursor-move" />
+                      <GripVertical size={18} className="text-slate-400 cursor-grab active:cursor-grabbing hover:text-slate-600 transition-colors" />
                       <input 
                         value={section.title}
                         onChange={e => setWorkflowSections(workflowSections.map(s => s.id === section.id ? { ...s, title: e.target.value.toUpperCase() } : s))}
-                        className="bg-transparent border-none font-black text-slate-900 uppercase tracking-tight focus:ring-0 text-sm w-64"
+                        className="bg-transparent border-none font-black text-slate-900 uppercase tracking-tight focus:ring-0 text-sm w-64 placeholder-slate-400"
+                        placeholder="NOMBRE DE LA SECCIÓN DE TRABAJO"
                       />
                     </div>
                     <div className="flex items-center gap-4">
@@ -950,7 +961,8 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
                       </button>
                       <button 
                         onClick={() => setWorkflowSections(workflowSections.filter(s => s.id !== section.id))}
-                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                        title="Eliminar sección"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -959,102 +971,127 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
                   
                   <div className="p-8 space-y-6">
                     {section.stages.map((stage: any, stIdx: number) => (
-                      <div key={stage.id} className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-4 group">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Título del Procedimiento</label>
-                                <input 
-                                  value={stage.name}
-                                  onChange={e => updateWorkflowStage(section.id, stage.id, { name: e.target.value.toUpperCase() })}
-                                  className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl font-bold text-sm text-slate-700 uppercase"
-                                  placeholder="Escribir título..."
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Rol Responsable</label>
-                                <select 
-                                  value={stage.role}
-                                  onChange={e => updateWorkflowStage(section.id, stage.id, { role: e.target.value })}
-                                  className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl font-bold text-sm text-slate-700 uppercase"
-                                >
-                                  <option value="TECHNICAL">TÉCNICO</option>
-                                  <option value="ID">I+D</option>
-                                  <option value="MKT">MKT</option>
-                                  <option value="PLAN">PLANEAMIENTO</option>
-                                </select>
-                              </div>
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Descripción del Procedimiento</label>
-                              <textarea 
-                                value={stage.text}
-                                onChange={e => updateWorkflowStage(section.id, stage.id, { text: e.target.value })}
-                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500/10 min-h-[80px] resize-none"
-                                placeholder="Redactar el texto del procedimiento..."
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Criterios de Aceptación</label>
-                              <textarea 
-                                value={stage.acceptanceCriteria}
-                                onChange={e => updateWorkflowStage(section.id, stage.id, { acceptanceCriteria: e.target.value })}
-                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500/10 min-h-[80px] resize-none"
-                                placeholder="Escribir criterios de aceptación..."
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Fotos Referenciales</label>
-                              <div className="flex flex-wrap gap-2">
-                                {stage.referencePhotos?.map((photo: any, pIdx: number) => (
-                                  <div key={pIdx} className="relative group w-16 h-16 rounded-xl overflow-hidden border border-slate-200 bg-white">
-                                    <img src={photo.url} alt="Referencial" className="w-full h-full object-cover" />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                      <button 
-                                        type="button"
-                                        onClick={() => {
-                                          const newPhotos = stage.referencePhotos.filter((_: any, i: number) => i !== pIdx);
-                                          updateWorkflowStage(section.id, stage.id, { referencePhotos: newPhotos });
-                                        }}
-                                        className="p-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                                      >
-                                        <Trash2 size={12} />
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))}
-                                
-                                <label className="w-16 h-16 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 hover:border-indigo-300 hover:text-indigo-500 transition-all bg-white cursor-pointer group">
-                                  <Upload size={16} className="group-hover:scale-110 transition-transform" />
-                                  <span className="text-[7px] font-black uppercase mt-1">Subir Foto</span>
-                                  <input 
-                                    type="file" 
-                                    className="hidden" 
-                                    accept="image/*" 
-                                    disabled={uploadingStageId === stage.id}
-                                    onChange={(e) => handleStagePhotoUpload(section.id, stage.id, e)} 
-                                  />
-                                </label>
-                              </div>
-                              {uploadingStageId === stage.id && (
-                                <p className="text-[9px] text-indigo-600 font-bold animate-pulse">Subiendo foto...</p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button 
-                              onClick={() => removeWorkflowStage(section.id, stage.id)}
-                              className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                      <div key={stage.id} className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 flex items-start gap-4 group">
+                        {/* Left controls: always visible */}
+                        <div className="flex items-center gap-2 shrink-0 bg-slate-100/80 rounded-xl p-1 border border-slate-200/50 self-start">
+                          <div className="flex items-center gap-0.5">
+                            <button
+                              type="button"
+                              disabled={stIdx === 0}
+                              onClick={() => moveWorkflowStage(section.id, stIdx, 'up')}
+                              className="p-1 hover:bg-white rounded-lg text-slate-500 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                              title="Mover arriba"
                             >
-                              <Trash2 size={16} />
+                              <ChevronUp size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={stIdx === section.stages.length - 1}
+                              onClick={() => moveWorkflowStage(section.id, stIdx, 'down')}
+                              className="p-1 hover:bg-white rounded-lg text-slate-500 hover:text-indigo-600 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                              title="Mover abajo"
+                            >
+                              <ChevronDown size={12} />
                             </button>
                           </div>
+                          <div className="w-px h-4 bg-slate-200" />
+                          <GripVertical size={14} className="text-slate-400 cursor-grab active:cursor-grabbing hover:text-slate-600 transition-colors mr-0.5" />
                         </div>
+
+                        {/* Center content */}
+                        <div className="flex-1 space-y-4 min-w-0">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Título del Procedimiento</label>
+                              <input 
+                                value={stage.name}
+                                onChange={e => updateWorkflowStage(section.id, stage.id, { name: e.target.value.toUpperCase() })}
+                                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl font-bold text-sm text-slate-700 uppercase focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none"
+                                placeholder="Escribir título..."
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Rol Responsable</label>
+                              <select 
+                                value={stage.role}
+                                onChange={e => updateWorkflowStage(section.id, stage.id, { role: e.target.value })}
+                                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl font-bold text-sm text-slate-700 uppercase focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none"
+                              >
+                                <option value="TECHNICAL">TÉCNICO</option>
+                                <option value="ID">I+D</option>
+                                <option value="MKT">MKT</option>
+                                <option value="PLAN">PLANEAMIENTO</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Descripción del Procedimiento</label>
+                            <textarea 
+                              value={stage.text}
+                              onChange={e => updateWorkflowStage(section.id, stage.id, { text: e.target.value })}
+                              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500/10 min-h-[80px] resize-none"
+                              placeholder="Redactar el texto del procedimiento..."
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Criterios de Aceptación</label>
+                            <textarea 
+                              value={stage.acceptanceCriteria}
+                              onChange={e => updateWorkflowStage(section.id, stage.id, { acceptanceCriteria: e.target.value })}
+                              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500/10 min-h-[80px] resize-none"
+                              placeholder="Escribir criterios de aceptación..."
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Fotos Referenciales</label>
+                            <div className="flex flex-wrap gap-2">
+                              {stage.referencePhotos?.map((photo: any, pIdx: number) => (
+                                <div key={pIdx} className="relative group w-16 h-16 rounded-xl overflow-hidden border border-slate-200 bg-white">
+                                  <img src={photo.url} alt="Referencial" className="w-full h-full object-cover" />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <button 
+                                      type="button"
+                                      onClick={() => {
+                                        const newPhotos = stage.referencePhotos.filter((_: any, i: number) => i !== pIdx);
+                                        updateWorkflowStage(section.id, stage.id, { referencePhotos: newPhotos });
+                                      }}
+                                      className="p-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                              
+                              <label className="w-16 h-16 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 hover:border-indigo-300 hover:text-indigo-500 transition-all bg-white cursor-pointer group">
+                                <Upload size={16} className="group-hover:scale-110 transition-transform" />
+                                <span className="text-[7px] font-black uppercase mt-1">Subir Foto</span>
+                                <input 
+                                  type="file" 
+                                  className="hidden" 
+                                  accept="image/*" 
+                                  disabled={uploadingStageId === stage.id}
+                                  onChange={(e) => handleStagePhotoUpload(section.id, stage.id, e)} 
+                                />
+                              </label>
+                            </div>
+                            {uploadingStageId === stage.id && (
+                              <p className="text-[9px] text-indigo-600 font-bold animate-pulse">Subiendo foto...</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Right action */}
+                        <button 
+                          onClick={() => removeWorkflowStage(section.id, stage.id)}
+                          className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all self-start shrink-0"
+                          title="Eliminar procedimiento"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     ))}
                     
