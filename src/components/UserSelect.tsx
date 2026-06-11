@@ -30,6 +30,7 @@ export default function UserSelect({
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Load profiles on mount
   useEffect(() => {
     const loadUsers = async () => {
       try {
@@ -50,6 +51,27 @@ export default function UserSelect({
     loadUsers();
   }, []);
 
+  // Sync searchTerm with value prop
+  useEffect(() => {
+    const selected = users.find(u => u.id === value || u.full_name === value);
+    if (selected) {
+      setSearchTerm(selected.full_name || '');
+    } else {
+      setSearchTerm(value || '');
+    }
+  }, [value, users]);
+
+  // Automatically trigger onSelect if the typed text matches a user's full_name
+  useEffect(() => {
+    if (onSelect && value) {
+      const match = users.find(u => u.full_name?.toLowerCase() === value.toLowerCase());
+      if (match) {
+        onSelect(match);
+      }
+    }
+  }, [value, users, onSelect]);
+
+  // Handle outside clicks to close the dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -60,12 +82,28 @@ export default function UserSelect({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredUsers = users.filter(user => 
-    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearchTerm(val);
+    onChange(val);
+    if (!isOpen) {
+      setIsOpen(true);
+    }
+  };
 
-  const selectedUser = users.find(u => u.full_name === value || u.id === value);
+  const handleChevronClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsOpen(!isOpen);
+  };
+
+  // Filter users based on search term
+  const filteredUsers = users.filter(user => {
+    const fullName = user.full_name || '';
+    const email = user.email || '';
+    const search = searchTerm || '';
+    return fullName.toLowerCase().includes(search.toLowerCase()) ||
+           email.toLowerCase().includes(search.toLowerCase());
+  });
 
   return (
     <div className={`space-y-1.5 ${className}`} ref={containerRef}>
@@ -76,37 +114,33 @@ export default function UserSelect({
       )}
       
       <div className="relative">
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className={`w-full flex items-center justify-between px-5 py-3 bg-slate-50 border rounded-xl md:rounded-2xl transition-all font-bold text-sm outline-none ${
-            isOpen ? 'border-indigo-500 ring-4 ring-indigo-500/10 bg-white' : 'border-slate-200 text-slate-700'
-          }`}
-        >
-          <div className="flex items-center gap-3 truncate">
-            {selectedUser ? (
-              <>
-                <div className="w-6 h-6 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
-                  <User size={14} />
-                </div>
-                <span className="truncate">{selectedUser.full_name}</span>
-              </>
-            ) : (
-              <span className="text-slate-400">{placeholder}</span>
-            )}
+        <div className="relative">
+          {/* User icon on the left */}
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+            <User size={16} />
           </div>
-          <ChevronDown size={18} className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-        </button>
 
-        {/* Hidden input for form submission if name is provided */}
-        {name && (
-          <input 
-            type="hidden" 
-            name={name} 
-            value={value} 
-            required={required} 
+          <input
+            type="text"
+            name={name}
+            value={searchTerm}
+            onChange={handleInputChange}
+            onFocus={() => setIsOpen(true)}
+            placeholder={placeholder}
+            required={required}
+            className="w-full pl-11 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl font-bold text-sm text-slate-700 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 focus:bg-white transition-all outline-none"
+            autoComplete="off"
           />
-        )}
+
+          {/* Toggle dropdown button */}
+          <button
+            type="button"
+            onClick={handleChevronClick}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <ChevronDown size={18} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
 
         <AnimatePresence>
           {isOpen && (
@@ -117,33 +151,11 @@ export default function UserSelect({
               transition={{ duration: 0.2 }}
               className="absolute z-[100] w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
             >
-              <div className="p-3 border-b border-slate-100 bg-slate-50/50">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                  <input
-                    autoFocus
-                    type="text"
-                    placeholder="Buscar usuario..."
-                    className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                  {searchTerm && (
-                    <button 
-                      onClick={() => setSearchTerm('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
               <div className="max-h-60 overflow-y-auto custom-scrollbar">
                 {loading && users.length === 0 ? (
                   <div className="p-8 flex flex-col items-center justify-center gap-2">
                     <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-[10px] font-black text-slate-400 uppercase">Cargando...</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase">Cargando usuarios...</span>
                   </div>
                 ) : filteredUsers.length > 0 ? (
                   <div className="p-1">
@@ -157,7 +169,6 @@ export default function UserSelect({
                             onChange(user.full_name);
                             if (onSelect) onSelect(user);
                             setIsOpen(false);
-                            setSearchTerm('');
                           }}
                           className={`w-full flex items-center justify-between p-3 rounded-xl transition-all text-left group ${
                             isSelected ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-slate-50'
@@ -182,8 +193,8 @@ export default function UserSelect({
                     })}
                   </div>
                 ) : (
-                  <div className="p-8 text-center">
-                    <p className="text-xs text-slate-500 font-medium italic">No se encontraron usuarios</p>
+                  <div className="p-6 text-center">
+                    <p className="text-xs text-slate-400 italic">No se encontraron usuarios coincidentes (puedes escribir un nombre personalizado)</p>
                   </div>
                 )}
               </div>

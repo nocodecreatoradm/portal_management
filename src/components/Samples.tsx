@@ -69,6 +69,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [selectedSupplierName, setSelectedSupplierName] = useState('');
   const [receptionPhotoFile, setReceptionPhotoFile] = useState<File | null>(null);
+  const [receivedByVal, setReceivedByVal] = useState('');
 
   const handleReceptionPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -689,6 +690,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
               setSelectedCategoryId('');
               setSelectedSupplierName('');
               setReceptionPhotoFile(null);
+              setReceivedByVal('');
               setIsNewSampleModalOpen(true);
             }}
             className="flex items-center gap-2 bg-[#1e293b] text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 active:scale-95"
@@ -1267,10 +1269,12 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha de Recepción</label>
                   <input name="warehouseEntryDate" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Recibido Por</label>
-                  <input name="receivedBy" type="text" placeholder="Nombre de quien recibe" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
-                </div>
+                <UserSelect
+                  label="Recibido Por"
+                  name="receivedBy"
+                  value={receivedByVal}
+                  onChange={(val) => setReceivedByVal(val)}
+                />
                 <div className="space-y-1.5 col-span-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Foto de Recepción</label>
                   <input 
