@@ -150,11 +150,13 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
   };
 
   const filteredSuppliers = useMemo(() => {
-    return suppliers.filter(s => 
-      s.legalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.commercialAlias.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.erpCode.includes(searchTerm)
-    );
+    const term = (searchTerm || '').toLowerCase();
+    return suppliers.filter(s => {
+      const legal = (s.legalName || '').toLowerCase();
+      const alias = (s.commercialAlias || '').toLowerCase();
+      const erp = s.erpCode || '';
+      return legal.includes(term) || alias.includes(term) || erp.toLowerCase().includes(term);
+    });
   }, [suppliers, searchTerm]);
 
   const handleOpenModal = (supplier?: Supplier) => {
