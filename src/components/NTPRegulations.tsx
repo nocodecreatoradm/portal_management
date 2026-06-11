@@ -109,8 +109,19 @@ export default function NTPRegulations({ initialData, onExportPPT, onLoadRecord 
     const fileInput = e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement;
     const selectedFile = fileInput?.files?.[0];
 
+    const code = (formData.get('code') as string || '').trim();
+    const isDuplicate = regulations.some(r => 
+      r.code.trim().toLowerCase() === code.toLowerCase() && 
+      (!editingReg || r.id !== editingReg.id)
+    );
+
+    if (isDuplicate) {
+      toast.error(`La normativa con código "${code}" ya está registrada.`);
+      return;
+    }
+
     const regData: Partial<NTPRegulation> = {
-      code: formData.get('code') as string,
+      code,
       title: formData.get('title') as string,
       category: formData.get('category') as string,
       description: formData.get('description') as string

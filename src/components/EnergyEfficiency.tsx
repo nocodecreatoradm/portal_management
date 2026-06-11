@@ -533,11 +533,23 @@ export default function EnergyEfficiency({
           <form onSubmit={(e) => {
             e.preventDefault();
             const formData = new FormData(e.currentTarget);
+
+            const codigoMT = (formData.get('codigoMT') as string || '').trim();
+            const isDuplicate = records.some(r => 
+              r.codigoMT?.trim().toLowerCase() === codigoMT.toLowerCase() && 
+              (!record || r.id !== record.id)
+            );
+
+            if (isDuplicate) {
+              toast.error(`El Código MT "${codigoMT}" ya está registrado en Eficiencia Energética.`);
+              return;
+            }
+
             const providerName = formData.get('proveedor') as string;
             const selectedSupplier = suppliers.find(s => s.legalName === providerName || s.commercialAlias === providerName);
             
             const data = {
-              codigoMT: formData.get('codigoMT') as string,
+              codigoMT,
               descripcion: formData.get('descripcion') as string,
               letra: formData.get('letra') as string,
               porcentajeEE: formData.get('porcentajeEE') as string,

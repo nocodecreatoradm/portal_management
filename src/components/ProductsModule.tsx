@@ -518,6 +518,18 @@ export default function ProductsModule({
     setIsSubmitting(true);
 
     try {
+      const codigoSAP = (formData.codigoSAP || '').trim();
+      const isDuplicate = records.some(r => 
+        r.codigoSAP?.trim().toLowerCase() === codigoSAP.toLowerCase() && 
+        (!editingRecord || r.id !== editingRecord.id)
+      );
+
+      if (isDuplicate) {
+        toast.error(`El Código SAP "${codigoSAP}" ya está registrado en el Catálogo de Productos.`);
+        setIsSubmitting(false);
+        return;
+      }
+
       const resolvedFormData = { ...formData };
 
       // Resolve Brand
