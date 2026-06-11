@@ -303,7 +303,8 @@ export default function DataTable({
   };
 
   const renderApprovalCell = (record: ProductRecord, type: 'artwork' | 'technical_sheet' | 'commercial_sheet', versions: DocumentVersion[], stage: string, isExpanded: boolean, hasMore: boolean) => {
-    if (versions.length === 0) return <td className="px-2 py-3 border-r border-gray-100 text-center">-</td>;
+    const cellClass = "px-0.5 py-2 border-r border-gray-100 text-center w-[42px] min-w-[42px] max-w-[42px]";
+    if (versions.length === 0) return <td className={cellClass}>-</td>;
     
     // Para Planeamiento, solo mostramos una aprobación global (la última versión)
     const isPlan = stage === 'PLAN';
@@ -314,7 +315,7 @@ export default function DataTable({
     }
 
     return (
-      <td className="px-2 py-3 border-r border-gray-100 text-center">
+      <td className={cellClass}>
         <div className="flex flex-col gap-2 items-center">
           {displayVersions.map((v, idx) => {
             const approval = stage === 'I+D' ? v.idApproval : 
@@ -696,16 +697,16 @@ export default function DataTable({
       {/* Table for Desktop (hidden lg:block) */}
       <div className="hidden lg:flex lg:flex-col">
         <div ref={tableContainerRef} className="overflow-x-auto min-h-[420px]">
-          <table className="w-full text-sm text-left border-collapse min-w-max">
+          <table className={`w-full text-[11px] text-left border-collapse ${mode === 'artwork' ? 'min-w-[1250px]' : 'min-w-[1100px]'} xl:min-w-full`}>
           <thead className="bg-[#f8fafc] text-slate-500 uppercase text-[10px] font-bold border-b border-gray-200 sticky top-0 z-20">
             <tr>
-              <th rowSpan={2} className="px-3 py-3 text-center border-r border-gray-100 w-20">Acciones</th>
+              <th rowSpan={2} className="px-1.5 py-2.5 text-center border-r border-gray-100 w-20 min-w-[80px] max-w-[80px]">Acciones</th>
               <th 
                 rowSpan={2} 
-                className="px-3 py-3 text-center border-r border-gray-100 whitespace-nowrap cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                className="px-1.5 py-2.5 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-16 min-w-[64px] max-w-[64px]"
                 onClick={() => toggleSort('correlativeId')}
               >
-                <div className="inline-flex items-center gap-1">
+                <div className="inline-flex items-center gap-1 justify-center w-full">
                   <span>ID</span>
                   <HeaderFilterPopover 
                     column="correlativeId" 
@@ -721,10 +722,10 @@ export default function DataTable({
 
               <th 
                 rowSpan={2} 
-                className="px-3 py-3 text-center border-r border-gray-100 whitespace-nowrap cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                className="px-1.5 py-2.5 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[115px] min-w-[115px] max-w-[115px]"
                 onClick={() => toggleSort('codigoSAP')}
               >
-                <div className="inline-flex items-center gap-1">
+                <div className="inline-flex items-center gap-1 justify-center w-full">
                   <span>Código SAP</span>
                   <HeaderFilterPopover 
                     column="codigoSAP" 
@@ -739,10 +740,10 @@ export default function DataTable({
               </th>
               <th 
                 rowSpan={2} 
-                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[180px] max-w-[180px]"
+                className="px-1.5 py-2.5 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[150px] min-w-[150px] max-w-[150px]"
                 onClick={() => toggleSort('descripcionSAP')}
               >
-                <div className="inline-flex items-center gap-1">
+                <div className="inline-flex items-center gap-1 justify-center w-full">
                   <span>Descripción SAP</span>
                   <HeaderFilterPopover 
                     column="descripcionSAP" 
@@ -757,10 +758,10 @@ export default function DataTable({
               </th>
               <th 
                 rowSpan={2} 
-                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[110px] max-w-[110px]"
+                className="px-1.5 py-2.5 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[50px] min-w-[50px] max-w-[50px]"
                 onClick={() => toggleSort('comments')}
               >
-                <div className="inline-flex items-center gap-1">
+                <div className="inline-flex items-center gap-1 justify-center w-full">
                   <span>Comentarios</span>
                   <HeaderFilterPopover 
                     column="comments" 
@@ -775,10 +776,10 @@ export default function DataTable({
               </th>
               <th 
                 rowSpan={2} 
-                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[100px] max-w-[100px]"
+                className="px-1.5 py-2.5 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-20 min-w-[80px] max-w-[80px]"
                 onClick={() => toggleSort('linea')}
               >
-                <div className="inline-flex items-center gap-1">
+                <div className="inline-flex items-center gap-1 justify-center w-full">
                   <span>Línea</span>
                   <HeaderFilterPopover 
                     column="linea" 
@@ -793,10 +794,10 @@ export default function DataTable({
               </th>
               <th 
                 rowSpan={2} 
-                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[110px] max-w-[110px]"
+                className="px-1.5 py-2.5 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-24 min-w-[96px] max-w-[96px]"
                 onClick={() => toggleSort('categoria')}
               >
-                <div className="inline-flex items-center gap-1">
+                <div className="inline-flex items-center gap-1 justify-center w-full">
                   <span>Categoría</span>
                   <HeaderFilterPopover 
                     column="categoria" 
@@ -811,10 +812,10 @@ export default function DataTable({
               </th>
               <th 
                 rowSpan={2} 
-                className="px-3 py-3 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                className="px-1.5 py-2.5 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[70px] min-w-[70px] max-w-[70px]"
                 onClick={() => toggleSort('marca')}
               >
-                <div className="inline-flex items-center gap-1">
+                <div className="inline-flex items-center gap-1 justify-center w-full">
                   <span>Marca</span>
                   <HeaderFilterPopover 
                     column="marca" 
@@ -829,10 +830,10 @@ export default function DataTable({
               </th>
               <th 
                 rowSpan={2} 
-                className="px-3 py-3 text-center border-r border-gray-100 min-w-[120px] cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                className="px-1.5 py-2.5 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[115px] min-w-[115px] max-w-[115px]"
                 onClick={() => toggleSort('status')}
               >
-                <div className="flex items-center justify-center gap-1.5">
+                <div className="flex items-center justify-center gap-1.5 w-full">
                   <span>Estado</span>
                   <HeaderFilterPopover 
                     column="status" 
@@ -847,10 +848,10 @@ export default function DataTable({
               </th>
               <th 
                 rowSpan={2} 
-                className="px-3 py-3 text-center border-r border-gray-100 min-w-[120px] cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                className="px-1.5 py-2.5 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[115px] min-w-[115px] max-w-[115px]"
                 onClick={() => toggleSort('assignment')}
               >
-                <div className="flex items-center justify-center gap-1.5">
+                <div className="flex items-center justify-center gap-1.5 w-full">
                   <span>Asignación</span>
                   <HeaderFilterPopover 
                     column="assignment" 
@@ -863,7 +864,7 @@ export default function DataTable({
                   />
                 </div>
               </th>
-              <th colSpan={mode === 'artwork' ? 6 : 3} className={`px-4 py-2 text-center ${
+              <th colSpan={mode === 'artwork' ? 6 : 3} className={`px-2 py-1.5 text-center text-[9px] ${
                 mode === 'artwork' ? 'bg-indigo-50/50 text-indigo-600' : 
                 mode === 'technical_sheet' ? 'bg-emerald-50/50 text-emerald-600' : 
                 'bg-amber-50/50 text-amber-600'
@@ -874,10 +875,10 @@ export default function DataTable({
               </th>
               <th 
                 rowSpan={2} 
-                className="px-3 py-3 text-center border-l border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+                className="px-1.5 py-2.5 text-center border-l border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-24 min-w-[96px] max-w-[96px]"
                 onClick={() => toggleSort('sampleId')}
               >
-                <div className="inline-flex items-center gap-1">
+                <div className="inline-flex items-center gap-1 justify-center w-full">
                   <span>Muestra</span>
                   <HeaderFilterPopover 
                     column="sampleId" 
@@ -894,17 +895,17 @@ export default function DataTable({
             </tr>
             <tr className="bg-slate-50/50">
               {/* Subheaders */}
-              <th className="px-2 py-2 text-center border-r border-gray-100">Arch.</th>
-              <th className="px-2 py-2 text-center border-r border-gray-100">I+D</th>
+              <th className="px-1 py-1.5 text-center border-r border-gray-100 w-[60px] min-w-[60px] max-w-[60px] text-[9px]">Arch.</th>
+              <th className="px-1 py-1.5 text-center border-r border-gray-100 w-[42px] min-w-[42px] max-w-[42px] text-[9px]">I+D</th>
               {mode === 'artwork' ? (
                 <>
-                  <th className="px-2 py-2 text-center border-r border-gray-100">MKT</th>
-                  <th className="px-2 py-2 text-center border-r border-gray-100">PROV</th>
-                  <th className="px-2 py-2 text-center border-r border-gray-100">Ver.</th>
-                  <th className="px-2 py-2 text-center border-r border-gray-100">PLAN</th>
+                  <th className="px-1 py-1.5 text-center border-r border-gray-100 w-[42px] min-w-[42px] max-w-[42px] text-[9px]">MKT</th>
+                  <th className="px-1 py-1.5 text-center border-r border-gray-100 w-[42px] min-w-[42px] max-w-[42px] text-[9px]">PROV</th>
+                  <th className="px-1 py-1.5 text-center border-r border-gray-100 w-[42px] min-w-[42px] max-w-[42px] text-[9px]">Ver.</th>
+                  <th className="px-1 py-1.5 text-center border-r border-gray-100 w-[42px] min-w-[42px] max-w-[42px] text-[9px]">PLAN</th>
                 </>
               ) : (
-                <th className="px-2 py-2 text-center border-r border-gray-100">Ver.</th>
+                <th className="px-1 py-1.5 text-center border-r border-gray-100 w-[42px] min-w-[42px] max-w-[42px] text-[9px]">Ver.</th>
               )}
             </tr>
           </thead>
@@ -939,33 +940,33 @@ export default function DataTable({
                   key={record.id} 
                   className="hover:bg-blue-50/30 transition-colors group"
                 >
-                  <td className="px-3 py-3 border-r border-gray-100">
-                    <div className="flex items-center justify-center gap-2">
+                  <td className="px-1.5 py-2 border-r border-gray-100 w-20 min-w-[80px] max-w-[80px]">
+                    <div className="flex items-center justify-center gap-1">
                       <button 
                         onClick={() => onViewDetail(record)} 
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" 
+                        className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all" 
                         title="Ver detalle"
                       >
-                        <Eye size={18} />
+                        <Eye size={16} />
                       </button>
                       <button 
                         onClick={() => onEdit?.(record)} 
-                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" 
+                        className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all" 
                         title="Editar"
                       >
-                        <Edit2 size={18} />
+                        <Edit2 size={16} />
                       </button>
                       <button 
                         onClick={() => onDelete?.(record)} 
-                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" 
+                        className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all" 
                         title="Borrar"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </td>
-                  <td className="px-3 py-3 border-r border-gray-100">
-                    <div className="flex items-center gap-2">
+                  <td className="px-1.5 py-2 border-r border-gray-100 w-16 min-w-[64px] max-w-[64px]">
+                    <div className="flex items-center justify-center gap-1">
                       <span 
                         onClick={() => onViewDetail(record)}
                         data-soly="datatable-correlative"
@@ -975,7 +976,7 @@ export default function DataTable({
                       </span>
                       {record.artworkAssignment?.infoRequests?.some(r => !r.response) && (
                         <div className="relative group/alert">
-                          <AlertCircle size={14} className="text-orange-500 animate-pulse" />
+                          <AlertCircle size={11} className="text-orange-500 animate-pulse" />
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/alert:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded shadow-xl z-50">
                             Solicitud de información pendiente
                           </div>
@@ -984,9 +985,9 @@ export default function DataTable({
                     </div>
                   </td>
 
-                  <td className="px-3 py-3 border-r border-gray-100 font-mono text-xs text-slate-600 font-bold">
-                    <div className="flex items-center gap-2">
-                      <span>{record.codigoSAP}</span>
+                  <td className="px-1.5 py-2 border-r border-gray-100 font-mono text-xs text-slate-600 font-bold w-[115px] min-w-[115px] max-w-[115px]">
+                    <div className="flex items-center gap-1 justify-center w-full">
+                      <span className="truncate max-w-[76px]" title={record.codigoSAP}>{record.codigoSAP}</span>
                       {onQualityClaimsClick && (
                         (() => {
                           const claimType = mode === 'artwork' ? 'artwork' : mode === 'technical_sheet' ? 'technical' : 'commercial';
@@ -1012,7 +1013,7 @@ export default function DataTable({
                                 e.stopPropagation();
                                 onQualityClaimsClick(record);
                               }}
-                              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black tracking-tighter shadow transition-all ${qBg}`}
+                              className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black tracking-tighter shadow transition-all shrink-0 ${qBg}`}
                               title={qTitle}
                             >
                               Q
@@ -1022,10 +1023,10 @@ export default function DataTable({
                       )}
                     </div>
                   </td>
-                  <td className="px-3 py-3 border-r border-gray-100 text-slate-700 font-bold uppercase text-[11px] leading-tight max-w-[180px] truncate" title={record.descripcionSAP}>
+                  <td className="px-1.5 py-2 border-r border-gray-100 text-slate-700 font-bold uppercase text-[10px] leading-tight w-[150px] min-w-[150px] max-w-[150px] truncate" title={record.descripcionSAP}>
                     {record.descripcionSAP}
                   </td>
-                  <td className="px-3 py-3 border-r border-gray-100 text-[11px] leading-tight text-slate-500 font-medium italic max-w-[110px] text-center">
+                  <td className="px-1.5 py-2 border-r border-gray-100 text-[11px] leading-tight text-slate-500 font-medium italic w-[50px] min-w-[50px] max-w-[50px] text-center">
                     {record.comments ? (
                       <div className="flex justify-center" title={record.comments}>
                         <MessageSquare className="w-4 h-4 text-indigo-500 hover:text-indigo-600 transition-colors cursor-help" />
@@ -1034,14 +1035,14 @@ export default function DataTable({
                       <span className="text-slate-300">-</span>
                     )}
                   </td>
-                  <td className="px-3 py-3 border-r border-gray-100 text-[10px] text-slate-500 font-medium uppercase tracking-tight text-center max-w-[100px] truncate" title={record.linea}>
+                  <td className="px-1.5 py-2 border-r border-gray-100 text-[9px] text-slate-500 font-semibold uppercase tracking-tight text-center w-20 min-w-[80px] max-w-[80px] truncate" title={record.linea}>
                     {record.linea}
                   </td>
-                  <td className="px-3 py-3 border-r border-gray-100 text-[10px] text-slate-500 font-medium uppercase tracking-tight text-center max-w-[110px] truncate" title={record.categoria}>
+                  <td className="px-1.5 py-2 border-r border-gray-100 text-[9px] text-slate-500 font-semibold uppercase tracking-tight text-center w-24 min-w-[96px] max-w-[96px] truncate" title={record.categoria}>
                     {record.categoria || <span className="text-slate-300">-</span>}
                   </td>
-                  <td className="px-3 py-3 border-r border-gray-100 text-center">
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                  <td className="px-1.5 py-2 border-r border-gray-100 text-center w-[70px] min-w-[70px] max-w-[70px]">
+                    <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wider ${
                       record.marca === 'SOLE' 
                         ? 'bg-orange-50 text-orange-600 border border-orange-100' 
                         : 'bg-slate-100 text-slate-600 border border-slate-200'
@@ -1049,21 +1050,21 @@ export default function DataTable({
                       {record.marca}
                     </span>
                   </td>
-                  <td className="px-3 py-3 border-r border-gray-100 text-center">
-                    <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-wider border whitespace-nowrap inline-block ${generalStatus.color}`}>
+                  <td className="px-1.5 py-2 border-r border-gray-100 text-center w-[115px] min-w-[115px] max-w-[115px]">
+                    <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wider border whitespace-nowrap inline-block ${generalStatus.color}`}>
                       {generalStatus.label}
                     </span>
                   </td>
-                  <td className="px-3 py-3 border-r border-gray-100">
-                    <div className="flex flex-col gap-2">
+                  <td className="px-1.5 py-2 border-r border-gray-100 w-[115px] min-w-[115px] max-w-[115px]">
+                    <div className="flex flex-col gap-1">
                       {/* Assignment */}
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center justify-between gap-1">
                         <span className="text-[9px] font-bold text-indigo-600">
                           {mode === 'artwork' ? 'ART:' : mode === 'technical_sheet' ? 'TEC:' : 'COM:'}
                         </span>
                         {assignment ? (
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-slate-600 truncate max-w-[60px]" title={assignment.designer}>
+                          <div className="flex items-center gap-0.5">
+                            <span className="text-[9.5px] text-slate-600 truncate max-w-[50px]" title={assignment.designer}>
                               {assignment.designer.split(' ')[0]}
                             </span>
                             <button 
@@ -1071,32 +1072,32 @@ export default function DataTable({
                               className="text-orange-500 hover:text-orange-700 transition-colors" 
                               title="Solicitar Información"
                             >
-                              <HelpCircle size={14} />
+                              <HelpCircle size={12} />
                             </button>
                           </div>
                         ) : (
                           <button 
                             onClick={() => onAssign?.(record, mode)} 
-                            className="text-[9px] text-indigo-500 hover:text-indigo-700 font-bold flex items-center gap-1"
+                            className="text-[9px] text-indigo-500 hover:text-indigo-700 font-bold flex items-center gap-0.5 whitespace-nowrap"
                           >
-                            <UserPlus size={12} /> Asignar
+                            <UserPlus size={10} /> Asignar
                           </button>
                         )}
                       </div>
                       
                       {/* Deadline & Edit */}
                       {assignment && (
-                        <div className="flex items-center justify-between gap-1 pt-1 border-t border-slate-50 mt-1">
+                        <div className="flex items-center justify-between gap-0.5 pt-1 border-t border-slate-50 mt-1">
                           <div className="flex items-center">
                             {isNearDeadline(assignment.plannedEndDate) ? (
-                              <div className="flex items-center gap-1 text-red-500" title="Vencido o próximo a vencer">
-                                <AlertCircle size={10} className="animate-pulse shrink-0" />
-                                <span className="text-[9px] font-bold">Vence: {format(parseISO(assignment.plannedEndDate!), 'dd/MM')}</span>
+                              <div className="flex items-center gap-0.5 text-red-500" title="Vencido o próximo a vencer">
+                                <AlertCircle size={9} className="animate-pulse shrink-0" />
+                                <span className="text-[8.5px] font-bold">Vence: {format(parseISO(assignment.plannedEndDate!), 'dd/MM')}</span>
                               </div>
                             ) : assignment.plannedEndDate ? (
-                              <span className="text-[9px] text-slate-400">Vence: {format(parseISO(assignment.plannedEndDate), 'dd/MM')}</span>
+                              <span className="text-[8.5px] text-slate-400">Vence: {format(parseISO(assignment.plannedEndDate), 'dd/MM')}</span>
                             ) : (
-                              <span className="text-[9px] text-slate-300 italic">Sin fecha</span>
+                              <span className="text-[8.5px] text-slate-300 italic">Sin fecha</span>
                             )}
                           </div>
                           <button 
@@ -1104,7 +1105,7 @@ export default function DataTable({
                             className="text-slate-300 hover:text-blue-500 transition-colors"
                             title="Editar fechas planificadas"
                           >
-                            <Calendar size={12} />
+                            <Calendar size={10} />
                           </button>
                         </div>
                       )}
@@ -1112,43 +1113,43 @@ export default function DataTable({
                   </td>
 
                   {/* Document Cells */}
-                  <td className="px-2 py-3 border-r border-gray-100 text-center">
-                    <div className="flex flex-col gap-2 items-center">
+                  <td className="px-1 py-2 border-r border-gray-100 text-center w-[60px] min-w-[60px] max-w-[60px]">
+                    <div className="flex flex-col gap-1 items-center">
                       {displayCategories.length > 0 ? (
                         displayCategories.map((v, idx) => (
-                          <div key={idx} className="flex flex-col gap-1 items-start w-full px-2">
-                            <div className="flex items-center justify-center gap-2 h-8 w-full">
+                          <div key={idx} className="flex flex-col gap-0.5 items-start w-full px-0.5">
+                            <div className="flex items-center justify-center gap-1 h-8 w-full">
                               <button 
                                 onClick={() => onActionClick(record, mode, 'view', v)}
                                 className="text-indigo-500 hover:text-indigo-700 transition-colors"
                                 title={`Ver ${v.category || 'Documento'} V${v.version}`}
                               >
-                                <ImageIcon size={18} />
+                                <ImageIcon size={16} />
                               </button>
                               <button 
                                 onClick={() => onActionClick(record, mode, 'upload')}
                                 className="text-slate-300 hover:text-indigo-500 transition-colors"
                                 title="Subir nueva versión"
                               >
-                                <Upload size={14} />
+                                <Upload size={12} />
                               </button>
                             </div>
                             {mode === 'commercial_sheet' && v.files && v.files.length > 0 && (
-                              <div className="flex flex-col gap-1 mt-1 w-full text-left bg-slate-50 p-1.5 rounded border border-slate-100">
+                              <div className="flex flex-col gap-0.5 mt-0.5 w-full text-left bg-slate-50 p-1 rounded border border-slate-100">
                                 {v.files.map((f, fIdx) => (
-                                  <div key={fIdx} className="flex items-center gap-1.5 flex-wrap">
-                                    <FileText size={12} className="text-slate-400 shrink-0" />
+                                  <div key={fIdx} className="flex items-center gap-1 flex-wrap">
+                                    <FileText size={10} className="text-slate-400 shrink-0" />
                                     <a 
                                       href={f.url}
-                                      className="text-[10px] text-blue-600 hover:underline truncate max-w-[100px]"
+                                      className="text-[9px] text-blue-600 hover:underline truncate max-w-[70px]"
                                       title={f.name}
                                     >
                                       {f.name}
                                     </a>
                                     {f.commercialType === 'provisional' ? (
-                                      <span className="px-1 py-0.2 rounded text-[7px] font-black uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-100 shrink-0">Prov</span>
+                                      <span className="px-0.5 py-0.2 rounded text-[6.5px] font-black uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-100 shrink-0">Prov</span>
                                     ) : f.commercialType === 'final' ? (
-                                      <span className="px-1 py-0.2 rounded text-[7px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-100 shrink-0">Final</span>
+                                      <span className="px-0.5 py-0.2 rounded text-[6.5px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-100 shrink-0">Final</span>
                                     ) : null}
                                   </div>
                                 ))}
@@ -1162,7 +1163,7 @@ export default function DataTable({
                           className="text-slate-300 hover:text-indigo-500 transition-colors"
                           title={`Subir ${mode === 'artwork' ? 'artwork' : 'ficha'}`}
                         >
-                          <Upload size={18} />
+                          <Upload size={16} />
                         </button>
                       )}
                       {latestByCategory.some(v => v.idApproval?.status === 'not_started') && (
@@ -1171,17 +1172,17 @@ export default function DataTable({
                             const targetVersion = latestByCategory.find(v => v.idApproval?.status === 'not_started') || latestByCategory[0];
                             onStartFlow?.(record, targetVersion);
                           }}
-                          className="mt-2 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all animate-pulse w-full shadow-lg shadow-blue-600/10 active:scale-95 whitespace-nowrap"
+                          className="mt-1 flex items-center justify-center gap-1 px-1.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-[8px] font-black uppercase tracking-wider transition-all animate-pulse w-full shadow-md shadow-blue-600/10 active:scale-95 whitespace-nowrap"
                           title="Iniciar flujo de aprobaciones para todos los archivos"
                         >
-                          <Send size={10} />
-                          <span>INICIAR FLUJO</span>
+                          <Send size={8} />
+                          <span>INICIAR</span>
                         </button>
                       )}
                       {hasMore && (
                         <button 
                           onClick={() => toggleRow(record.id)} 
-                          className="text-[9px] font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded w-full mt-1 transition-colors h-[22px]"
+                          className="text-[8px] font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-1 py-0.5 rounded w-full mt-1 transition-colors h-[18px]"
                         >
                           {isExpanded ? 'Contraer' : `+${latestByCategory.length - 1}`}
                         </button>
@@ -1193,13 +1194,13 @@ export default function DataTable({
                     <>
                       {renderApprovalCell(record, mode, latestByCategory, 'MKT', isExpanded, hasMore)}
                       {renderApprovalCell(record, mode, latestByCategory, 'PROV', isExpanded, hasMore)}
-                      <td className="px-2 py-3 border-r border-gray-100">
+                      <td className="px-0.5 py-2 border-r border-gray-100 w-[42px] min-w-[42px] max-w-[42px]">
                         <div className="flex flex-col gap-2 items-center">
                           {displayCategories.length > 0 ? (
                             displayCategories.map((v, idx) => (
                               <div key={idx} className="h-8 flex flex-col justify-center items-center leading-none">
-                                {v.category && <span className="text-[8px] text-slate-400 uppercase font-black">{v.category}:</span>}
-                                <span className="text-[10px] text-indigo-600 font-black">V{v.version}</span>
+                                {v.category && <span className="text-[7.5px] text-slate-400 uppercase font-black truncate max-w-[40px]" title={v.category}>{v.category.substring(0,3)}:</span>}
+                                <span className="text-[9.5px] text-indigo-600 font-black">V{v.version}</span>
                               </div>
                             ))
                           ) : (
@@ -1215,13 +1216,13 @@ export default function DataTable({
                       {renderApprovalCell(record, mode, latestByCategory, 'PLAN', isExpanded, hasMore)}
                     </>
                   ) : (
-                    <td className="px-2 py-3 border-r border-gray-100">
+                    <td className="px-0.5 py-2 border-r border-gray-100 w-[42px] min-w-[42px] max-w-[42px]">
                       <div className="flex flex-col gap-2 items-center">
                         {displayCategories.length > 0 ? (
                           displayCategories.map((v, idx) => (
                             <div key={idx} className="h-8 flex flex-col justify-center items-center leading-none">
-                              {v.category && <span className="text-[8px] text-slate-400 uppercase font-black">{v.category}:</span>}
-                              <span className="text-[10px] text-indigo-600 font-black">V{v.version}</span>
+                              {v.category && <span className="text-[7.5px] text-slate-400 uppercase font-black truncate max-w-[40px]" title={v.category}>{v.category.substring(0,3)}:</span>}
+                              <span className="text-[9.5px] text-indigo-600 font-black">V{v.version}</span>
                             </div>
                           ))
                         ) : (
@@ -1235,7 +1236,7 @@ export default function DataTable({
                       </div>
                     </td>
                   )}
-                  <td className="px-3 py-3 border-l border-gray-100 text-center relative">
+                  <td className="px-1.5 py-2 border-l border-gray-100 text-center relative w-24 min-w-[96px] max-w-[96px]">
                     {editingSampleRowId === record.id ? (
                       <div className="relative inline-block text-left" ref={inlineDropdownRef}>
                         <div className="flex items-center border border-blue-400 rounded-xl bg-white shadow-lg pr-2 max-w-[180px] relative z-30 mx-auto">
