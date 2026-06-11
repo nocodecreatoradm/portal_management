@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { ProductManagementRecord, SampleRecord, FileInfo, ProductRecord, DocumentVersion, Supplier, Brand, ProductLine } from '../types';
+import { ProductManagementRecord, SampleRecord, FileInfo, ProductRecord, DocumentVersion, Supplier, Brand, ProductLine, Category } from '../types';
 import { 
   Search, Plus, Filter, Download, Calendar, 
   FileText, Upload, Trash2, Edit2, X, Check,
@@ -189,7 +189,23 @@ export default function ProductsModule({
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [productLines, setProductLines] = useState<ProductLine[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [proveedorSearchText, setProveedorSearchText] = useState('');
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const supplierDropdownRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (supplierDropdownRef.current && !supplierDropdownRef.current.contains(event.target as Node)) {
+        setSuggestionsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({
     codigoSAP: '',
@@ -257,6 +273,15 @@ export default function ProductsModule({
     fobPriceHistory: []
   });
 
+  const filteredCategoriesForForm = useMemo(() => {
+    if (!formData.linea) return categories;
+    const lineId = isUUID(formData.linea)
+      ? formData.linea
+      : productLines.find(l => l.name.toUpperCase() === formData.linea.toUpperCase())?.id;
+    if (!lineId) return categories;
+    return categories.filter(c => c.productLineId === lineId);
+  }, [categories, formData.linea, productLines]);
+
 
   useEffect(() => {
     loadData();
@@ -265,13 +290,14 @@ export default function ProductsModule({
   const loadData = async () => {
     try {
       setLoading(true);
-      const [recordsData, samplesData, productsData, suppliersData, brandsData, linesData] = await Promise.all([
+      const [recordsData, samplesData, productsData, suppliersData, brandsData, linesData, categoriesData] = await Promise.all([
         SupabaseService.getPMRecords(),
         SupabaseService.getSamples(),
         SupabaseService.getProducts(),
         SupabaseService.getSuppliers(),
         SupabaseService.getBrands(),
-        SupabaseService.getProductLines()
+        SupabaseService.getProductLines(),
+        SupabaseService.getCategories()
       ]);
       setRecords(recordsData);
       setSamples(samplesData);
@@ -279,6 +305,7 @@ export default function ProductsModule({
       setSuppliers(suppliersData as unknown as Supplier[]);
       setBrands(brandsData as unknown as Brand[]);
       setProductLines(linesData as unknown as ProductLine[]);
+      setCategories(categoriesData as unknown as Category[]);
     } catch (error) {
       console.error('Error loading PM data:', error);
       toast.error('Error al cargar datos');
@@ -397,6 +424,7 @@ export default function ProductsModule({
 
   const handleOpenAddModal = () => {
     setEditingRecord(null);
+    setProveedorSearchText('');
     setFormData({
       codigoSAP: '',
       descripcionSAP: '',
@@ -420,6 +448,8 @@ export default function ProductsModule({
       supplierId: undefined,
       linea: 'AGUA CALIENTE',
       lineId: undefined,
+      categoria: '',
+      categoryId: undefined,
       sampleId: '',
       approvedDocuments: [],
       gallery: [],
@@ -439,11 +469,17 @@ export default function ProductsModule({
                      suppliers.find(s => s.legalName === record.proveedor || s.commercialAlias === record.proveedor)?.id || 
                      record.proveedor;
     const lineId = record.lineId || productLines.find(l => l.name === record.linea)?.id || record.linea;
+    const categoryId = record.categoryId || categories.find(c => c.name === record.categoria)?.id || record.categoria;
+
+    // Set search text to display name
+    const matchingSupplier = suppliers.find(s => s.id === supplierId);
+    const supplierDisplayName = matchingSupplier ? (matchingSupplier.commercialAlias || matchingSupplier.legalName) : (isUUID(supplierId) ? '' : supplierId);
+    setProveedorSearchText(supplierDisplayName || '');
 
     setFormData({
       codigoSAP: record.codigoSAP,
       descripcionSAP: record.descripcionSAP,
-      commercialName: record.commercialName || '',
+      commercialName: record.commercialName || record.descripcionSAP || '',
       detailedDescription: record.detailedDescription || '',
       segment: record.segment,
       productStatus: record.productStatus || 'vigente',
@@ -463,6 +499,8 @@ export default function ProductsModule({
       supplierId: isUUID(supplierId) ? supplierId : undefined,
       linea: lineId,
       lineId: isUUID(lineId) ? lineId : undefined,
+      categoria: categoryId || '',
+      categoryId: isUUID(categoryId) ? categoryId : undefined,
       sampleId: record.sampleId || '',
       approvedDocuments: record.approvedDocuments || [],
       gallery: record.gallery || [],
@@ -548,6 +586,23 @@ export default function ProductsModule({
             } catch (err) {
               console.warn('Error creating line, using name:', err);
             }
+          }
+        }
+      }
+
+      // Resolve Category
+      if (resolvedFormData.categoria) {
+        if (isUUID(resolvedFormData.categoria)) {
+          resolvedFormData.categoryId = resolvedFormData.categoria;
+          const found = categories.find(c => c.id === resolvedFormData.categoria);
+          if (found) {
+            resolvedFormData.categoria = found.name;
+          }
+        } else {
+          const found = categories.find(c => c.name.toUpperCase() === resolvedFormData.categoria.toUpperCase());
+          if (found) {
+            resolvedFormData.categoria = found.name;
+            resolvedFormData.categoryId = found.id;
           }
         }
       }
@@ -1534,9 +1589,14 @@ export default function ProductsModule({
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Categoría (Sub)</label>
-                  <input type="text" placeholder="Ej: Rapiducha"
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                    value={formData.categoria || ''} onChange={e => setFormData({ ...formData, categoria: e.target.value })}/>
+                  <select className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                    value={formData.categoria || ''} onChange={e => setFormData({ ...formData, categoria: e.target.value })}>
+                    <option value="">Seleccionar categoría</option>
+                    {filteredCategoriesForForm.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    {!isUUID(formData.categoria) && formData.categoria && (
+                      <option value={formData.categoria}>{formData.categoria}</option>
+                    )}
+                  </select>
                 </div>
               </div>
               {/* PVP + PVP Descuento */}
@@ -1593,13 +1653,64 @@ export default function ProductsModule({
               </div>
               {/* Proveedor */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 relative" ref={supplierDropdownRef}>
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Proveedor</label>
-                  <select className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                    value={formData.proveedor} onChange={e => setFormData({ ...formData, proveedor: e.target.value })}>
-                    <option value="">Seleccionar proveedor</option>
-                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.legalName}</option>)}
-                  </select>
+                  <input
+                    type="text"
+                    placeholder="Escribe o selecciona proveedor..."
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                    value={proveedorSearchText}
+                    onFocus={() => setSuggestionsOpen(true)}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setProveedorSearchText(val);
+                      setFormData({ ...formData, proveedor: val });
+                    }}
+                  />
+                  {suggestionsOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto z-[70] py-1">
+                      {suppliers
+                        .filter(s => {
+                          const alias = (s.commercialAlias || '').toLowerCase();
+                          const legal = (s.legalName || '').toLowerCase();
+                          const query = proveedorSearchText.toLowerCase();
+                          return alias.includes(query) || legal.includes(query);
+                        })
+                        .map(s => {
+                          const aliasText = s.commercialAlias ? ` (${s.commercialAlias})` : '';
+                          const displayName = `${s.legalName}${aliasText}`;
+                          return (
+                            <button
+                              key={s.id}
+                              type="button"
+                              className="w-full px-4 py-2 text-left text-xs font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                              onClick={() => {
+                                const textToSet = s.commercialAlias || s.legalName || '';
+                                setProveedorSearchText(textToSet);
+                                setFormData(prev => ({ 
+                                  ...prev, 
+                                  proveedor: s.id, 
+                                  supplierId: s.id 
+                                }));
+                                setSuggestionsOpen(false);
+                              }}
+                            >
+                              {displayName}
+                            </button>
+                          );
+                        })}
+                      {suppliers.filter(s => {
+                        const alias = (s.commercialAlias || '').toLowerCase();
+                        const legal = (s.legalName || '').toLowerCase();
+                        const query = proveedorSearchText.toLowerCase();
+                        return alias.includes(query) || legal.includes(query);
+                      }).length === 0 && (
+                        <div className="px-4 py-2.5 text-xs text-slate-400 font-medium">
+                          No se encontraron coincidencias. Presiona Enter para usar "{proveedorSearchText}"
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Vincular Muestra</label>
