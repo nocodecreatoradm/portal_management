@@ -1341,7 +1341,7 @@ export default function ProductsModule({
             </div>
           </div>
         );
-      })() )
+      })()
 
       /* ── TABLE VIEW ── */
       ) : (
