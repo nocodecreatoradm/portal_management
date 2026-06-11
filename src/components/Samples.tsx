@@ -1938,9 +1938,31 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                         <h5 className="text-xs font-black text-slate-900 uppercase tracking-widest border-b border-slate-100 pb-2">{section.title}</h5>
                         <div className="space-y-3">
                           {section.fields.map(field => (
-                            <div key={field.id} className="flex items-start justify-between gap-4">
-                              <span className="text-[10px] font-bold text-slate-500 uppercase">{field.label}</span>
-                              <span className="text-[10px] font-black text-slate-700 text-right">{field.value || '-'}</span>
+                            <div key={field.id} className="flex flex-col gap-1 py-1.5 border-b border-slate-50 last:border-0">
+                              <div className="flex items-start justify-between gap-4">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">{field.label}</span>
+                                <span className="text-[10px] font-black text-slate-700 text-right">{field.value || '-'}</span>
+                              </div>
+                              {field.photos && field.photos.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-1.5">
+                                  {field.photos.map((p: any, i: number) => (
+                                    <a
+                                      key={i}
+                                      href={p.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        openFileUrl(p.url);
+                                      }}
+                                      className="relative block w-14 h-14 rounded-lg overflow-hidden border border-slate-200 hover:opacity-90 transition-opacity shrink-0"
+                                      title="Ampliar foto"
+                                    >
+                                      <img src={p.url} alt="Evidencia" className="w-full h-full object-cover" />
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -1966,8 +1988,8 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                             <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">{section.title}</h5>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {(section.stages || []).map((stage: any) => (
-                                <div key={stage.id} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between shadow-sm">
-                                  <div className="flex items-center gap-3">
+                                <div key={stage.id} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-start justify-between shadow-sm">
+                                  <div className="flex items-start gap-3">
                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                                       stage.status === 'approved' ? 'bg-emerald-50 text-emerald-600' :
                                       stage.status === 'observed' ? 'bg-amber-50 text-amber-600' :
@@ -1977,7 +1999,49 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                                     </div>
                                     <div>
                                       <p className="text-xs font-bold text-slate-700">{stage.stage || stage.name}</p>
-                                      {stage.comment && <p className="text-[10px] text-slate-400 font-medium">{stage.comment}</p>}
+                                      {stage.comment && <p className="text-[10px] text-slate-400 font-medium mt-0.5">{stage.comment}</p>}
+                                      {stage.files && stage.files.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                          {stage.files.map((file: any, fIdx: number) => {
+                                            const isImg = file.type?.includes('image') || /\.(jpg|jpeg|png|webp|gif)$/i.test(file.name);
+                                            if (isImg) {
+                                              return (
+                                                <a 
+                                                  key={fIdx} 
+                                                  href={file.url} 
+                                                  target="_blank" 
+                                                  rel="noopener noreferrer" 
+                                                  onClick={(e) => {
+                                                    e.preventDefault();
+                                                    openFileUrl(file.url);
+                                                  }}
+                                                  className="relative block w-12 h-12 rounded-lg overflow-hidden border border-slate-200 hover:opacity-90 transition-opacity shrink-0"
+                                                  title="Ampliar foto"
+                                                >
+                                                  <img src={file.url} alt="Evidencia" className="w-full h-full object-cover" />
+                                                </a>
+                                              );
+                                            } else {
+                                              return (
+                                                <a 
+                                                  key={fIdx} 
+                                                  href={file.url} 
+                                                  target="_blank" 
+                                                  rel="noopener noreferrer"
+                                                  onClick={(e) => {
+                                                    e.preventDefault();
+                                                    openFileUrl(file.url);
+                                                  }}
+                                                  className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[9px] font-bold border border-slate-200 transition-all shrink-0"
+                                                >
+                                                  <FileText size={10} className="text-indigo-500" />
+                                                  <span className="truncate max-w-[80px]">{file.name}</span>
+                                                </a>
+                                              );
+                                            }
+                                          })}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                   <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md shrink-0 ${
@@ -1996,8 +2060,8 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                         return (
                           <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                             {selectedSampleForDetail.workflow?.map((stage: any) => (
-                              <div key={stage.id} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between shadow-sm">
-                                <div className="flex items-center gap-3">
+                              <div key={stage.id} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-start justify-between shadow-sm">
+                                <div className="flex items-start gap-3">
                                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                                     stage.status === 'approved' ? 'bg-emerald-50 text-emerald-600' :
                                     stage.status === 'observed' ? 'bg-amber-50 text-amber-600' :
@@ -2007,7 +2071,49 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
                                   </div>
                                   <div>
                                     <p className="text-xs font-bold text-slate-700">{stage.stage}</p>
-                                    {stage.comment && <p className="text-[10px] text-slate-400 font-medium">{stage.comment}</p>}
+                                    {stage.comment && <p className="text-[10px] text-slate-400 font-medium mt-0.5">{stage.comment}</p>}
+                                    {stage.files && stage.files.length > 0 && (
+                                      <div className="flex flex-wrap gap-2 mt-2">
+                                        {stage.files.map((file: any, fIdx: number) => {
+                                          const isImg = file.type?.includes('image') || /\.(jpg|jpeg|png|webp|gif)$/i.test(file.name);
+                                          if (isImg) {
+                                            return (
+                                              <a 
+                                                key={fIdx} 
+                                                href={file.url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  openFileUrl(file.url);
+                                                }}
+                                                className="relative block w-12 h-12 rounded-lg overflow-hidden border border-slate-200 hover:opacity-90 transition-opacity shrink-0"
+                                                title="Ampliar foto"
+                                              >
+                                                <img src={file.url} alt="Evidencia" className="w-full h-full object-cover" />
+                                              </a>
+                                            );
+                                          } else {
+                                            return (
+                                              <a 
+                                                key={fIdx} 
+                                                href={file.url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  openFileUrl(file.url);
+                                                }}
+                                                className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[9px] font-bold border border-slate-200 transition-all shrink-0"
+                                              >
+                                                <FileText size={10} className="text-indigo-500" />
+                                                <span className="truncate max-w-[80px]">{file.name}</span>
+                                              </a>
+                                            );
+                                          }
+                                        })}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                                 <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md shrink-0 ${
