@@ -52,6 +52,7 @@ export default function DataTable({
   const [editingSampleRowId, setEditingSampleRowId] = useState<string | null>(null);
   const [inlineSampleSearch, setInlineSampleSearch] = useState('');
   const inlineDropdownRef = useRef<HTMLDivElement>(null);
+  const [selectedCommentRecord, setSelectedCommentRecord] = useState<ProductRecord | null>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -1010,9 +1011,13 @@ export default function DataTable({
                   </td>
                   <td className="px-1.5 py-2 border-r border-gray-100 text-[11px] leading-tight text-slate-500 font-medium italic w-[50px] min-w-[50px] max-w-[50px] text-center">
                     {record.comments ? (
-                      <div className="flex justify-center" title={record.comments}>
-                        <MessageSquare className="w-4 h-4 text-indigo-500 hover:text-indigo-600 transition-colors cursor-help" />
-                      </div>
+                      <button 
+                        onClick={() => setSelectedCommentRecord(record)}
+                        className="flex justify-center w-full focus:outline-none transition-transform active:scale-95 cursor-pointer"
+                        title="Click para ver comentarios"
+                      >
+                        <MessageSquare className="w-4 h-4 text-indigo-500 hover:text-indigo-600 transition-colors" />
+                      </button>
                     ) : (
                       <span className="text-slate-300">-</span>
                     )}
@@ -1226,6 +1231,50 @@ export default function DataTable({
         </table>
       </div>
     </div>
+
+    {selectedCommentRecord && (
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                <MessageSquare size={20} />
+              </div>
+              <div>
+                <h3 className="text-md font-black text-slate-900 uppercase tracking-tight">Comentarios de la Solicitud</h3>
+                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-0.5">{selectedCommentRecord.correlativeId}</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setSelectedCommentRecord(null)}
+              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="space-y-1">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Producto / Descripción</span>
+              <span className="text-xs font-bold text-slate-800 uppercase leading-snug block">{selectedCommentRecord.descripcionSAP}</span>
+            </div>
+            <div className="space-y-1.5">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Comentarios</span>
+              <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl text-xs font-bold text-slate-700 leading-relaxed max-h-[200px] overflow-y-auto custom-scrollbar whitespace-pre-wrap">
+                {selectedCommentRecord.comments}
+              </div>
+            </div>
+          </div>
+          <div className="p-6 border-t border-slate-100 flex justify-end">
+            <button 
+              onClick={() => setSelectedCommentRecord(null)}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   </div>
   );
 }
