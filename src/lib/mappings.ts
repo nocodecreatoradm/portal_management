@@ -450,6 +450,7 @@ export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
   brandId: dbRecord.brand_id,
   proveedor: dbRecord.supplier?.commercial_alias || dbRecord.supplier?.legal_name || dbRecord.supplier_commercial_alias || dbRecord.supplier_legal_name || dbRecord.supplier_id || 'Desconocido',
   supplierId: dbRecord.supplier_id,
+  supplierLogoUrl: dbRecord.supplier?.logo_url,
   linea: dbRecord.line?.name || dbRecord.line_name || dbRecord.line_id || 'AGUA CALIENTE',
   lineId: dbRecord.line_id,
   sampleId: dbRecord.sample_id,

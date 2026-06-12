@@ -656,8 +656,11 @@ export const SupabaseService = {
         id, correlative_id, sap_code, ean_code, sap_description, brand_id, supplier_id, line_id, sample_id, category_id,
         fob_price, fob_price_history, explode_files, additional_provider_documents, gallery, 
         approved_documents, created_at, updated_at,
+        commercial_name, detailed_description, segment, product_status, habilitado, incluye_kit, 
+        habilitacion_costo, pvp, pvp_descuento, sales_current_year, sales_previous_year, 
+        current_year, previous_year, catalog_comments,
         brand:brands(name),
-        supplier:suppliers(legal_name, commercial_alias, erp_code, email),
+        supplier:suppliers(legal_name, commercial_alias, erp_code, email, logo_url),
         line:product_lines(name),
         category:categories(name)
       `)
@@ -674,7 +677,7 @@ export const SupabaseService = {
       .select(`
         *,
         brand:brands(name),
-        supplier:suppliers(legal_name, commercial_alias, erp_code, email),
+        supplier:suppliers(legal_name, commercial_alias, erp_code, email, logo_url),
         line:product_lines(name),
         category:categories(name)
       `)
@@ -693,7 +696,7 @@ export const SupabaseService = {
       .select(`
         *,
         brand:brands(name),
-        supplier:suppliers(legal_name, commercial_alias, erp_code, email),
+        supplier:suppliers(legal_name, commercial_alias, erp_code, email, logo_url),
         line:product_lines(name),
         category:categories(name)
       `)

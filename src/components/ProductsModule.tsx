@@ -23,15 +23,15 @@ const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4
 
 // Segment config
 const SEGMENT_CONFIG = {
-  ticket_value: { label: 'Ticket Value', color: 'bg-blue-100 text-blue-700 border-blue-200', dot: 'bg-blue-500', accent: '#3b82f6' },
-  mainstream: { label: 'Mainstream', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500', accent: '#10b981' },
-  premium: { label: 'Premium', color: 'bg-amber-100 text-amber-700 border-amber-200', dot: 'bg-amber-500', accent: '#f59e0b' },
+  ticket_value: { label: 'Ticket Value', color: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-400', accent: '#94a3b8' },
+  mainstream: { label: 'Mainstream', color: 'bg-slate-200 text-slate-800 border-slate-300', dot: 'bg-slate-600', accent: '#475569' },
+  premium: { label: 'Premium', color: 'bg-slate-900 text-slate-100 border-slate-850', dot: 'bg-slate-900', accent: '#0f172a' },
 } as const;
 
 const STATUS_CONFIG = {
-  vigente: { label: 'Vigente', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  reemplazo: { label: 'Reemplazo', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-  descontinuado: { label: 'Descontinuado', color: 'bg-red-100 text-red-700 border-red-200' },
+  vigente: { label: 'Vigente', color: 'bg-slate-100 text-slate-700 border-slate-200 font-medium' },
+  reemplazo: { label: 'Reemplazo', color: 'bg-zinc-100 text-zinc-700 border-zinc-200 font-medium' },
+  descontinuado: { label: 'Descontinuado', color: 'bg-red-50/50 text-red-700 border-red-100 font-medium' },
 } as const;
 
 const getFobEffective = (r: ProductManagementRecord) =>
@@ -40,6 +40,17 @@ const getFobEffective = (r: ProductManagementRecord) =>
 const getGrowthPct = (r: ProductManagementRecord) => {
   if (!r.salesCurrentYear || !r.salesPreviousYear || r.salesPreviousYear === 0) return null;
   return ((r.salesCurrentYear - r.salesPreviousYear) / r.salesPreviousYear) * 100;
+};
+
+const getProductImageUrl = (r: ProductManagementRecord) => {
+  if (r.gallery && r.gallery.length > 0) {
+    for (const group of r.gallery) {
+      if (group.photos && group.photos.length > 0) {
+        return group.photos[0].url;
+      }
+    }
+  }
+  return undefined;
 };
 
 
@@ -51,11 +62,24 @@ interface LinealViewProps {
 function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const segments = ['ticket_value', 'mainstream', 'premium'] as const;
-  const allFobs = filteredRecords.map(getFobEffective).filter(v => v > 0);
+  
+  // Calculate global PVP bounds dynamically from filteredRecords
   const allPvps = filteredRecords.map(r => r.pvp || 0).filter(v => v > 0);
-  const maxFob = allFobs.length ? Math.max(...allFobs) * 1.1 : 50;
-  const maxPvp = allPvps.length ? Math.max(...allPvps) * 1.1 : 1000;
-  const minPvp = allPvps.length ? Math.min(...allPvps) * 0.9 : 0;
+  let minPvp = 0;
+  let maxPvp = 1000;
+  if (allPvps.length > 0) {
+    const minVal = Math.min(...allPvps);
+    const maxVal = Math.max(...allPvps);
+    if (minVal === maxVal) {
+      minPvp = Math.max(0, minVal - 100);
+      maxPvp = maxVal + 100;
+    } else {
+      const buffer = (maxVal - minVal) * 0.1;
+      minPvp = Math.max(0, minVal - buffer);
+      maxPvp = maxVal + buffer;
+    }
+  }
+
   const COL_W = 320;
   const CHART_H = 520;
   const PAD = 48;
@@ -89,11 +113,29 @@ function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
           {segments.map(seg => {
             const segRecords = filteredRecords.filter(r => r.segment === seg);
             const cfg = SEGMENT_CONFIG[seg];
+            
+            // Calculate local FOB bounds dynamically for this segment
+            const segFobs = segRecords.map(getFobEffective).filter(v => v > 0);
+            let minFob = 0;
+            let maxFob = 100;
+            if (segFobs.length > 0) {
+              const minVal = Math.min(...segFobs);
+              const maxVal = Math.max(...segFobs);
+              if (minVal === maxVal) {
+                minFob = Math.max(0, minVal - 10);
+                maxFob = maxVal + 10;
+              } else {
+                const buffer = (maxVal - minVal) * 0.1;
+                minFob = Math.max(0, minVal - buffer);
+                maxFob = maxVal + buffer;
+              }
+            }
+
             return (
-              <div key={seg} style={{ width: COL_W, flexShrink: 0, position: 'relative', borderLeft: '1px dashed #e2e8f0' }}>
+              <div key={seg} style={{ width: COL_W, flexShrink: 0, position: 'relative', borderLeft: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column' }}>
                 {/* Column header */}
-                <div className="text-center py-3 border-b border-slate-100">
-                  <span className={`text-xs font-black uppercase tracking-widest ${seg === 'ticket_value' ? 'text-blue-600' : seg === 'mainstream' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                <div className="text-center py-3 border-b border-slate-100 bg-slate-50/20">
+                  <span className={`text-xs font-black uppercase tracking-widest ${seg === 'ticket_value' ? 'text-slate-600' : seg === 'mainstream' ? 'text-slate-800' : 'text-slate-900'}`}>
                     {cfg.label}
                   </span>
                   <span className="text-[10px] text-slate-400 font-bold ml-2">({segRecords.length})</span>
@@ -108,12 +150,21 @@ function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
                     const fob = getFobEffective(record);
                     const pvp = record.pvp || 0;
                     if (!pvp && !fob) return null;
+                    
+                    // X positioning scaled to this segment's FOB range
+                    const xPct = maxFob === minFob ? 0.5 : (fob - minFob) / (maxFob - minFob);
+                    const left = 75 + xPct * (COL_W - 150);
+                    
+                    // Y positioning scaled to global PVP range
                     const yPct = maxPvp === minPvp ? 0.5 : 1 - (pvp - minPvp) / (maxPvp - minPvp);
-                    const top = PAD + yPct * (CHART_H - PAD * 2);
+                    const top = 65 + yPct * (CHART_H - 130);
+                    
                     const growth = getGrowthPct(record);
                     const isHovered = hoveredId === record.id;
+                    const productImgUrl = getProductImageUrl(record);
+
                     return (
-                      <div key={record.id} style={{ position: 'absolute', top, left: '50%', transform: 'translateX(-50%)', zIndex: isHovered ? 50 : 10 }}>
+                      <div key={record.id} style={{ position: 'absolute', top, left, transform: 'translateX(-50%)', zIndex: isHovered ? 50 : 10 }}>
                         {/* Tooltip */}
                         {isHovered && (
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-52 pointer-events-none">
@@ -137,17 +188,54 @@ function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
                           onMouseEnter={() => setHoveredId(record.id)}
                           onMouseLeave={() => setHoveredId(null)}
                           onClick={() => handleOpenEditModal(record)}
-                          className="bg-white border-2 border-slate-200 rounded-xl p-2.5 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all w-[130px] text-left"
+                          className="bg-white border-2 border-slate-200 rounded-xl p-2 shadow-sm hover:shadow-md hover:border-slate-400 transition-all w-[140px] text-left relative flex flex-col gap-1.5"
                           style={{ borderColor: isHovered ? cfg.accent : undefined }}
                         >
-                          <div className={`w-2 h-2 rounded-full ${cfg.dot} mb-1`}/>
-                          <p className="text-[9px] font-black text-slate-900 line-clamp-2">{record.commercialName || record.descripcionSAP}</p>
-                          <div className="mt-1.5 flex items-center justify-between">
-                            <span className="text-[9px] font-black text-indigo-600">S/ {pvp || '—'}</span>
+                          {/* Image container */}
+                          <div className="relative w-full h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-50 border border-slate-100">
+                            {productImgUrl ? (
+                              <img src={productImgUrl} className="w-full h-full object-cover" alt="" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                <Package size={18} />
+                              </div>
+                            )}
+                            {/* Supplier logo overlay */}
+                            <div className="absolute top-1 right-1">
+                              {record.supplierLogoUrl ? (
+                                <img 
+                                  src={record.supplierLogoUrl} 
+                                  className="w-5 h-5 object-cover rounded-full border border-white bg-white shadow-sm" 
+                                  alt="Logo" 
+                                />
+                              ) : (
+                                <div className="w-5 h-5 rounded-full border border-white bg-slate-200 flex items-center justify-center text-[7px] font-bold text-slate-500 shadow-sm uppercase">
+                                  {record.proveedor.slice(0, 2)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Product info */}
+                          <div>
+                            <div className="flex items-center gap-1">
+                              <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot} flex-shrink-0`}/>
+                              <p className="text-[9px] font-black text-slate-900 line-clamp-1 truncate">
+                                {record.commercialName || record.descripcionSAP}
+                              </p>
+                            </div>
+                            <p className="text-[8px] text-slate-400 truncate mt-0.5">
+                              {record.codigoSAP}
+                            </p>
+                          </div>
+
+                          {/* Pricing and Growth */}
+                          <div className="border-t border-slate-100 pt-1 flex items-center justify-between">
+                            <span className="text-[9px] font-black text-slate-700">S/ {pvp || '—'}</span>
                             <span className="text-[9px] font-bold text-slate-400">${fob.toFixed(2)}</span>
                           </div>
                           {growth !== null && (
-                            <div className={`text-[8px] font-black flex items-center gap-0.5 mt-0.5 ${growth >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
+                            <div className={`text-[8px] font-black flex items-center gap-0.5 mt-[-2px] ${growth >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                               {growth >= 0 ? <ArrowUp size={8}/> : <ArrowDown size={8}/>}
                               {Math.abs(growth).toFixed(1)}%
                             </div>
@@ -161,6 +249,10 @@ function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
                       <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Sin productos</p>
                     </div>
                   )}
+                </div>
+                {/* Column footer */}
+                <div className="text-center py-2 border-t border-slate-100 bg-slate-50/50 text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                  FOB: ${minFob.toFixed(2)} — ${maxFob.toFixed(2)}
                 </div>
               </div>
             );
@@ -1032,7 +1124,7 @@ export default function ProductsModule({
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200">
+            <div className="w-12 h-12 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl flex items-center justify-center shadow-md">
               <LineChart size={24} className="text-white" />
             </div>
             <div>
@@ -1051,7 +1143,7 @@ export default function ProductsModule({
               ] as const).map(v => (
                 <button key={v.id} onClick={() => setViewMode(v.id)}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-black transition-all ${
-                    viewMode === v.id ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    viewMode === v.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                   }`}>
                   {v.icon}{v.label}
                 </button>
@@ -1073,7 +1165,7 @@ export default function ProductsModule({
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
             <input type="text" placeholder="Buscar por nombre, modelo o proveedor..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-slate-500/20 outline-none transition-all"
               value={searchTerm} onChange={e => setSearchTerm(e.target.value)}/>
           </div>
           {/* Segment pills */}
@@ -1087,8 +1179,8 @@ export default function ProductsModule({
               <button key={s.id} onClick={() => setSegmentFilter(s.id)}
                 className={`px-3 py-2 rounded-xl text-xs font-black transition-all ${
                   segmentFilter === s.id
-                    ? s.id === 'all' ? 'bg-slate-900 text-white' : s.id === 'ticket_value' ? 'bg-blue-600 text-white' : s.id === 'mainstream' ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? s.id === 'all' ? 'bg-slate-900 text-white' : s.id === 'ticket_value' ? 'bg-slate-400 text-white border-slate-400' : s.id === 'mainstream' ? 'bg-slate-600 text-white border-slate-600' : 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-transparent'
                 }`}>{s.label}
               </button>
             ))}
@@ -1180,7 +1272,7 @@ export default function ProductsModule({
                 <div className="px-4 pt-3 flex items-center gap-4">
                   <div>
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">PVP</p>
-                    <p className="text-sm font-black text-indigo-600">
+                    <p className="text-sm font-black text-slate-900">
                       {record.pvp ? `S/ ${record.pvp.toLocaleString()}` : <span className="text-slate-300">—</span>}
                       {record.pvpDescuento && <span className="text-[10px] font-bold text-slate-400 ml-1">/ S/ {record.pvpDescuento}</span>}
                     </p>

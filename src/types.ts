@@ -442,6 +442,7 @@ export interface ProductManagementRecord {
   brandId?: string;
   proveedor: string;
   supplierId?: string;
+  supplierLogoUrl?: string;
   linea: string;
   lineId?: string;
   categoryId?: string;
