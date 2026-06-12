@@ -273,7 +273,7 @@ function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
                       <div key={record.id} style={{ position: 'absolute', top, left, transform: 'translateX(-50%)', zIndex: isHovered ? 50 : 10 }}>
                         {/* Tooltip */}
                         {isHovered && (
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-64 pointer-events-none">
+                          <div className={`absolute ${top < 220 ? 'top-full mt-2' : 'bottom-full mb-2'} left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-64 pointer-events-none`}>
                             <p className="text-[9px] font-black text-slate-400 uppercase">{record.linea}{record.categoria ? ` | ${record.categoria}` : ''}</p>
                             <p className="text-xs font-black mt-0.5">{record.commercialName || record.descripcionSAP}</p>
                             {record.catalogComments && (
@@ -305,8 +305,16 @@ function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
                           className="bg-white border-2 border-slate-200 rounded-xl p-2 shadow-sm hover:shadow-md hover:border-slate-400 transition-all w-[140px] text-left relative flex flex-col gap-1.5"
                           style={{ borderColor: isHovered ? cfg.accent : undefined }}
                         >
-                          {/* Image container */}
-                          <div className="relative w-full h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-50 border border-slate-100">
+                           {/* Image container */}
+                          <div className={`relative w-full h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-50 border border-slate-100 ${productImgUrl ? 'cursor-pointer hover:opacity-85 transition-opacity' : ''}`}
+                            onClick={(e) => {
+                              if (productImgUrl) {
+                                e.stopPropagation();
+                                window.open(productImgUrl, '_blank');
+                              }
+                            }}
+                            title={productImgUrl ? 'Ver imagen en tamaño completo' : undefined}
+                          >
                             {productImgUrl ? (
                               <img src={productImgUrl} className="w-full h-full object-cover" alt="" />
                             ) : (
@@ -437,10 +445,11 @@ export default function ProductsModule({
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ProductManagementRecord | null>(null);
   const [editingRecord, setEditingRecord] = useState<ProductManagementRecord | null>(null);
-  const [viewMode, setViewMode] = useState<'table' | 'grid' | 'lineal' | 'dashboard'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'lineal' | 'dashboard'>('grid');
   const [segmentFilter, setSegmentFilter] = useState<'all' | 'ticket_value' | 'mainstream' | 'premium'>('all');
   const [brandFilter, setBrandFilter] = useState('');
   const [lineFilter, setLineFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
   // FOB Price states
@@ -509,6 +518,10 @@ export default function ProductsModule({
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    setSearchTerm('');
+  }, [viewMode]);
 
   const loadData = async () => {
     try {
@@ -587,9 +600,12 @@ export default function ProductsModule({
   const filteredRecords = useMemo(() => {
     let result = records.filter(record => 
       record.descripcionSAP.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.codigoSAP.includes(searchTerm) ||
+      record.codigoSAP.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (record.commercialName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.proveedor.toLowerCase().includes(searchTerm.toLowerCase())
+      record.proveedor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.linea.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (record.categoria || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // Segment filter
@@ -603,6 +619,10 @@ export default function ProductsModule({
     // Line filter
     if (lineFilter) {
       result = result.filter(r => r.linea === lineFilter || r.lineId === lineFilter);
+    }
+    // Category filter
+    if (categoryFilter) {
+      result = result.filter(r => r.categoria === categoryFilter || r.categoryId === categoryFilter);
     }
     // Status filter
     if (statusFilter) {
@@ -642,7 +662,7 @@ export default function ProductsModule({
       result.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     }
     return result;
-  }, [records, searchTerm, segmentFilter, brandFilter, lineFilter, statusFilter, columnFilters, sortConfig, samples]);
+  }, [records, searchTerm, segmentFilter, brandFilter, lineFilter, categoryFilter, statusFilter, columnFilters, sortConfig, samples]);
 
 
   const handleOpenAddModal = () => {
@@ -1275,7 +1295,6 @@ export default function ProductsModule({
                 { id: 'lineal', label: 'Vista Lineal', icon: <LineChart size={15}/> },
                 { id: 'grid', label: 'Vista Grilla', icon: <Grid size={15}/> },
                 { id: 'dashboard', label: 'Dashboard', icon: <BarChart2 size={15}/> },
-                { id: 'table', label: 'Tabla', icon: <List size={15}/> },
               ] as const).map(v => (
                 <button key={v.id} onClick={() => setViewMode(v.id)}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-black transition-all ${
@@ -1330,10 +1349,18 @@ export default function ProductsModule({
             <option value="">Marcas: Todas</option>
             {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
-          <select value={lineFilter} onChange={e => setLineFilter(e.target.value)}
+          <select value={lineFilter} onChange={e => { setLineFilter(e.target.value); setCategoryFilter(''); }}
             className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold outline-none">
             <option value="">Línea: Todas</option>
             {productLines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}
+            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold outline-none">
+            <option value="">Categoría: Todas</option>
+            {categories
+              .filter(c => !lineFilter || c.productLineId === lineFilter)
+              .map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+            }
           </select>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
             className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold outline-none">
@@ -1391,7 +1418,15 @@ export default function ProductsModule({
                 </div>
                 {/* Product image placeholder */}
                 <div className="px-4 py-3 flex items-center justify-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-50 rounded-xl flex items-center justify-center border border-slate-100">
+                  <div className={`w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-50 rounded-xl flex items-center justify-center border border-slate-100 ${record.gallery?.length > 0 && record.gallery[0].photos?.length > 0 ? 'cursor-pointer hover:opacity-85 transition-opacity' : ''}`}
+                    onClick={(e) => {
+                      if (record.gallery?.length > 0 && record.gallery[0].photos?.length > 0) {
+                        e.stopPropagation();
+                        window.open(record.gallery[0].photos[0].url, '_blank');
+                      }
+                    }}
+                    title={record.gallery?.length > 0 && record.gallery[0].photos?.length > 0 ? 'Ver imagen en tamaño completo' : undefined}
+                  >
                     {record.gallery?.length > 0 && record.gallery[0].photos?.length > 0
                       ? <img src={record.gallery[0].photos[0].url} className="w-full h-full object-cover rounded-xl" alt=""/>
                       : <Package size={28} className="text-slate-300"/>
@@ -2271,8 +2306,11 @@ export default function ProductsModule({
                         <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest px-3 py-2 bg-slate-50 border-b border-slate-100">{item.category}</p>
                         <div className="p-3 grid grid-cols-4 gap-1.5">
                           {item.photos.map((photo, idx) => (
-                            <div key={idx} className="aspect-square rounded-lg overflow-hidden border border-slate-100">
-                              <img src={photo.url} alt={photo.name} className="w-full h-full object-cover"/>
+                            <div key={idx} className="aspect-square rounded-lg overflow-hidden border border-slate-100 cursor-pointer hover:opacity-85 transition-opacity"
+                              onClick={() => window.open(photo.url, '_blank')}
+                              title="Ver imagen en tamaño completo"
+                            >
+                              <img src={photo.url} alt={photo.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-250"/>
                             </div>
                           ))}
                         </div>
