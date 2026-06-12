@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Plus, Edit2, Trash2, Save, X, Layout, 
   ClipboardList, Tag, Layers, Briefcase, 
   ChevronRight, GripVertical, Type, AlignLeft, 
   CheckSquare, CircleDot, Camera, PenTool,
   PlusCircle, MinusCircle, ArrowRight, FileText, Upload,
-  ChevronUp, ChevronDown
+  ChevronUp, ChevronDown, Search
 } from 'lucide-react';
 import { Brand, ProductLine, Category, InspectionTemplate, InspectionFormField, WorkflowStage, FileInfo } from '../types';
 import { SupabaseService } from '../lib/SupabaseService';
@@ -20,6 +20,41 @@ export default function MasterDataModule() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [templates, setTemplates] = useState<InspectionTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Clear search on tab change
+  useEffect(() => {
+    setSearchTerm('');
+  }, [activeTab]);
+
+  const filteredBrands = useMemo(() => {
+    return brands.filter(b => 
+      b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (b.description || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [brands, searchTerm]);
+
+  const filteredLines = useMemo(() => {
+    return lines.filter(l => 
+      l.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [lines, searchTerm]);
+
+  const filteredCategories = useMemo(() => {
+    return categories.filter(c => {
+      const lineName = lines.find(l => l.id === c.productLineId)?.name || '';
+      return c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+             lineName.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+  }, [categories, lines, searchTerm]);
+
+  const filteredTemplates = useMemo(() => {
+    return templates.filter(t => {
+      const catName = categories.find(c => c.id === t.categoryId)?.name || '';
+      return t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+             catName.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+  }, [templates, categories, searchTerm]);
 
   // Modal states
   const [showModal, setShowModal] = useState(false);
@@ -104,30 +139,58 @@ export default function MasterDataModule() {
         </button>
       </div>
 
-      <div data-soly="master-tabs" className="flex gap-2 p-2 bg-slate-100/50 rounded-[28px] w-fit">
-        {[
-          { id: 'brands', label: 'Marcas', icon: Tag },
-          { id: 'lines', label: 'Líneas', icon: Layers },
-          { id: 'categories', label: 'Categorías', icon: Briefcase },
-          { id: 'templates', label: 'Plantillas', icon: ClipboardList }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as ActiveTab)}
-            className={`flex items-center gap-3 px-6 py-3 rounded-2xl font-black uppercase text-xs transition-all ${
-              activeTab === tab.id 
-                ? 'bg-white text-slate-900 shadow-md scale-105' 
-                : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
-            }`}
-          >
-            <tab.icon size={16} />
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div data-soly="master-tabs" className="flex gap-2 p-2 bg-slate-100/50 rounded-[28px] w-fit">
+          {[
+            { id: 'brands', label: 'Marcas', icon: Tag },
+            { id: 'lines', label: 'Líneas', icon: Layers },
+            { id: 'categories', label: 'Categorías', icon: Briefcase },
+            { id: 'templates', label: 'Plantillas', icon: ClipboardList }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as ActiveTab)}
+              className={`flex items-center gap-3 px-6 py-3 rounded-2xl font-black uppercase text-xs transition-all ${
+                activeTab === tab.id 
+                  ? 'bg-white text-slate-900 shadow-md scale-105' 
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
+              }`}
+            >
+              <tab.icon size={16} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search input */}
+        <div className="relative w-full md:w-80">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+            <Search size={16} />
+          </div>
+          <input
+            type="text"
+            placeholder={`BUSCAR ${
+              activeTab === 'brands' ? 'MARCAS' :
+              activeTab === 'lines' ? 'LÍNEAS' :
+              activeTab === 'categories' ? 'CATEGORÍAS' : 'PLANTILLAS'
+            }...`}
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-10 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 focus:outline-none focus:border-slate-900 transition-all placeholder:text-slate-400 placeholder:font-black placeholder:uppercase placeholder:tracking-wider shadow-sm"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {activeTab === 'brands' && brands.map(brand => (
+        {activeTab === 'brands' && filteredBrands.map(brand => (
           <MasterCard 
             key={brand.id}
             title={brand.name}
@@ -138,7 +201,7 @@ export default function MasterDataModule() {
           />
         ))}
 
-        {activeTab === 'lines' && lines.map(line => (
+        {activeTab === 'lines' && filteredLines.map(line => (
           <MasterCard 
             key={line.id}
             title={line.name}
@@ -148,7 +211,7 @@ export default function MasterDataModule() {
           />
         ))}
 
-        {activeTab === 'categories' && categories.map(cat => {
+        {activeTab === 'categories' && filteredCategories.map(cat => {
           const hasTemplate = templates.find(t => t.categoryId === cat.id);
           return (
             <MasterCard 
@@ -163,7 +226,7 @@ export default function MasterDataModule() {
           );
         })}
 
-        {activeTab === 'templates' && templates.map(template => (
+        {activeTab === 'templates' && filteredTemplates.map(template => (
           <MasterCard 
             key={template.id}
             title={template.name}
@@ -173,6 +236,18 @@ export default function MasterDataModule() {
             onDelete={() => handleDelete('templates', template.id)}
           />
         ))}
+
+        {/* Empty state */}
+        {((activeTab === 'brands' && filteredBrands.length === 0) ||
+          (activeTab === 'lines' && filteredLines.length === 0) ||
+          (activeTab === 'categories' && filteredCategories.length === 0) ||
+          (activeTab === 'templates' && filteredTemplates.length === 0)) && (
+          <div className="col-span-full py-16 flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-[32px] bg-white p-8">
+            <Layers size={40} className="opacity-20 mb-3" />
+            <p className="font-bold text-xs uppercase tracking-widest">No se encontraron resultados para "{searchTerm}"</p>
+          </div>
+        )}
+      </div>
       </div>
 
       {showModal && (
@@ -385,6 +460,14 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingStageId, setUploadingStageId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
