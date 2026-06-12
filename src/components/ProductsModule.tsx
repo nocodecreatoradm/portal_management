@@ -2459,7 +2459,7 @@ export default function ProductsModule({
                       </div>
                       <div className="grid grid-cols-6 gap-1.5">
                         {group.photos.map((photo, pIdx) => (
-                          <div key={pIdx} className="aspect-square rounded-lg overflow-hidden border border-slate-200 relative group/p flex flex-col items-center justify-center bg-slate-50">
+                          <div key={photo.url || pIdx} className="aspect-square rounded-lg overflow-hidden border border-slate-200 relative group/p flex flex-col items-center justify-center bg-slate-50">
                             <img src={photo.url} alt="" className="w-full h-full object-cover absolute inset-0"/>
                             <button type="button" onClick={() => setFormData(prev => ({ ...prev, gallery: prev.gallery.map(g => g.id === group.id ? { ...g, photos: g.photos.filter((_, i) => i !== pIdx) } : g) }))} className="absolute top-0.5 right-0.5 p-0.5 bg-red-600 text-white rounded opacity-0 group-hover/p:opacity-100 transition-opacity z-10"><X size={8}/></button>
                             
@@ -2721,7 +2721,7 @@ export default function ProductsModule({
                         <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest px-3 py-2 bg-slate-50 border-b border-slate-100">{item.category}</p>
                         <div className="p-3 grid grid-cols-4 gap-1.5">
                           {item.photos.map((photo, idx) => (
-                            <div key={idx} className="aspect-square rounded-lg overflow-hidden border border-slate-100 cursor-pointer hover:opacity-85 transition-opacity"
+                            <div key={photo.url || idx} className="aspect-square rounded-lg overflow-hidden border border-slate-100 cursor-pointer hover:opacity-85 transition-opacity"
                               onClick={() => window.open(photo.url, '_blank')}
                               title="Ver imagen en tamaño completo"
                             >

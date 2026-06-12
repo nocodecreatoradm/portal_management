@@ -1137,7 +1137,7 @@ export default function ProductDetailModal({
                         const fileMeta = getFileIcon(photo);
 
                         return (
-                          <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-100 group/photo bg-slate-50 flex flex-col items-center justify-center p-2">
+                          <div key={photo.url || idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-100 group/photo bg-slate-50 flex flex-col items-center justify-center p-2">
                             {isImg ? (
                               <img 
                                 src={photo.url} 
