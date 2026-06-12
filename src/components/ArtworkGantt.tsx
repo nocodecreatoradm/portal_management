@@ -105,7 +105,7 @@ function getActualCompletionDate(record: ProductRecord): string | null {
   const versions = record.artworks || [];
   if (versions.length === 0) return null;
   const uploadDates = versions.map(v => v.uploadDate).filter(Boolean).sort();
-  return uploadDates[uploadDates.length - 1] || null;
+  return uploadDates[0] || null;
 }
 
 // ─── Period helpers ────────────────────────────────────────────────────────────

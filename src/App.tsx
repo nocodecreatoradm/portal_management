@@ -920,18 +920,13 @@ export default function App() {
           const updatePromises = linkedRecords.map(r => SupabaseService.updateProduct(r.id, resolvedUpdates));
           const results = await Promise.all(updatePromises);
           
-          setData(prev => {
-            const updatedIds = new Set(results.map(res => res.id));
-            const newData = prev.map(r => {
-              const updated = results.find(res => res.id === r.id);
-              return updated || r;
-            });
-            return newData;
-          });
+          const freshProducts = await SupabaseService.getProducts();
+          setData(freshProducts);
           toast.success('Solicitud y sus vinculados actualizados');
         } else {
-          const result = await SupabaseService.updateProduct(existingRecord.id, resolvedUpdates);
-          setData(prev => prev.map(r => r.id === existingRecord.id ? result : r));
+          await SupabaseService.updateProduct(existingRecord.id, resolvedUpdates);
+          const freshProducts = await SupabaseService.getProducts();
+          setData(freshProducts);
           toast.success('Registro actualizado');
         }
       } else {
@@ -947,7 +942,8 @@ export default function App() {
             trackingType: type
           } as any);
           
-          setData(prev => [result, ...prev.filter(r => r.id !== result.id)]);
+          const freshProducts = await SupabaseService.getProducts();
+          setData(freshProducts);
           outlookService.sendNewTrackingEmail({
             code: result.codigoSAP,
             description: result.descripcionSAP,
@@ -962,7 +958,8 @@ export default function App() {
           }`);
         } else {
           const result = await SupabaseService.createProduct(resolvedNewRecord as any);
-          setData(prev => [result, ...prev.filter(r => r.id !== result.id)]);
+          const freshProducts = await SupabaseService.getProducts();
+          setData(freshProducts);
           outlookService.sendNewTrackingEmail({
             code: result.codigoSAP,
             description: result.descripcionSAP,
@@ -1121,6 +1118,14 @@ export default function App() {
       const updated = await SupabaseService.updateQualityClaim(id, updates);
       if (updated) {
         setQualityClaims(prev => prev.map(c => c.id === id ? updated : c));
+        if (updates.status === 'resolved') {
+          const product = data.find(p => p.id === updated.productId);
+          if (product) {
+            outlookService.sendQualityClaimResolvedEmail(product, updated).catch(err => {
+              console.error('Error sending quality claim resolved email:', err);
+            });
+          }
+        }
         toast.success('Reclamo de calidad actualizado correctamente');
       }
     } catch (error) {

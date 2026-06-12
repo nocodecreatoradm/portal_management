@@ -89,12 +89,7 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
 
           const isCompleted = !!(
             assign?.actualCompletionDate ||
-            (product.artworks && product.artworks.length > 0 && product.artworks.some(v => 
-              v.idApproval?.status === 'approved' && 
-              v.mktApproval?.status === 'approved' && 
-              v.provApproval?.status === 'approved' && 
-              v.planApproval?.status === 'approved'
-            ))
+            (product.artworks && product.artworks.length > 0)
           );
 
           let endDate = hasDates ? (assign.plannedEndDate || assign.plannedStartDate || '') : createdAtDate;
@@ -102,11 +97,11 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
             if (assign?.actualCompletionDate) {
               endDate = assign.actualCompletionDate;
             } else {
-              const docs = product.artworks || [];
+              const docs = [...(product.artworks || [])].sort((a, b) => new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime());
               if (docs.length > 0) {
-                const latestDoc = docs[docs.length - 1];
-                if (latestDoc.uploadDate) {
-                  endDate = latestDoc.uploadDate.split('T')[0];
+                const firstDoc = docs[0];
+                if (firstDoc.uploadDate) {
+                  endDate = firstDoc.uploadDate.split('T')[0];
                 }
               }
             }
@@ -141,9 +136,7 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
 
           const isCompleted = !!(
             assign?.actualCompletionDate ||
-            (product.technicalSheets && product.technicalSheets.length > 0 && product.technicalSheets.some(v => 
-              v.idApproval?.status === 'approved'
-            ))
+            (product.technicalSheets && product.technicalSheets.length > 0)
           );
 
           let endDate = hasDates ? (assign.plannedEndDate || assign.plannedStartDate || '') : createdAtDate;
@@ -151,11 +144,11 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
             if (assign?.actualCompletionDate) {
               endDate = assign.actualCompletionDate;
             } else {
-              const docs = product.technicalSheets || [];
+              const docs = [...(product.technicalSheets || [])].sort((a, b) => new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime());
               if (docs.length > 0) {
-                const latestDoc = docs[docs.length - 1];
-                if (latestDoc.uploadDate) {
-                  endDate = latestDoc.uploadDate.split('T')[0];
+                const firstDoc = docs[0];
+                if (firstDoc.uploadDate) {
+                  endDate = firstDoc.uploadDate.split('T')[0];
                 }
               }
             }
@@ -190,9 +183,7 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
 
           const isCompleted = !!(
             assign?.actualCompletionDate ||
-            (product.commercialSheets && product.commercialSheets.length > 0 && product.commercialSheets.some(v => 
-              v.idApproval?.status === 'approved'
-            ))
+            (product.commercialSheets && product.commercialSheets.length > 0)
           );
 
           let endDate = hasDates ? (assign.plannedEndDate || assign.plannedStartDate || '') : createdAtDate;
@@ -200,11 +191,11 @@ export default function CalendarModule({ onNavigateToModule }: CalendarModulePro
             if (assign?.actualCompletionDate) {
               endDate = assign.actualCompletionDate;
             } else {
-              const docs = product.commercialSheets || [];
+              const docs = [...(product.commercialSheets || [])].sort((a, b) => new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime());
               if (docs.length > 0) {
-                const latestDoc = docs[docs.length - 1];
-                if (latestDoc.uploadDate) {
-                  endDate = latestDoc.uploadDate.split('T')[0];
+                const firstDoc = docs[0];
+                if (firstDoc.uploadDate) {
+                  endDate = firstDoc.uploadDate.split('T')[0];
                 }
               }
             }

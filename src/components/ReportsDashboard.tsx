@@ -139,7 +139,7 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                             activeModule === 'technical_datasheet' ? 'technicalSheets' : 'commercialSheets';
         const docs = record[docArrayKey as keyof ProductRecord] as any[] || [];
         const docDates = docs.map(d => parseISO(d.uploadDate)).sort((a, b) => a.getTime() - b.getTime());
-        const actualCompletionDate = docDates.length > 0 ? docDates[docDates.length - 1] : null;
+        const actualCompletionDate = docDates.length > 0 ? docDates[0] : null;
 
         const startStr = assignment.plannedStartDate || assignment.assignmentDate || record.createdAt;
 
@@ -183,7 +183,7 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
       if (docs.length === 0) return;
       
       const docDates = docs.map(d => parseISO(d.uploadDate)).sort((a, b) => a.getTime() - b.getTime());
-      const end = docDates.length > 0 ? docDates[docDates.length - 1] : null;
+      const end = docDates.length > 0 ? docDates[0] : null;
       if (!end) return;
       
       const assignmentKey = activeModule === 'artwork_followup' ? 'artworkAssignment' : 
@@ -231,6 +231,25 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
     };
   }, [data, dateRange, activeModule]);
 
+  const thresholds = useMemo(() => {
+    if (activeModule === 'artwork_followup') {
+      return { meta: 5, min: 3, max: 7 };
+    }
+    // technical_datasheet or commercial_datasheet
+    return { meta: 2, min: 1, max: 3 };
+  }, [activeModule]);
+
+  const yDomain = useMemo(() => {
+    const dataVals = stats.performanceTimeline.map(d => d.avgDays || 0);
+    const maxDataVal = dataVals.length > 0 ? Math.max(...dataVals) : 0;
+    const { min, meta, max } = thresholds;
+    const absoluteMax = Math.max(maxDataVal, min, meta, max);
+    
+    // Add 25% padding at the top so data labels like "(val)" are never cut off
+    const yMax = Math.ceil(absoluteMax * 1.25);
+    return [0, Math.max(5, yMax)];
+  }, [stats.performanceTimeline, thresholds]);
+
   const handleSave = (details: { projectName: string; sampleId: string; description: string }) => {
     localStorage.setItem('reports_dashboard_config', JSON.stringify({ dateRange }));
     saveCalculationRecord(
@@ -255,7 +274,7 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
       const assignment = record[assignmentKey as keyof ProductRecord] as any;
 
       const docDates = docs.map(d => parseISO(d.uploadDate)).sort((a, b) => a.getTime() - b.getTime());
-      const actualCompletionDate = docDates.length > 0 ? format(docDates[docDates.length - 1], 'yyyy-MM-dd') : 'N/A';
+      const actualCompletionDate = docDates.length > 0 ? format(docDates[0], 'yyyy-MM-dd') : 'N/A';
 
       let estado = 'No Iniciado';
       if (docs.length > 0) {
@@ -498,7 +517,8 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                     tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
                     dy={15}
                   />
-                  <YAxis 
+                   <YAxis 
+                    domain={yDomain}
                     axisLine={false} 
                     tickLine={false} 
                     tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
@@ -523,7 +543,21 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                   
                   {/* Threshold lines */}
                   <ReferenceLine 
-                    y={5} 
+                    y={thresholds.min} 
+                    stroke="#3b82f6" 
+                    strokeDasharray="3 3" 
+                    strokeWidth={1.5}
+                    label={{ 
+                      position: 'right', 
+                      value: 'Mínimo', 
+                      fill: '#3b82f6', 
+                      fontSize: 11, 
+                      fontWeight: 900,
+                      offset: 10
+                    }} 
+                  />
+                  <ReferenceLine 
+                    y={thresholds.meta} 
                     stroke="#10b981" 
                     strokeDasharray="5 5" 
                     strokeWidth={2}
@@ -537,10 +571,18 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                     }} 
                   />
                   <ReferenceLine 
-                    y={8} 
+                    y={thresholds.max} 
                     stroke="#ef4444" 
-                    strokeWidth={1}
-                    opacity={0.5}
+                    strokeDasharray="3 3" 
+                    strokeWidth={1.5}
+                    label={{ 
+                      position: 'right', 
+                      value: 'Máximo', 
+                      fill: '#ef4444', 
+                      fontSize: 11, 
+                      fontWeight: 900,
+                      offset: 10
+                    }} 
                   />
 
                   <Line 

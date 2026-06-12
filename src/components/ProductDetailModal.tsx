@@ -142,8 +142,8 @@ export default function ProductDetailModal({
     
     const realStart = firstVer ? firstVer.uploadDate : null;
     
-    // Fin Real is the upload date of the latest version (designer/technician upload)
-    const realEnd = latestVer ? latestVer.uploadDate : null;
+    // Fin Real is the upload date of version 1 (designer/technician upload)
+    const realEnd = firstVer ? firstVer.uploadDate : null;
     const isCompleted = versions.length > 0;
     
     let deviationDays = null;

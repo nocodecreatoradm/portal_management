@@ -769,24 +769,83 @@ export const outlookService = {
   },
 
   /**
+   * Helper to retrieve all quality claim notification recipients.
+   * Includes Gerente de Innovación y Calidad, Jefe de Calidad, Mejora Continua, Admins, Técnico I+D, and the assignee designer.
+   */
+  getQualityClaimRecipients: async (record: ProductRecord): Promise<string[]> => {
+    try {
+      const designerEmail = record.artworkAssignment?.designerEmail || 
+                            record.technicalAssignment?.designerEmail || 
+                            record.commercialAssignment?.designerEmail || 
+                            '';
+
+      const profiles = await SupabaseService.getProfiles();
+      const recipients: string[] = [];
+
+      if (designerEmail) {
+        recipients.push(designerEmail);
+      }
+
+      (profiles || []).forEach(p => {
+        if (!p.is_active || !p.email) return;
+
+        const roleLower = (p.role || '').toLowerCase();
+        const deptLower = (p.department || '').toLowerCase();
+
+        // 1. Admin
+        const isAdmin = roleLower === 'admin' || roleLower === 'administrador';
+
+        // 2. Gerente de Innovación y Calidad
+        const isGerenteInnovacion = 
+          roleLower === 'gerente_innovacion' || 
+          roleLower === 'gerente de innovación y calidad' || 
+          roleLower === 'gerente de innovacion y calidad' ||
+          (roleLower.includes('gerente') && (roleLower.includes('innovac') || deptLower === 'i+d'));
+
+        // 3. Jefe de Calidad
+        const isJefeCalidad = 
+          roleLower === 'jefe_calidad' || 
+          roleLower === 'jefe de calidad' || 
+          (roleLower.includes('jefe') && roleLower.includes('calidad')) ||
+          (deptLower === 'calidad' && roleLower.includes('jefe'));
+
+        // 4. Mejora Continua
+        const isMejoraContinua = 
+          roleLower === 'mejora_continua' || 
+          roleLower === 'mejora continua' || 
+          deptLower === 'mejora continua' || 
+          deptLower === 'mejoracontinua' ||
+          p.email.toLowerCase() === 'mejoracontinua@sole.com.pe';
+
+        // 5. Técnico I+D
+        const isTecnicoID = 
+          roleLower === 'tecnico_id' || 
+          roleLower === 'técnico de i+d' || 
+          roleLower === 'tecnico de i+d' || 
+          roleLower === 'técnico i+d' || 
+          roleLower === 'tecnico i+d' || 
+          (deptLower === 'i+d' && (roleLower.includes('tecnico') || roleLower.includes('técnico')));
+
+        if (isAdmin || isGerenteInnovacion || isJefeCalidad || isMejoraContinua || isTecnicoID) {
+          recipients.push(p.email);
+        }
+      });
+
+      // Include fallback improvement email
+      recipients.push('mejoracontinua@sole.com.pe');
+
+      return [...new Set(recipients)].filter(Boolean);
+    } catch (e) {
+      console.error('Error getting quality claim recipients:', e);
+      return ['mejoracontinua@sole.com.pe'];
+    }
+  },
+
+  /**
    * Notifies a new quality claim/observation.
    */
   sendQualityClaimEmail: async (record: ProductRecord, claim: any) => {
-    const designerEmail = record.artworkAssignment?.designerEmail || 
-                          record.technicalAssignment?.designerEmail || 
-                          record.commercialAssignment?.designerEmail || 
-                          '';
-
-    const adminEmails = await outlookService.getAdminEmails();
-    const idEmails = await outlookService.getDepartmentEmailsForRecord('I+D', record);
-    
-    const recipients = [...new Set([
-      designerEmail,
-      ...adminEmails,
-      ...idEmails,
-      'mejoracontinua@sole.com.pe'
-    ].filter(Boolean))];
-
+    const recipients = await outlookService.getQualityClaimRecipients(record);
     if (recipients.length === 0) return;
 
     const subject = `[RECLAMO DE CALIDAD] - ${record.codigoSAP} - ${claim.documentCategory}`;
@@ -831,6 +890,54 @@ export const outlookService = {
       toast.success('Notificación de reclamo de calidad enviada');
     } catch (e) {
       console.error('Error sending quality claim email:', e);
+    }
+  },
+
+  /**
+   * Notifies that a quality claim/observation has been resolved (subsanado).
+   */
+  sendQualityClaimResolvedEmail: async (record: ProductRecord, claim: any) => {
+    const recipients = await outlookService.getQualityClaimRecipients(record);
+    if (recipients.length === 0) return;
+
+    const subject = `[RECLAMO SUBSANADO] - ${record.codigoSAP} - ${claim.documentCategory}`;
+    const title = 'Reclamo de Calidad Subsanado';
+
+    const content = `
+      <p>Estimado equipo,</p>
+      <p>Se informa que se ha subsanado el reclamo de calidad registrado para el producto <strong>${record.codigoSAP} - ${record.descripcionSAP}</strong>.</p>
+      
+      <div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 16px; margin: 16px 0; border-radius: 8px;">
+        <p style="margin: 0; font-weight: bold; color: #065f46;">Detalles de la Subsanación:</p>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px;">
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold; color: #065f46; width: 140px;">Subsanado por:</td>
+            <td style="padding: 4px 0; color: #4b5563;">${claim.resolvedBy || 'Diseño'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold; color: #065f46;">Documento / Arte:</td>
+            <td style="padding: 4px 0; color: #4b5563;">${claim.documentCategory}</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold; color: #065f46;">Fecha de Término:</td>
+            <td style="padding: 4px 0; color: #4b5563;">${claim.claimEndDate || new Date().toISOString().split('T')[0]}</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold; color: #065f46; vertical-align: top;">Comentarios de Solución:</td>
+            <td style="padding: 4px 0; color: #4b5563; white-space: pre-wrap;">${claim.resolutionComments || 'Sin comentarios adicionales'}</td>
+          </tr>
+        </table>
+      </div>
+
+      <p>Por favor, ingresar al portal para validar las correcciones realizadas.</p>
+    `;
+
+    try {
+      const actionUrl = outlookService.getModuleUrl(claim.trackingType);
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
+      toast.success('Notificación de subsanación de reclamo enviada');
+    } catch (e) {
+      console.error('Error sending quality claim resolved email:', e);
     }
   }
 };

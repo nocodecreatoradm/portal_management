@@ -1018,8 +1018,18 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
 
       const pendingProducts = appData.products
         .filter(p => {
-          const assign = p.artworkAssignment || p.technicalAssignment || p.commercialAssignment;
-          return assign && assign.designer && !assign.actualCompletionDate && assign.plannedStartDate && assign.plannedEndDate;
+          const assign = p.trackingType === 'artwork' ? p.artworkAssignment :
+                         p.trackingType === 'technical' ? p.technicalAssignment :
+                         p.trackingType === 'commercial' ? p.commercialAssignment :
+                         (p.artworkAssignment || p.technicalAssignment || p.commercialAssignment);
+          if (!assign || !assign.designer || !assign.plannedStartDate || !assign.plannedEndDate) return false;
+          if (assign.actualCompletionDate) return false;
+          
+          const type = p.trackingType || (p.artworkAssignment ? 'artwork' : p.technicalAssignment ? 'technical' : 'commercial');
+          const docs = type === 'artwork' ? p.artworks :
+                       type === 'technical' ? p.technicalSheets :
+                       p.commercialSheets;
+          return !(docs && docs.length > 0);
         })
         .map(p => {
           const assign = p.artworkAssignment || p.technicalAssignment || p.commercialAssignment;
@@ -1101,8 +1111,18 @@ export default function SolyAssistant({ activeModule, onNavigateModule, isVisibl
 
       const pendingProducts = appData.products
         .filter(p => {
-          const assign = p.artworkAssignment || p.technicalAssignment || p.commercialAssignment;
-          return assign && assign.designer && !assign.actualCompletionDate && assign.plannedStartDate && assign.plannedEndDate;
+          const assign = p.trackingType === 'artwork' ? p.artworkAssignment :
+                         p.trackingType === 'technical' ? p.technicalAssignment :
+                         p.trackingType === 'commercial' ? p.commercialAssignment :
+                         (p.artworkAssignment || p.technicalAssignment || p.commercialAssignment);
+          if (!assign || !assign.designer || !assign.plannedStartDate || !assign.plannedEndDate) return false;
+          if (assign.actualCompletionDate) return false;
+          
+          const type = p.trackingType || (p.artworkAssignment ? 'artwork' : p.technicalAssignment ? 'technical' : 'commercial');
+          const docs = type === 'artwork' ? p.artworks :
+                       type === 'technical' ? p.technicalSheets :
+                       p.commercialSheets;
+          return !(docs && docs.length > 0);
         })
         .map(p => {
           const assign = p.artworkAssignment || p.technicalAssignment || p.commercialAssignment!;
