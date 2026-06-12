@@ -159,13 +159,21 @@ export default function App() {
         code: item.codProv || (s ? s.erpCode : '')
       };
     });
-    const fromSuppliers = suppliers.map(sup => ({
-      name: sup.commercialAlias || sup.legalName,
-      emails: Array.isArray(sup.email) ? sup.email : (sup.email ? [sup.email] : []),
-      code: sup.erpCode || ''
-    }));
+    const fromSuppliers = suppliers.map(sup => {
+      let emails: string[] = [];
+      if (sup.email) {
+        emails = Array.isArray(sup.email) 
+          ? sup.email 
+          : sup.email.split(',').map((e: string) => e.trim()).filter(Boolean);
+      }
+      return {
+        name: sup.commercialAlias || sup.legalName,
+        emails,
+        code: sup.erpCode || ''
+      };
+    });
     const map = new Map<string, { name: string; emails: string[]; code: string }>();
-    [...fromData, ...fromSuppliers].forEach(item => {
+    [...fromSuppliers, ...fromData].forEach(item => {
       if (item.name && !map.has(item.name)) {
         map.set(item.name, item);
       }

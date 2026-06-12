@@ -400,7 +400,12 @@ export default function NewRequestModal({
               </button>
             )}
             <h3 className="text-lg font-semibold text-gray-800">
-              {step === 1 ? `Nueva Solicitud de ${modeLabel}` : `Nueva Solicitud: ${modeLabel} ${artworkType === 'local' ? 'Local' : 'Importado'}`}
+              {initialData 
+                ? `Modificar Solicitud: ${modeLabel} ${artworkType === 'local' ? 'Local' : 'Importado'}`
+                : (step === 1 
+                    ? `Nueva Solicitud de ${modeLabel}` 
+                    : `Nueva Solicitud: ${modeLabel} ${artworkType === 'local' ? 'Local' : 'Importado'}`)
+              }
             </h3>
           </div>
           <button onClick={handleCancel} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -669,7 +674,10 @@ export default function NewRequestModal({
               disabled={isSubmitting || !!duplicateRecord}
               className="px-4 py-2 text-sm font-medium text-white bg-[#52627e] hover:bg-[#3d4a60] rounded-md transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Creando...' : 'Crear Solicitud'}
+              {initialData 
+                ? (isSubmitting ? 'Modificando...' : 'Modificar Solicitud') 
+                : (isSubmitting ? 'Creando...' : 'Crear Solicitud')
+              }
             </button>
           )}
         </div>

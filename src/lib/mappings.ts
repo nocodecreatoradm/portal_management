@@ -396,37 +396,50 @@ export const mapPMRecordToDB = (record: Partial<ProductManagementRecord>) => {
 
 
 
-export const mapDBToProduct = (dbProduct: any): ProductRecord => ({
-  id: dbProduct.id,
-  correlativeId: dbProduct.correlative_id || dbProduct.sample?.correlative_id,
-  codigoSAP: dbProduct.sap_code || '',
-  codigoEAN: dbProduct.ean_code || '',
-  descripcionSAP: dbProduct.sap_description || '',
-  marca: dbProduct.brand?.name || dbProduct.brand_id || 'SOLE',
-  proveedor: dbProduct.supplier?.commercial_alias || dbProduct.supplier?.legal_name || dbProduct.supplier_id || 'Desconocido',
-  linea: dbProduct.line?.name || dbProduct.line_id || 'AGUA CALIENTE',
-  codProv: dbProduct.supplier?.erp_code || '',
-  correoProveedor: dbProduct.supplier?.email 
-    ? (Array.isArray(dbProduct.supplier.email) 
-        ? dbProduct.supplier.email 
-        : dbProduct.supplier.email.split(',').map((e: string) => e.trim()).filter(Boolean))
-    : [],
-  artworks: dbProduct.explode_files ? dbProduct.explode_files.filter((d: any) => d.category !== 'Technical Sheet' && d.category !== 'Commercial Sheet') : [],
-  technicalSheets: dbProduct.explode_files ? dbProduct.explode_files.filter((d: any) => d.category === 'Technical Sheet') : [],
-  commercialSheets: dbProduct.explode_files ? dbProduct.explode_files.filter((d: any) => d.category === 'Commercial Sheet') : [],
-  commercialStatus: dbProduct.commercial_status,
-  qualityInspectionDate: dbProduct.quality_inspection_date,
-  createdAt: dbProduct.created_at || new Date().toISOString(),
-  gallery: dbProduct.gallery || [],
-  artworkAssignment: dbProduct.artwork_assignment,
-  technicalAssignment: dbProduct.technical_assignment,
-  commercialAssignment: dbProduct.commercial_assignment,
-  trackingType: dbProduct.tracking_type,
-  linkedGroupId: dbProduct.linked_group_id,
-  categoryId: dbProduct.category_id || dbProduct.sample?.category_id || '',
-  categoria: (dbProduct.category?.name || dbProduct.sample?.category?.name || dbProduct.category_id || '').toUpperCase(),
-  comments: dbProduct.comments || ''
-});
+export const mapDBToProduct = (dbProduct: any): ProductRecord => {
+  const brandId = dbProduct.brand_id || dbProduct.brand?.id || '';
+  const supplierId = dbProduct.supplier_id || dbProduct.supplier?.id || '';
+  const lineId = dbProduct.line_id || dbProduct.line?.id || '';
+  const categoryId = dbProduct.category_id || dbProduct.sample?.category_id || '';
+
+  const emails = dbProduct.supplier?.email || dbProduct.supplier_email;
+
+  return {
+    id: dbProduct.id,
+    correlativeId: dbProduct.correlative_id || dbProduct.sample?.correlative_id,
+    codigoSAP: dbProduct.sap_code || '',
+    codigoEAN: dbProduct.ean_code || '',
+    descripcionSAP: dbProduct.sap_description || '',
+    marca: dbProduct.brand?.name || dbProduct.brand_name || dbProduct.brand_id || 'SOLE',
+    brandId,
+    proveedor: dbProduct.supplier?.commercial_alias || dbProduct.supplier?.legal_name || dbProduct.supplier_commercial_alias || dbProduct.supplier_legal_name || dbProduct.supplier_id || 'Desconocido',
+    supplierId,
+    linea: dbProduct.line?.name || dbProduct.line_name || dbProduct.line_id || 'AGUA CALIENTE',
+    lineId,
+    codProv: dbProduct.supplier?.erp_code || dbProduct.supplier_erp_code || '',
+    correoProveedor: emails
+      ? (Array.isArray(emails) 
+          ? emails 
+          : emails.split(',').map((e: string) => e.trim()).filter(Boolean))
+      : [],
+    artworks: dbProduct.explode_files ? dbProduct.explode_files.filter((d: any) => d.category !== 'Technical Sheet' && d.category !== 'Commercial Sheet') : [],
+    technicalSheets: dbProduct.explode_files ? dbProduct.explode_files.filter((d: any) => d.category === 'Technical Sheet') : [],
+    commercialSheets: dbProduct.explode_files ? dbProduct.explode_files.filter((d: any) => d.category === 'Commercial Sheet') : [],
+    commercialStatus: dbProduct.commercial_status,
+    qualityInspectionDate: dbProduct.quality_inspection_date,
+    createdAt: dbProduct.created_at || new Date().toISOString(),
+    gallery: dbProduct.gallery || [],
+    artworkAssignment: dbProduct.artwork_assignment,
+    technicalAssignment: dbProduct.technical_assignment,
+    commercialAssignment: dbProduct.commercial_assignment,
+    trackingType: dbProduct.tracking_type,
+    linkedGroupId: dbProduct.linked_group_id,
+    categoryId,
+    categoria: (dbProduct.category?.name || dbProduct.sample?.category?.name || dbProduct.category_name || dbProduct.category_id || '').toUpperCase(),
+    comments: dbProduct.comments || '',
+    sampleId: dbProduct.sample_id
+  } as any;
+};
 
 export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
   id: dbRecord.id,

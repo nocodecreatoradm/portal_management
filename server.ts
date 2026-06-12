@@ -132,6 +132,157 @@ function mapRowFromDb(table: string, row: any): any {
   return mappedRow;
 }
 
+async function fetchJoinedRow(table: string, id: any, dbPool: any) {
+  const request = dbPool.request();
+  request.input('id', id);
+  let query = '';
+  if (table === 'samples') {
+    query = `
+      SELECT s.*, 
+             b.name as brand_name, 
+             sup.legal_name as supplier_legal_name, 
+             sup.commercial_alias as supplier_commercial_alias, 
+             sup.erp_code as supplier_erp_code, 
+             sup.email as supplier_email,
+             l.name as line_name, 
+             c.name as category_name
+      FROM ID_PORTAL.samples s
+      LEFT JOIN ID_PORTAL.brands b ON s.brand_id = b.id
+      LEFT JOIN ID_PORTAL.suppliers sup ON s.supplier_id = sup.id
+      LEFT JOIN ID_PORTAL.product_lines l ON s.line_id = l.id
+      LEFT JOIN ID_PORTAL.categories c ON s.category_id = c.id
+      WHERE s.id = @id
+    `;
+  } else if (table === 'products') {
+    query = `
+      SELECT p.*, 
+             b.name as brand_name, 
+             sup.legal_name as supplier_legal_name, 
+             sup.commercial_alias as supplier_commercial_alias, 
+             sup.erp_code as supplier_erp_code, 
+             sup.email as supplier_email,
+             l.name as line_name, 
+             c.name as category_name,
+             s.correlative_id as sample_correlative_id,
+             s.category_id as sample_category_id,
+             sc.name as sample_category_name
+      FROM ID_PORTAL.products p
+      LEFT JOIN ID_PORTAL.brands b ON p.brand_id = b.id
+      LEFT JOIN ID_PORTAL.suppliers sup ON p.supplier_id = sup.id
+      LEFT JOIN ID_PORTAL.product_lines l ON p.line_id = l.id
+      LEFT JOIN ID_PORTAL.categories c ON p.category_id = c.id
+      LEFT JOIN ID_PORTAL.samples s ON p.sample_id = s.id
+      LEFT JOIN ID_PORTAL.categories sc ON s.category_id = sc.id
+      WHERE p.id = @id
+    `;
+  } else if (table === 'product_management') {
+    query = `
+      SELECT pm.*, 
+             b.name as brand_name, 
+             sup.legal_name as supplier_legal_name, 
+             sup.commercial_alias as supplier_commercial_alias, 
+             sup.erp_code as supplier_erp_code, 
+             sup.email as supplier_email,
+             ksup.legal_name as kit_supplier_legal_name,
+             ksup.commercial_alias as kit_supplier_commercial_alias,
+             l.name as line_name, 
+             c.name as category_name
+      FROM ID_PORTAL.product_management pm
+      LEFT JOIN ID_PORTAL.brands b ON pm.brand_id = b.id
+      LEFT JOIN ID_PORTAL.suppliers sup ON pm.supplier_id = sup.id
+      LEFT JOIN ID_PORTAL.suppliers ksup ON pm.kit_supplier_id = ksup.id
+      LEFT JOIN ID_PORTAL.product_lines l ON pm.line_id = l.id
+      LEFT JOIN ID_PORTAL.categories c ON pm.category_id = c.id
+      WHERE pm.id = @id
+    `;
+  } else if (table === 'energy_efficiency_records') {
+    query = `
+      SELECT 
+             ee.id, 
+             ee.codigo_mt AS mt_code, 
+             ee.descripcion AS description, 
+             ee.letra AS letter, 
+             ee.porcentaje_ee AS ee_percentage, 
+             ee.ocp, 
+             ee.supplier_id, 
+             ee.line_id,
+             ee.category_id,
+             ee.fecha_emision AS emission_date, 
+             ee.fecha_vigilancia AS vigilance_date, 
+             ee.tipo_producto AS product_type, 
+             ee.sample_id, 
+             ee.certificado_file AS certificate_file, 
+             ee.certificado_history AS certificate_history, 
+             ee.etiqueta_file AS label_file, 
+             ee.etiqueta_history AS label_history, 
+             ee.test_report_file AS test_report_file, 
+             ee.test_report_history AS test_report_history, 
+             ee.gallery, 
+             ee.created_at, 
+             ee.updated_at,
+             sup.legal_name AS supplier_legal_name,
+             l.name AS line_name,
+             c.name AS category_name
+      FROM ID_PORTAL.energy_efficiency_records ee
+      LEFT JOIN ID_PORTAL.suppliers sup ON ee.supplier_id = sup.id
+      LEFT JOIN ID_PORTAL.product_lines l ON ee.line_id = l.id
+      LEFT JOIN ID_PORTAL.categories c ON ee.category_id = c.id
+      WHERE ee.id = @id
+    `;
+  } else {
+    query = `SELECT * FROM ID_PORTAL.[${table}] WHERE id = @id`;
+  }
+
+  const res = await request.query(query);
+  let row = res.recordset[0];
+  if (!row) return null;
+
+  row = parseRowJSON(row);
+
+  if (table === 'samples') {
+    row.brand = row.brand_name ? { name: row.brand_name } : null;
+    row.supplier = row.supplier_legal_name ? {
+      legal_name: row.supplier_legal_name,
+      commercial_alias: row.supplier_commercial_alias,
+      erp_code: row.supplier_erp_code,
+      email: row.supplier_email
+    } : null;
+    row.line = row.line_name ? { name: row.line_name } : null;
+    row.category = row.category_name ? { name: row.category_name } : null;
+  } else if (table === 'products') {
+    row.brand = row.brand_name ? { name: row.brand_name } : null;
+    row.supplier = row.supplier_legal_name ? {
+      legal_name: row.supplier_legal_name,
+      commercial_alias: row.supplier_commercial_alias,
+      erp_code: row.supplier_erp_code,
+      email: row.supplier_email
+    } : null;
+    row.line = row.line_name ? { name: row.line_name } : null;
+    row.category = row.category_name ? { name: row.category_name } : null;
+    row.sample = row.sample_correlative_id ? {
+      correlative_id: row.sample_correlative_id,
+      category_id: row.sample_category_id,
+      category: row.sample_category_name ? { name: row.sample_category_name } : null
+    } : null;
+  } else if (table === 'product_management') {
+    row.brand = row.brand_name ? { name: row.brand_name } : null;
+    row.supplier = row.supplier_legal_name ? {
+      legal_name: row.supplier_legal_name,
+      commercial_alias: row.supplier_commercial_alias,
+      erp_code: row.supplier_erp_code,
+      email: row.supplier_email
+    } : null;
+    row.line = row.line_name ? { name: row.line_name } : null;
+    row.category = row.category_name ? { name: row.category_name } : null;
+  } else if (table === 'energy_efficiency_records') {
+    row.supplier = row.supplier_legal_name ? { legal_name: row.supplier_legal_name } : null;
+    row.line = row.line_name ? { name: row.line_name } : null;
+    row.category = row.category_name ? { name: row.category_name } : null;
+  }
+
+  return mapRowFromDb(table, row);
+}
+
 
 // Middleware to verify local JWT Bearer token
 async function requireAuth(req: any, res: any, next: any) {
@@ -1023,7 +1174,13 @@ async function startServer() {
                 const updateRes = await updateRequest.query(updateQuery);
                 if (updateRes.recordset && updateRes.recordset[0]) {
                   let returnedRow = parseRowJSON(updateRes.recordset[0]);
-                  returnedRow = mapRowFromDb(table, returnedRow);
+                  if (returnedRow.id) {
+                    const joined = await fetchJoinedRow(table, returnedRow.id, dbPool);
+                    if (joined) returnedRow = joined;
+                    else returnedRow = mapRowFromDb(table, returnedRow);
+                  } else {
+                    returnedRow = mapRowFromDb(table, returnedRow);
+                  }
                   resultRows.push(returnedRow);
                   continue;
                 }
@@ -1051,7 +1208,13 @@ async function startServer() {
           const result = await rowRequest.query(query);
           if (result.recordset && result.recordset[0]) {
             let returnedRow = parseRowJSON(result.recordset[0]);
-            returnedRow = mapRowFromDb(table, returnedRow);
+            if (returnedRow.id) {
+              const joined = await fetchJoinedRow(table, returnedRow.id, dbPool);
+              if (joined) returnedRow = joined;
+              else returnedRow = mapRowFromDb(table, returnedRow);
+            } else {
+              returnedRow = mapRowFromDb(table, returnedRow);
+            }
             resultRows.push(returnedRow);
           }
         }
@@ -1123,7 +1286,17 @@ async function startServer() {
         `;
         const result = await request.query(query);
         let rows = result.recordset.map(parseRowJSON);
-        rows = rows.map(r => mapRowFromDb(table, r));
+        const joinedRows = [];
+        for (const r of rows) {
+          if (r.id) {
+            const joined = await fetchJoinedRow(table, r.id, dbPool);
+            if (joined) joinedRows.push(joined);
+            else joinedRows.push(mapRowFromDb(table, r));
+          } else {
+            joinedRows.push(mapRowFromDb(table, r));
+          }
+        }
+        rows = joinedRows;
         
         return res.json(isSingle || isMaybeSingle ? (rows[0] || null) : rows);
       }

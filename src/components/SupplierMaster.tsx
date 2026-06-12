@@ -78,6 +78,53 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const quotationInputRef = useRef<HTMLInputElement>(null);
 
+  // States for handling multiple values as lists
+  const [contactsList, setContactsList] = useState<string[]>([]);
+  const [emailsList, setEmailsList] = useState<string[]>([]);
+  const [wechatList, setWechatList] = useState<string[]>([]);
+
+  // Input states
+  const [newContact, setNewContact] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newWechat, setNewWechat] = useState('');
+
+  const handleAddContact = () => {
+    if (newContact.trim() && !contactsList.includes(newContact.trim())) {
+      setContactsList(prev => [...prev, newContact.trim()]);
+      setNewContact('');
+    }
+  };
+
+  const handleRemoveContact = (val: string) => {
+    setContactsList(prev => prev.filter(c => c !== val));
+  };
+
+  const handleAddEmail = () => {
+    if (newEmail.trim() && !emailsList.includes(newEmail.trim())) {
+      if (newEmail.trim().match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+        setEmailsList(prev => [...prev, newEmail.trim()]);
+        setNewEmail('');
+      } else {
+        toast.error('Formato de correo inválido');
+      }
+    }
+  };
+
+  const handleRemoveEmail = (val: string) => {
+    setEmailsList(prev => prev.filter(e => e !== val));
+  };
+
+  const handleAddWechat = () => {
+    if (newWechat.trim() && !wechatList.includes(newWechat.trim())) {
+      setWechatList(prev => [...prev, newWechat.trim()]);
+      setNewWechat('');
+    }
+  };
+
+  const handleRemoveWechat = (val: string) => {
+    setWechatList(prev => prev.filter(w => w !== val));
+  };
+
   useEffect(() => {
     fetchSuppliers();
   }, []);
@@ -173,6 +220,9 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
         },
         quotations: supplier.quotations || []
       });
+      setContactsList(supplier.contacts ? supplier.contacts.split(',').map((c: string) => c.trim()).filter(Boolean) : []);
+      setEmailsList(supplier.email ? supplier.email.split(',').map((e: string) => e.trim()).filter(Boolean) : []);
+      setWechatList(supplier.wechat ? supplier.wechat.split(',').map((w: string) => w.trim()).filter(Boolean) : []);
     } else {
       setEditingSupplier(null);
       setFormData({
@@ -194,7 +244,13 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
         },
         quotations: []
       });
+      setContactsList([]);
+      setEmailsList([]);
+      setWechatList([]);
     }
+    setNewContact('');
+    setNewEmail('');
+    setNewWechat('');
     setIsModalOpen(true);
   };
 
@@ -253,14 +309,21 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
     try {
       const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       
+      const payload = {
+        ...formData,
+        contacts: contactsList.join(', '),
+        email: emailsList.join(', '),
+        wechat: wechatList.join(', ')
+      };
+
       let result;
       if (editingSupplier && isUUID(editingSupplier.id)) {
-        result = await SupabaseService.updateSupplier(editingSupplier.id, formData);
+        result = await SupabaseService.updateSupplier(editingSupplier.id, payload);
         setSuppliers(prev => prev.map(s => s.id === result.id ? result : s));
         toast.success('Proveedor actualizado');
       } else {
         // If editing but not UUID (mock), or creating new
-        result = await SupabaseService.createSupplier(formData);
+        result = await SupabaseService.createSupplier(payload);
         if (editingSupplier) {
           // Replace mock with real record
           setSuppliers(prev => prev.map(s => s.id === editingSupplier.id ? result : s));
@@ -798,15 +861,47 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                         Contactos / Teléfonos
                       </label>
-                      <div className="relative group">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
-                        <input
-                          type="text"
-                          value={formData.contacts}
-                          onChange={(e) => setFormData({ ...formData, contacts: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
-                          placeholder="Ej: Mr. Zhang (+86...)"
-                        />
+                      <div className="flex gap-2">
+                        <div className="relative group flex-1">
+                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+                          <input
+                            type="text"
+                            value={newContact}
+                            onChange={(e) => setNewContact(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddContact();
+                              }
+                            }}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+                            placeholder="Ej: Mr. Zhang (+86...)"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddContact}
+                          className="bg-[#0038a8] text-white px-5 rounded-2xl hover:bg-[#002b80] transition-colors flex items-center justify-center shadow-lg shadow-blue-900/10"
+                        >
+                          <Plus size={20} />
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2 min-h-[48px] p-3 border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                        {contactsList.length === 0 && (
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic m-auto">Sin contactos registrados</span>
+                        )}
+                        {contactsList.map(contact => (
+                          <div key={contact} className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-blue-100 shadow-sm">
+                            {contact}
+                            <button 
+                              type="button" 
+                              onClick={() => handleRemoveContact(contact)}
+                              className="hover:text-blue-950 text-blue-400 transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
@@ -814,16 +909,47 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                         Correo Electrónico
                       </label>
-                      <div className="relative group">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
-                        <input
-                          type="email"
-                          multiple
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
-                          placeholder="sales@supplier.com, extra@supplier.com"
-                        />
+                      <div className="flex gap-2">
+                        <div className="relative group flex-1">
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+                          <input
+                            type="text"
+                            value={newEmail}
+                            onChange={(e) => setNewEmail(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddEmail();
+                              }
+                            }}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+                            placeholder="Ej: sales@supplier.com"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddEmail}
+                          className="bg-[#0038a8] text-white px-5 rounded-2xl hover:bg-[#002b80] transition-colors flex items-center justify-center shadow-lg shadow-blue-900/10"
+                        >
+                          <Plus size={20} />
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2 min-h-[48px] p-3 border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                        {emailsList.length === 0 && (
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic m-auto">Sin correos registrados</span>
+                        )}
+                        {emailsList.map(email => (
+                          <div key={email} className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-blue-100 shadow-sm">
+                            {email}
+                            <button 
+                              type="button" 
+                              onClick={() => handleRemoveEmail(email)}
+                              className="hover:text-blue-950 text-blue-400 transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -842,7 +968,7 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
                         <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
                         <input
                           type="text"
-                          value={formData.website}
+                          value={formData.website || ''}
                           onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                           className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
                           placeholder="www.supplier.com"
@@ -854,15 +980,47 @@ const SupplierMaster: React.FC<SupplierMasterProps> = ({ onExportPPT }) => {
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                         WeChat ID / QR Link
                       </label>
-                      <div className="relative group">
-                        <QrCode className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
-                        <input
-                          type="text"
-                          value={formData.wechat}
-                          onChange={(e) => setFormData({ ...formData, wechat: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
-                          placeholder="ID de WeChat"
-                        />
+                      <div className="flex gap-2">
+                        <div className="relative group flex-1">
+                          <QrCode className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+                          <input
+                            type="text"
+                            value={newWechat}
+                            onChange={(e) => setNewWechat(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddWechat();
+                              }
+                            }}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+                            placeholder="ID de WeChat"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddWechat}
+                          className="bg-[#0038a8] text-white px-5 rounded-2xl hover:bg-[#002b80] transition-colors flex items-center justify-center shadow-lg shadow-blue-900/10"
+                        >
+                          <Plus size={20} />
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2 min-h-[48px] p-3 border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                        {wechatList.length === 0 && (
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic m-auto">Sin WeChat registrados</span>
+                        )}
+                        {wechatList.map(w => (
+                          <div key={w} className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-blue-100 shadow-sm">
+                            {w}
+                            <button 
+                              type="button" 
+                              onClick={() => handleRemoveWechat(w)}
+                              className="hover:text-blue-950 text-blue-400 transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
