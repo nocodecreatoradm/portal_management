@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, FileText, CheckCircle, ThumbsDown, Clock, Minus, Eye, Image as ImageIcon, Tag, Plus, Upload, Beaker, Wind, FlaskConical, Droplets, Thermometer, Flame, Database, ChevronRight, ChevronDown, MessageSquare, Trash2 } from 'lucide-react';
+import { X, FileText, CheckCircle, ThumbsDown, Clock, Minus, Eye, Image as ImageIcon, Tag, Plus, Upload, Beaker, Wind, FlaskConical, Droplets, Thermometer, Flame, Database, ChevronRight, ChevronDown, MessageSquare, Trash2, Download } from 'lucide-react';
 import { ProductRecord, DocumentVersion, Approval, Supplier, SampleRecord, FileInfo, CalculationRecord, ModuleId, PDFComment } from '../types';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
@@ -344,6 +344,39 @@ export default function ProductDetailModal({
     setSharedGallery(updatedGallery);
     onUpdateRecord(record.id, { gallery: updatedGallery });
     toast.success('Grupo de imágenes eliminado');
+  };
+
+  const handleDownloadAllGallery = () => {
+    if (!sharedGallery || sharedGallery.length === 0) return;
+    
+    const allFiles: any[] = [];
+    sharedGallery.forEach(item => {
+      if (item.photos && item.photos.length > 0) {
+        item.photos.forEach((photo: any) => {
+          allFiles.push(photo);
+        });
+      }
+    });
+
+    if (allFiles.length === 0) {
+      toast.info('No hay archivos para descargar');
+      return;
+    }
+
+    let delay = 0;
+    allFiles.forEach(file => {
+      setTimeout(() => {
+        const link = document.createElement('a');
+        link.href = file.url;
+        link.download = file.name;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }, delay);
+      delay += 300;
+    });
+    toast.success(`Iniciando descarga de ${allFiles.length} archivos de la galería...`);
   };
 
   const handleConfirmGalleryUpload = () => {
@@ -1028,15 +1061,26 @@ export default function ProductDetailModal({
                 <ImageIcon size={20} className="text-indigo-500" />
                 Galería documentaria
               </h4>
-              {onUpdateRecord && (
-                <button 
-                  onClick={() => setIsGalleryUploadModalOpen(true)}
-                  className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-xs font-black hover:bg-indigo-100 transition-all border border-indigo-100"
-                >
-                  <Plus size={16} className="text-indigo-500" />
-                  Añadir Archivo
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {sharedGallery && sharedGallery.length > 0 && (
+                  <button 
+                    onClick={handleDownloadAllGallery}
+                    className="flex items-center gap-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-4 py-2 rounded-xl text-xs font-black transition-all border border-emerald-100 active:scale-95 cursor-pointer"
+                  >
+                    <Download size={16} className="text-emerald-500" />
+                    Descargar Todo
+                  </button>
+                )}
+                {onUpdateRecord && (
+                  <button 
+                    onClick={() => setIsGalleryUploadModalOpen(true)}
+                    className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-xs font-black hover:bg-indigo-100 transition-all border border-indigo-100"
+                  >
+                    <Plus size={16} className="text-indigo-500" />
+                    Añadir Archivo
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
