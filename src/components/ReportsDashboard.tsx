@@ -555,7 +555,16 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
 
             <div className="flex-1 min-h-[450px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={stats.performanceTimeline} margin={{ top: 20, right: 60, left: 20, bottom: 20 }}>
+                <LineChart 
+                  data={stats.performanceTimeline} 
+                  margin={{ top: 20, right: 60, left: 20, bottom: 20 }}
+                  onClick={(state) => {
+                    if (state && state.activePayload && state.activePayload.length) {
+                      setSelectedPointDetails(state.activePayload[0].payload);
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.5} />
                   <XAxis 
                     dataKey="displayMonth" 
