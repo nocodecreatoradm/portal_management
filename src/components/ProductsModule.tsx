@@ -69,9 +69,10 @@ interface LinealViewProps {
   onOpenQuickView: (record: ProductManagementRecord) => void;
   getLineName: (record: ProductManagementRecord) => string;
   getCategoryName: (record: ProductManagementRecord) => string;
+  suppliers: Supplier[];
 }
 
-function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, getLineName, getCategoryName }: LinealViewProps) {
+function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, getLineName, getCategoryName, suppliers }: LinealViewProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const segments = ['ticket_value', 'mainstream', 'premium'] as const;
   
@@ -280,6 +281,13 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                     const growth = getGrowthPct(record);
                     const isHovered = hoveredId === record.id;
                     const productImgUrl = getProductImageUrl(record);
+                    const matchingSupplier = suppliers.find(s => 
+                      s.id === record.supplierId || 
+                      s.id === record.proveedor || 
+                      s.legalName === record.proveedor || 
+                      s.commercialAlias === record.proveedor
+                    );
+                    const logoUrl = matchingSupplier?.logoUrl || record.supplierLogoUrl;
 
                     return (
                       <div key={record.id} style={{ position: 'absolute', top, left, transform: 'translateX(-50%)', zIndex: isHovered ? 50 : 10 }}>
@@ -334,9 +342,9 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                             )}
                             {/* Supplier logo overlay */}
                             <div className="absolute top-1 right-1">
-                              {record.supplierLogoUrl ? (
+                              {logoUrl ? (
                                 <img 
-                                  src={record.supplierLogoUrl} 
+                                  src={logoUrl} 
                                   className="w-5 h-5 object-cover rounded-full border border-white bg-white shadow-sm" 
                                   alt="Logo" 
                                 />
@@ -1662,6 +1670,7 @@ export default function ProductsModule({
           onOpenQuickView={(rec) => setSelectedQuickViewRecord(rec)}
           getLineName={getLineName}
           getCategoryName={getCategoryName}
+          suppliers={suppliers}
         />
 
       /* ── DASHBOARD VIEW ── */
