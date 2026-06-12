@@ -359,7 +359,10 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
       const nextNumber = samples.length + 1;
       const correlativeId = `M-${nextNumber.toString().padStart(3, '0')}`;
       const selectedSupplierName = formData.get('proveedor') as string;
-      const selectedSupplier = suppliers.find(s => s.legalName === selectedSupplierName || s.commercialAlias === selectedSupplierName);
+      const selectedSupplier = suppliers.find(s => 
+        s.legalName?.toUpperCase() === selectedSupplierName?.toUpperCase() || 
+        s.commercialAlias?.toUpperCase() === selectedSupplierName?.toUpperCase()
+      );
 
       const brand = brands.find(b => b.id === selectedBrandId);
       const line = productLines.find(l => l.id === selectedLineId);
@@ -390,9 +393,9 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
         brandId: selectedBrandId,
         lineId: selectedLineId,
         categoryId: selectedCategoryId,
-        descripcionSAP: formData.get('descripcion') as string,
+        descripcionSAP: (formData.get('descripcion') as string)?.toUpperCase(),
         marca: brand?.name || '',
-        proveedor: selectedSupplier ? selectedSupplier.id : selectedSupplierName,
+        proveedor: selectedSupplier ? selectedSupplier.id : selectedSupplierName?.toUpperCase(),
         codProv: selectedSupplier?.erpCode,
         linea: line?.name || '',
         categoria: category?.name || '',
@@ -683,7 +686,10 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
     return <SamplesDashboard samples={samples} onBack={() => setShowDashboard(false)} />;
   }
 
-  const supplierOptions = suppliers.map(s => ({ value: s.commercialAlias, label: s.commercialAlias }));
+  const supplierOptions = suppliers.map(s => ({ 
+    value: s.commercialAlias?.toUpperCase() || '', 
+    label: s.commercialAlias?.toUpperCase() || '' 
+  }));
   const brandOptions = brands.map(b => ({ value: b.id, label: b.name }));
   const lineOptions = productLines.map(l => ({ value: l.id, label: l.name }));
   const categoryOptions = categories
@@ -1314,7 +1320,13 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Descripción</label>
-                  <input name="descripcion" required type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
+                  <input 
+                    name="descripcion" 
+                    required 
+                    type="text" 
+                    onChange={(e) => { e.target.value = e.target.value.toUpperCase(); }}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all uppercase" 
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Proveedor</label>

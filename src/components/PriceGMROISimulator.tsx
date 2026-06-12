@@ -607,10 +607,10 @@ export default function PriceGMROISimulator() {
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/60 relative overflow-hidden flex flex-col justify-between h-32">
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">PVP Promoción (Con IGV)</div>
-          <div className="text-2xl font-black text-slate-900 mt-2">{formatSoles(pvpPromocion)}</div>
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">PVP Lista (Con IGV)</div>
+          <div className="text-2xl font-black text-slate-900 mt-2">{formatSoles(pvpLista)}</div>
           <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold border-t border-slate-50 pt-2 mt-2">
-            <span>PVP Lista: {formatSoles(pvpLista)}</span>
+            <span>PVP Promoción: {formatSoles(pvpPromocion)}</span>
             <span className="bg-slate-100 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">Consumo</span>
           </div>
         </div>
@@ -633,10 +633,10 @@ export default function PriceGMROISimulator() {
         </div>
 
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/60 relative overflow-hidden flex flex-col justify-between h-32">
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Margen Bruto (Promoción)</div>
-          <div className="text-2xl font-black text-blue-600 mt-2">{margenBrutoPromo.toFixed(1)}%</div>
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Margen Bruto (Lista)</div>
+          <div className="text-2xl font-black text-blue-600 mt-2">{margenLista.toFixed(1)}%</div>
           <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold border-t border-slate-50 pt-2 mt-2">
-            <span>Margen Lista: {margenLista.toFixed(1)}%</span>
+            <span>Margen Promoción: {margenBrutoPromo.toFixed(1)}%</span>
           </div>
         </div>
 
@@ -756,18 +756,18 @@ export default function PriceGMROISimulator() {
                       <span className="text-blue-600 font-black">{formatSoles(pvpLista)}</span>
                     </div>
                     <div className="flex items-center gap-4">
-                      <button onClick={() => setPvpLista(prev => Math.max(1, prev - 10))} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black">-</button>
+                      <button onClick={() => setPvpLista(prev => Math.max(1, prev - 1))} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black">-</button>
                       <input 
                         type="range" 
                         min="100" 
                         max="5000" 
-                        step="10"
+                        step="1"
                         value={pvpLista} 
                         onChange={(e) => setPvpLista(parseInt(e.target.value))}
                         data-soly="gmroi-pvp-lista-slider"
                         className="flex-1 accent-blue-600 h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer"
                       />
-                      <button onClick={() => setPvpLista(prev => prev + 10)} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black">+</button>
+                      <button onClick={() => setPvpLista(prev => prev + 1)} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black">+</button>
                     </div>
                   </div>
 
@@ -777,18 +777,18 @@ export default function PriceGMROISimulator() {
                       <span className="text-blue-600 font-black">{formatSoles(pvpPromocion)}</span>
                     </div>
                     <div className="flex items-center gap-4">
-                      <button onClick={() => setPvpPromocion(prev => Math.max(1, prev - 10))} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black">-</button>
+                      <button onClick={() => setPvpPromocion(prev => Math.max(1, prev - 1))} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black">-</button>
                       <input 
                         type="range" 
                         min="100" 
                         max="5000" 
-                        step="10"
+                        step="1"
                         value={pvpPromocion} 
                         onChange={(e) => setPvpPromocion(parseInt(e.target.value))}
                         data-soly="gmroi-pvp-promo-slider"
                         className="flex-1 accent-blue-600 h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer"
                       />
-                      <button onClick={() => setPvpPromocion(prev => prev + 10)} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black">+</button>
+                      <button onClick={() => setPvpPromocion(prev => prev + 1)} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-black">+</button>
                     </div>
                   </div>
                 </div>
