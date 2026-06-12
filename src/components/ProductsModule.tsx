@@ -976,26 +976,51 @@ export default function ProductsModule({
     }
   };
 
-  const handleDownloadAllDocs = (groups: any[]) => {
+  const handleDownloadAllDocs = async (groups: any[]) => {
     if (!groups || groups.length === 0) return;
     
-    let delay = 0;
+    const allFiles: any[] = [];
     groups.forEach(group => {
-      if (!group.documents) return;
-      group.documents.forEach((doc: any) => {
-        setTimeout(() => {
-          const link = document.createElement('a');
-          link.href = doc.url;
-          link.download = doc.name;
-          link.target = '_blank';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }, delay);
-        delay += 300;
-      });
+      if (group.documents) {
+        group.documents.forEach((doc: any) => {
+          allFiles.push(doc);
+        });
+      }
     });
+
+    if (allFiles.length === 0) return;
+    
     toast.success('Iniciando descarga de todos los documentos...');
+
+    for (let i = 0; i < allFiles.length; i++) {
+      const doc = allFiles[i];
+      try {
+        const response = await fetch(doc.url);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = doc.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        await new Promise(resolve => setTimeout(resolve, 300));
+        URL.revokeObjectURL(blobUrl);
+      } catch (error) {
+        console.warn(`Fallback download for ${doc.name}:`, error);
+        const link = document.createElement('a');
+        link.href = doc.url;
+        link.download = doc.name;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    }
   };
 
   const handleAddSalesHistoryEntry = () => {

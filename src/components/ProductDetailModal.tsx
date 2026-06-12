@@ -346,7 +346,7 @@ export default function ProductDetailModal({
     toast.success('Grupo de imágenes eliminado');
   };
 
-  const handleDownloadAllGallery = () => {
+  const handleDownloadAllGallery = async () => {
     if (!sharedGallery || sharedGallery.length === 0) return;
     
     const allFiles: any[] = [];
@@ -363,9 +363,27 @@ export default function ProductDetailModal({
       return;
     }
 
-    let delay = 0;
-    allFiles.forEach(file => {
-      setTimeout(() => {
+    toast.success(`Iniciando descarga de ${allFiles.length} archivos de la galería...`);
+
+    for (let i = 0; i < allFiles.length; i++) {
+      const file = allFiles[i];
+      try {
+        const response = await fetch(file.url);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = file.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        await new Promise(resolve => setTimeout(resolve, 300));
+        URL.revokeObjectURL(blobUrl);
+      } catch (error) {
+        console.warn(`Fallback download for ${file.name}:`, error);
         const link = document.createElement('a');
         link.href = file.url;
         link.download = file.name;
@@ -373,10 +391,9 @@ export default function ProductDetailModal({
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-      }, delay);
-      delay += 300;
-    });
-    toast.success(`Iniciando descarga de ${allFiles.length} archivos de la galería...`);
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    }
   };
 
   const handleConfirmGalleryUpload = () => {
