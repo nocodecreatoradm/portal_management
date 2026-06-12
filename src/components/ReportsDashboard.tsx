@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, ReferenceLine
 } from 'recharts';
-import { Calendar, Download, ArrowLeft, Filter, CheckCircle2, XCircle, Clock, Target, Users, BarChart3 } from 'lucide-react';
+import { Calendar, Download, ArrowLeft, Filter, CheckCircle2, XCircle, Clock, Target, Users, BarChart3, X } from 'lucide-react';
 import { ProductRecord, ModuleId } from '../types';
 import { format, parseISO, differenceInDays, isWithinInterval, startOfMonth, endOfMonth, subMonths, isAfter, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -26,6 +26,7 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
     start: format(subMonths(new Date(), 3), 'yyyy-MM-dd'),
     end: format(new Date(), 'yyyy-MM-dd')
   });
+  const [selectedPointDetails, setSelectedPointDetails] = useState<any | null>(null);
 
   const stats = useMemo(() => {
     const startDate = startOfDay(parseISO(dateRange.start));
@@ -174,7 +175,22 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
     }));
 
     // Monthly performance timeline for Artworks (Assignment to Upload)
-    const monthlyPerformance: Record<string, { total: number, count: number }> = {};
+    const monthlyPerformance: Record<string, { 
+      total: number; 
+      count: number; 
+      details: Array<{
+        id: string;
+        codigoSAP: string;
+        descripcionSAP: string;
+        marca: string;
+        linea: string;
+        categoria: string;
+        designer: string;
+        startDate: string;
+        endDate: string;
+        daysElapsed: number;
+      }>;
+    }> = {};
     
     data.forEach(record => {
       const docArrayKey = activeModule === 'artwork_followup' ? 'artworks' : 
@@ -199,10 +215,22 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
         const diff = differenceInDays(end, start);
         const monthKey = format(end, 'yyyy-MM');
         if (!monthlyPerformance[monthKey]) {
-          monthlyPerformance[monthKey] = { total: 0, count: 0 };
+          monthlyPerformance[monthKey] = { total: 0, count: 0, details: [] };
         }
         monthlyPerformance[monthKey].total += Math.max(0, diff);
         monthlyPerformance[monthKey].count++;
+        monthlyPerformance[monthKey].details.push({
+          id: record.id,
+          codigoSAP: record.codigoSAP || 'N/A',
+          descripcionSAP: record.descripcionSAP || 'Sin Descripción',
+          marca: record.marca || 'N/A',
+          linea: record.linea || 'N/A',
+          categoria: record.categoria || 'N/A',
+          designer: assignment?.designer || 'No asignado',
+          startDate: format(start, 'yyyy-MM-dd'),
+          endDate: format(end, 'yyyy-MM-dd'),
+          daysElapsed: Math.max(0, diff)
+        });
       }
     });
 
@@ -214,7 +242,8 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
           const formatted = format(parseISO(`${month}-01`), "MMMM yyyy", { locale: es });
           return formatted.charAt(0).toUpperCase() + formatted.slice(1);
         })(),
-        avgDays: parseFloat((stats.total / stats.count).toFixed(1))
+        avgDays: parseFloat((stats.total / stats.count).toFixed(1)),
+        details: stats.details
       }));
 
     return {
@@ -331,6 +360,24 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
     });
     exportToExcel(dataToExport, 'Reporte_Performance_ID');
     toast.success('Excel exportado correctamente');
+  };
+
+  const handleExportModalExcel = () => {
+    if (!selectedPointDetails) return;
+    const detailsList = selectedPointDetails.details || [];
+    const dataToExport = detailsList.map((detail: any) => ({
+      'Código SAP': detail.codigoSAP,
+      'Descripción SAP': detail.descripcionSAP,
+      'Línea': detail.linea,
+      'Marca': detail.marca,
+      'Categoría': detail.categoria,
+      [activeModule === 'artwork_followup' ? 'Diseñador' : 'Técnico']: detail.designer,
+      'Fecha Inicio': detail.startDate,
+      'Fecha Fin Real': detail.endDate,
+      'Días Transcurridos': detail.daysElapsed,
+    }));
+    exportToExcel(dataToExport, `Calculo_Detalle_${selectedPointDetails.displayMonth.replace(' ', '_')}`);
+    toast.success('Excel de detalle exportado correctamente');
   };
 
   const handleExportPDF = async () => {
@@ -590,8 +637,13 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                     dataKey="avgDays" 
                     stroke="#fff" 
                     strokeWidth={4} 
-                    dot={{ r: 6, fill: '#fff', strokeWidth: 3, stroke: '#1e293b' }}
-                    activeDot={{ r: 8, fill: '#6366f1', strokeWidth: 0 }}
+                    dot={{ r: 6, fill: '#fff', strokeWidth: 3, stroke: '#1e293b', className: 'cursor-pointer' }}
+                    activeDot={{ r: 8, fill: '#6366f1', strokeWidth: 0, className: 'cursor-pointer' }}
+                    onClick={(data) => {
+                      if (data && data.payload) {
+                        setSelectedPointDetails(data.payload);
+                      }
+                    }}
                     label={{ 
                       position: 'top', 
                       fill: '#fff', 
@@ -817,6 +869,176 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
           </div>
         </div>
       </div>
+
+      {/* Modal de Detalle de Cálculo */}
+      {selectedPointDetails && (() => {
+        const detailsList = selectedPointDetails.details || [];
+        const totalProducts = detailsList.length;
+        const totalDays = detailsList.reduce((sum: number, item: any) => sum + item.daysElapsed, 0);
+        const avgDays = selectedPointDetails.avgDays;
+        
+        return (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
+            <div className="bg-slate-900 border border-slate-800 rounded-[2rem] w-full max-w-5xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200">
+              
+              {/* Header */}
+              <div className="flex items-center justify-between px-8 py-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur">
+                <div>
+                  <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">
+                    Detalle de Cálculo - {selectedPointDetails.displayMonth}
+                  </h3>
+                  <p className="text-slate-400 text-xs md:text-sm font-medium mt-1">
+                    Listado de productos y tiempos correspondientes al mes seleccionado
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedPointDetails(null)}
+                  className="p-2.5 bg-slate-800 hover:bg-slate-750 rounded-xl text-slate-400 hover:text-white transition-all border border-slate-750 hover:border-slate-700 shadow-sm"
+                  aria-label="Cerrar"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8">
+                
+                {/* formula & indicators */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  
+                  {/* Card 1: total products */}
+                  <div className="bg-slate-950/40 border border-slate-800/80 rounded-2xl p-6 flex items-center gap-4">
+                    <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-400">
+                      <BarChart3 size={24} />
+                    </div>
+                    <div>
+                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Total Productos</span>
+                      <span className="text-2xl font-black text-white mt-1 block">{totalProducts}</span>
+                    </div>
+                  </div>
+
+                  {/* Card 2: total days */}
+                  <div className="bg-slate-950/40 border border-slate-800/80 rounded-2xl p-6 flex items-center gap-4">
+                    <div className="p-3 bg-amber-500/10 rounded-xl text-amber-400">
+                      <Clock size={24} />
+                    </div>
+                    <div>
+                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Días Acumulados</span>
+                      <span className="text-2xl font-black text-white mt-1 block">{totalDays} días</span>
+                    </div>
+                  </div>
+
+                  {/* Card 3: avg days */}
+                  <div className="bg-slate-950/40 border border-slate-800/80 rounded-2xl p-6 flex items-center gap-4">
+                    <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400">
+                      <Target size={24} />
+                    </div>
+                    <div>
+                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Tiempo Promedio</span>
+                      <span className="text-2xl font-black text-emerald-400 mt-1 block">{avgDays} días</span>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Formula Box */}
+                <div className="bg-slate-950/60 border border-slate-800/60 rounded-2xl p-6">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Fórmula de Cálculo</h4>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="text-sm font-semibold text-slate-300">
+                      Promedio de días = Suma de días de elaboración de todos los productos terminados en el periodo / Cantidad de productos
+                    </div>
+                    <div className="text-lg md:text-xl font-mono font-black text-white bg-slate-900 border border-slate-800 px-5 py-2.5 rounded-xl self-start sm:self-auto shrink-0 shadow-inner">
+                      {totalDays} / {totalProducts} = <span className="text-emerald-400">{avgDays} días</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="border border-slate-800 rounded-2xl overflow-hidden bg-slate-950/20 shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-800 bg-slate-950/60 text-slate-400 text-[10px] font-black uppercase tracking-wider">
+                          <th className="px-6 py-4">Código SAP</th>
+                          <th className="px-6 py-4">Descripción SAP</th>
+                          <th className="px-6 py-4">Línea / Marca</th>
+                          <th className="px-6 py-4">{activeModule === 'artwork_followup' ? 'Diseñador' : 'Técnico'}</th>
+                          <th className="px-6 py-4">Fecha Inicio</th>
+                          <th className="px-6 py-4">Fin Real (Ver 1)</th>
+                          <th className="px-6 py-4 text-right">Días</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/50">
+                        {detailsList.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="px-6 py-8 text-center text-sm font-medium text-slate-500">
+                              No hay registros de cálculo para este periodo.
+                            </td>
+                          </tr>
+                        ) : (
+                          detailsList.map((item: any) => (
+                            <tr key={item.id} className="hover:bg-slate-900/30 transition-colors text-xs font-semibold text-slate-300">
+                              <td className="px-6 py-4 font-mono text-white text-[11px]">{item.codigoSAP}</td>
+                              <td className="px-6 py-4 max-w-[220px] truncate text-slate-200" title={item.descripcionSAP}>
+                                {item.descripcionSAP}
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className="text-slate-400 block text-[10px] uppercase font-bold">{item.linea}</span>
+                                <span className="text-slate-300 text-[11px] font-bold mt-0.5 block">{item.marca}</span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-5 rounded-full bg-slate-800 text-[9px] font-black text-slate-300 flex items-center justify-center uppercase shadow-inner">
+                                    {item.designer.slice(0, 2)}
+                                  </div>
+                                  <span className="text-slate-300">{item.designer}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-slate-400 font-mono">{item.startDate}</td>
+                              <td className="px-6 py-4 text-slate-400 font-mono">{item.endDate}</td>
+                              <td className="px-6 py-4 text-right">
+                                <span className={`inline-block font-bold font-mono px-2.5 py-1 rounded-lg text-[11px] ${
+                                  item.daysElapsed <= thresholds.meta 
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/10' 
+                                    : item.daysElapsed <= thresholds.max 
+                                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/10' 
+                                    : 'bg-red-500/10 text-red-400 border border-red-500/10'
+                                }`}>
+                                  {item.daysElapsed}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Footer */}
+              <div className="px-8 py-6 border-t border-slate-800 bg-slate-900/30 flex items-center justify-between gap-4">
+                <button
+                  onClick={handleExportModalExcel}
+                  className="flex items-center gap-2.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-xs md:text-sm tracking-wide transition-all shadow-md hover:shadow-emerald-950/20 active:scale-95"
+                >
+                  <Download size={16} />
+                  Exportar Detalle a Excel
+                </button>
+                <button
+                  onClick={() => setSelectedPointDetails(null)}
+                  className="px-6 py-2.5 bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white rounded-2xl font-bold text-xs md:text-sm transition-all border border-slate-750 hover:border-slate-600 active:scale-95"
+                >
+                  Cerrar
+                </button>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
