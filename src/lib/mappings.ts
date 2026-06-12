@@ -375,6 +375,7 @@ export const mapPMRecordToDB = (record: Partial<ProductManagementRecord>) => {
   if (record.detailedDescription !== undefined) dbRecord.detailed_description = record.detailedDescription;
   if (record.segment !== undefined) dbRecord.segment = record.segment;
   if (record.productStatus !== undefined) dbRecord.product_status = record.productStatus;
+  if (record.replacesProductId !== undefined) dbRecord.replaces_product_id = record.replacesProductId;
   if (record.habilitado !== undefined) dbRecord.habilitado = record.habilitado;
   if (record.incluyeKit !== undefined) dbRecord.incluye_kit = record.incluyeKit;
   if (record.habilitacionCosto !== undefined) dbRecord.habilitacion_costo = record.habilitacionCosto;
@@ -436,6 +437,7 @@ export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
   detailedDescription: dbRecord.detailed_description || '',
   segment: dbRecord.segment || undefined,
   productStatus: dbRecord.product_status || 'vigente',
+  replacesProductId: dbRecord.replaces_product_id || undefined,
   habilitado: dbRecord.habilitado === true || dbRecord.habilitado === 1,
   incluyeKit: dbRecord.incluye_kit === true || dbRecord.incluye_kit === 1,
   habilitacionCosto: dbRecord.habilitacion_costo != null ? Number(dbRecord.habilitacion_costo) : undefined,

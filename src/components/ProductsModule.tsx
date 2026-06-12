@@ -80,9 +80,84 @@ function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
     }
   }
 
-  const COL_W = 320;
+  const BASE_COL_W = 360;
   const CHART_H = 520;
   const PAD = 48;
+
+  // Pre-calculate column widths per segment based on vertical overlap density
+  const colWidths = useMemo(() => {
+    const widths: Record<'ticket_value' | 'mainstream' | 'premium', number> = {
+      ticket_value: BASE_COL_W,
+      mainstream: BASE_COL_W,
+      premium: BASE_COL_W
+    };
+
+    segments.forEach(seg => {
+      const segRecords = filteredRecords.filter(r => r.segment === seg);
+      if (segRecords.length === 0) return;
+
+      const segFobs = segRecords.map(getFobEffective).filter(v => v > 0);
+      let minFob = 0;
+      let maxFob = 100;
+      if (segFobs.length > 0) {
+        const minVal = Math.min(...segFobs);
+        const maxVal = Math.max(...segFobs);
+        if (minVal === maxVal) {
+          minFob = Math.max(0, minVal - 10);
+          maxFob = maxVal + 10;
+        } else {
+          const buffer = (maxVal - minVal) * 0.1;
+          minFob = Math.max(0, minVal - buffer);
+          maxFob = maxVal + buffer;
+        }
+      }
+
+      // Calculate raw positions at base width of 360px
+      const rawPositions = segRecords.map(record => {
+        const fob = getFobEffective(record);
+        const pvp = record.pvp || 0;
+        if (!pvp && !fob) return null;
+
+        const xPct = maxFob === minFob ? 0.5 : (fob - minFob) / (maxFob - minFob);
+        const left = 75 + xPct * (BASE_COL_W - 150);
+        
+        const yPct = maxPvp === minPvp ? 0.5 : 1 - (pvp - minPvp) / (maxPvp - minPvp);
+        const top = 65 + yPct * (CHART_H - 130);
+        
+        return { id: record.id, left, top };
+      }).filter(Boolean) as { id: string; left: number; top: number }[];
+
+      // Find maximum number of vertical overlaps for any card (vertical proximity < 95px)
+      let maxOverlapCount = 0;
+      rawPositions.forEach(p1 => {
+        let overlaps = 0;
+        rawPositions.forEach(p2 => {
+          if (p1.id === p2.id) return;
+          const dy = Math.abs(p1.top - p2.top);
+          if (dy < 95) {
+            overlaps++;
+          }
+        });
+        if (overlaps > maxOverlapCount) {
+          maxOverlapCount = overlaps;
+        }
+      });
+
+      // Expand column width based on overlap density:
+      // 1 other vertical overlap: 480px
+      // 2 other vertical overlaps: 600px
+      // 3 or more vertical overlaps: 720px
+      if (maxOverlapCount === 1) {
+        widths[seg] = 480;
+      } else if (maxOverlapCount === 2) {
+        widths[seg] = 600;
+      } else if (maxOverlapCount >= 3) {
+        widths[seg] = 720;
+      }
+    });
+
+    return widths;
+  }, [filteredRecords, minPvp, maxPvp]);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -101,7 +176,7 @@ function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <div style={{ display: 'flex', minWidth: segments.length * COL_W + PAD + 60 }}>
+        <div style={{ display: 'flex', minWidth: colWidths.ticket_value + colWidths.mainstream + colWidths.premium + PAD + 60 }}>
           {/* Y-axis */}
           <div style={{ width: 60, flexShrink: 0, paddingTop: PAD, paddingBottom: PAD, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-end', paddingRight: 8 }}>
             {[...Array(6)].map((_, i) => {
@@ -113,6 +188,7 @@ function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
           {segments.map(seg => {
             const segRecords = filteredRecords.filter(r => r.segment === seg);
             const cfg = SEGMENT_CONFIG[seg];
+            const colWidth = colWidths[seg];
             
             // Calculate local FOB bounds dynamically for this segment
             const segFobs = segRecords.map(getFobEffective).filter(v => v > 0);
@@ -131,8 +207,50 @@ function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
               }
             }
 
+            // Calculate overlap-adjusted positions using dynamic colWidth
+            const placed: { left: number; top: number }[] = [];
+            const positionedRecords = segRecords.map(record => {
+              const fob = getFobEffective(record);
+              const pvp = record.pvp || 0;
+              if (!pvp && !fob) return null;
+
+              const xPct = maxFob === minFob ? 0.5 : (fob - minFob) / (maxFob - minFob);
+              let left = 75 + xPct * (colWidth - 150);
+              
+              const yPct = maxPvp === minPvp ? 0.5 : 1 - (pvp - minPvp) / (maxPvp - minPvp);
+              const top = 65 + yPct * (CHART_H - 130);
+              
+              return { record, left, top, fob, pvp };
+            }).filter(Boolean) as { record: ProductManagementRecord; left: number; top: number; fob: number; pvp: number }[];
+
+            // Sort by top position to process overlap adjustment sequentially from top to bottom
+            positionedRecords.sort((a, b) => a.top - b.top);
+
+            // Shift card horizontal coordinates when they overlap vertically
+            const adjustedRecords = positionedRecords.map(item => {
+              let left = item.left;
+              const top = item.top;
+              let shiftCount = 0;
+              
+              for (const p of placed) {
+                const dy = Math.abs(top - p.top);
+                const dx = Math.abs(left - p.left);
+                if (dy < 95 && dx < 135) {
+                  shiftCount++;
+                  if (shiftCount % 2 === 1) {
+                    left = Math.max(75, left - 65);
+                  } else {
+                    left = Math.min(colWidth - 75, left + 65);
+                  }
+                }
+              }
+              
+              placed.push({ left, top });
+              return { ...item, left };
+            });
+
             return (
-              <div key={seg} style={{ width: COL_W, flexShrink: 0, position: 'relative', borderLeft: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+              <div key={seg} style={{ width: colWidth, flexShrink: 0, position: 'relative', borderLeft: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column' }}>
                 {/* Column header */}
                 <div className="text-center py-3 border-b border-slate-100 bg-slate-50/20">
                   <span className={`text-xs font-black uppercase tracking-widest ${seg === 'ticket_value' ? 'text-slate-600' : seg === 'mainstream' ? 'text-slate-800' : 'text-slate-900'}`}>
@@ -146,19 +264,7 @@ function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
                   {[...Array(5)].map((_, i) => (
                     <div key={i} style={{ position: 'absolute', left: 0, right: 0, top: PAD + (i / 4) * (CHART_H - PAD * 2), borderTop: '1px dashed #f1f5f9' }}/>
                   ))}
-                  {segRecords.map(record => {
-                    const fob = getFobEffective(record);
-                    const pvp = record.pvp || 0;
-                    if (!pvp && !fob) return null;
-                    
-                    // X positioning scaled to this segment's FOB range
-                    const xPct = maxFob === minFob ? 0.5 : (fob - minFob) / (maxFob - minFob);
-                    const left = 75 + xPct * (COL_W - 150);
-                    
-                    // Y positioning scaled to global PVP range
-                    const yPct = maxPvp === minPvp ? 0.5 : 1 - (pvp - minPvp) / (maxPvp - minPvp);
-                    const top = 65 + yPct * (CHART_H - 130);
-                    
+                  {adjustedRecords.map(({ record, left, top, fob, pvp }) => {
                     const growth = getGrowthPct(record);
                     const isHovered = hoveredId === record.id;
                     const productImgUrl = getProductImageUrl(record);
@@ -167,14 +273,22 @@ function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
                       <div key={record.id} style={{ position: 'absolute', top, left, transform: 'translateX(-50%)', zIndex: isHovered ? 50 : 10 }}>
                         {/* Tooltip */}
                         {isHovered && (
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-52 pointer-events-none">
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-64 pointer-events-none">
                             <p className="text-[9px] font-black text-slate-400 uppercase">{record.linea}{record.categoria ? ` | ${record.categoria}` : ''}</p>
                             <p className="text-xs font-black mt-0.5">{record.commercialName || record.descripcionSAP}</p>
                             {record.catalogComments && (
-                              <div className="mt-2 border-t border-slate-700 pt-2">
-                                {(record.catalogComments || '').split('\n').slice(0, 3).map((c, i) => (
-                                  <p key={i} className="text-[9px] text-slate-300">• {c}</p>
-                                ))}
+                              <div className="mt-2 border-t border-slate-700 pt-2 space-y-1">
+                                {(record.catalogComments || '')
+                                  .split('\n')
+                                  .map(c => c.trim())
+                                  .filter(Boolean)
+                                  .map((c, i) => (
+                                    <p key={i} className="text-[9px] text-slate-300 flex items-start gap-1">
+                                      <span className="text-slate-400">•</span>
+                                      <span>{c}</span>
+                                    </p>
+                                  ))
+                                }
                               </div>
                             )}
                             <div className="mt-2 flex justify-between text-[9px]">
@@ -343,6 +457,7 @@ export default function ProductsModule({
     detailedDescription: '',
     segment: undefined,
     productStatus: 'vigente',
+    replacesProductId: undefined,
     habilitado: false,
     incluyeKit: false,
     habilitacionCosto: undefined,
@@ -373,6 +488,22 @@ export default function ProductsModule({
     if (!lineId) return categories;
     return categories.filter(c => c.productLineId === lineId);
   }, [categories, formData.linea, productLines]);
+
+  const replacementCandidates = useMemo(() => {
+    if (!formData.categoria) return [];
+    const currentCategoryId = isUUID(formData.categoria)
+      ? formData.categoria
+      : categories.find(c => c.name.toUpperCase() === formData.categoria.toUpperCase())?.id;
+    const currentCategoryName = categories.find(c => c.id === currentCategoryId)?.name;
+
+    return records.filter(r => {
+      if (editingRecord && r.id === editingRecord.id) return false;
+      const matchesCategory =
+        (r.categoryId && currentCategoryId && r.categoryId === currentCategoryId) ||
+        (r.categoria && currentCategoryName && r.categoria.toUpperCase() === currentCategoryName.toUpperCase());
+      return !!matchesCategory;
+    });
+  }, [records, formData.categoria, editingRecord, categories]);
 
 
   useEffect(() => {
@@ -524,6 +655,7 @@ export default function ProductsModule({
       detailedDescription: '',
       segment: undefined,
       productStatus: 'vigente',
+      replacesProductId: undefined,
       habilitado: false,
       incluyeKit: false,
       habilitacionCosto: undefined,
@@ -575,6 +707,7 @@ export default function ProductsModule({
       detailedDescription: record.detailedDescription || '',
       segment: record.segment,
       productStatus: record.productStatus || 'vigente',
+      replacesProductId: record.replacesProductId || undefined,
       habilitado: record.habilitado || false,
       incluyeKit: record.incluyeKit || false,
       habilitacionCosto: record.habilitacionCosto,
@@ -623,6 +756,9 @@ export default function ProductsModule({
       }
 
       const resolvedFormData = { ...formData };
+      if (resolvedFormData.productStatus !== 'reemplazo') {
+        resolvedFormData.replacesProductId = undefined;
+      }
 
       // Resolve Brand
       if (resolvedFormData.marca) {
@@ -1226,6 +1362,9 @@ export default function ProductsModule({
             const fobEff = getFobEffective(record);
             const growth = getGrowthPct(record);
             const linkedSample = samples.find(s => s.id === record.sampleId);
+            const replacedProduct = record.productStatus === 'reemplazo' && record.replacesProductId
+              ? records.find(r => r.id === record.replacesProductId)
+              : null;
             return (
               <div key={record.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group flex flex-col">
                 {/* Card header */}
@@ -1236,8 +1375,9 @@ export default function ProductsModule({
                         {segCfg.label}
                       </span>
                     )}
-                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${stsCfg.color}`}>
-                      {stsCfg.label}
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${stsCfg.color}`}
+                      title={replacedProduct ? `Reemplaza a: ${replacedProduct.codigoSAP} - ${replacedProduct.commercialName || replacedProduct.descripcionSAP}` : undefined}>
+                      {stsCfg.label} {replacedProduct && `(${replacedProduct.codigoSAP})`}
                     </span>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1640,6 +1780,20 @@ export default function ProductsModule({
                     <option value="descontinuado">Descontinuado</option>
                   </select>
                 </div>
+                {formData.productStatus === 'reemplazo' && (
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">¿A qué producto reemplaza?</label>
+                    <select className="w-full px-3 py-2.5 bg-indigo-50 border border-indigo-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                      value={formData.replacesProductId || ''} onChange={e => setFormData({ ...formData, replacesProductId: e.target.value || undefined })}>
+                      <option value="">Seleccionar producto...</option>
+                      {replacementCandidates.map(r => (
+                        <option key={r.id} value={r.id}>
+                          {r.codigoSAP} - {r.commercialName || r.descripcionSAP} ({r.marca})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
               {/* Toggles: Habilitado + Incluye Kit */}
               <div className="grid grid-cols-2 gap-4">
@@ -2034,6 +2188,18 @@ export default function ProductsModule({
               <button onClick={() => setIsDetailModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><X size={20}/></button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {selectedRecord.productStatus === 'reemplazo' && selectedRecord.replacesProductId && (() => {
+                const replacedProduct = records.find(r => r.id === selectedRecord.replacesProductId);
+                if (!replacedProduct) return null;
+                return (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
+                    <AlertCircle size={18} className="text-amber-600 flex-shrink-0"/>
+                    <div className="text-xs text-amber-800 font-medium">
+                      Este producto es un <span className="font-bold">reemplazo</span> de: <span className="font-black text-amber-900">{replacedProduct.codigoSAP} - {replacedProduct.commercialName || replacedProduct.descripcionSAP}</span> ({replacedProduct.marca})
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                   { label: 'Código SAP', value: selectedRecord.codigoSAP, color: 'text-indigo-600' },

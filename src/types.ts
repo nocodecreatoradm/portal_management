@@ -427,6 +427,7 @@ export interface ProductManagementRecord {
   detailedDescription?: string;      // Descripción detallada
   segment?: 'ticket_value' | 'mainstream' | 'premium'; // Posicionamiento
   productStatus?: 'vigente' | 'reemplazo' | 'descontinuado';
+  replacesProductId?: string; // ID of the replaced product if status is reemplazo
   habilitado?: boolean;              // ¿Requiere habilitación/kit?
   incluyeKit?: boolean;              // ¿El proveedor provee el kit?
   habilitacionCosto?: number;        // Costo adicional de habilitación (USD)
