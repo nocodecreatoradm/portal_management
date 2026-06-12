@@ -21,6 +21,7 @@ interface SearchableSelectProps {
     label: string;
     onClick: () => void;
   };
+  inputClassName?: string;
 }
 
 export default function SearchableSelect({
@@ -33,7 +34,8 @@ export default function SearchableSelect({
   className = '',
   name,
   emptyMessage = 'No se encontraron opciones',
-  customAction
+  customAction,
+  inputClassName = ''
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -114,7 +116,7 @@ export default function SearchableSelect({
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           placeholder={placeholder}
-          className={`w-full border border-gray-300 rounded-lg pl-3 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all ${
+          className={inputClassName || `w-full border border-gray-300 rounded-lg pl-3 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all ${
             disabled ? 'bg-gray-100 cursor-not-allowed text-gray-500 border-gray-300' : 'bg-white text-gray-800'
           }`}
           autoComplete="off"

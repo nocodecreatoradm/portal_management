@@ -18,6 +18,7 @@ import { SupabaseService } from '../lib/SupabaseService';
 import { openFileUrl } from '../utils/fileViewer';
 import { Loader2 } from 'lucide-react';
 import HeaderFilterPopover from './HeaderFilterPopover';
+import SearchableSelect from './SearchableSelect';
 
 const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
@@ -1818,15 +1819,18 @@ export default function ProductsModule({
                 {formData.productStatus === 'reemplazo' && (
                   <div className="col-span-2 space-y-1.5">
                     <label className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">¿A qué producto reemplaza?</label>
-                    <select className="w-full px-3 py-2.5 bg-indigo-50 border border-indigo-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                      value={formData.replacesProductId || ''} onChange={e => setFormData({ ...formData, replacesProductId: e.target.value || undefined })}>
-                      <option value="">Seleccionar producto...</option>
-                      {replacementCandidates.map(r => (
-                        <option key={r.id} value={r.id}>
-                          {r.codigoSAP} - {r.commercialName || r.descripcionSAP} ({r.marca})
-                        </option>
-                      ))}
-                    </select>
+                    <SearchableSelect
+                      options={replacementCandidates.map(r => ({
+                        value: r.id,
+                        label: `${r.codigoSAP} - ${r.commercialName || r.descripcionSAP} (${r.marca})`
+                      }))}
+                      value={formData.replacesProductId || ''}
+                      onChange={val => setFormData({ ...formData, replacesProductId: val || undefined })}
+                      placeholder="Buscar y seleccionar producto..."
+                      emptyMessage="No se encontraron productos en esta categoría"
+                      inputClassName="w-full pl-3 pr-10 py-2.5 bg-indigo-50 border border-indigo-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none text-indigo-900 transition-all cursor-pointer"
+                      className="w-full"
+                    />
                   </div>
                 )}
               </div>
