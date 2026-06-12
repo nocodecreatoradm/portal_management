@@ -387,6 +387,7 @@ export const mapPMRecordToDB = (record: Partial<ProductManagementRecord>) => {
   if (record.previousYear !== undefined) dbRecord.previous_year = record.previousYear;
   if (record.catalogComments !== undefined) dbRecord.catalog_comments = record.catalogComments;
   if (record.categoria !== undefined && !isUUID(record.categoria)) dbRecord.categoria = record.categoria;
+  if (record.salesHistory !== undefined) dbRecord.sales_history = record.salesHistory;
   
   return dbRecord;
 };
@@ -462,6 +463,7 @@ export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
   additionalProviderDocuments: dbRecord.additional_provider_documents || [],
   gallery: dbRecord.gallery || [],
   approvedDocuments: dbRecord.approved_documents || [],
+  salesHistory: dbRecord.sales_history || [],
   artworkAssignment: dbRecord.artwork_assignment,
   technicalAssignment: dbRecord.technical_assignment,
   commercialAssignment: dbRecord.commercial_assignment,

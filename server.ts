@@ -297,6 +297,8 @@ async function startServer() {
           ALTER TABLE ID_PORTAL.product_management ADD categoria NVARCHAR(255)`,
         `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'replaces_product_id')
           ALTER TABLE ID_PORTAL.product_management ADD replaces_product_id UNIQUEIDENTIFIER NULL`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'sales_history')
+          ALTER TABLE ID_PORTAL.product_management ADD sales_history NVARCHAR(MAX)`,
       ];
 
       const results: string[] = [];
@@ -1379,6 +1381,8 @@ async function startServer() {
             ALTER TABLE ID_PORTAL.product_management ADD categoria nvarchar(255) NULL;
           IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'replaces_product_id')
             ALTER TABLE ID_PORTAL.product_management ADD replaces_product_id uniqueidentifier NULL;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'sales_history')
+            ALTER TABLE ID_PORTAL.product_management ADD sales_history nvarchar(max) NULL;
         `;
         await migPool.request().query(linealMigrationSQL);
         console.log('✅ Lineal de Productos column migration completed successfully');

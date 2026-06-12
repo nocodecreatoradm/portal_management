@@ -415,6 +415,12 @@ export interface CalendarTask {
   fullTitle?: string;
 }
 
+export interface SalesHistoryEntry {
+  year: number;
+  periodType: 'FY' | 'YTD';
+  units: number;
+}
+
 export interface ProductManagementRecord {
   id: string;
   correlativeId?: string;
@@ -437,6 +443,7 @@ export interface ProductManagementRecord {
   salesPreviousYear?: number;        // Ventas año anterior (unidades)
   currentYear?: number;              // Año actual (e.g. 2024)
   previousYear?: number;             // Año anterior (e.g. 2023)
+  salesHistory?: SalesHistoryEntry[]; // Historial de ventas dinámico (FY/YTD)
   catalogComments?: string;          // Comentarios (uno por línea, separados por \n)
   // Existing fields
   marca: string;

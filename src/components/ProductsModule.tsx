@@ -39,6 +39,14 @@ const getFobEffective = (r: ProductManagementRecord) =>
   (r.fobPrice || 0) + (r.habilitado && r.habilitacionCosto ? r.habilitacionCosto : 0);
 
 const getGrowthPct = (r: ProductManagementRecord) => {
+  if (r.salesHistory && r.salesHistory.length >= 2) {
+    const sorted = [...r.salesHistory].sort((a, b) => b.year - a.year);
+    const latest = sorted[0];
+    const previous = sorted[1];
+    if (latest.units != null && previous.units != null && previous.units > 0) {
+      return ((latest.units - previous.units) / previous.units) * 100;
+    }
+  }
   if (!r.salesCurrentYear || !r.salesPreviousYear || r.salesPreviousYear === 0) return null;
   return ((r.salesCurrentYear - r.salesPreviousYear) / r.salesPreviousYear) * 100;
 };
@@ -406,6 +414,9 @@ export default function ProductsModule({
   const [productLines, setProductLines] = useState<ProductLine[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [proveedorSearchText, setProveedorSearchText] = useState('');
+  const [tempSalesYear, setTempSalesYear] = useState<number>(new Date().getFullYear());
+  const [tempSalesPeriodType, setTempSalesPeriodType] = useState<'FY' | 'YTD'>('FY');
+  const [tempSalesUnits, setTempSalesUnits] = useState<string>('');
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const supplierDropdownRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
@@ -686,6 +697,7 @@ export default function ProductsModule({
       salesPreviousYear: undefined,
       currentYear: new Date().getFullYear(),
       previousYear: new Date().getFullYear() - 1,
+      salesHistory: [],
       catalogComments: '',
       marca: 'SOLE',
       brandId: undefined,
@@ -738,6 +750,12 @@ export default function ProductsModule({
       salesPreviousYear: record.salesPreviousYear,
       currentYear: record.currentYear || new Date().getFullYear(),
       previousYear: record.previousYear || new Date().getFullYear() - 1,
+      salesHistory: record.salesHistory && record.salesHistory.length > 0
+        ? record.salesHistory
+        : [
+            ...(record.salesCurrentYear ? [{ year: record.currentYear || new Date().getFullYear(), periodType: 'YTD' as const, units: record.salesCurrentYear }] : []),
+            ...(record.salesPreviousYear ? [{ year: record.previousYear || (new Date().getFullYear() - 1), periodType: 'FY' as const, units: record.salesPreviousYear }] : [])
+          ],
       catalogComments: record.catalogComments || '',
       marca: brandId,
       brandId: isUUID(brandId) ? brandId : undefined,
@@ -868,6 +886,24 @@ export default function ProductsModule({
         }
       }
 
+      // Sync legacy fields with latest two entries from salesHistory for backwards-compatibility
+      if (resolvedFormData.salesHistory && resolvedFormData.salesHistory.length > 0) {
+        const sorted = [...resolvedFormData.salesHistory].sort((a, b) => b.year - a.year);
+        const latest = sorted[0];
+        const previous = sorted[1];
+        
+        resolvedFormData.currentYear = latest.year;
+        resolvedFormData.salesCurrentYear = latest.units;
+        
+        if (previous) {
+          resolvedFormData.previousYear = previous.year;
+          resolvedFormData.salesPreviousYear = previous.units;
+        } else {
+          resolvedFormData.previousYear = undefined;
+          resolvedFormData.salesPreviousYear = undefined;
+        }
+      }
+
       if (editingRecord) {
         await handleUpdateRecord({ ...editingRecord, ...resolvedFormData });
       } else {
@@ -902,6 +938,50 @@ export default function ProductsModule({
       });
     });
     toast.success('Iniciando descarga de todos los documentos...');
+  };
+
+  const handleAddSalesHistoryEntry = () => {
+    if (!tempSalesYear) {
+      toast.error('Ingrese un año válido');
+      return;
+    }
+    if (tempSalesUnits === '' || isNaN(Number(tempSalesUnits)) || Number(tempSalesUnits) < 0) {
+      toast.error('Ingrese una cantidad de unidades válida');
+      return;
+    }
+
+    const yearVal = Number(tempSalesYear);
+    const unitsVal = Number(tempSalesUnits);
+
+    const exists = (formData.salesHistory || []).some(
+      e => e.year === yearVal && e.periodType === tempSalesPeriodType
+    );
+    if (exists) {
+      toast.error(`Ya existe un registro de ventas para el año ${yearVal} (${tempSalesPeriodType})`);
+      return;
+    }
+
+    const newEntry = {
+      year: yearVal,
+      periodType: tempSalesPeriodType,
+      units: unitsVal
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      salesHistory: [...(prev.salesHistory || []), newEntry]
+    }));
+
+    setTempSalesUnits('');
+    toast.success('Registro de ventas añadido');
+  };
+
+  const handleRemoveSalesHistoryEntry = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      salesHistory: (prev.salesHistory || []).filter((_, i) => i !== index)
+    }));
+    toast.info('Registro de ventas removido');
   };
 
   const handleSyncDocuments = () => {
@@ -1491,8 +1571,20 @@ export default function ProductsModule({
                 {/* Sales */}
                 <div className="px-4 pt-2 pb-4 mt-auto border-t border-slate-50 mt-3 flex items-center justify-between">
                   <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Ventas YTD</p>
-                    <p className="text-xs font-bold text-slate-700">{record.salesCurrentYear ? `${record.salesCurrentYear.toLocaleString()} un.` : <span className="text-slate-300">—</span>}</p>
+                    {record.salesHistory && record.salesHistory.length > 0 ? (() => {
+                      const latest = [...record.salesHistory].sort((a, b) => b.year - a.year)[0];
+                      return (
+                        <>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Ventas {latest.year} ({latest.periodType})</p>
+                          <p className="text-xs font-bold text-slate-700">{latest.units.toLocaleString()} un.</p>
+                        </>
+                      );
+                    })() : (
+                      <>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Ventas YTD</p>
+                        <p className="text-xs font-bold text-slate-700">{record.salesCurrentYear ? `${record.salesCurrentYear.toLocaleString()} un.` : <span className="text-slate-300">—</span>}</p>
+                      </>
+                    )}
                   </div>
                   {growth !== null && (
                     <div className={`flex items-center gap-1 text-xs font-black ${growth >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
@@ -1762,7 +1854,17 @@ export default function ProductsModule({
                       </td>
                       <td className="px-5 py-3 text-center">
                         <div>
-                          <p className="text-xs font-bold text-slate-700">{record.salesCurrentYear ? `${record.salesCurrentYear.toLocaleString()} un.` : '—'}</p>
+                          {record.salesHistory && record.salesHistory.length > 0 ? (() => {
+                            const latest = [...record.salesHistory].sort((a, b) => b.year - a.year)[0];
+                            return (
+                              <>
+                                <p className="text-xs font-bold text-slate-700">{latest.units.toLocaleString()} un.</p>
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-tight">{latest.year} ({latest.periodType})</p>
+                              </>
+                            );
+                          })() : (
+                            <p className="text-xs font-bold text-slate-700">{record.salesCurrentYear ? `${record.salesCurrentYear.toLocaleString()} un.` : '—'}</p>
+                          )}
                           {growth !== null && (
                             <p className={`text-[9px] font-black flex items-center justify-center gap-0.5 ${growth >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
                               {growth >= 0 ? <ArrowUp size={8}/> : <ArrowDown size={8}/>}{Math.abs(growth).toFixed(1)}%
@@ -1944,30 +2046,70 @@ export default function ProductsModule({
                 )}
               </div>
               {/* Ventas */}
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Año Actual</label>
-                  <input type="number" placeholder="2024"
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                    value={formData.currentYear ?? ''} onChange={e => setFormData({ ...formData, currentYear: e.target.value ? Number(e.target.value) : undefined })}/>
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <TrendingUp size={12} className="text-indigo-500"/> Historial de Ventas
+                  </label>
+                  <span className="text-[9px] font-black text-slate-400 uppercase">FY (Full Year) / YTD (Year To Date)</span>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Año Anterior</label>
-                  <input type="number" placeholder="2023"
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                    value={formData.previousYear ?? ''} onChange={e => setFormData({ ...formData, previousYear: e.target.value ? Number(e.target.value) : undefined })}/>
+
+                {/* Entry List */}
+                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                  {formData.salesHistory && formData.salesHistory.length > 0 ? (
+                    formData.salesHistory
+                      .map((entry, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-2 bg-white border border-slate-200 rounded-xl shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-slate-800">{entry.year}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${
+                              entry.periodType === 'FY' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-amber-50 text-amber-700 border border-amber-100'
+                            }`}>
+                              {entry.periodType === 'FY' ? 'FY' : 'YTD'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-slate-900">{entry.units.toLocaleString()} un.</span>
+                            <button type="button" onClick={() => handleRemoveSalesHistoryEntry(idx)}
+                              className="p-1 text-slate-300 hover:text-red-500 transition-colors">
+                              <Trash2 size={12}/>
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                  ) : (
+                    <div className="py-6 text-center text-[10px] font-bold text-slate-300 uppercase tracking-widest border border-dashed border-slate-200 rounded-xl">
+                      Sin registros de ventas
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Ventas Año Actual (un.)</label>
-                  <input type="number" min="0" placeholder="0"
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                    value={formData.salesCurrentYear ?? ''} onChange={e => setFormData({ ...formData, salesCurrentYear: e.target.value ? Number(e.target.value) : undefined })}/>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Ventas Año Anterior (un.)</label>
-                  <input type="number" min="0" placeholder="0"
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                    value={formData.salesPreviousYear ?? ''} onChange={e => setFormData({ ...formData, salesPreviousYear: e.target.value ? Number(e.target.value) : undefined })}/>
+
+                {/* Add Entry Fields */}
+                <div className="bg-white p-3 rounded-xl border border-slate-200 grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-3 space-y-1">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Año</span>
+                    <input type="number" placeholder="Año" className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-1 focus:ring-indigo-500/20 outline-none"
+                      value={tempSalesYear} onChange={e => setTempSalesYear(Number(e.target.value))}/>
+                  </div>
+                  <div className="col-span-3 space-y-1">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Período</span>
+                    <select className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-1 focus:ring-indigo-500/20 outline-none"
+                      value={tempSalesPeriodType} onChange={e => setTempSalesPeriodType(e.target.value as 'FY' | 'YTD')}>
+                      <option value="FY">FY</option>
+                      <option value="YTD">YTD</option>
+                    </select>
+                  </div>
+                  <div className="col-span-4 space-y-1">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Unidades</span>
+                    <input type="number" min="0" placeholder="unidades" className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:ring-1 focus:ring-indigo-500/20 outline-none"
+                      value={tempSalesUnits} onChange={e => setTempSalesUnits(e.target.value)}/>
+                  </div>
+                  <div className="col-span-2">
+                    <button type="button" onClick={handleAddSalesHistoryEntry}
+                      className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black flex items-center justify-center transition-colors">
+                      <Plus size={14}/>
+                    </button>
+                  </div>
                 </div>
               </div>
               {/* Proveedor */}
@@ -2318,6 +2460,70 @@ export default function ProductsModule({
                   </div>
                 </div>
               )}
+              {/* Historial de Ventas */}
+              <div>
+                <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 mb-3"><TrendingUp size={16} className="text-indigo-500"/> Historial de Ventas</h4>
+                <div className="bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-slate-100/50 border-b border-slate-100">
+                        <th className="px-4 py-2 font-black text-slate-500 text-left">Año</th>
+                        <th className="px-4 py-2 font-black text-slate-500 text-left">Tipo de Período</th>
+                        <th className="px-4 py-2 font-black text-slate-500 text-right">Unidades Vendidas</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {selectedRecord.salesHistory && selectedRecord.salesHistory.length > 0 ? (
+                        [...selectedRecord.salesHistory]
+                          .sort((a, b) => b.year - a.year)
+                          .map((entry, idx) => (
+                            <tr key={idx}>
+                              <td className="px-4 py-2 text-slate-700 font-bold">{entry.year}</td>
+                              <td className="px-4 py-2">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                  entry.periodType === 'FY' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-amber-50 text-amber-700 border border-amber-100'
+                                }`}>
+                                  {entry.periodType === 'FY' ? 'Full Year (FY)' : 'Year to Date (YTD)'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-right font-black text-slate-900">{entry.units.toLocaleString()} un.</td>
+                            </tr>
+                          ))
+                      ) : (
+                        <>
+                          {selectedRecord.salesCurrentYear && (
+                            <tr>
+                              <td className="px-4 py-2 text-slate-700 font-bold">{selectedRecord.currentYear || new Date().getFullYear()}</td>
+                              <td className="px-4 py-2">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-50 text-amber-700 border border-amber-100">
+                                  Year to Date (YTD)
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-right font-black text-slate-900">{selectedRecord.salesCurrentYear.toLocaleString()} un.</td>
+                            </tr>
+                          )}
+                          {selectedRecord.salesPreviousYear && (
+                            <tr>
+                              <td className="px-4 py-2 text-slate-700 font-bold">{selectedRecord.previousYear || (new Date().getFullYear() - 1)}</td>
+                              <td className="px-4 py-2">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                  Full Year (FY)
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-right font-black text-slate-900">{selectedRecord.salesPreviousYear.toLocaleString()} un.</td>
+                            </tr>
+                          )}
+                          {!selectedRecord.salesCurrentYear && !selectedRecord.salesPreviousYear && (
+                            <tr>
+                              <td colSpan={3} className="px-4 py-4 text-center text-slate-400 italic">No hay historial de ventas registrado</td>
+                            </tr>
+                          )}
+                        </>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
               {selectedRecord.approvedDocuments.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-3">
