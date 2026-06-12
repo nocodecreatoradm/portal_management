@@ -2765,27 +2765,26 @@ export default function ProductsModule({
           </div>
         </div>
       {/* Resumen Rápido Modal (Dark Theme) */}
-      {selectedQuickViewRecord && (() => {
-        const qvRecord = selectedQuickViewRecord;
-        return (
+      {selectedQuickViewRecord && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
               <div>
                 <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
-                  {qvRecord.marca} | {getLineName(qvRecord)}
+                  {selectedQuickViewRecord.marca} | {getLineName(selectedQuickViewRecord)}
                 </p>
                 <h3 className="text-base font-black text-white mt-1">
-                  {qvRecord.commercialName || qvRecord.descripcionSAP}
+                  {selectedQuickViewRecord.commercialName || selectedQuickViewRecord.descripcionSAP}
                 </h3>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
+                    const rec = selectedQuickViewRecord;
                     setSelectedQuickViewRecord(null);
-                    handleOpenEditModal(qvRecord);
+                    handleOpenEditModal(rec);
                   }}
                   className="p-2 bg-slate-850 hover:bg-slate-800 text-slate-200 hover:text-white rounded-xl transition-all border border-slate-800"
                   title="Editar producto"
@@ -2891,7 +2890,7 @@ export default function ProductsModule({
                 onChange={e => setQuickCommentText(e.target.value)}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
-                    handleAddQuickComment(qvRecord, quickCommentText);
+                    handleAddQuickComment(selectedQuickViewRecord, quickCommentText);
                     setQuickCommentText('');
                   }
                 }}
@@ -2899,7 +2898,7 @@ export default function ProductsModule({
               <button
                 type="button"
                 onClick={() => {
-                  handleAddQuickComment(qvRecord, quickCommentText);
+                  handleAddQuickComment(selectedQuickViewRecord, quickCommentText);
                   setQuickCommentText('');
                 }}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all"
@@ -2909,8 +2908,7 @@ export default function ProductsModule({
             </div>
           </div>
         </div>
-        );
-      })()}
+      )}
     </div>
   );
 }
