@@ -274,118 +274,122 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                 {/* Chart area */}
                 <div style={{ height: CHART_H, position: 'relative', overflow: 'visible', padding: `${PAD}px 24px` }}>
                   {/* Horizontal grid lines */}
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} style={{ position: 'absolute', left: 0, right: 0, top: PAD + (i / 4) * (CHART_H - PAD * 2), borderTop: '1px dashed #f1f5f9' }}/>
-                  ))}
-                  {adjustedRecords.map(({ record, left, top, fob, pvp }) => {
-                    const growth = getGrowthPct(record);
-                    const isHovered = hoveredId === record.id;
-                    const productImgUrl = getProductImageUrl(record);
-                    const matchingSupplier = suppliers.find(s => 
-                      s.id === record.supplierId || 
-                      s.id === record.proveedor || 
-                      s.legalName === record.proveedor || 
-                      s.commercialAlias === record.proveedor
-                    );
-                    const logoUrl = matchingSupplier?.logoUrl || record.supplierLogoUrl;
+                  <div className="absolute inset-0 pointer-events-none" key="grid-lines">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} style={{ position: 'absolute', left: 0, right: 0, top: PAD + (i / 4) * (CHART_H - PAD * 2), borderTop: '1px dashed #f1f5f9' }}/>
+                    ))}
+                  </div>
 
-                    return (
-                      <div key={record.id} style={{ position: 'absolute', top, left, transform: 'translateX(-50%)', zIndex: isHovered ? 50 : 10 }}>
-                        {/* Tooltip */}
-                        {isHovered && (
-                          <div className={`absolute ${top < 220 ? 'top-full mt-2' : 'bottom-full mb-2'} left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-64 pointer-events-none`}>
-                            <p className="text-[9px] font-black text-slate-400 uppercase">{getLineName(record)}{getCategoryName(record) ? ` | ${getCategoryName(record)}` : ''}</p>
-                            <p className="text-xs font-black mt-0.5">{record.commercialName || record.descripcionSAP}</p>
-                            {record.catalogComments && (
-                              <div className="mt-2 border-t border-slate-700 pt-2 space-y-1">
-                                {(record.catalogComments || '')
-                                  .split('\n')
-                                  .map(c => c.trim())
-                                  .filter(Boolean)
-                                  .map((c, i) => (
-                                    <p key={i} className="text-[9px] text-slate-300 flex items-start gap-1">
-                                      <span className="text-slate-400">•</span>
-                                      <span>{c}</span>
-                                    </p>
-                                  ))
-                                }
-                              </div>
-                            )}
-                            <div className="mt-2 flex justify-between text-[9px]">
-                              <span className="text-slate-400">Precio PVP <span className="text-white font-black">S/ {pvp}</span></span>
-                              <span className="text-slate-400">FOB <span className="text-white font-black">${fob.toFixed(2)}</span></span>
-                            </div>
-                          </div>
-                        )}
-                        {/* Card */}
-                        <button
-                          onMouseEnter={() => setHoveredId(record.id)}
-                          onMouseLeave={() => setHoveredId(null)}
-                          onClick={() => handleOpenEditModal(record)}
-                          className="bg-white border-2 border-slate-200 rounded-xl p-2 shadow-sm hover:shadow-md hover:border-slate-400 transition-all w-[140px] text-left relative flex flex-col gap-1.5"
-                          style={{ borderColor: isHovered ? cfg.accent : undefined }}
-                        >
-                           {/* Image container */}
-                          <div className={`relative w-full h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-50 border border-slate-100 ${productImgUrl ? 'cursor-pointer hover:opacity-85 transition-opacity' : ''}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOpenQuickView(record);
-                            }}
-                            title="Ver resumen del producto"
-                          >
-                            {productImgUrl ? (
-                              <img src={productImgUrl} className="w-full h-full object-cover" alt="" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                <Package size={18} />
-                              </div>
-                            )}
-                            {/* Supplier logo overlay */}
-                            <div className="absolute top-1 right-1">
-                              {logoUrl ? (
-                                <img 
-                                  src={logoUrl} 
-                                  className="w-5 h-5 object-cover rounded-full border border-white bg-white shadow-sm" 
-                                  alt="Logo" 
-                                />
-                              ) : (
-                                <div className="w-5 h-5 rounded-full border border-white bg-slate-200 flex items-center justify-center text-[7px] font-bold text-slate-500 shadow-sm uppercase">
-                                  {record.proveedor.slice(0, 2)}
+                  {adjustedRecords.length > 0 ? (
+                    adjustedRecords.map(({ record, left, top, fob, pvp }) => {
+                      const growth = getGrowthPct(record);
+                      const isHovered = hoveredId === record.id;
+                      const productImgUrl = getProductImageUrl(record);
+                      const matchingSupplier = suppliers.find(s => 
+                        s.id === record.supplierId || 
+                        s.id === record.proveedor || 
+                        s.legalName === record.proveedor || 
+                        s.commercialAlias === record.proveedor
+                      );
+                      const logoUrl = matchingSupplier?.logoUrl || record.supplierLogoUrl;
+
+                      return (
+                        <div key={record.id} style={{ position: 'absolute', top, left, transform: 'translateX(-50%)', zIndex: isHovered ? 50 : 10 }}>
+                          {/* Tooltip */}
+                          {isHovered && (
+                            <div className={`absolute ${top < 220 ? 'top-full mt-2' : 'bottom-full mb-2'} left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-64 pointer-events-none`}>
+                              <p className="text-[9px] font-black text-slate-400 uppercase">{getLineName(record)}{getCategoryName(record) ? ` | ${getCategoryName(record)}` : ''}</p>
+                              <p className="text-xs font-black mt-0.5">{record.commercialName || record.descripcionSAP}</p>
+                              {record.catalogComments && (
+                                <div className="mt-2 border-t border-slate-700 pt-2 space-y-1">
+                                  {(record.catalogComments || '')
+                                    .split('\n')
+                                    .map(c => c.trim())
+                                    .filter(Boolean)
+                                    .map((c, i) => (
+                                      <p key={i} className="text-[9px] text-slate-300 flex items-start gap-1">
+                                        <span className="text-slate-400">•</span>
+                                        <span>{c}</span>
+                                      </p>
+                                    ))
+                                  }
                                 </div>
                               )}
-                            </div>
-                          </div>
-                          
-                          {/* Product info */}
-                          <div>
-                            <div className="flex items-center gap-1">
-                              <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot} flex-shrink-0`}/>
-                              <p className="text-[9px] font-black text-slate-900 line-clamp-1 truncate">
-                                {record.commercialName || record.descripcionSAP}
-                              </p>
-                            </div>
-                            <p className="text-[8px] text-slate-400 truncate mt-0.5">
-                              {record.codigoSAP}
-                            </p>
-                          </div>
-
-                          {/* Pricing and Growth */}
-                          <div className="border-t border-slate-100 pt-1 flex items-center justify-between">
-                            <span className="text-[9px] font-black text-slate-700">S/ {pvp || '—'}</span>
-                            <span className="text-[9px] font-bold text-slate-400">${fob.toFixed(2)}</span>
-                          </div>
-                          {growth !== null && (
-                            <div className={`text-[8px] font-black flex items-center gap-0.5 mt-[-2px] ${growth >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                              {growth >= 0 ? <ArrowUp size={8}/> : <ArrowDown size={8}/>}
-                              {Math.abs(growth).toFixed(1)}%
+                              <div className="mt-2 flex justify-between text-[9px]">
+                                <span className="text-slate-400">Precio PVP <span className="text-white font-black">S/ {pvp}</span></span>
+                                <span className="text-slate-400">FOB <span className="text-white font-black">${fob.toFixed(2)}</span></span>
+                              </div>
                             </div>
                           )}
-                        </button>
-                      </div>
-                    );
-                  })}
-                  {segRecords.length === 0 && (
-                    <div className="h-full flex items-center justify-center">
+                          {/* Card */}
+                          <button
+                            onMouseEnter={() => setHoveredId(record.id)}
+                            onMouseLeave={() => setHoveredId(null)}
+                            onClick={() => handleOpenEditModal(record)}
+                            className="bg-white border-2 border-slate-200 rounded-xl p-2 shadow-sm hover:shadow-md hover:border-slate-400 transition-all w-[140px] text-left relative flex flex-col gap-1.5"
+                            style={{ borderColor: isHovered ? cfg.accent : undefined }}
+                          >
+                             {/* Image container */}
+                            <div className={`relative w-full h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-50 border border-slate-100 ${productImgUrl ? 'cursor-pointer hover:opacity-85 transition-opacity' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenQuickView(record);
+                              }}
+                              title="Ver resumen del producto"
+                            >
+                              {productImgUrl ? (
+                                <img src={productImgUrl} className="w-full h-full object-cover" alt="" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                  <Package size={18} />
+                                </div>
+                              )}
+                              {/* Supplier logo overlay */}
+                              <div className="absolute top-1 right-1">
+                                {logoUrl ? (
+                                  <img 
+                                    src={logoUrl} 
+                                    className="w-5 h-5 object-cover rounded-full border border-white bg-white shadow-sm" 
+                                    alt="Logo" 
+                                  />
+                                ) : (
+                                  <div className="w-5 h-5 rounded-full border border-white bg-slate-200 flex items-center justify-center text-[7px] font-bold text-slate-500 shadow-sm uppercase">
+                                    {record.proveedor.slice(0, 2)}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Product info */}
+                            <div>
+                              <div className="flex items-center gap-1">
+                                <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot} flex-shrink-0`}/>
+                                <p className="text-[9px] font-black text-slate-900 line-clamp-1 truncate">
+                                  {record.commercialName || record.descripcionSAP}
+                                </p>
+                              </div>
+                              <p className="text-[8px] text-slate-400 truncate mt-0.5">
+                                {record.codigoSAP}
+                              </p>
+                            </div>
+
+                            {/* Pricing and Growth */}
+                            <div className="border-t border-slate-100 pt-1 flex items-center justify-between">
+                              <span className="text-[9px] font-black text-slate-700">S/ {pvp || '—'}</span>
+                              <span className="text-[9px] font-bold text-slate-400">${fob.toFixed(2)}</span>
+                            </div>
+                            {growth !== null && (
+                              <div className={`text-[8px] font-black flex items-center gap-0.5 mt-[-2px] ${growth >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                {growth >= 0 ? <ArrowUp size={8}/> : <ArrowDown size={8}/>}
+                                {Math.abs(growth).toFixed(1)}%
+                              </div>
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="h-full flex items-center justify-center" key="no-products">
                       <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Sin productos</p>
                     </div>
                   )}
@@ -1575,111 +1579,112 @@ export default function ProductsModule({
       /* ── GRID VIEW ── */
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {filteredRecords.map(record => {
-            const segCfg = record.segment ? SEGMENT_CONFIG[record.segment] : null;
-            const stsCfg = STATUS_CONFIG[record.productStatus || 'vigente'];
-            const fobEff = getFobEffective(record);
-            const growth = getGrowthPct(record);
-            const linkedSample = samples.find(s => s.id === record.sampleId);
-            const replacedProduct = record.productStatus === 'reemplazo' && record.replacesProductId
-              ? records.find(r => r.id === record.replacesProductId)
-              : null;
-            return (
-              <div key={record.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group flex flex-col">
-                {/* Card header */}
-                <div className="px-4 pt-4 flex items-start justify-between">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {segCfg && (
-                      <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${segCfg.color}`}>
-                        {segCfg.label}
+          {filteredRecords.length > 0 ? (
+            filteredRecords.map(record => {
+              const segCfg = record.segment ? SEGMENT_CONFIG[record.segment] : null;
+              const stsCfg = STATUS_CONFIG[record.productStatus || 'vigente'];
+              const fobEff = getFobEffective(record);
+              const growth = getGrowthPct(record);
+              const linkedSample = samples.find(s => s.id === record.sampleId);
+              const replacedProduct = record.productStatus === 'reemplazo' && record.replacesProductId
+                ? records.find(r => r.id === record.replacesProductId)
+                : null;
+              return (
+                <div key={record.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group flex flex-col">
+                  {/* Card header */}
+                  <div className="px-4 pt-4 flex items-start justify-between">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {segCfg && (
+                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${segCfg.color}`}>
+                          {segCfg.label}
+                        </span>
+                      )}
+                      <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${stsCfg.color}`}
+                        title={replacedProduct ? `Reemplaza a: ${replacedProduct.codigoSAP} - ${replacedProduct.commercialName || replacedProduct.descripcionSAP}` : undefined}>
+                        {stsCfg.label} {replacedProduct && `(${replacedProduct.codigoSAP})`}
                       </span>
-                    )}
-                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${stsCfg.color}`}
-                      title={replacedProduct ? `Reemplaza a: ${replacedProduct.codigoSAP} - ${replacedProduct.commercialName || replacedProduct.descripcionSAP}` : undefined}>
-                      {stsCfg.label} {replacedProduct && `(${replacedProduct.codigoSAP})`}
-                    </span>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleOpenEditModal(record)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
+                        <Edit2 size={14}/>
+                      </button>
+                      <button onClick={() => { setSelectedRecord(record); setIsDetailModalOpen(true); }} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all">
+                        <Eye size={14}/>
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleOpenEditModal(record)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
-                      <Edit2 size={14}/>
-                    </button>
-                    <button onClick={() => { setSelectedRecord(record); setIsDetailModalOpen(true); }} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all">
-                      <Eye size={14}/>
-                    </button>
-                  </div>
-                </div>
-                {/* Product image placeholder */}
-                <div className="px-4 py-3 flex items-center justify-center">
-                  <div className={`w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-50 rounded-xl flex items-center justify-center border border-slate-100 ${record.gallery?.length > 0 && record.gallery[0].photos?.length > 0 ? 'cursor-pointer hover:opacity-85 transition-opacity' : ''}`}
-                    onClick={(e) => {
-                      if (record.gallery?.length > 0 && record.gallery[0].photos?.length > 0) {
-                        e.stopPropagation();
-                        window.open(record.gallery[0].photos[0].url, '_blank');
+                  {/* Product image placeholder */}
+                  <div className="px-4 py-3 flex items-center justify-center">
+                    <div className={`w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-50 rounded-xl flex items-center justify-center border border-slate-100 ${record.gallery?.length > 0 && record.gallery[0].photos?.length > 0 ? 'cursor-pointer hover:opacity-85 transition-opacity' : ''}`}
+                      onClick={(e) => {
+                        if (record.gallery?.length > 0 && record.gallery[0].photos?.length > 0) {
+                          e.stopPropagation();
+                          window.open(record.gallery[0].photos[0].url, '_blank');
+                        }
+                      }}
+                      title={record.gallery?.length > 0 && record.gallery[0].photos?.length > 0 ? 'Ver imagen en tamaño completo' : undefined}
+                    >
+                      {record.gallery?.length > 0 && record.gallery[0].photos?.length > 0
+                        ? <img src={record.gallery[0].photos[0].url} className="w-full h-full object-cover rounded-xl" alt=""/>
+                        : <Package size={28} className="text-slate-300"/>
                       }
-                    }}
-                    title={record.gallery?.length > 0 && record.gallery[0].photos?.length > 0 ? 'Ver imagen en tamaño completo' : undefined}
-                  >
-                    {record.gallery?.length > 0 && record.gallery[0].photos?.length > 0
-                      ? <img src={record.gallery[0].photos[0].url} className="w-full h-full object-cover rounded-xl" alt=""/>
-                      : <Package size={28} className="text-slate-300"/>
-                    }
-                  </div>
-                  {record.habilitado && (
-                    <div className="ml-2 w-7 h-7 bg-orange-500 rounded-full flex items-center justify-center shadow-sm" title="Incluye habilitación">
-                      <Zap size={14} className="text-white"/>
                     </div>
-                  )}
-                </div>
-                {/* Line / category */}
-                <div className="px-4">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{getLineName(record)}{getCategoryName(record) ? ` | ${getCategoryName(record)}` : ''}</p>
-                  <h3 className="text-sm font-black text-slate-900 mt-0.5 line-clamp-2">{record.commercialName || record.descripcionSAP}</h3>
-                </div>
-                {/* PVP / FOB */}
-                <div className="px-4 pt-3 flex items-center gap-4">
-                  <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">PVP</p>
-                    <p className="text-sm font-black text-slate-900">
-                      {record.pvp ? `S/ ${record.pvp.toLocaleString()}` : <span className="text-slate-300">—</span>}
-                      {record.pvpDescuento && <span className="text-[10px] font-bold text-slate-400 ml-1">/ S/ {record.pvpDescuento}</span>}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">FOB</p>
-                    <p className="text-sm font-black text-slate-700">
-                      {fobEff > 0 ? `$ ${fobEff.toFixed(2)}` : <span className="text-slate-300">—</span>}
-                    </p>
-                  </div>
-                </div>
-                {/* Sales */}
-                <div className="px-4 pt-2 pb-4 mt-auto border-t border-slate-50 mt-3 flex items-center justify-between">
-                  <div>
-                    {record.salesHistory && record.salesHistory.length > 0 ? (() => {
-                      const latest = [...record.salesHistory].sort((a, b) => b.year - a.year)[0];
-                      return (
-                        <>
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Ventas {latest.year} ({latest.periodType})</p>
-                          <p className="text-xs font-bold text-slate-700">{latest.units.toLocaleString()} un.</p>
-                        </>
-                      );
-                    })() : (
-                      <>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Ventas YTD</p>
-                        <p className="text-xs font-bold text-slate-700">{record.salesCurrentYear ? `${record.salesCurrentYear.toLocaleString()} un.` : <span className="text-slate-300">—</span>}</p>
-                      </>
+                    {record.habilitado && (
+                      <div className="ml-2 w-7 h-7 bg-orange-500 rounded-full flex items-center justify-center shadow-sm" title="Incluye habilitación">
+                        <Zap size={14} className="text-white"/>
+                      </div>
                     )}
                   </div>
-                  {growth !== null && (
-                    <div className={`flex items-center gap-1 text-xs font-black ${growth >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                      {growth >= 0 ? <ArrowUp size={12}/> : <ArrowDown size={12}/>}
-                      {Math.abs(growth).toFixed(1)}%
+                  {/* Line / category */}
+                  <div className="px-4">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{getLineName(record)}{getCategoryName(record) ? ` | ${getCategoryName(record)}` : ''}</p>
+                    <h3 className="text-sm font-black text-slate-900 mt-0.5 line-clamp-2">{record.commercialName || record.descripcionSAP}</h3>
+                  </div>
+                  {/* PVP / FOB */}
+                  <div className="px-4 pt-3 flex items-center gap-4">
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">PVP</p>
+                      <p className="text-sm font-black text-slate-900">
+                        {record.pvp ? `S/ ${record.pvp.toLocaleString()}` : <span className="text-slate-300">—</span>}
+                        {record.pvpDescuento && <span className="text-[10px] font-bold text-slate-400 ml-1">/ S/ {record.pvpDescuento}</span>}
+                      </p>
                     </div>
-                  )}
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">FOB</p>
+                      <p className="text-sm font-black text-slate-700">
+                        {fobEff > 0 ? `$ ${fobEff.toFixed(2)}` : <span className="text-slate-300">—</span>}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Sales */}
+                  <div className="px-4 pt-2 pb-4 mt-auto border-t border-slate-50 mt-3 flex items-center justify-between">
+                    <div>
+                      {record.salesHistory && record.salesHistory.length > 0 ? (() => {
+                        const latest = [...record.salesHistory].sort((a, b) => b.year - a.year)[0];
+                        return (
+                          <>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Ventas {latest.year} ({latest.periodType})</p>
+                            <p className="text-xs font-bold text-slate-700">{latest.units.toLocaleString()} un.</p>
+                          </>
+                        );
+                      })() : (
+                        <>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Ventas YTD</p>
+                          <p className="text-xs font-bold text-slate-700">{record.salesCurrentYear ? `${record.salesCurrentYear.toLocaleString()} un.` : <span className="text-slate-300">—</span>}</p>
+                        </>
+                      )}
+                    </div>
+                    {growth !== null && (
+                      <div className={`flex items-center gap-1 text-xs font-black ${growth >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {growth >= 0 ? <ArrowUp size={12}/> : <ArrowDown size={12}/>}
+                        {Math.abs(growth).toFixed(1)}%
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-          {filteredRecords.length === 0 && (
+              );
+            })
+          ) : (
             <div className="col-span-full py-24 flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-2xl">
               <Package size={48} className="opacity-10 mb-4"/>
               <p className="font-bold text-sm uppercase tracking-widest">No hay productos con estos filtros</p>
