@@ -126,17 +126,18 @@ export default function MasterDataModule() {
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Maestro de Datos</h1>
           <p className="text-slate-500 font-medium text-lg mt-1 tracking-tight">Gestión de jerarquías y plantillas de inspección</p>
         </div>
-        <button 
-          onClick={() => handleOpenModal(activeTab)}
-          data-soly="master-add-btn"
-          className="flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 hover:scale-105 active:scale-95"
-        >
-          <Plus size={20} />
-          {activeTab === 'brands' && 'Nueva Marca'}
-          {activeTab === 'lines' && 'Nueva Línea'}
-          {activeTab === 'categories' && 'Nueva Categoría'}
-          {activeTab === 'templates' && 'Nueva Plantilla'}
-        </button>
+        {activeTab !== 'templates' && (
+          <button 
+            onClick={() => handleOpenModal(activeTab)}
+            data-soly="master-add-btn"
+            className="flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 hover:scale-105 active:scale-95"
+          >
+            <Plus size={20} />
+            {activeTab === 'brands' && 'Nueva Marca'}
+            {activeTab === 'lines' && 'Nueva Línea'}
+            {activeTab === 'categories' && 'Nueva Categoría'}
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
