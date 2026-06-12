@@ -445,6 +445,8 @@ export interface ProductManagementRecord {
   previousYear?: number;             // Año anterior (e.g. 2023)
   salesHistory?: SalesHistoryEntry[]; // Historial de ventas dinámico (FY/YTD)
   catalogComments?: string;          // Comentarios (uno por línea, separados por \n)
+  kitSupplierId?: string;            // ID del proveedor de kit si aplica
+  kitSupplierName?: string;          // Nombre del proveedor de kit si aplica
   // Existing fields
   marca: string;
   brandId?: string;

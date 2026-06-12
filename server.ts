@@ -299,6 +299,8 @@ async function startServer() {
           ALTER TABLE ID_PORTAL.product_management ADD replaces_product_id UNIQUEIDENTIFIER NULL`,
         `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'sales_history')
           ALTER TABLE ID_PORTAL.product_management ADD sales_history NVARCHAR(MAX)`,
+        `IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'kit_supplier_id')
+          ALTER TABLE ID_PORTAL.product_management ADD kit_supplier_id UNIQUEIDENTIFIER NULL`,
       ];
 
       const results: string[] = [];
@@ -781,11 +783,14 @@ async function startServer() {
                    sup.commercial_alias as supplier_commercial_alias, 
                    sup.erp_code as supplier_erp_code, 
                    sup.email as supplier_email,
+                   ksup.legal_name as kit_supplier_legal_name,
+                   ksup.commercial_alias as kit_supplier_commercial_alias,
                    l.name as line_name, 
                    c.name as category_name
             FROM ID_PORTAL.product_management pm
             LEFT JOIN ID_PORTAL.brands b ON pm.brand_id = b.id
             LEFT JOIN ID_PORTAL.suppliers sup ON pm.supplier_id = sup.id
+            LEFT JOIN ID_PORTAL.suppliers ksup ON pm.kit_supplier_id = ksup.id
             LEFT JOIN ID_PORTAL.product_lines l ON pm.line_id = l.id
             LEFT JOIN ID_PORTAL.categories c ON pm.category_id = c.id
             ${whereString}
@@ -1383,6 +1388,8 @@ async function startServer() {
             ALTER TABLE ID_PORTAL.product_management ADD replaces_product_id uniqueidentifier NULL;
           IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'sales_history')
             ALTER TABLE ID_PORTAL.product_management ADD sales_history nvarchar(max) NULL;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'kit_supplier_id')
+            ALTER TABLE ID_PORTAL.product_management ADD kit_supplier_id uniqueidentifier NULL;
         `;
         await migPool.request().query(linealMigrationSQL);
         console.log('✅ Lineal de Productos column migration completed successfully');

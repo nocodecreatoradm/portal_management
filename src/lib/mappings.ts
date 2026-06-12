@@ -388,6 +388,7 @@ export const mapPMRecordToDB = (record: Partial<ProductManagementRecord>) => {
   if (record.catalogComments !== undefined) dbRecord.catalog_comments = record.catalogComments;
   if (record.categoria !== undefined && !isUUID(record.categoria)) dbRecord.categoria = record.categoria;
   if (record.salesHistory !== undefined) dbRecord.sales_history = record.salesHistory;
+  if (record.kitSupplierId !== undefined) dbRecord.kit_supplier_id = record.kitSupplierId;
   
   return dbRecord;
 };
@@ -441,6 +442,8 @@ export const mapDBToPMRecord = (dbRecord: any): ProductManagementRecord => ({
   replacesProductId: dbRecord.replaces_product_id || undefined,
   habilitado: dbRecord.habilitado === true || dbRecord.habilitado === 1,
   incluyeKit: dbRecord.incluye_kit === true || dbRecord.incluye_kit === 1,
+  kitSupplierId: dbRecord.kit_supplier_id || undefined,
+  kitSupplierName: dbRecord.kit_supplier_commercial_alias || dbRecord.kit_supplier_legal_name || undefined,
   habilitacionCosto: dbRecord.habilitacion_costo != null ? Number(dbRecord.habilitacion_costo) : undefined,
   pvp: dbRecord.pvp != null ? Number(dbRecord.pvp) : undefined,
   pvpDescuento: dbRecord.pvp_descuento != null ? Number(dbRecord.pvp_descuento) : undefined,

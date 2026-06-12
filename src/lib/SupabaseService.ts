@@ -658,7 +658,7 @@ export const SupabaseService = {
         approved_documents, created_at, updated_at,
         commercial_name, detailed_description, segment, product_status, habilitado, incluye_kit, 
         habilitacion_costo, pvp, pvp_descuento, sales_current_year, sales_previous_year, 
-        current_year, previous_year, catalog_comments, replaces_product_id, sales_history,
+        current_year, previous_year, catalog_comments, replaces_product_id, sales_history, kit_supplier_id,
         brand:brands(name),
         supplier:suppliers(legal_name, commercial_alias, erp_code, email, logo_url),
         line:product_lines(name),

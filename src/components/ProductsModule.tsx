@@ -66,9 +66,12 @@ const getProductImageUrl = (r: ProductManagementRecord) => {
 interface LinealViewProps {
   filteredRecords: ProductManagementRecord[];
   handleOpenEditModal: (record: ProductManagementRecord) => void;
+  onOpenQuickView: (record: ProductManagementRecord) => void;
+  getLineName: (record: ProductManagementRecord) => string;
+  getCategoryName: (record: ProductManagementRecord) => string;
 }
 
-function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
+function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, getLineName, getCategoryName }: LinealViewProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const segments = ['ticket_value', 'mainstream', 'premium'] as const;
   
@@ -283,7 +286,7 @@ function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
                         {/* Tooltip */}
                         {isHovered && (
                           <div className={`absolute ${top < 220 ? 'top-full mt-2' : 'bottom-full mb-2'} left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-64 pointer-events-none`}>
-                            <p className="text-[9px] font-black text-slate-400 uppercase">{record.linea}{record.categoria ? ` | ${record.categoria}` : ''}</p>
+                            <p className="text-[9px] font-black text-slate-400 uppercase">{getLineName(record)}{getCategoryName(record) ? ` | ${getCategoryName(record)}` : ''}</p>
                             <p className="text-xs font-black mt-0.5">{record.commercialName || record.descripcionSAP}</p>
                             {record.catalogComments && (
                               <div className="mt-2 border-t border-slate-700 pt-2 space-y-1">
@@ -317,12 +320,10 @@ function LinealView({ filteredRecords, handleOpenEditModal }: LinealViewProps) {
                            {/* Image container */}
                           <div className={`relative w-full h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-50 border border-slate-100 ${productImgUrl ? 'cursor-pointer hover:opacity-85 transition-opacity' : ''}`}
                             onClick={(e) => {
-                              if (productImgUrl) {
-                                e.stopPropagation();
-                                window.open(productImgUrl, '_blank');
-                              }
+                              e.stopPropagation();
+                              onOpenQuickView(record);
                             }}
-                            title={productImgUrl ? 'Ver imagen en tamaño completo' : undefined}
+                            title="Ver resumen del producto"
                           >
                             {productImgUrl ? (
                               <img src={productImgUrl} className="w-full h-full object-cover" alt="" />
@@ -418,6 +419,49 @@ export default function ProductsModule({
   const [tempSalesPeriodType, setTempSalesPeriodType] = useState<'FY' | 'YTD'>('FY');
   const [tempSalesUnits, setTempSalesUnits] = useState<string>('');
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [selectedQuickViewRecord, setSelectedQuickViewRecord] = useState<ProductManagementRecord | null>(null);
+  const [quickCommentText, setQuickCommentText] = useState('');
+
+  const getLineName = (r: ProductManagementRecord) => {
+    if (r.lineId && isUUID(r.lineId)) {
+      const match = productLines.find(l => l.id === r.lineId);
+      if (match) return match.name;
+    }
+    if (r.linea && isUUID(r.linea)) {
+      const match = productLines.find(l => l.id === r.linea);
+      if (match) return match.name;
+    }
+    return r.linea || 'Otras';
+  };
+
+  const getCategoryName = (r: ProductManagementRecord) => {
+    if (r.categoryId && isUUID(r.categoryId)) {
+      const match = categories.find(c => c.id === r.categoryId);
+      if (match) return match.name;
+    }
+    if (r.categoria && isUUID(r.categoria)) {
+      const match = categories.find(c => c.id === r.categoria);
+      if (match) return match.name;
+    }
+    return r.categoria || '';
+  };
+
+  const handleAddQuickComment = async (record: ProductManagementRecord, comment: string) => {
+    if (!comment.trim()) return;
+    const currentComments = record.catalogComments || '';
+    const updatedComments = currentComments ? `${currentComments}\n${comment.trim()}` : comment.trim();
+    try {
+      await SupabaseService.updateProductManagementRecord(record.id, {
+        catalogComments: updatedComments
+      });
+      setRecords(prev => prev.map(r => r.id === record.id ? { ...r, catalogComments: updatedComments } : r));
+      setSelectedQuickViewRecord(prev => prev && prev.id === record.id ? { ...prev, catalogComments: updatedComments } : prev);
+      toast.success('Comentario rápido añadido');
+    } catch (err) {
+      toast.error('Error al guardar el comentario');
+    }
+  };
+
   const supplierDropdownRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
 
@@ -481,6 +525,7 @@ export default function ProductsModule({
     replacesProductId: undefined,
     habilitado: false,
     incluyeKit: false,
+    kitSupplierId: undefined,
     habilitacionCosto: undefined,
     pvp: undefined,
     pvpDescuento: undefined,
@@ -690,6 +735,7 @@ export default function ProductsModule({
       replacesProductId: undefined,
       habilitado: false,
       incluyeKit: false,
+      kitSupplierId: undefined,
       habilitacionCosto: undefined,
       pvp: undefined,
       pvpDescuento: undefined,
@@ -743,6 +789,7 @@ export default function ProductsModule({
       replacesProductId: record.replacesProductId || undefined,
       habilitado: record.habilitado || false,
       incluyeKit: record.incluyeKit || false,
+      kitSupplierId: record.kitSupplierId || undefined,
       habilitacionCosto: record.habilitacionCosto,
       pvp: record.pvp,
       pvpDescuento: record.pvpDescuento,
@@ -797,6 +844,9 @@ export default function ProductsModule({
       const resolvedFormData = { ...formData };
       if (resolvedFormData.productStatus !== 'reemplazo') {
         resolvedFormData.replacesProductId = undefined;
+      }
+      if (!resolvedFormData.habilitado && !resolvedFormData.incluyeKit) {
+        resolvedFormData.kitSupplierId = undefined;
       }
 
       // Resolve Brand
@@ -1549,7 +1599,7 @@ export default function ProductsModule({
                 </div>
                 {/* Line / category */}
                 <div className="px-4">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{record.linea}{record.categoria ? ` | ${record.categoria}` : ''}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{getLineName(record)}{getCategoryName(record) ? ` | ${getCategoryName(record)}` : ''}</p>
                   <h3 className="text-sm font-black text-slate-900 mt-0.5 line-clamp-2">{record.commercialName || record.descripcionSAP}</h3>
                 </div>
                 {/* PVP / FOB */}
@@ -1606,7 +1656,13 @@ export default function ProductsModule({
 
       /* ── LINEAL VIEW ── */
       ) : viewMode === 'lineal' ? (
-        <LinealView filteredRecords={filteredRecords} handleOpenEditModal={handleOpenEditModal} />
+        <LinealView 
+          filteredRecords={filteredRecords} 
+          handleOpenEditModal={handleOpenEditModal} 
+          onOpenQuickView={(rec) => setSelectedQuickViewRecord(rec)}
+          getLineName={getLineName}
+          getCategoryName={getCategoryName}
+        />
 
       /* ── DASHBOARD VIEW ── */
       ) : viewMode === 'dashboard' ? ( (() => {
@@ -1841,7 +1897,7 @@ export default function ProductsModule({
                       </td>
                       <td className="px-5 py-3">
                         <p className="text-xs font-bold text-slate-700">{record.marca}</p>
-                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-tight">{record.linea}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-tight">{getLineName(record)}</p>
                       </td>
                       <td className="px-5 py-3 text-center">
                         <span className="text-sm font-black text-indigo-600">{record.pvp ? `S/ ${record.pvp}` : '—'}</span>
@@ -1968,14 +2024,30 @@ export default function ProductsModule({
               <div className="grid grid-cols-2 gap-4">
                 <label className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 cursor-pointer">
                   <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Habilitado</span>
-                  <div onClick={() => setFormData({ ...formData, habilitado: !formData.habilitado })}
+                  <div onClick={() => {
+                    const nextVal = !formData.habilitado;
+                    setFormData({
+                      ...formData,
+                      habilitado: nextVal,
+                      incluyeKit: nextVal ? false : formData.incluyeKit,
+                      kitSupplierId: nextVal ? formData.kitSupplierId : (formData.incluyeKit ? formData.kitSupplierId : undefined)
+                    });
+                  }}
                     className={`relative w-10 h-5 rounded-full transition-colors ${formData.habilitado ? 'bg-orange-500' : 'bg-slate-200'}`}>
                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${formData.habilitado ? 'left-5' : 'left-0.5'}`}/>
                   </div>
                 </label>
                 <label className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 cursor-pointer">
                   <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Incluye Kit</span>
-                  <div onClick={() => setFormData({ ...formData, incluyeKit: !formData.incluyeKit })}
+                  <div onClick={() => {
+                    const nextVal = !formData.incluyeKit;
+                    setFormData({
+                      ...formData,
+                      incluyeKit: nextVal,
+                      habilitado: nextVal ? false : formData.habilitado,
+                      kitSupplierId: nextVal ? formData.kitSupplierId : (formData.habilitado ? formData.kitSupplierId : undefined)
+                    });
+                  }}
                     className={`relative w-10 h-5 rounded-full transition-colors ${formData.incluyeKit ? 'bg-indigo-500' : 'bg-slate-200'}`}>
                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${formData.incluyeKit ? 'left-5' : 'left-0.5'}`}/>
                   </div>
@@ -1988,6 +2060,24 @@ export default function ProductsModule({
                   <input type="number" step="0.01" min="0" placeholder="0.00"
                     className="w-full px-3 py-2.5 bg-orange-50 border border-orange-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-orange-500/20 outline-none"
                     value={formData.habilitacionCosto ?? ''} onChange={e => setFormData({ ...formData, habilitacionCosto: e.target.value ? Number(e.target.value) : undefined })}/>
+                </div>
+              )}
+              {/* Proveedor del Kit (visible si habilitado o incluye kit) */}
+              {(formData.habilitado || formData.incluyeKit) && (
+                <div className="space-y-1.5 relative">
+                  <label className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">Proveedor del Kit</label>
+                  <SearchableSelect
+                    options={suppliers.map(s => ({
+                      id: s.id,
+                      name: s.commercialAlias || s.legalName
+                    }))}
+                    selectedValue={formData.kitSupplierId || ''}
+                    onSelect={(val) => setFormData({ ...formData, kitSupplierId: val })}
+                    placeholder="Buscar y seleccionar proveedor del kit..."
+                    emptyMessage="No se encontraron proveedores"
+                    inputClassName="w-full pl-3 pr-10 py-2.5 bg-indigo-50 border border-indigo-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none text-indigo-900 transition-all cursor-pointer"
+                    className="w-full"
+                  />
                 </div>
               )}
               {/* Marca / Línea / Categoría */}
@@ -2420,7 +2510,7 @@ export default function ProductsModule({
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                   { label: 'Código SAP', value: selectedRecord.codigoSAP, color: 'text-indigo-600' },
-                  { label: 'Marca / Línea', value: `${selectedRecord.marca} / ${selectedRecord.linea}`, color: 'text-slate-900' },
+                  { label: 'Marca / Línea', value: `${selectedRecord.marca} / ${getLineName(selectedRecord)}`, color: 'text-slate-900' },
                   { label: 'PVP', value: selectedRecord.pvp ? `S/ ${selectedRecord.pvp}` : '—', color: 'text-indigo-600' },
                   { label: 'FOB Efectivo', value: `$ ${getFobEffective(selectedRecord).toFixed(2)}`, color: 'text-slate-900' },
                 ].map(item => (
@@ -2671,6 +2761,150 @@ export default function ProductsModule({
             <div className="p-5 bg-slate-50 flex gap-3">
               <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-3 bg-white text-slate-600 rounded-xl font-bold hover:bg-slate-100 transition-all border border-slate-200">Cancelar</button>
               <button onClick={() => { deleteConfirm.onConfirm(); setDeleteConfirm(null); if (deleteConfirm.type === 'record') setIsDetailModalOpen(false); }} className="flex-1 py-3 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition-all">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      {/* Resumen Rápido Modal (Dark Theme) */}
+      {selectedQuickViewRecord && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+              <div>
+                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
+                  {selectedQuickViewRecord.marca} | {getLineName(selectedQuickViewRecord)}
+                </p>
+                <h3 className="text-base font-black text-white mt-1">
+                  {selectedQuickViewRecord.commercialName || selectedQuickViewRecord.descripcionSAP}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const rec = selectedQuickViewRecord;
+                    setSelectedQuickViewRecord(null);
+                    handleOpenEditModal(rec);
+                  }}
+                  className="p-2 bg-slate-850 hover:bg-slate-800 text-slate-200 hover:text-white rounded-xl transition-all border border-slate-800"
+                  title="Editar producto"
+                >
+                  <Edit3 size={15}/>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedQuickViewRecord(null)}
+                  className="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-full transition-all"
+                >
+                  <X size={20}/>
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-5 flex-1 overflow-y-auto">
+              {/* Reference Image */}
+              {getProductImageUrl(selectedQuickViewRecord) && (
+                <div className="w-full h-32 rounded-2xl overflow-hidden bg-slate-950/50 border border-slate-800 flex items-center justify-center">
+                  <img
+                    src={getProductImageUrl(selectedQuickViewRecord)}
+                    alt="Referencial"
+                    className="h-full object-contain p-2"
+                  />
+                </div>
+              )}
+
+              {/* Data Table */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-xs pb-2 border-b border-slate-850">
+                  <span className="text-slate-400 font-bold uppercase tracking-wider">Proveedor</span>
+                  <span className="text-white font-black">{selectedQuickViewRecord.proveedor || 'No asignado'}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs pb-2 border-b border-slate-850">
+                  <span className="text-slate-400 font-bold uppercase tracking-wider">Precio PVP</span>
+                  <span className="text-indigo-400 font-black text-sm">
+                    {selectedQuickViewRecord.pvp ? `S/ ${selectedQuickViewRecord.pvp}` : '—'}
+                    {selectedQuickViewRecord.pvpDescuento && ` - S/ ${selectedQuickViewRecord.pvpDescuento}`}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs pb-2 border-b border-slate-850">
+                  <span className="text-slate-400 font-bold uppercase tracking-wider">Costo FOB</span>
+                  <span className="text-white font-black text-sm">
+                    $ {getFobEffective(selectedQuickViewRecord).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Comments Section */}
+              <div className="space-y-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <MessageSquare size={12} className="text-indigo-400"/> Comentarios
+                </p>
+                <div className="bg-slate-950/30 border border-slate-850 rounded-xl p-3 space-y-1.5 max-h-28 overflow-y-auto">
+                  {selectedQuickViewRecord.catalogComments ? (
+                    selectedQuickViewRecord.catalogComments
+                      .split('\n')
+                      .map(c => c.trim())
+                      .filter(Boolean)
+                      .map((c, i) => (
+                        <p key={i} className="text-xs text-slate-300 flex items-start gap-1.5">
+                          <span className="text-indigo-400 shrink-0">•</span>
+                          <span>{c}</span>
+                        </p>
+                      ))
+                  ) : (
+                    <p className="text-xs text-slate-500 italic">Sin comentarios registrados</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Replacement Section */}
+              {selectedQuickViewRecord.productStatus === 'reemplazo' && selectedQuickViewRecord.replacesProductId && (() => {
+                const replacedProduct = records.find(r => r.id === selectedQuickViewRecord.replacesProductId);
+                if (!replacedProduct) return null;
+                return (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <RefreshCw size={12} className="animate-spin-slow text-amber-400"/> Reemplazo(s) Disponible(s)
+                    </p>
+                    <div className="bg-amber-950/20 border border-amber-900/40 rounded-xl p-3 flex justify-between items-center text-xs">
+                      <span className="text-amber-200 font-bold">
+                        {replacedProduct.codigoSAP} - {replacedProduct.commercialName || replacedProduct.descripcionSAP}
+                      </span>
+                      <span className="text-amber-400 font-black">
+                        {replacedProduct.pvp ? `S/ ${replacedProduct.pvp}` : '—'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Quick Comment Input Footer */}
+            <div className="p-4 border-t border-slate-800 bg-slate-950/50 flex gap-2">
+              <input
+                type="text"
+                placeholder="Opinión rápida..."
+                className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white font-medium focus:outline-none focus:border-indigo-500"
+                value={quickCommentText}
+                onChange={e => setQuickCommentText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    handleAddQuickComment(selectedQuickViewRecord, quickCommentText);
+                    setQuickCommentText('');
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  handleAddQuickComment(selectedQuickViewRecord, quickCommentText);
+                  setQuickCommentText('');
+                }}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all"
+              >
+                OK
+              </button>
             </div>
           </div>
         </div>
