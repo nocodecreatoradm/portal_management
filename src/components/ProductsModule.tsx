@@ -4,7 +4,7 @@ import {
   Search, Plus, Filter, Download, Calendar, 
   FileText, Upload, Trash2, Edit2, X, Check,
   Eye, Link as LinkIcon, Image as ImageIcon, Box, Files,
-  CheckCircle2, Grid, List, Tag, ShoppingBag, ChevronRight,
+  CheckCircle2, Grid, List, Tag, ShoppingBag, ChevronRight, ChevronLeft,
   TrendingUp, History as HistoryIcon, DollarSign, AlertCircle,
   ArrowUp, ArrowDown, Edit3, BarChart2, LineChart, Award,
   Package, Zap, Star, RefreshCw, MessageSquare
@@ -1366,6 +1366,20 @@ export default function ProductsModule({
     toast.success('Fotos añadidas a la galería');
   };
 
+  const handleMovePhoto = (groupId: string, fromIndex: number, toIndex: number) => {
+    setFormData(prev => ({
+      ...prev,
+      gallery: prev.gallery.map(g => {
+        if (g.id !== groupId) return g;
+        if (toIndex < 0 || toIndex >= g.photos.length) return g;
+        const updatedPhotos = [...g.photos];
+        const [movedPhoto] = updatedPhotos.splice(fromIndex, 1);
+        updatedPhotos.splice(toIndex, 0, movedPhoto);
+        return { ...g, photos: updatedPhotos };
+      })
+    }));
+  };
+
   const handleAddNewCategory = () => {
     if (!newCategoryName.trim()) return;
     
@@ -2445,9 +2459,29 @@ export default function ProductsModule({
                       </div>
                       <div className="grid grid-cols-6 gap-1.5">
                         {group.photos.map((photo, pIdx) => (
-                          <div key={pIdx} className="aspect-square rounded-lg overflow-hidden border border-slate-200 relative group/p">
-                            <img src={photo.url} alt="" className="w-full h-full object-cover"/>
-                            <button type="button" onClick={() => setFormData(prev => ({ ...prev, gallery: prev.gallery.map(g => g.id === group.id ? { ...g, photos: g.photos.filter((_, i) => i !== pIdx) } : g) }))} className="absolute top-0.5 right-0.5 p-0.5 bg-red-600 text-white rounded opacity-0 group-hover/p:opacity-100 transition-opacity"><X size={8}/></button>
+                          <div key={pIdx} className="aspect-square rounded-lg overflow-hidden border border-slate-200 relative group/p flex flex-col items-center justify-center bg-slate-50">
+                            <img src={photo.url} alt="" className="w-full h-full object-cover absolute inset-0"/>
+                            <button type="button" onClick={() => setFormData(prev => ({ ...prev, gallery: prev.gallery.map(g => g.id === group.id ? { ...g, photos: g.photos.filter((_, i) => i !== pIdx) } : g) }))} className="absolute top-0.5 right-0.5 p-0.5 bg-red-600 text-white rounded opacity-0 group-hover/p:opacity-100 transition-opacity z-10"><X size={8}/></button>
+                            
+                            <div className="absolute inset-x-0 bottom-0 flex justify-between bg-black/60 p-1 opacity-0 group-hover/p:opacity-100 transition-opacity z-10">
+                              <button 
+                                type="button" 
+                                disabled={pIdx === 0} 
+                                onClick={() => handleMovePhoto(group.id, pIdx, pIdx - 1)} 
+                                className="p-0.5 text-white hover:text-indigo-300 disabled:opacity-30 transition-colors"
+                              >
+                                <ChevronLeft size={12}/>
+                              </button>
+                              <span className="text-[9px] text-white font-black">{pIdx + 1}</span>
+                              <button 
+                                type="button" 
+                                disabled={pIdx === group.photos.length - 1} 
+                                onClick={() => handleMovePhoto(group.id, pIdx, pIdx + 1)} 
+                                className="p-0.5 text-white hover:text-indigo-300 disabled:opacity-30 transition-colors"
+                              >
+                                <ChevronRight size={12}/>
+                              </button>
+                            </div>
                           </div>
                         ))}
                         {group.photos.length === 0 && <div className="col-span-full py-3 text-center text-[10px] font-bold text-slate-400 italic">Sin fotos</div>}

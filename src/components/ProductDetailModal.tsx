@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, FileText, CheckCircle, ThumbsDown, Clock, Minus, Eye, Image as ImageIcon, Tag, Plus, Upload, Beaker, Wind, FlaskConical, Droplets, Thermometer, Flame, Database, ChevronRight, ChevronDown, MessageSquare, Trash2, Download } from 'lucide-react';
+import { X, FileText, CheckCircle, ThumbsDown, Clock, Minus, Eye, Image as ImageIcon, Tag, Plus, Upload, Beaker, Wind, FlaskConical, Droplets, Thermometer, Flame, Database, ChevronRight, ChevronLeft, ChevronDown, MessageSquare, Trash2, Download } from 'lucide-react';
 import { ProductRecord, DocumentVersion, Approval, Supplier, SampleRecord, FileInfo, CalculationRecord, ModuleId, PDFComment } from '../types';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
@@ -413,6 +413,20 @@ export default function ProductDetailModal({
     setIsGalleryUploadModalOpen(false);
     setTempGalleryPhotos([]);
     setGalleryCategory('');
+  };
+
+  const handleMovePhotoDetail = (groupId: string, fromIndex: number, toIndex: number) => {
+    if (!record || !onUpdateRecord) return;
+    const updatedGallery = sharedGallery.map(g => {
+      if (g.id !== groupId) return g;
+      if (toIndex < 0 || toIndex >= g.photos.length) return g;
+      const updatedPhotos = [...g.photos];
+      const [movedPhoto] = updatedPhotos.splice(fromIndex, 1);
+      updatedPhotos.splice(toIndex, 0, movedPhoto);
+      return { ...g, photos: updatedPhotos };
+    });
+    setSharedGallery(updatedGallery);
+    onUpdateRecord(record.id, { gallery: updatedGallery });
   };
 
   const findSupplier = (prov?: string, cod?: string) => {
@@ -1142,19 +1156,43 @@ export default function ProductDetailModal({
                                 </span>
                               </div>
                             )}
-                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center z-10">
-                              <a 
-                                href={photo.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  openFileUrl(photo.url);
-                                }}
-                                className="p-2 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-white/40 transition-all"
-                              >
-                                <Eye size={16} />
-                              </a>
+                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex flex-col items-center justify-between p-2 z-10">
+                              <div className="flex items-center justify-center flex-1">
+                                <a 
+                                  href={photo.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    openFileUrl(photo.url);
+                                  }}
+                                  className="p-2 bg-white/20 backdrop-blur-md rounded-lg text-white hover:bg-white/40 transition-all"
+                                  title="Ver archivo"
+                                >
+                                  <Eye size={16} />
+                                </a>
+                              </div>
+                              {onUpdateRecord && (
+                                <div className="w-full flex items-center justify-between bg-black/60 p-1 rounded-xl">
+                                  <button 
+                                    type="button" 
+                                    disabled={idx === 0} 
+                                    onClick={(e) => { e.stopPropagation(); handleMovePhotoDetail(item.id, idx, idx - 1); }} 
+                                    className="p-1 text-white hover:text-indigo-300 disabled:opacity-30 transition-colors"
+                                  >
+                                    <ChevronLeft size={12}/>
+                                  </button>
+                                  <span className="text-[9px] text-white font-black">{idx + 1}</span>
+                                  <button 
+                                    type="button" 
+                                    disabled={idx === item.photos.length - 1} 
+                                    onClick={(e) => { e.stopPropagation(); handleMovePhotoDetail(item.id, idx, idx + 1); }} 
+                                    className="p-1 text-white hover:text-indigo-300 disabled:opacity-30 transition-colors"
+                                  >
+                                    <ChevronRight size={12}/>
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
