@@ -882,28 +882,51 @@ export default function ProductsModule({
     }
   };
 
+  const handleDownloadAllDocs = (groups: any[]) => {
+    if (!groups || groups.length === 0) return;
+    
+    let delay = 0;
+    groups.forEach(group => {
+      if (!group.documents) return;
+      group.documents.forEach((doc: any) => {
+        setTimeout(() => {
+          const link = document.createElement('a');
+          link.href = doc.url;
+          link.download = doc.name;
+          link.target = '_blank';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }, delay);
+        delay += 300;
+      });
+    });
+    toast.success('Iniciando descarga de todos los documentos...');
+  };
+
   const handleSyncDocuments = () => {
     if (!formData.codigoSAP) {
       toast.error('Ingrese un código SAP para sincronizar documentos');
       return;
     }
 
-    const product = allProducts.find(p => p.codigoSAP === formData.codigoSAP);
-    if (!product) {
-      toast.error('No se encontró el producto en el sistema de artes/fichas');
+    const matchingProducts = allProducts.filter(p => p.codigoSAP === formData.codigoSAP);
+    if (matchingProducts.length === 0) {
+      toast.error('No se encontró ningún producto con ese código SAP en el sistema de artes/fichas');
       return;
     }
 
     const syncedGroups: any[] = [];
+    const seenUrls = new Set<string>();
     
     const checkVersion = (version: DocumentVersion, categoryName: string) => {
       const isApproved = 
-        version.idApproval.status === 'approved' &&
-        version.mktApproval.status === 'approved' &&
-        version.planApproval.status === 'approved' &&
-        version.provApproval.status === 'approved';
+        (version.idApproval.status === 'approved' || version.idApproval.status === 'not_required') &&
+        (version.mktApproval.status === 'approved' || version.mktApproval.status === 'not_required') &&
+        (version.planApproval.status === 'approved' || version.planApproval.status === 'not_required') &&
+        (version.provApproval.status === 'approved' || version.provApproval.status === 'not_required');
       
-      if (isApproved) {
+      if (isApproved && version.files) {
         let group = syncedGroups.find(g => g.category === categoryName);
         if (!group) {
           group = {
@@ -914,20 +937,25 @@ export default function ProductsModule({
           syncedGroups.push(group);
         }
         version.files.forEach((f: FileInfo) => {
-          group.documents.push({
-            id: `DOC-${Math.random().toString(36).substr(2, 9)}`,
-            name: f.name,
-            type: f.type,
-            url: f.url,
-            approvalDate: new Date().toISOString().split('T')[0]
-          });
+          if (f.url && !seenUrls.has(f.url)) {
+            seenUrls.add(f.url);
+            group.documents.push({
+              id: `DOC-${Math.random().toString(36).substr(2, 9)}`,
+              name: f.name,
+              type: f.type,
+              url: f.url,
+              approvalDate: version.uploadDate ? version.uploadDate.split('T')[0] : new Date().toISOString().split('T')[0]
+            });
+          }
         });
       }
     };
 
-    product.artworks?.forEach(v => checkVersion(v, 'Arte'));
-    product.technicalSheets?.forEach(v => checkVersion(v, 'Ficha Técnica'));
-    product.commercialSheets?.forEach(v => checkVersion(v, 'Ficha Comercial'));
+    matchingProducts.forEach(product => {
+      product.artworks?.forEach(v => checkVersion(v, 'Arte'));
+      product.technicalSheets?.forEach(v => checkVersion(v, 'Ficha Técnica'));
+      product.commercialSheets?.forEach(v => checkVersion(v, 'Ficha Comercial'));
+    });
 
     if (syncedGroups.length === 0) {
       toast.info('No se encontraron documentos aprobados para este código SAP');
@@ -936,7 +964,7 @@ export default function ProductsModule({
         ...prev,
         approvedDocuments: syncedGroups
       }));
-      toast.success(`Se sincronizaron ${syncedGroups.reduce((acc, g) => acc + g.documents.length, 0)} documentos aprobados`);
+      toast.success(`Se sincronizaron ${syncedGroups.reduce((acc, g) => acc + g.documents.length, 0)} documentos aprobados sin duplicados`);
     }
   };
 
@@ -2038,10 +2066,18 @@ export default function ProductsModule({
                         <button type="button" onClick={() => setIsAddingNewDocCategory(false)} className="p-1.5 bg-slate-100 text-slate-400 rounded-lg"><X size={12}/></button>
                       </div>
                     ) : (
-                      <button type="button" onClick={() => setIsAddingNewDocCategory(true)}
-                        className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
-                        <Plus size={12}/> Nueva Categoría
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        {formData.approvedDocuments && formData.approvedDocuments.length > 0 && (
+                          <button type="button" onClick={() => handleDownloadAllDocs(formData.approvedDocuments)}
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-colors">
+                            <Download size={12}/> Descargar Todo
+                          </button>
+                        )}
+                        <button type="button" onClick={() => setIsAddingNewDocCategory(true)}
+                          className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-colors">
+                          <Plus size={12}/> Nueva Categoría
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -2284,7 +2320,13 @@ export default function ProductsModule({
               )}
               {selectedRecord.approvedDocuments.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 mb-3"><CheckCircle2 size={16} className="text-emerald-500"/> Documentos Aprobados</h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500"/> Documentos Aprobados</h4>
+                    <button type="button" onClick={() => handleDownloadAllDocs(selectedRecord.approvedDocuments)}
+                      className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
+                      <Download size={12}/> Descargar Todo
+                    </button>
+                  </div>
                   {selectedRecord.approvedDocuments.map(group => (
                     <div key={group.id} className="mb-4">
                       <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">{group.category}</p>
