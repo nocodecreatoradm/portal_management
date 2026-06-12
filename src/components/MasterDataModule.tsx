@@ -248,7 +248,6 @@ export default function MasterDataModule() {
           </div>
         )}
       </div>
-      </div>
 
       {showModal && (
         <Modal 
