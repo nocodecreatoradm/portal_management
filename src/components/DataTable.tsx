@@ -697,7 +697,7 @@ export default function DataTable({
       {/* Table for Desktop (hidden lg:block) */}
       <div className="hidden lg:flex lg:flex-col">
         <div ref={tableContainerRef} className="overflow-x-auto min-h-[420px]">
-          <table className={`w-full text-[11px] text-left border-collapse ${mode === 'artwork' ? 'min-w-[1250px]' : 'min-w-[1100px]'} xl:min-w-full`}>
+          <table className={`w-full text-[11px] text-left border-collapse ${mode === 'artwork' ? 'min-w-[1150px]' : 'min-w-[1000px]'} xl:min-w-full`}>
           <thead className="bg-[#f8fafc] text-slate-500 uppercase text-[10px] font-bold border-b border-gray-200 sticky top-0 z-20">
             <tr>
               <th rowSpan={2} className="px-1.5 py-2.5 text-center border-r border-gray-100 w-20 min-w-[80px] max-w-[80px]">Acciones</th>
@@ -830,7 +830,7 @@ export default function DataTable({
               </th>
               <th 
                 rowSpan={2} 
-                className="px-1.5 py-2.5 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[115px] min-w-[115px] max-w-[115px]"
+                className="px-1.5 py-2.5 text-center border-r border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-[90px] min-w-[90px] max-w-[90px]"
                 onClick={() => toggleSort('status')}
               >
                 <div className="flex items-center justify-center gap-1.5 w-full">
@@ -873,25 +873,7 @@ export default function DataTable({
                  mode === 'technical_sheet' ? 'Fichas Técnicas' : 
                  'Fichas Comerciales'}
               </th>
-              <th 
-                rowSpan={2} 
-                className="px-1.5 py-2.5 text-center border-l border-gray-100 cursor-pointer hover:bg-slate-100/80 transition-colors select-none w-24 min-w-[96px] max-w-[96px]"
-                onClick={() => toggleSort('sampleId')}
-              >
-                <div className="inline-flex items-center gap-1 justify-center w-full">
-                  <span>Muestra</span>
-                  <HeaderFilterPopover 
-                    column="sampleId" 
-                    label="Muestra" 
-                    currentFilter={columnFilters.sampleId || ''} 
-                    onFilterChange={handleFilterChange} 
-                    currentSort={sortConfig} 
-                    onSortChange={handleSortChange} 
-                    uniqueValues={uniqueSamples}
-                    align="right"
-                  />
-                </div>
-              </th>
+
             </tr>
             <tr className="bg-slate-50/50">
               {/* Subheaders */}
@@ -987,7 +969,7 @@ export default function DataTable({
 
                   <td className="px-1.5 py-2 border-r border-gray-100 font-mono text-xs text-slate-600 font-bold w-[115px] min-w-[115px] max-w-[115px]">
                     <div className="flex items-center gap-1 justify-center w-full">
-                      <span className="truncate max-w-[76px]" title={record.codigoSAP}>{record.codigoSAP}</span>
+                      <span className="whitespace-nowrap" title={record.codigoSAP}>{record.codigoSAP}</span>
                       {onQualityClaimsClick && (
                         (() => {
                           const claimType = mode === 'artwork' ? 'artwork' : mode === 'technical_sheet' ? 'technical' : 'commercial';
@@ -1050,7 +1032,7 @@ export default function DataTable({
                       {record.marca}
                     </span>
                   </td>
-                  <td className="px-1.5 py-2 border-r border-gray-100 text-center w-[115px] min-w-[115px] max-w-[115px]">
+                  <td className="px-1.5 py-2 border-r border-gray-100 text-center w-[90px] min-w-[90px] max-w-[90px]">
                     <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wider border whitespace-nowrap inline-block ${generalStatus.color}`}>
                       {generalStatus.label}
                     </span>
@@ -1236,99 +1218,7 @@ export default function DataTable({
                       </div>
                     </td>
                   )}
-                  <td className="px-1.5 py-2 border-l border-gray-100 text-center relative w-24 min-w-[96px] max-w-[96px]">
-                    {editingSampleRowId === record.id ? (
-                      <div className="relative inline-block text-left" ref={inlineDropdownRef}>
-                        <div className="flex items-center border border-blue-400 rounded-xl bg-white shadow-lg pr-2 max-w-[180px] relative z-30 mx-auto">
-                          <input 
-                            type="text"
-                            className="w-full px-2.5 py-1 text-xs outline-none bg-transparent font-medium border-0 focus:ring-0"
-                            placeholder="Buscar..."
-                            value={inlineSampleSearch}
-                            onChange={(e) => setInlineSampleSearch(e.target.value)}
-                            autoFocus
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <button 
-                            onClick={(e) => { 
-                              e.stopPropagation();
-                              setEditingSampleRowId(null); 
-                              setInlineSampleSearch(''); 
-                            }} 
-                            className="text-slate-400 hover:text-slate-600 shrink-0"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                        
-                        <div className="absolute z-50 left-1/2 -translate-x-1/2 mt-1.5 w-[240px] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-150 text-left">
-                          <div className="max-h-[180px] overflow-y-auto custom-scrollbar">
-                            <div 
-                              className="px-3 py-2 text-xs font-black text-red-500 hover:bg-red-50 cursor-pointer border-b border-slate-50 text-left transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onUpdateRecord?.(record.id, { sampleId: '', correlativeId: '' });
-                                setEditingSampleRowId(null);
-                                setInlineSampleSearch('');
-                              }}
-                            >
-                              Sin muestra vinculada
-                            </div>
-                            {samples
-                              .filter(s => 
-                                s.correlativeId.toLowerCase().includes(inlineSampleSearch.toLowerCase()) || 
-                                s.descripcionSAP.toLowerCase().includes(inlineSampleSearch.toLowerCase())
-                              )
-                              .map(s => (
-                                <div 
-                                  key={s.id}
-                                  className="px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0 text-left transition-colors flex flex-col gap-0.5"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onUpdateRecord?.(record.id, { sampleId: s.id, correlativeId: s.correlativeId });
-                                    setEditingSampleRowId(null);
-                                    setInlineSampleSearch('');
-                                  }}
-                                >
-                                  <span className="font-bold text-blue-600">{s.correlativeId}</span>
-                                  <span className="text-slate-600 truncate text-[10px]" title={s.descripcionSAP}>{s.descripcionSAP}</span>
-                                </div>
-                              ))}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center">
-                        {record.sampleId ? (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingSampleRowId(record.id);
-                              setInlineSampleSearch('');
-                            }}
-                            className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-100 font-black transition-all text-[10px] active:scale-95 cursor-pointer group/btn"
-                            title="Click para cambiar muestra"
-                          >
-                            <Beaker size={10} className="text-emerald-500" />
-                            <span>{getSampleCorrelative(record.sampleId)}</span>
-                            <Edit2 size={8} className="text-emerald-400 opacity-0 group-hover/btn:opacity-100 transition-opacity ml-0.5" />
-                          </button>
-                        ) : (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingSampleRowId(record.id);
-                              setInlineSampleSearch('');
-                            }}
-                            className="text-slate-400 hover:text-blue-600 hover:bg-slate-50 border border-dashed border-slate-200 hover:border-blue-200 px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 transition-all active:scale-95 cursor-pointer group/btn"
-                          >
-                            <Plus size={8} className="text-slate-400 group-hover/btn:text-blue-500" />
-                            <span>Vincular</span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </td>
+
                 </tr>
               );
             })}
