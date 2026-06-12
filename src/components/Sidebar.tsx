@@ -181,7 +181,7 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
     <>
       {/* Mobile Overlay */}
       <AnimatePresence>
-        {isOpen && window.innerWidth < 1024 && (
+        {isOpen && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -197,7 +197,7 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
         h-screen bg-[#0f172a] border-r border-slate-800/50 flex flex-col shrink-0
         transition-all duration-300 ease-in-out
         ${isOpen ? 'w-72' : 'w-0 lg:w-0 overflow-hidden opacity-0'}
-        ${window.innerWidth < 1024 && !isOpen ? '-translate-x-full' : 'translate-x-0'}
+        ${!isOpen ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'}
       `}>
         {/* Header */}
         <div className="p-6 flex items-center justify-between border-b border-slate-800/50">
