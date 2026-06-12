@@ -2764,6 +2764,8 @@ export default function ProductsModule({
             </div>
           </div>
         </div>
+      )}
+
       {/* Resumen Rápido Modal (Dark Theme) */}
       {selectedQuickViewRecord && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
