@@ -577,15 +577,25 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                       offset: 0
                     }}
                   />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#0f172a', 
-                      border: '1px solid #334155', 
-                      borderRadius: '16px', 
-                      color: '#fff',
-                      boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'
+                   <Tooltip 
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{data.displayMonth}</p>
+                            <p className="text-sm font-black text-white mt-1">
+                              Promedio: <span className="text-indigo-400 font-mono font-bold">{payload[0].value} días</span>
+                            </p>
+                            <div className="mt-2.5 pt-2 border-t border-slate-800/80 text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                              <span>👉</span>
+                              <span>Haz clic para ver el desglose</span>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
                     }}
-                    itemStyle={{ color: '#fff', fontWeight: 'bold' }}
                   />
                   
                   {/* Threshold lines */}
@@ -637,8 +647,8 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                     dataKey="avgDays" 
                     stroke="#fff" 
                     strokeWidth={4} 
-                    dot={{ r: 6, fill: '#fff', strokeWidth: 3, stroke: '#1e293b', className: 'cursor-pointer' }}
-                    activeDot={{ r: 8, fill: '#6366f1', strokeWidth: 0, className: 'cursor-pointer' }}
+                    dot={{ r: 6, fill: '#fff', strokeWidth: 3, stroke: '#1e293b', style: { cursor: 'pointer' } }}
+                    activeDot={{ r: 8, fill: '#6366f1', strokeWidth: 0, style: { cursor: 'pointer' } }}
                     onClick={(data) => {
                       if (data && data.payload) {
                         setSelectedPointDetails(data.payload);
