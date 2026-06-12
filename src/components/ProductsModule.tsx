@@ -446,8 +446,8 @@ export default function ProductsModule({
     return r.categoria || '';
   };
 
-  const handleAddQuickComment = async (record: ProductManagementRecord, comment: string) => {
-    if (!comment.trim()) return;
+  const handleAddQuickComment = async (record: ProductManagementRecord | null, comment: string) => {
+    if (!record || !comment.trim()) return;
     const currentComments = record.catalogComments || '';
     const updatedComments = currentComments ? `${currentComments}\n${comment.trim()}` : comment.trim();
     try {
@@ -2068,11 +2068,11 @@ export default function ProductsModule({
                   <label className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">Proveedor del Kit</label>
                   <SearchableSelect
                     options={suppliers.map(s => ({
-                      id: s.id,
-                      name: s.commercialAlias || s.legalName
+                      value: s.id,
+                      label: s.commercialAlias || s.legalName
                     }))}
-                    selectedValue={formData.kitSupplierId || ''}
-                    onSelect={(val) => setFormData({ ...formData, kitSupplierId: val })}
+                    value={formData.kitSupplierId || ''}
+                    onChange={(val) => setFormData({ ...formData, kitSupplierId: val })}
                     placeholder="Buscar y seleccionar proveedor del kit..."
                     emptyMessage="No se encontraron proveedores"
                     inputClassName="w-full pl-3 pr-10 py-2.5 bg-indigo-50 border border-indigo-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 outline-none text-indigo-900 transition-all cursor-pointer"
@@ -2765,26 +2765,27 @@ export default function ProductsModule({
           </div>
         </div>
       {/* Resumen Rápido Modal (Dark Theme) */}
-      {selectedQuickViewRecord && (
+      {selectedQuickViewRecord && (() => {
+        const qvRecord = selectedQuickViewRecord;
+        return (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
               <div>
                 <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
-                  {selectedQuickViewRecord.marca} | {getLineName(selectedQuickViewRecord)}
+                  {qvRecord.marca} | {getLineName(qvRecord)}
                 </p>
                 <h3 className="text-base font-black text-white mt-1">
-                  {selectedQuickViewRecord.commercialName || selectedQuickViewRecord.descripcionSAP}
+                  {qvRecord.commercialName || qvRecord.descripcionSAP}
                 </h3>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    const rec = selectedQuickViewRecord;
                     setSelectedQuickViewRecord(null);
-                    handleOpenEditModal(rec);
+                    handleOpenEditModal(qvRecord);
                   }}
                   className="p-2 bg-slate-850 hover:bg-slate-800 text-slate-200 hover:text-white rounded-xl transition-all border border-slate-800"
                   title="Editar producto"
@@ -2890,7 +2891,7 @@ export default function ProductsModule({
                 onChange={e => setQuickCommentText(e.target.value)}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
-                    handleAddQuickComment(selectedQuickViewRecord, quickCommentText);
+                    handleAddQuickComment(qvRecord, quickCommentText);
                     setQuickCommentText('');
                   }
                 }}
@@ -2898,7 +2899,7 @@ export default function ProductsModule({
               <button
                 type="button"
                 onClick={() => {
-                  handleAddQuickComment(selectedQuickViewRecord, quickCommentText);
+                  handleAddQuickComment(qvRecord, quickCommentText);
                   setQuickCommentText('');
                 }}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all"
@@ -2908,7 +2909,8 @@ export default function ProductsModule({
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
