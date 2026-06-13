@@ -3,12 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Droplets, Target, Users, BarChart3, Clock, CheckCircle2, Shield, Info, 
   Activity, ChevronRight, ArrowLeft, RefreshCw, Zap, Book, ShieldAlert,
-  Flame, HelpCircle, FileText, Settings, Hammer, Sliders, Play, Plus, ArrowRight
+  Flame, HelpCircle, FileText, Settings, Hammer, Sliders, Play, Plus, ArrowRight,
+  Maximize2, LayoutGrid, Presentation
 } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
 
-// Import all slide images statically so Vite registers and bundles them
+// Import all slide images statically
 import slide1 from '../assets/slides/slide1.png';
 import slide2 from '../assets/slides/slide2.png';
 import slide3 from '../assets/slides/slide3.png';
@@ -35,6 +36,35 @@ interface SlideTopic {
   category: 'context' | 'cascade' | 'mixed' | 'hardware';
   icon: React.ReactNode;
 }
+
+// Crop configs to extract ONLY the technical diagram from each slide
+interface CropConfig {
+  scale: number;
+  x: number;
+  y: number;
+}
+
+const cropConfigs: Record<string, CropConfig> = {
+  suministro: { scale: 1.0, x: 0, y: 0 }, // Handled individually inside cards
+  centralizar: { scale: 1.45, x: 0, y: 5 },
+  criterios: { scale: 1.25, x: 0, y: -2 },
+  modulacion: { scale: 1.45, x: 2, y: 1 }, // Modulation curve zoom
+  funcion_cascada: { scale: 1.5, x: 0, y: 5 },
+  conexion_cascada: { scale: 1.55, x: 2, y: 4 },
+  funcion_mixto: { scale: 1.4, x: 0, y: 3 },
+  recirculacion: { scale: 1.45, x: 0, y: 2 },
+  comparativa: { scale: 1.35, x: 0, y: 4 },
+  hardware_parts: { scale: 1.55, x: 0, y: 3 },
+  seguridad_32l: { scale: 1.4, x: 0, y: 4 },
+  comercial_line: { scale: 1.35, x: 0, y: 4 },
+  specs_32l: { scale: 1.2, x: 0, y: 2 },
+  instalacion_32l: { scale: 1.45, x: 0, y: 3 },
+  dimensiones_32l: { scale: 1.5, x: 0, y: 5 },
+  auto_diagnostico: { scale: 1.45, x: 0, y: 3 },
+  servovalvula_32l: { scale: 1.5, x: 0, y: 4 },
+  codigos_error: { scale: 1.15, x: 0, y: 0 },
+  kits_instalacion: { scale: 1.35, x: 0, y: 3 }
+};
 
 const slideImages: Record<string, string> = {
   suministro: slide1,
@@ -63,6 +93,9 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
   const [activeTopic, setActiveTopic] = useState<string>('suministro');
   const [errorSearch, setErrorSearch] = useState<string>('');
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  
+  // Toggle between Cropped engineering diagram view and Full presentation slide view
+  const [viewMode, setViewMode] = useState<'cropped' | 'full'>('cropped');
 
   // Sizing Calculator state
   const [calcMethod, setCalcMethod] = useState<'ashrae' | 'aspe'>('ashrae');
@@ -76,7 +109,7 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
 
   // ASPE Inputs
   const [buildingType, setBuildingType] = useState<'hotel' | 'hospital' | 'multifamily'>('multifamily');
-  const [unitsCount, setUnitsCount] = useState<number>(80); // apartments, rooms, or beds
+  const [unitsCount, setUnitsCount] = useState<number>(80);
 
   const topics: SlideTopic[] = [
     { id: 'suministro', title: '1. Tres formas de suministro', category: 'context', icon: <Droplets size={16} /> },
@@ -100,7 +133,6 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
     { id: 'kits_instalacion', title: '19. Kits de instalación', category: 'hardware', icon: <Hammer size={16} /> }
   ];
 
-  // Helper custom icon
   function LayersIcon({ size }: { size: number }) {
     return (
       <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -111,7 +143,6 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
     );
   }
 
-  // Error codes dataset (Slide 18)
   const errorCodes = [
     { code: '-', desc: 'Reducción notable del flujo de agua', sol: 'Es necesario limpiar el filtro de agua de entrada. Llame al servicio técnico.' },
     { code: '02', desc: '60 minutos de uso continuado', sol: 'Progreso de 60 minutos de uso continuado.' },
@@ -143,12 +174,10 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
     );
   }, [errorSearch]);
 
-  // ASHRAE Calculator calculations
   const ashraeCalculations = useMemo(() => {
     const fuShowers = 1.5;
     const fuWashbasins = 0.75;
     const fuSinks = 1.5;
-
     const totalAptFu = (showersPerApt * fuShowers) + (washbasinsPerApt * fuWashbasins) + (sinksPerApt * fuSinks);
     const totalFU = Math.round(apartments * totalAptFu * 100) / 100;
 
@@ -156,7 +185,7 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
     if (totalFU > 0) {
       qProbGpm = 1.05 * Math.pow(totalFU, 0.55);
     }
-    const qProbLpm = qProbGpm * 3.78541; // Convert to L/min
+    const qProbLpm = qProbGpm * 3.78541;
     const powerKw = qProbLpm * tempDelta * 0.06978;
     const heaterPowerKw = 56;
     const requiredHeaters = Math.ceil(powerKw / heaterPowerKw);
@@ -170,9 +199,8 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
     };
   }, [apartments, showersPerApt, washbasinsPerApt, sinksPerApt, tempDelta]);
 
-  // ASPE Sizing parameters (Mixed Systems)
   const aspeCalculations = useMemo(() => {
-    let consPerUnit = 0; // L/h/unit
+    let consPerUnit = 0;
     let storageFactor = 0;
     let recoveryFactor = 0;
     let label = '';
@@ -216,6 +244,27 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
 
   const activeTopicObj = topics.find(t => t.id === activeTopic);
 
+  // Dynamic inline crop styling
+  const imageStyle = useMemo(() => {
+    if (viewMode === 'full') {
+      return {
+        width: '100%',
+        height: '100%',
+        objectFit: 'contain' as const,
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+      };
+    }
+    const config = cropConfigs[activeTopic] || { scale: 1, x: 0, y: 0 };
+    return {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover' as const,
+      transform: `scale(${config.scale}) translate(${config.x}%, ${config.y}%)`,
+      transformOrigin: 'center center',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+    };
+  }, [activeTopic, viewMode]);
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
       
@@ -227,15 +276,15 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
             MÓDULO DE DIMENSIONAMIENTO Y SISTEMAS CENTRALIZADOS
           </h2>
           <p className="text-slate-500 font-medium mt-1 text-sm">
-            Herramienta pedagógica y técnica para explicar la modulación, la cascada y proceder a dimensionar el proyecto de agua caliente.
+            Herramienta interactiva para que ingenieros expliquen la modulación y equipos Rinnai a los técnicos de instalación.
           </p>
         </div>
 
-        {/* Quick Sizing Calculator Entry (Matching card in screenshot) */}
+        {/* Sizing Shortcut Card */}
         {onModuleChange && (
           <div 
             onClick={() => onModuleChange('water_demand')}
-            className="flex items-center justify-between bg-white border border-slate-200 hover:border-indigo-400 hover:shadow-lg transition-all rounded-3xl p-5 cursor-pointer max-w-sm w-full group relative overflow-hidden"
+            className="flex items-center justify-between bg-white border border-slate-200 hover:border-indigo-400 hover:shadow-lg transition-all rounded-3xl p-5 cursor-pointer max-w-sm w-full group relative overflow-hidden shrink-0"
           >
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
@@ -289,7 +338,7 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
       {activeTab === 'info' ? (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
-          {/* Navigation Sidebar */}
+          {/* Sidebar Navigation */}
           <div className="lg:col-span-1 space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200/60 max-h-[82vh] overflow-y-auto custom-scrollbar shadow-inner">
             <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-3 mb-3">Índice del Manual</h3>
             
@@ -326,7 +375,7 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
             })}
           </div>
 
-          {/* Slide Viewer Screen (Split-Screen / Premium layout) */}
+          {/* Slide Viewer Screen (Split Layout with View Mode Controls) */}
           <div className="lg:col-span-3 bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 shadow-sm min-h-[65vh] flex flex-col justify-between relative overflow-hidden">
             
             <AnimatePresence mode="wait">
@@ -339,36 +388,133 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
                 className="flex-1 flex flex-col lg:flex-row gap-8 items-stretch"
               >
                 
-                {/* Left Side: Slide Image Card */}
+                {/* Left Column: Interactive Image Frame / Suministro Multi-card */}
                 <div className="w-full lg:w-3/5 flex flex-col justify-between space-y-4">
-                  <div className="relative rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden shadow-inner group flex-1 min-h-[300px] flex items-center justify-center">
-                    {slideImages[activeTopic] ? (
+                  
+                  {/* View Mode controls Toolbar */}
+                  <div className="flex items-center justify-between bg-slate-50 border border-slate-200/60 p-2 rounded-2xl">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-2">Visualización de Diapositiva</span>
+                    <div className="flex gap-1.5 bg-slate-200/50 p-1 rounded-xl">
+                      <button
+                        onClick={() => setViewMode('cropped')}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+                          viewMode === 'cropped' 
+                            ? 'bg-white text-indigo-600 shadow-sm' 
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        <LayoutGrid size={12} />
+                        Gráfico Técnico (Recortado)
+                      </button>
+                      <button
+                        onClick={() => setViewMode('full')}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+                          viewMode === 'full' 
+                            ? 'bg-white text-indigo-600 shadow-sm' 
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        <Presentation size={12} />
+                        Slide Completa
+                      </button>
+                    </div>
+                  </div>
+
+                  {activeTopic === 'suministro' && viewMode === 'cropped' ? (
+                    /* Custom Three Suministro Columns displaying cropped images side by side */
+                    <div className="grid grid-cols-3 gap-3 flex-1 min-h-[300px]">
+                      {/* Individual Column */}
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex flex-col justify-between overflow-hidden relative shadow-sm group">
+                        <div className="relative overflow-hidden aspect-[1.1/1] bg-white border border-slate-100 rounded-xl">
+                          <img 
+                            src={slide1} 
+                            alt="Individual Sizing" 
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              transform: 'scale(2.9) translate(28%, 0%)',
+                              transformOrigin: 'center center'
+                            }}
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <div className="mt-3">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Suministro 1</span>
+                          <h4 className="text-xs font-black text-slate-800">Unitario Individual</h4>
+                        </div>
+                      </div>
+                      
+                      {/* Cascada Column */}
+                      <div className="bg-indigo-50/30 border border-indigo-100 rounded-2xl p-3 flex flex-col justify-between overflow-hidden relative shadow-sm group">
+                        <div className="relative overflow-hidden aspect-[1.1/1] bg-white border border-indigo-50/50 rounded-xl">
+                          <img 
+                            src={slide1} 
+                            alt="Cascade Sizing" 
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              transform: 'scale(2.9) translate(0%, 0%)',
+                              transformOrigin: 'center center'
+                            }}
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <div className="mt-3">
+                          <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block mb-0.5">Suministro 2</span>
+                          <h4 className="text-xs font-black text-slate-800">Modular en Cascada</h4>
+                        </div>
+                      </div>
+
+                      {/* Mixto Column */}
+                      <div className="bg-emerald-50/30 border border-emerald-100 rounded-2xl p-3 flex flex-col justify-between overflow-hidden relative shadow-sm group">
+                        <div className="relative overflow-hidden aspect-[1.1/1] bg-white border border-emerald-50/50 rounded-xl">
+                          <img 
+                            src={slide1} 
+                            alt="Mixed Sizing" 
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              transform: 'scale(2.9) translate(-28%, 0%)',
+                              transformOrigin: 'center center'
+                            }}
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <div className="mt-3">
+                          <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest block mb-0.5">Suministro 3</span>
+                          <h4 className="text-xs font-black text-slate-800">Mixto Acumulado</h4>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Standard Image container applying dynamic CSS crop transforms */
+                    <div className="relative rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden shadow-inner group flex-1 min-h-[300px] flex items-center justify-center">
                       <img 
                         src={slideImages[activeTopic]} 
                         alt={activeTopicObj?.title} 
-                        className="w-full h-full object-contain cursor-zoom-in"
+                        style={imageStyle}
                         onClick={() => setIsFullscreen(true)}
                         referrerPolicy="no-referrer"
                       />
-                    ) : (
-                      <div className="p-8 text-center text-slate-400 flex flex-col items-center">
-                        <Info size={32} className="mb-2" />
-                        <span className="text-xs font-bold uppercase">Sin imagen de diapositiva</span>
-                      </div>
-                    )}
-                    <button 
-                      onClick={() => setIsFullscreen(true)}
-                      className="absolute bottom-4 right-4 bg-slate-900/80 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      Expandir Diapositiva
-                    </button>
-                  </div>
+                      <button 
+                        onClick={() => setIsFullscreen(true)}
+                        className="absolute bottom-4 right-4 bg-slate-900/80 hover:bg-slate-900 text-white p-2 rounded-xl text-xs backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1.5 shadow-lg"
+                      >
+                        <Maximize2 size={14} />
+                        Expandir
+                      </button>
+                    </div>
+                  )}
+
                   <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
-                    👉 Haz clic en la imagen para verla en pantalla completa de alta definición.
+                    🔍 Haz clic sobre la imagen para abrir la proyección en pantalla completa (HD).
                   </div>
                 </div>
 
-                {/* Right Side: Structured Technical Explanation Notes for Technicians */}
+                {/* Right Column: Dynamic structured technical details for training and execution */}
                 <div className="w-full lg:w-2/5 flex flex-col justify-between border-l border-slate-100 lg:pl-8 space-y-6">
                   <div>
                     <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
@@ -378,7 +524,6 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
                       {activeTopicObj?.title.substring(activeTopicObj.title.indexOf(' ') + 1)}
                     </h3>
 
-                    {/* Explanation details matching current slide */}
                     <div className="text-xs text-slate-600 leading-relaxed font-medium space-y-4">
                       
                       {activeTopic === 'suministro' && (
@@ -520,15 +665,17 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
                           Utiliza el campo de búsqueda a la izquierda para filtrar la tabla de códigos de error reportados por la tarjeta electrónica. Esto agiliza el diagnóstico en campo de los técnicos.
                         </p>
                       ) : (
-                        <p>
-                          Consulte la diapositiva técnica en el visor para identificar esquemas de conexión, diámetros de chimenea, detalles del kit residencial de gas y características del intercambiador de cobre del calentador <strong>RINGASN32C</strong>.
-                        </p>
+                        activeTopic !== 'suministro' && activeTopic !== 'centralizar' && activeTopic !== 'criterios' && activeTopic !== 'modulacion' && activeTopic !== 'funcion_cascada' && activeTopic !== 'conexion_cascada' && activeTopic !== 'funcion_mixto' && activeTopic !== 'recirculacion' && (
+                          <p>
+                            Consulte el diagrama técnico en el visor de la izquierda para identificar componentes de conexión, diámetros de chimenea, detalles del kit residencial de gas y características de modulación del calentador <strong>RINGASN32C</strong>.
+                          </p>
+                        )
                       )}
 
                     </div>
                   </div>
 
-                  {/* Navigation buttons */}
+                  {/* Navigation controls */}
                   <div className="border-t border-slate-100 pt-6 flex justify-between gap-4 shrink-0">
                     <button
                       disabled={topics.findIndex(t => t.id === activeTopic) === 0}
@@ -556,7 +703,7 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
               </motion.div>
             </AnimatePresence>
 
-            {/* Special display for error codes below if it's the active topic */}
+            {/* Error codes table display */}
             {activeTopic === 'codigos_error' && (
               <div className="border-t border-slate-100 pt-6 mt-6 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -852,6 +999,7 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
               <img 
                 src={slideImages[activeTopic]} 
                 alt={activeTopicObj?.title} 
+                style={imageStyle} // Keep the selected cropped / full aspect ratio in fullscreen too!
                 className="max-w-full max-h-[85vh] object-contain"
                 referrerPolicy="no-referrer"
               />
