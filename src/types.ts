@@ -330,7 +330,7 @@ export interface CantonFairSupplier {
   createdAt: string;
 }
 
-export type ModuleId = 'rd_inventory' | 'ntp_regulations' | 'work_plan' | 'samples' | 'technical_datasheet' | 'commercial_datasheet' | 'artwork_followup' | 'commercial_artworks' | 'approved_technical_sheets' | 'approved_commercial_sheets' | 'applications' | 'supplier_master' | 'water_demand' | 'gas_heater_experimental' | 'records' | 'absorption_calculation' | 'temperature_loss' | 'brandbook' | 'energy_efficiency' | 'product_management' | 'calendar' | 'rd_projects' | 'calculations_dashboard' | 'innovation_proposals' | 'cr_ni_coating_analysis' | 'canton_fair' | 'oven_experimental' | 'user_management' | 'master_data' | 'quality_claims' | 'price_gmroi_simulator';
+export type ModuleId = 'rd_inventory' | 'ntp_regulations' | 'work_plan' | 'samples' | 'technical_datasheet' | 'commercial_datasheet' | 'artwork_followup' | 'commercial_artworks' | 'approved_technical_sheets' | 'approved_commercial_sheets' | 'applications' | 'supplier_master' | 'water_demand' | 'gas_heater_experimental' | 'records' | 'absorption_calculation' | 'temperature_loss' | 'brandbook' | 'energy_efficiency' | 'product_management' | 'calendar' | 'rd_projects' | 'calculations_dashboard' | 'innovation_proposals' | 'cr_ni_coating_analysis' | 'canton_fair' | 'oven_experimental' | 'user_management' | 'master_data' | 'quality_claims' | 'price_gmroi_simulator' | 'sizing_module';
 
 export interface OvenInspectionPoint {
   id: string;

@@ -43,6 +43,7 @@ import ProjectsModule from './components/ProjectsModule';
 import CalendarModule from './components/CalendarModule';
 import PriceGMROISimulator from './components/PriceGMROISimulator';
 import CalculationsDashboard from './components/CalculationsDashboard';
+import SizingModule from './components/SizingModule';
 import SolyAssistant from './components/SolyAssistant';
 import InnovationProposals from './components/InnovationProposals';
 import CrNiCoatingAnalysis from './components/CrNiCoatingAnalysis';
@@ -1181,7 +1182,9 @@ export default function App() {
       calendar: t('menu.calendar'),
       user_management: t('menu.users_permissions'),
       master_data: 'Maestro de Datos',
-      quality_claims: t('menu.quality_claims')
+      quality_claims: t('menu.quality_claims'),
+      price_gmroi_simulator: t('menu.price_gmroi_simulator'),
+      sizing_module: t('menu.sizing_module')
     };
 
     if (activeModule === 'user_management') {
@@ -1227,6 +1230,10 @@ export default function App() {
       return <ProjectsModule />;
     }
 
+
+    if (activeModule === 'sizing_module') {
+      return <SizingModule />;
+    }
 
     if (activeModule === 'calculations_dashboard') {
       return (

@@ -122,6 +122,7 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
         { id: 'product_management', label: t('menu.product_catalog'), icon: <ShoppingBag size={18} />, permission: 'catalog:view' },
         { id: 'energy_efficiency', label: t('menu.energy_efficiency'), icon: <Zap size={18} />, permission: 'efficiency:view' },
         { id: 'calculations_dashboard', label: t('menu.calculations_dashboard'), icon: <Layers size={18} />, permission: 'calculations:view' },
+        { id: 'sizing_module', label: t('menu.sizing_module'), icon: <Droplets size={18} />, permission: 'calculations:view' },
       ]
     },
     {
