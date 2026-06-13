@@ -561,10 +561,27 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                   margin={{ top: 20, right: 60, left: 20, bottom: 20 }}
                   onClick={(state) => {
                     if (state) {
-                      const activeItem = state.activePayload && state.activePayload[0]?.payload;
-                      const payload = activeItem?.payload || activeItem || state.payload || state;
-                      if (payload && typeof payload === 'object' && 'displayMonth' in payload) {
-                        setSelectedPointDetails(payload);
+                      let point = null;
+                      
+                      // 1. Try to find the point by activeTooltipIndex
+                      const index = state.activeTooltipIndex;
+                      if (index !== undefined && stats.performanceTimeline[index]) {
+                        point = stats.performanceTimeline[index];
+                      }
+                      
+                      // 2. Try to find the point by activeLabel
+                      if (!point && state.activeLabel) {
+                        point = stats.performanceTimeline.find(d => d.displayMonth === state.activeLabel);
+                      }
+                      
+                      // 3. Fallback to activePayload
+                      if (!point && state.activePayload && state.activePayload.length > 0) {
+                        const activeItem = state.activePayload[0].payload;
+                        point = activeItem?.payload || activeItem || state.payload;
+                      }
+
+                      if (point && typeof point === 'object' && 'displayMonth' in point) {
+                        setSelectedPointDetails(point);
                       }
                     }
                   }}
@@ -592,11 +609,18 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                     }}
                   />
                    <Tooltip 
+                    wrapperStyle={{ pointerEvents: 'auto', cursor: 'pointer', outline: 'none' }}
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
                         return (
-                          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl">
+                          <div 
+                            className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl cursor-pointer select-none active:scale-95 transition-transform"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPointDetails(data);
+                            }}
+                          >
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{data.displayMonth}</p>
                             <p className="text-sm font-black text-white mt-1">
                               Promedio: <span className="text-indigo-400 font-mono font-bold">{payload[0].value} días</span>
