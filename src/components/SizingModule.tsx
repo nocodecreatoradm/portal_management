@@ -3,10 +3,31 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Droplets, Target, Users, BarChart3, Clock, CheckCircle2, Shield, Info, 
   Activity, ChevronRight, ArrowLeft, RefreshCw, Zap, Book, ShieldAlert,
-  Flame, HelpCircle, FileText, Settings, Hammer, Sliders
+  Flame, HelpCircle, FileText, Settings, Hammer, Sliders, Play, Plus, ArrowRight
 } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
+
+// Import all slide images statically so Vite registers and bundles them
+import slide1 from '../assets/slides/slide1.png';
+import slide2 from '../assets/slides/slide2.png';
+import slide3 from '../assets/slides/slide3.png';
+import slide4 from '../assets/slides/slide4.png';
+import slide5 from '../assets/slides/slide5.png';
+import slide6 from '../assets/slides/slide6.png';
+import slide7 from '../assets/slides/slide7.png';
+import slide8 from '../assets/slides/slide8.png';
+import slide9 from '../assets/slides/slide9.png';
+import slide10 from '../assets/slides/slide10.png';
+import slide11 from '../assets/slides/slide11.png';
+import slide12 from '../assets/slides/slide12.png';
+import slide13 from '../assets/slides/slide13.png';
+import slide14 from '../assets/slides/slide14.png';
+import slide15 from '../assets/slides/slide15.png';
+import slide16 from '../assets/slides/slide16.png';
+import slide17 from '../assets/slides/slide17.png';
+import slide18 from '../assets/slides/slide18.png';
+import slide19 from '../assets/slides/slide19.png';
 
 interface SlideTopic {
   id: string;
@@ -15,10 +36,33 @@ interface SlideTopic {
   icon: React.ReactNode;
 }
 
-export default function SizingModule() {
+const slideImages: Record<string, string> = {
+  suministro: slide1,
+  centralizar: slide2,
+  criterios: slide3,
+  modulacion: slide4,
+  funcion_cascada: slide5,
+  conexion_cascada: slide6,
+  funcion_mixto: slide7,
+  recirculacion: slide8,
+  comparativa: slide9,
+  hardware_parts: slide10,
+  seguridad_32l: slide11,
+  comercial_line: slide12,
+  specs_32l: slide13,
+  instalacion_32l: slide14,
+  dimensiones_32l: slide15,
+  auto_diagnostico: slide16,
+  servovalvula_32l: slide17,
+  codigos_error: slide18,
+  kits_instalacion: slide19
+};
+
+export default function SizingModule({ onModuleChange }: { onModuleChange?: (module: string) => void }) {
   const [activeTab, setActiveTab] = useState<'info' | 'methods'>('info');
   const [activeTopic, setActiveTopic] = useState<string>('suministro');
   const [errorSearch, setErrorSearch] = useState<string>('');
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   // Sizing Calculator state
   const [calcMethod, setCalcMethod] = useState<'ashrae' | 'aspe'>('ashrae');
@@ -35,22 +79,25 @@ export default function SizingModule() {
   const [unitsCount, setUnitsCount] = useState<number>(80); // apartments, rooms, or beds
 
   const topics: SlideTopic[] = [
-    { id: 'suministro', title: 'Tres formas de suministro', category: 'context', icon: <Droplets size={16} /> },
-    { id: 'centralizar', title: '¿Por qué centralizar?', category: 'context', icon: <Target size={16} /> },
-    { id: 'criterios', title: 'Criterios de sustentación', category: 'context', icon: <Info size={16} /> },
-    { id: 'modulacion', title: 'Modulación y ahorro de gas', category: 'context', icon: <Zap size={16} /> },
-    { id: 'funcion_cascada', title: 'Sistema en cascada: Operación', category: 'cascade', icon: <Activity size={16} /> },
-    { id: 'conexion_cascada', title: 'Conexión y rotación en cascada', category: 'cascade', icon: <RefreshCw size={16} /> },
-    { id: 'funcion_mixto', title: 'Sistema mixto con acumulación', category: 'mixed', icon: <LayersIcon size={16} /> },
-    { id: 'recirculacion', title: 'Sistema de recirculación', category: 'mixed', icon: <RefreshCw size={16} /> },
-    { id: 'comparativa', title: 'Tradicional vs Centralizado Rinnai', category: 'context', icon: <BarChart3 size={16} /> },
-    { id: 'hardware_parts', title: 'Tecnología y partes internas', category: 'hardware', icon: <Hammer size={16} /> },
-    { id: 'seguridad_32l', title: 'Sistemas de seguridad (32L)', category: 'hardware', icon: <Shield size={16} /> },
-    { id: 'specs_32l', title: 'Especificaciones RINGASN32C', category: 'hardware', icon: <FileText size={16} /> },
-    { id: 'instalacion_32l', title: 'Instalación y dimensiones', category: 'hardware', icon: <Settings size={16} /> },
-    { id: 'auto_diagnostico', title: 'Autodiagnóstico y servoválvula', category: 'hardware', icon: <Activity size={16} /> },
-    { id: 'codigos_error', title: 'Tabla de códigos de error', category: 'hardware', icon: <ShieldAlert size={16} /> },
-    { id: 'kits_instalacion', title: 'Kits de instalación', category: 'hardware', icon: <Hammer size={16} /> }
+    { id: 'suministro', title: '1. Tres formas de suministro', category: 'context', icon: <Droplets size={16} /> },
+    { id: 'centralizar', title: '2. ¿Por qué centralizar?', category: 'context', icon: <Target size={16} /> },
+    { id: 'criterios', title: '3. Criterios de sustentación', category: 'context', icon: <Info size={16} /> },
+    { id: 'modulacion', title: '4. Modulación y ahorro de gas', category: 'context', icon: <Zap size={16} /> },
+    { id: 'funcion_cascada', title: '5. Sistema en cascada: Operación', category: 'cascade', icon: <Activity size={16} /> },
+    { id: 'conexion_cascada', title: '6. Conexión y rotación en cascada', category: 'cascade', icon: <RefreshCw size={16} /> },
+    { id: 'funcion_mixto', title: '7. Sistema mixto con acumulación', category: 'mixed', icon: <LayersIcon size={16} /> },
+    { id: 'recirculacion', title: '8. Sistema de recirculación', category: 'mixed', icon: <RefreshCw size={16} /> },
+    { id: 'comparativa', title: '9. Tradicional vs Centralizado Rinnai', category: 'context', icon: <BarChart3 size={16} /> },
+    { id: 'hardware_parts', title: '10. Tecnología y partes internas', category: 'hardware', icon: <Hammer size={16} /> },
+    { id: 'seguridad_32l', title: '11. Sistemas de seguridad (32L)', category: 'hardware', icon: <Shield size={16} /> },
+    { id: 'comercial_line', title: '12. Línea Comercial 32L', category: 'hardware', icon: <FileText size={16} /> },
+    { id: 'specs_32l', title: '13. Especificaciones RINGASN32C', category: 'hardware', icon: <FileText size={16} /> },
+    { id: 'instalacion_32l', title: '14. Instalación de chimeneas', category: 'hardware', icon: <Settings size={16} /> },
+    { id: 'dimensiones_32l', title: '15. Dimensiones y conexiones', category: 'hardware', icon: <Settings size={16} /> },
+    { id: 'auto_diagnostico', title: '16. Autodiagnóstico y tarjetas', category: 'hardware', icon: <Activity size={16} /> },
+    { id: 'servovalvula_32l', title: '17. Servoválvula de caudal', category: 'hardware', icon: <Activity size={16} /> },
+    { id: 'codigos_error', title: '18. Tabla de códigos de error', category: 'hardware', icon: <ShieldAlert size={16} /> },
+    { id: 'kits_instalacion', title: '19. Kits de instalación', category: 'hardware', icon: <Hammer size={16} /> }
   ];
 
   // Helper custom icon
@@ -98,8 +145,6 @@ export default function SizingModule() {
 
   // ASHRAE Calculator calculations
   const ashraeCalculations = useMemo(() => {
-    // Fixture units values from standard ASHRAE Table
-    // Private (residential) values
     const fuShowers = 1.5;
     const fuWashbasins = 0.75;
     const fuSinks = 1.5;
@@ -107,23 +152,12 @@ export default function SizingModule() {
     const totalAptFu = (showersPerApt * fuShowers) + (washbasinsPerApt * fuWashbasins) + (sinksPerApt * fuSinks);
     const totalFU = Math.round(apartments * totalAptFu * 100) / 100;
 
-    // Approximate probable demand using a curve approximation for Hunter's Curve (residential)
-    // Formula approximation for residential curve:
-    // Q_prob = 1.05 * FU^0.55 (valid for range FU > 10)
     let qProbGpm = 0;
     if (totalFU > 0) {
       qProbGpm = 1.05 * Math.pow(totalFU, 0.55);
     }
     const qProbLpm = qProbGpm * 3.78541; // Convert to L/min
-
-    // Heat calculation
-    // Power (kW) = Flow (L/min) * 60 * (Delta T) * Density (1 kg/L) * Cp (4.186 kJ/kg.C) / 3600
-    // Simplified: Power (kW) = Flow (L/min) * Delta T * 0.0697
     const powerKw = qProbLpm * tempDelta * 0.06978;
-
-    // Rinnai 32L heater capacity
-    // RINGASN32C capacity: 32 L/min at Delta T = 25C. 
-    // Power of one unit: 32 * 25 * 0.06978 = ~56 kW (nominal input is 58.3 kW)
     const heaterPowerKw = 56;
     const requiredHeaters = Math.ceil(powerKw / heaterPowerKw);
 
@@ -138,42 +172,36 @@ export default function SizingModule() {
 
   // ASPE Sizing parameters (Mixed Systems)
   const aspeCalculations = useMemo(() => {
-    // Hot water consumption parameters (liters/hour at 60C)
-    // and storage factors based on ASPE / ASHRAE standards
     let consPerUnit = 0; // L/h/unit
-    let storageFactor = 0; // ratio of storage tank size to total volume
-    let recoveryFactor = 0; // ratio of recovery heater capacity to total volume
+    let storageFactor = 0;
+    let recoveryFactor = 0;
     let label = '';
 
     switch (buildingType) {
       case 'hotel':
-        consPerUnit = 75; // 75 Liters per room per hour
+        consPerUnit = 75;
         storageFactor = 0.8; 
         recoveryFactor = 0.25;
         label = 'Habitaciones';
         break;
       case 'hospital':
-        consPerUnit = 110; // 110 Liters per bed per hour
+        consPerUnit = 110;
         storageFactor = 0.6;
         recoveryFactor = 0.4;
         label = 'Camas';
         break;
       case 'multifamily':
       default:
-        consPerUnit = 90; // 90 Liters per apartment per hour (assuming 2-3 bedrooms)
+        consPerUnit = 90;
         storageFactor = 1.2;
         recoveryFactor = 0.3;
         label = 'Departamentos';
         break;
     }
 
-    const peakHourDemand = unitsCount * consPerUnit; // Total demand during peak hour (Liters)
-    const storageTankVolume = peakHourDemand * storageFactor; // Recommended storage volume (Liters)
-    const recoveryRate = peakHourDemand * recoveryFactor; // Required recovery capacity (L/h)
-
-    // Recommended heaters needed for recovery
-    // Rinnai 32L heater heats 32 L/min at 25C. 
-    // At typical Delta T (e.g. 40C), recovery is 32 * (25/40) = 20 L/min = 1200 L/h per heater.
+    const peakHourDemand = unitsCount * consPerUnit;
+    const storageTankVolume = peakHourDemand * storageFactor;
+    const recoveryRate = peakHourDemand * recoveryFactor;
     const recoveryPerHeaterLh = 1200; 
     const requiredHeaters = Math.ceil(recoveryRate / recoveryPerHeaterLh);
 
@@ -186,20 +214,49 @@ export default function SizingModule() {
     };
   }, [buildingType, unitsCount]);
 
+  const activeTopicObj = topics.find(t => t.id === activeTopic);
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-12">
       
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200/50 pb-6">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 border-b border-slate-200/50 pb-6">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
             <Droplets className="text-indigo-600" size={32} />
             MÓDULO DE DIMENSIONAMIENTO Y SISTEMAS CENTRALIZADOS
           </h2>
           <p className="text-slate-500 font-medium mt-1 text-sm">
-            Diseño, teoría técnica, autodiagnóstico y calculadoras de dimensionamiento de sistemas de agua caliente Rinnai.
+            Herramienta pedagógica y técnica para explicar la modulación, la cascada y proceder a dimensionar el proyecto de agua caliente.
           </p>
         </div>
+
+        {/* Quick Sizing Calculator Entry (Matching card in screenshot) */}
+        {onModuleChange && (
+          <div 
+            onClick={() => onModuleChange('water_demand')}
+            className="flex items-center justify-between bg-white border border-slate-200 hover:border-indigo-400 hover:shadow-lg transition-all rounded-3xl p-5 cursor-pointer max-w-sm w-full group relative overflow-hidden"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                <Droplets size={20} />
+              </div>
+              <div className="space-y-0.5">
+                <h4 className="text-sm font-black text-slate-900">Dimensionamiento de Agua Caliente</h4>
+                <p className="text-[11px] text-slate-500 font-medium leading-tight">
+                  Cálculo de demanda simultánea y capacidad de almacenamiento requerida.
+                </p>
+                <div className="flex items-center gap-1 text-[11px] font-black text-indigo-600 uppercase tracking-widest pt-2">
+                  <span>INICIAR NUEVO</span>
+                  <Plus size={12} className="stroke-[3]" />
+                </div>
+              </div>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-slate-50 group-hover:bg-indigo-600 group-hover:text-white transition-all flex items-center justify-center text-slate-400 shrink-0 shadow-inner">
+              <ArrowRight size={16} />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -213,7 +270,7 @@ export default function SizingModule() {
           }`}
         >
           <Book size={16} />
-          Explicación y Manual Técnico de Sistemas
+          Explicación de Sistemas (Diapositivas)
         </button>
         <button
           onClick={() => setActiveTab('methods')}
@@ -224,7 +281,7 @@ export default function SizingModule() {
           }`}
         >
           <Sliders size={16} />
-          Métodos de Dimensionamiento (Calculadoras)
+          Calculadoras de Apoyo
         </button>
       </div>
 
@@ -232,26 +289,29 @@ export default function SizingModule() {
       {activeTab === 'info' ? (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
-          {/* Sizing Sidebar navigation */}
-          <div className="lg:col-span-1 space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200/60 max-h-[80vh] overflow-y-auto custom-scrollbar shadow-inner">
-            <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-3 mb-3">Temario Técnico</h3>
+          {/* Navigation Sidebar */}
+          <div className="lg:col-span-1 space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200/60 max-h-[82vh] overflow-y-auto custom-scrollbar shadow-inner">
+            <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-3 mb-3">Índice del Manual</h3>
             
             {(['context', 'cascade', 'mixed', 'hardware'] as const).map(cat => {
-              const catTitle = cat === 'context' ? 'Contexto de Centralización' :
+              const catTitle = cat === 'context' ? 'Contexto' :
                                cat === 'cascade' ? 'Sistemas en Cascada' :
-                               cat === 'mixed' ? 'Sistemas Mixtos y Recirculación' : 'Tecnología Calentador 32L';
+                               cat === 'mixed' ? 'Sistemas Mixtos' : 'Hardware RINGASN32C';
               
               const catTopics = topics.filter(t => t.category === cat);
               if (catTopics.length === 0) return null;
 
               return (
                 <div key={cat} className="space-y-1 mb-4">
-                  <span className="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider px-3 mb-1">{catTitle}</span>
+                  <span className="block text-[10px] font-black text-indigo-600 uppercase tracking-wider px-3 mb-1">{catTitle}</span>
                   {catTopics.map(t => (
                     <button
                       key={t.id}
-                      onClick={() => setActiveTopic(t.id)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2.5 ${
+                      onClick={() => {
+                        setActiveTopic(t.id);
+                        setIsFullscreen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2.5 ${
                         activeTopic === t.id 
                           ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10' 
                           : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900'
@@ -266,1065 +326,285 @@ export default function SizingModule() {
             })}
           </div>
 
-          {/* Slide Viewer Frame */}
-          <div className="lg:col-span-3 bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 shadow-sm min-h-[60vh] flex flex-col relative overflow-hidden">
+          {/* Slide Viewer Screen (Split-Screen / Premium layout) */}
+          <div className="lg:col-span-3 bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 shadow-sm min-h-[65vh] flex flex-col justify-between relative overflow-hidden">
             
-            {/* Background design accents */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full blur-3xl opacity-60 -z-10 -mr-20 -mt-20" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-50 rounded-full blur-3xl opacity-40 -z-10 -ml-20 -mb-20" />
-
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTopic}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="flex-1 flex flex-col justify-between"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.25 }}
+                className="flex-1 flex flex-col lg:flex-row gap-8 items-stretch"
               >
                 
-                {/* Topic: Suministro */}
-                {activeTopic === 'suministro' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 1 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">Tres formas de resolver el suministro de agua caliente</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-                      {/* Individual */}
-                      <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-6 flex flex-col justify-between shadow-sm">
-                        <div>
-                          <span className="inline-block px-3 py-1 bg-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-wider rounded-full mb-4">Individual</span>
-                          <h4 className="text-base font-black text-slate-800 mb-2">Un calentador por unidad</h4>
-                          <p className="text-slate-500 text-xs leading-relaxed">
-                            Solución sencilla en diseño, pero multiplica los ductos de evacuación de gases, incrementa los puntos de falla potenciales y dispersa los costos de mantenimiento a lo largo de todo el edificio.
-                          </p>
-                        </div>
-                        <div className="mt-6 border-t border-slate-200/60 pt-4 text-xs font-bold text-slate-400">
-                          Uso típico: Departamentos pequeños independientes.
-                        </div>
-                      </div>
-
-                      {/* Cascada */}
-                      <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-6 flex flex-col justify-between shadow-sm">
-                        <div>
-                          <span className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-wider rounded-full mb-4">Cascada de Paso Continuo</span>
-                          <h4 className="text-base font-black text-slate-800 mb-2">Operación Secuencial Modulante</h4>
-                          <p className="text-slate-500 text-xs leading-relaxed font-medium">
-                            Varios calentadores de paso continuo trabajan de forma secuencial y coordinada según la demanda de caudal instantáneo. Alta eficiencia energética para proyectos con consumo sumamente variable.
-                          </p>
-                        </div>
-                        <div className="mt-6 border-t border-indigo-100 pt-4 text-xs font-black text-indigo-600 uppercase tracking-widest">
-                          Apto para: Edificios, Condominios, Viviendas de alta densidad.
-                        </div>
-                      </div>
-
-                      {/* Mixto */}
-                      <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-6 flex flex-col justify-between shadow-sm">
-                        <div>
-                          <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-wider rounded-full mb-4">Mixto con Acumulación</span>
-                          <h4 className="text-base font-black text-slate-800 mb-2">Calentadores + Tanque de Acumulación</h4>
-                          <p className="text-slate-500 text-xs leading-relaxed">
-                            Combina calentadores modulantes con tanques acumuladores termo-aislados. Responde con la máxima estabilidad hidráulica ante picos de demanda masivos concentrados en periodos muy breves de tiempo.
-                          </p>
-                        </div>
-                        <div className="mt-6 border-t border-emerald-100 pt-4 text-xs font-black text-emerald-600 uppercase tracking-widest">
-                          Apto para: Hoteles, Hospitales, Gimnasios, Proyectos Horeca.
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-900 text-white rounded-2xl p-5 mt-6 flex items-center gap-4 border border-slate-800">
-                      <div className="w-12 h-12 rounded-xl bg-indigo-600/10 text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20">
-                        <Info size={24} />
-                      </div>
-                      <p className="text-xs font-medium leading-relaxed text-slate-300">
-                        <strong className="text-white block font-bold text-sm uppercase tracking-wide mb-0.5">Sistemas Rinnai Centralizados</strong>
-                        La tecnología de cascada Rinnai optimiza el espacio y el consumo de combustible, activando proporcionalmente los calentadores conforme fluye la demanda, en lugar de prender calderas masivas de acumulación.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Topic: Centralizar */}
-                {activeTopic === 'centralizar' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 2 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">¿Por qué hablar de sistemas centralizados?</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-                      {/* Dolores del Proyecto */}
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-black text-red-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-red-500" />
-                          Dolores frecuentes en proyectos
-                        </h4>
-                        
-                        <div className="space-y-3">
-                          {[
-                            'Mayor densidad de departamentos y consumo simultáneo concentrado en horas punta.',
-                            'Espacios de instalación de ducterías limitados o confinados, con peligro de acumulación de CO por falta de oxígeno.',
-                            'Usuarios exigentes que esperan agua caliente inmediata, estable y con presión uniforme en las griferías.',
-                            'Puntos críticos de mantenimiento dispersos que incrementan riesgos operativos y costos de repuestos.',
-                            'Presión gubernamental e inmobiliaria por optimizar la eficiencia energética del edificio completo.'
-                          ].map((dolor, i) => (
-                            <div key={i} className="flex gap-3 bg-red-50/20 border border-red-100/30 p-3.5 rounded-xl">
-                              <span className="text-xs font-black text-red-500">{i+1}.</span>
-                              <p className="text-slate-600 text-xs font-semibold leading-relaxed">{dolor}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Oportunidad Comercial */}
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-black text-emerald-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          Oportunidad comercial de valor
-                        </h4>
-
-                        <div className="space-y-3">
-                          {[
-                            'Migrar de la venta de calentadores unitarios a una solución de ingeniería integral del edificio o proyecto completo.',
-                            'Incorporar diseño de ingeniería, control automático, recirculación de agua y soporte técnico especializado.',
-                            'Posicionar y diferenciar la marca Rinnai en proyectos inmobiliarios multifamiliares y del sector Horeca.',
-                            'Incrementar significativamente el ticket de venta, fidelización del cliente y asegurar especificaciones en planos.'
-                          ].map((op, i) => (
-                            <div key={i} className="flex gap-3 bg-emerald-50/20 border border-emerald-100/30 p-3.5 rounded-xl">
-                              <span className="text-xs font-black text-emerald-500">✓</span>
-                              <p className="text-slate-600 text-xs font-semibold leading-relaxed">{op}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-indigo-600 text-white rounded-2xl p-6 mt-6 border border-indigo-700 shadow-md">
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 bg-white/10 rounded-xl">
-                          <Target size={24} />
-                        </div>
-                        <div>
-                          <span className="block text-[10px] font-black uppercase tracking-widest opacity-80">Idea Clave de Ingeniería</span>
-                          <p className="text-base font-black mt-0.5 leading-snug">
-                            "Centralizar no es usar más equipos, es dimensionar mejor la solución de suministro del edificio o proyecto."
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Topic: Criterios */}
-                {activeTopic === 'criterios' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 3 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">Criterios para sustentar la centralización</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-                      <div className="space-y-4">
-                        <p className="text-slate-600 text-xs leading-relaxed">
-                          Para sustentar técnicamente una central de agua caliente, no basta con comparar el precio bruto de los equipos. Es necesario analizar a profundidad las variables de caudal probable, potencia, modulación y eficiencia:
-                        </p>
-
-                        <div className="space-y-3">
-                          {[
-                            'Comparar las tres arquitecturas de diseño (individual, cascada, y mixta con acumulación) según el tipo de cliente.',
-                            'Convertir la demanda teórica del proyecto en caudal probable, potencia térmica de recuperación y cantidad real de equipos.',
-                            'Sustentar técnica y comercialmente la propuesta ante inmobiliarias, instaladores y gerencias de operaciones.',
-                            'Evaluar el costo/beneficio a largo plazo en mantenimiento, control centralizado y vida útil del intercambiador de calor.',
-                            'Caso de referencia representativo: Reemplazar 96 calentadores individuales de 10 L/min por una central en cascada Rinnai de 11 equipos de 32 L, logrando un ahorro masivo de espacio y ductería.'
-                          ].map((crit, i) => (
-                            <div key={i} className="flex gap-3 bg-slate-50 border border-slate-200/50 p-3.5 rounded-xl shadow-inner">
-                              <span className="w-5 h-5 rounded-full bg-indigo-600/10 text-indigo-600 text-[10px] font-black flex items-center justify-center shrink-0">{i+1}</span>
-                              <p className="text-slate-600 text-xs font-semibold leading-relaxed">{crit}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Hunter Curves & Modulation Details */}
-                      <div className="space-y-6">
-                        <div className="bg-slate-950 text-white rounded-2xl p-6 border border-slate-800 space-y-4">
-                          <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
-                            1. Demanda Probable (Curvas Hunter)
-                          </h4>
-                          <p className="text-slate-400 text-xs leading-relaxed">
-                            Las <strong>CURVAS HUNTER</strong> permiten estimar de forma probabilística el caudal simultáneo máximo a partir de las "unidades de aparato sanitario" del edificio, evitando sobre-dimensionar los sistemas por simultaneidad total (lo que resulta en centrales gigantescas e ineficientes).
-                          </p>
-                          <div className="border-t border-slate-800 pt-3">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Método Recomendado</span>
-                            <span className="text-xs font-semibold text-slate-300 block">Curvas Hunter revisadas - ASHRAE HVAC</span>
-                          </div>
-                        </div>
-
-                        <div className="bg-slate-950 text-white rounded-2xl p-6 border border-slate-800 space-y-4">
-                          <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                            2. Modulación según demanda real
-                          </h4>
-                          <p className="text-slate-400 text-xs leading-relaxed">
-                            A través del control MSB de Rinnai, el sistema activa de forma modular <strong>únicamente los calentadores estrictamente necesarios</strong> para la demanda instantánea de agua. Esto cubre perfectamente los picos de consumo matutinos y apaga quemadores en las horas valle.
-                          </p>
-                          <div className="border-t border-slate-800 pt-3">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Beneficio</span>
-                            <span className="text-xs font-semibold text-emerald-400 block">Reducción del uso de gas en horas de bajo consumo</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-indigo-900 text-indigo-100 rounded-2xl p-5 border border-indigo-800 mt-4">
-                      <p className="text-xs font-bold text-center uppercase tracking-widest leading-relaxed">
-                        💡 Idea Clave: "La centralización se dimensiona por demanda probable (Hunter) y se optimiza mediante modulación, no por simultaneidad total."
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Topic: Modulacion */}
-                {activeTopic === 'modulacion' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 4 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">¿Cómo funciona la modulación?</h3>
-                    </div>
-
-                    <p className="text-slate-600 text-xs leading-relaxed">
-                      La modulación adaptativa ajusta continuamente la inyección de gas y aire en el quemador para adecuar la entrega de calor al caudal real de agua que pasa por el calentador en cada instante:
-                    </p>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-4 items-center">
-                      {/* Graphics Simulation */}
-                      <div className="lg:col-span-8 bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Comparación de consumo de gas a lo largo del día (24h)</span>
-                          <div className="flex gap-4">
-                            <span className="flex items-center gap-1.5 text-xs text-red-500 font-bold">
-                              <span className="w-2.5 h-0.5 bg-red-500 inline-block" /> Caldera (Tradicional)
-                            </span>
-                            <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-bold">
-                              <span className="w-2.5 h-0.5 bg-emerald-400 inline-block" /> Rinnai Modulante
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Interactive Graph mock */}
-                        <div className="h-44 border-l border-b border-slate-800 relative flex items-end pt-4 pb-2">
-                          {/* Y-axis label */}
-                          <div className="absolute left-1 top-2 text-[8px] text-slate-500 font-black uppercase origin-left rotate-90 translate-y-6">
-                            Consumo de Gas
-                          </div>
-                          
-                          {/* Boiler Line (high, flat line with cycles) */}
-                          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                            {/* Boiler consumption (constant flat red area) */}
-                            <path d="M 0 45 L 10 45 L 20 42 L 30 46 L 40 43 L 50 44 L 60 41 L 70 45 L 80 43 L 90 42 L 100 45" fill="none" stroke="#ef4444" strokeWidth="2.5" />
-                            {/* Rinnai consumption (curved green line matching demand) */}
-                            <path d="M 0 95 L 10 90 L 20 85 L 25 20 L 30 15 L 35 30 L 40 70 L 50 90 L 55 92 L 60 85 L 70 40 L 75 35 L 80 45 L 90 85 L 100 95" fill="none" stroke="#10b981" strokeWidth="3" />
-                          </svg>
-
-                          {/* X-axis indicators */}
-                          <div className="absolute bottom-[-18px] left-0 w-full flex justify-between text-[8px] font-bold text-slate-500 px-2">
-                            <span>01:00</span>
-                            <span>06:00 (Pico)</span>
-                            <span>12:00</span>
-                            <span>18:00 (Pico)</span>
-                            <span>24:00</span>
-                          </div>
-
-                          {/* Savings indicator shaded area */}
-                          <div className="absolute left-[38%] top-[50%] bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-emerald-400 text-[9px] font-black uppercase tracking-wider text-center">
-                            Ahorro de gas en horas valle
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Explanation card */}
-                      <div className="lg:col-span-4 space-y-4">
-                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 text-emerald-400 space-y-2">
-                          <h4 className="text-xs font-black uppercase tracking-widest flex items-center gap-1.5">
-                            <CheckCircle2 size={16} />
-                            Beneficio Clave
-                          </h4>
-                          <p className="text-slate-600 text-xs leading-relaxed font-semibold">
-                            La modulación continua permite ajustar dinámicamente el consumo de gas a la demanda real instantánea, eliminando por completo las pérdidas térmicas por mantenimiento de temperatura en calderas o tanques durante los periodos de baja demanda.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Topic: Funcion Cascada */}
-                {activeTopic === 'funcion_cascada' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 5 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">Sistema en cascada: Lógica de operación</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-black text-indigo-600 uppercase tracking-widest">Lógica de operación y control</h4>
-                        <ul className="space-y-3">
-                          {[
-                            'El sistema activa SOLAMENTE los calentadores estrictamente necesarios según el caudal y la demanda real instantánea de griferías.',
-                            'Los equipos trabajan de forma coordinada y secuencial para evitar encendidos o consumos innecesarios de gas en horas valle.',
-                            'Si una unidad requiere mantenimiento preventivo o correctivo, se puede aislar físicamente; el resto del sistema continuará operando normalmente.',
-                            'El control centralizado MSB permite administrar la temperatura y el monitoreo de alarmas del sistema completo desde un solo control digital.'
-                          ].map((point, i) => (
-                            <li key={i} className="flex gap-2.5 items-start">
-                              <span className="text-emerald-500 mt-0.5 font-bold">✓</span>
-                              <p className="text-slate-600 text-xs font-semibold leading-relaxed">{point}</p>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 mt-6">
-                          <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-2">¿Cuándo conviene diseñar en Cascada?</h5>
-                          <p className="text-slate-500 text-xs leading-relaxed">
-                            Proyectos comerciales y residenciales con <strong>consumo continuo distribuido</strong> a lo largo del día: edificios multifamiliares, vestuarios de industrias, gimnasios corporativos y centros comerciales.
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* 5 key cards */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-4 shadow-sm">
-                          <span className="block text-xs font-black text-slate-900 mb-1">1. Operación Continua</span>
-                          <span className="text-[10px] text-slate-500 leading-normal block">Respaldo mutuo: si una unidad se apaga, las demás asumen el caudal sin interrupciones.</span>
-                        </div>
-                        <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-4 shadow-sm">
-                          <span className="block text-xs font-black text-slate-900 mb-1">2. Eficiencia Energética</span>
-                          <span className="text-[10px] text-slate-500 leading-normal block">Activación secuencial modulante según caudal real de agua.</span>
-                        </div>
-                        <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-4 shadow-sm">
-                          <span className="block text-xs font-black text-slate-900 mb-1">3. Sistema Escalable</span>
-                          <span className="text-[10px] text-slate-500 leading-normal block">Permite interconectar múltiples equipos Rinnai fácilmente.</span>
-                        </div>
-                        <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-4 shadow-sm">
-                          <span className="block text-xs font-black text-slate-900 mb-1">4. Ahorro de Espacio</span>
-                          <span className="text-[10px] text-slate-500 leading-normal block">Equipos compactos de montaje mural, liberando área útil de azotea o sótano.</span>
-                        </div>
-                        <div className="bg-slate-950 text-white rounded-2xl p-4 shadow-sm sm:col-span-2 flex items-center gap-3">
-                          <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400 shrink-0">
-                            <Settings size={18} />
-                          </div>
-                          <div>
-                            <span className="block text-xs font-black text-white">5. Control Inteligente</span>
-                            <span className="text-[10px] text-slate-400 leading-normal block">Gestión y monitoreo de todo el sistema integrado desde un control maestro.</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Topic: Conexion Cascada */}
-                {activeTopic === 'conexion_cascada' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 6 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">Conexión, cableado y lógica de rotación</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
-                      {/* Left Side: objectives & details */}
-                      <div className="space-y-6">
-                        <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-5 space-y-4">
-                          <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                            <Target size={16} className="text-indigo-600" />
-                            Objetivos de la conexión en cascada
-                          </h4>
-                          
-                          <div className="space-y-2">
-                            <div className="flex gap-2 text-xs font-semibold text-slate-600">
-                              <span className="text-emerald-500">✓</span>
-                              <span>Permite interconectar <strong>hasta 25 calentadores</strong> Rinnai trabajando como una sola central.</span>
-                            </div>
-                            <div className="flex gap-2 text-xs font-semibold text-slate-600">
-                              <span className="text-emerald-500">✓</span>
-                              <span>Lógica de control que <strong>rota la operación</strong> entre los equipos para balancear las horas de uso y desgaste de los componentes.</span>
-                            </div>
-                            <div className="flex gap-2 text-xs font-semibold text-slate-600">
-                              <span className="text-emerald-500">✓</span>
-                              <span>Todos los equipos del sistema modulan proporcionalmente su llama según el caudal requerido.</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-5">
-                          <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-3 flex items-center gap-2">
-                            <Sliders size={16} className="text-indigo-600" />
-                            Accesorios de Cableado
-                          </h4>
-                          <p className="text-slate-500 text-xs leading-relaxed font-medium">
-                            Se requiere un cable de cascada específico por cada calentador de agua.
-                          </p>
-                          <ul className="text-xs text-slate-500 font-semibold space-y-1 mt-2 list-disc list-inside">
-                            <li>Longitudes disponibles: 3 m (10 ft) y 8 m (26 ft).</li>
-                            <li>Incluye 1 cable de comunicación y 2 puentes de cascada (Jumpers).</li>
-                          </ul>
-                        </div>
-                      </div>
-
-                      {/* Right Side: Rotation Logic */}
-                      <div className="bg-slate-950 text-white rounded-2xl p-6 border border-slate-800 space-y-6 flex flex-col justify-between">
-                        <div className="space-y-3">
-                          <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest">Lógica de equipos en espera y rotación</h4>
-                          <p className="text-slate-400 text-xs leading-relaxed">
-                            Es posible configurar hasta 3 unidades en espera (standby). Conforme aumenta la demanda de caudal, las unidades adicionales abren sus servoválvulas internas de agua y entran en funcionamiento secuencial.
-                          </p>
-                          
-                          <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Ciclo de Rotación Automática</span>
-                            <p className="text-xs text-slate-300 font-mono">
-                              Rotación: 1,2,3 → 2,3,4 → 3,4,5 → 4,5,1 → 5,1,2 → 1,2,3
-                            </p>
-                            <span className="text-[9px] text-slate-500 leading-normal block">
-                              La rotación se ejecuta en cada ciclo de combustión para dividir la carga de manera uniforme entre todos los equipos.
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="border-t border-slate-800 pt-4 text-xs font-bold text-indigo-400 uppercase tracking-widest">
-                          💡 La cascada permite una operación equilibrada y controlada.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Topic: Funcion Mixto */}
-                {activeTopic === 'funcion_mixto' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 7 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">Sistemas mixtos con acumulación</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-black text-indigo-600 uppercase tracking-widest">Lógica de operación del sistema mixto</h4>
-                        <p className="text-slate-600 text-xs leading-relaxed">
-                          Combina calentadores de paso continuo modulantes Rinnai con tanques de almacenamiento termo-aislados. Los tanques de acumulación actúan como colchón térmico para absorber picos repentinos de consumo masivo, asegurando estabilidad de temperatura sin caídas de presión en la red de distribución.
-                        </p>
-
-                        <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 mt-4">
-                          <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-2">¿Cuándo conviene diseñar sistemas mixtos?</h5>
-                          <ul className="text-xs text-slate-500 font-semibold space-y-1 list-disc list-inside">
-                            <li>Proyectos del sector Horeca: Hoteles, hospitales, grandes resorts y clubes deportivos.</li>
-                            <li>Demandas extremadamente concentradas en horarios específicos del día (horas punta masivas).</li>
-                            <li>Necesidad de respuesta hidráulica inmediata con alta inercia térmica disponible en red.</li>
-                          </ul>
-                        </div>
-                      </div>
-
-                      {/* 5 key cards */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-4 shadow-sm">
-                          <span className="block text-xs font-black text-slate-900 mb-1">1. Respuesta Inmediata</span>
-                          <span className="text-[10px] text-slate-500 leading-normal block">El agua acumulada cubre consumos simultáneos instantáneos sin variaciones térmicas.</span>
-                        </div>
-                        <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-4 shadow-sm">
-                          <span className="block text-xs font-black text-slate-900 mb-1">2. Estabilidad Hidráulica</span>
-                          <span className="text-[10px] text-slate-500 leading-normal block">Mantiene presión y temperatura estables incluso ante grandes demandas.</span>
-                        </div>
-                        <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-4 shadow-sm">
-                          <span className="block text-xs font-black text-slate-900 mb-1">3. Optimización de Calentadores</span>
-                          <span className="text-[10px] text-slate-500 leading-normal block">Los calentadores operan a máxima eficiencia cargando el tanque según consumo requerido.</span>
-                        </div>
-                        <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-4 shadow-sm">
-                          <span className="block text-xs font-black text-slate-900 mb-1">4. Mayor Confort</span>
-                          <span className="text-[10px] text-slate-500 leading-normal block">Suministro estable e ininterrumpido en todos los puntos de uso.</span>
-                        </div>
-                        <div className="bg-slate-950 text-white rounded-2xl p-4 shadow-sm sm:col-span-2 flex items-center gap-3">
-                          <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400 shrink-0">
-                            <Settings size={18} />
-                          </div>
-                          <div>
-                            <span className="block text-xs font-black text-white">5. Flexibilidad de diseño</span>
-                            <span className="text-[10px] text-slate-400 leading-normal block">Permite configurar capacidades de almacenamiento y potencia según el perfil del proyecto.</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Topic: Recirculacion */}
-                {activeTopic === 'recirculacion' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 8 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">Sistemas de recirculación de agua caliente</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
-                      <div className="space-y-4">
-                        <p className="text-slate-600 text-xs leading-relaxed font-semibold">
-                          Un sistema de recirculación mantiene el agua caliente en constante movimiento por la red de tuberías de distribución del edificio, retornándola a la central térmica:
-                        </p>
-
-                        <div className="space-y-3">
-                          <div className="flex gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/50">
-                            <Clock size={20} className="text-indigo-600 shrink-0" />
-                            <p className="text-slate-600 text-xs leading-relaxed">
-                              <strong>Eliminación de esperas:</strong> Reduce drásticamente el tiempo de espera por agua caliente en las griferías más alejadas de la central.
-                            </p>
-                          </div>
-                          <div className="flex gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/50">
-                            <RefreshCw size={20} className="text-indigo-600 shrink-0" />
-                            <p className="text-slate-600 text-xs leading-relaxed">
-                              <strong>Línea de retorno:</strong> Requiere una tubería de retorno que conecte el final de la red de agua caliente de vuelta al calentador.
-                            </p>
-                          </div>
-                          <div className="flex gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/50">
-                            <Activity size={20} className="text-indigo-600 shrink-0" />
-                            <p className="text-slate-600 text-xs leading-relaxed">
-                              <strong>Componentes recomendados:</strong> Incorporar una bomba circuladora controlada por termostato y un tanque de expansión para absorber presiones en red.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Return Temperature Criteria */}
-                      <div className="bg-slate-950 text-white rounded-2xl p-6 border border-slate-800 flex flex-col justify-between">
-                        <div className="space-y-4">
-                          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Criterio Técnico Recomendado</span>
-                          <h4 className="text-base font-black text-white">Rangos de Temperatura de Retorno</h4>
-                          
-                          <p className="text-slate-400 text-xs leading-relaxed">
-                            Para asegurar el confort térmico inmediato del usuario y evitar pérdidas de energía excesivas, la bomba de recirculación debe programarse para mantener la red de retorno dentro de rangos controlados:
-                          </p>
-                          
-                          <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-400">Rango Recomendado de Retorno:</span>
-                            <span className="text-xl font-mono font-black text-emerald-400">45°C - 50°C</span>
-                          </div>
-                          <p className="text-[10px] text-slate-500 leading-normal">
-                            Este rango minimiza la formación de incrustaciones de calcio, inhibe el crecimiento bacteriano y evita sobrecargar de ciclos de encendido a los calentadores.
-                          </p>
-                        </div>
-
-                        <div className="border-t border-slate-800 pt-4 text-xs font-bold text-slate-400">
-                          Temperatura de salida en central: 55°C - 60°C.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Topic: Comparativa */}
-                {activeTopic === 'comparativa' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 9 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">Aplicación hotelera: Tradicional vs Centralizado Rinnai</h3>
-                    </div>
-
-                    <p className="text-slate-600 text-xs leading-relaxed font-semibold">
-                      En muchos hoteles grandes todavía se operan calderas de piso masivas combinadas con tanques acumuladores gigantes. La centralización modular con equipos Rinnai introduce cambios significativos:
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                      {/* Boiler */}
-                      <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-6 space-y-4">
-                        <span className="text-xs font-black text-red-500 uppercase tracking-widest block">Sistema Tradicional (Caldera)</span>
-                        
-                        <ul className="text-xs text-slate-600 font-semibold space-y-2 list-disc list-inside">
-                          <li><strong>Mayor volumen físico:</strong> Ocupa grandes salas de máquinas dedicadas.</li>
-                          <li><strong>Poca flexibilidad:</strong> Incapaz de modular de forma eficiente ante demandas bajas, manteniendo agua caliente acumulada innecesariamente.</li>
-                          <li><strong>Mantenimiento concentrado:</strong> Si la caldera falla, el hotel completo se queda sin suministro.</li>
-                        </ul>
-                      </div>
-
-                      {/* Rinnai */}
-                      <div className="bg-indigo-950/20 border border-indigo-100 rounded-2xl p-6 space-y-4">
-                        <span className="text-xs font-black text-indigo-600 uppercase tracking-widest block">Sistema en Cascada Rinnai</span>
-                        
-                        <ul className="text-xs text-slate-700 font-semibold space-y-2 list-disc list-inside">
-                          <li><strong>Ahorro de espacio:</strong> Montaje mural compacto en cascada.</li>
-                          <li><strong>Redundancia operativa total:</strong> Mantenimiento sin interrumpir el servicio.</li>
-                          <li><strong>Modulación precisa:</strong> Encendido proporcional según caudal real.</li>
-                          <li><strong>Rotación automática:</strong> Desgaste equilibrado de los calentadores.</li>
-                        </ul>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-900 text-white rounded-2xl p-6 mt-6 border border-slate-800">
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div className="text-xs font-medium text-slate-300 leading-relaxed max-w-xl">
-                          <strong className="text-white block font-bold text-sm uppercase mb-1">Para hotelería, la centralización Rinnai:</strong>
-                          No solo reemplaza equipos, sino que convierte la producción de agua caliente en una <strong>solución controlada, eficiente, escalable y con ahorro demostrable</strong> en el consumo de gas.
-                        </div>
-                        <div className="flex gap-3 shrink-0">
-                          {['Respaldo', 'Menor Costo', 'Eficiencia'].map((ind, i) => (
-                            <span key={i} className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-[10px] font-black uppercase text-slate-300">
-                              {ind}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Topic: Hardware Parts */}
-                {activeTopic === 'hardware_parts' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 10 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">Tecnología y partes del calentador 32L</h3>
-                    </div>
-
-                    <p className="text-slate-600 text-xs leading-relaxed font-semibold">
-                      Los calentadores Rinnai de la línea comercial están construidos con materiales de grado industrial diseñados para alta exigencia operativa:
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-                      {/* Component 1 */}
-                      <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 shadow-sm space-y-2">
-                        <span className="text-xs font-black text-indigo-600 uppercase tracking-widest block">Ducto de evacuación</span>
-                        <h4 className="text-sm font-black text-slate-800">Acero Inoxidable 304</h4>
-                        <p className="text-slate-500 text-xs leading-relaxed">
-                          Ducto de gases resistente a la corrosión de condensados y altas temperaturas, asegurando una larga vida útil sin perforaciones o fugas.
-                        </p>
-                      </div>
-
-                      {/* Component 2 */}
-                      <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 shadow-sm space-y-2">
-                        <span className="text-xs font-black text-indigo-600 uppercase tracking-widest block">Transferencia térmica</span>
-                        <h4 className="text-sm font-black text-slate-800">Intercambiador de cobre</h4>
-                        <p className="text-slate-500 text-xs leading-relaxed">
-                          Intercambiador de calor fabricado con cobre de alta pureza para lograr una transferencia de calor ultra-rápida y resistencia a choque térmico.
-                        </p>
-                      </div>
-
-                      {/* Component 3 */}
-                      <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 shadow-sm space-y-2">
-                        <span className="text-xs font-black text-indigo-600 uppercase tracking-widest block">Combustión</span>
-                        <h4 className="text-sm font-black text-slate-800">Quemador de alta eficiencia</h4>
-                        <p className="text-slate-500 text-xs leading-relaxed">
-                          Quemador de premezcla de gas y aire que maximiza el rendimiento térmico y reduce el consumo de gas y emisiones contaminantes.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-950 text-white rounded-2xl p-5 border border-slate-800 mt-4 flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20">
-                        <Flame size={20} />
-                      </div>
-                      <p className="text-xs font-medium leading-relaxed text-slate-400">
-                        <strong>Estructura Interna del Calentador:</strong> Incluye además electroválvulas de gas para control de flujo preciso, ventilador DC de tiro forzado para evacuación silenciosa y una tarjeta electrónica inteligente con microprocesador integrado.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Topic: Seguridad 32l */}
-                {activeTopic === 'seguridad_32l' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 11 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">Sistemas de seguridad del calentador 32L</h3>
-                    </div>
-
-                    <p className="text-slate-600 text-xs leading-relaxed">
-                      El calentador Rinnai de 32L incorpora 6 sistemas de seguridad electrónicos redundantes para garantizar el correcto funcionamiento y proteger la integridad de la red de tuberías y de los usuarios:
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-                      <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 shadow-sm space-y-2">
-                        <span className="w-6 h-6 rounded-full bg-indigo-600/10 text-indigo-600 text-xs font-black flex items-center justify-center">1</span>
-                        <h4 className="text-sm font-black text-slate-800">Termostato bimetálico</h4>
-                        <p className="text-slate-500 text-xs leading-relaxed">
-                          Dispositivo térmico que corta el paso de gas si la temperatura del cuerpo alcanza 97°C. Detiene el equipo y reporta código de error 14.
-                        </p>
-                      </div>
-
-                      <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 shadow-sm space-y-2">
-                        <span className="w-6 h-6 rounded-full bg-indigo-600/10 text-indigo-600 text-xs font-black flex items-center justify-center">2</span>
-                        <h4 className="text-sm font-black text-slate-800">Fusible térmico</h4>
-                        <p className="text-slate-500 text-xs leading-relaxed">
-                          Fusible protector que se rompe físicamente si la temperatura excede los 221°C. Detiene el equipo y reporta código de error 14.
-                        </p>
-                      </div>
-
-                      <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 shadow-sm space-y-2">
-                        <span className="w-6 h-6 rounded-full bg-indigo-600/10 text-indigo-600 text-xs font-black flex items-center justify-center">3</span>
-                        <h4 className="text-sm font-black text-slate-800">Termistor de Intercambiador</h4>
-                        <p className="text-slate-500 text-xs leading-relaxed">
-                          Sensor digital que mide constantemente la salida del intercambiador. Si detecta sobrecalentamiento a 95°C, para el equipo de inmediato.
-                        </p>
-                      </div>
-
-                      <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 shadow-sm space-y-2">
-                        <span className="w-6 h-6 rounded-full bg-indigo-600/10 text-indigo-600 text-xs font-black flex items-center justify-center">4</span>
-                        <h4 className="text-sm font-black text-slate-800">Sensor de flama</h4>
-                        <p className="text-slate-500 text-xs leading-relaxed">
-                          Mide la ionización de la llama. Si detecta ausencia de fuego, cierra de inmediato la válvula de gas de seguridad y reporta error 12.
-                        </p>
-                      </div>
-
-                      <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 shadow-sm space-y-2">
-                        <span className="w-6 h-6 rounded-full bg-indigo-600/10 text-indigo-600 text-xs font-black flex items-center justify-center">5</span>
-                        <h4 className="text-sm font-black text-slate-800">Fusible electrónico</h4>
-                        <p className="text-slate-500 text-xs leading-relaxed">
-                          Fusible de 5 Amperes ubicado en la placa electrónica para proteger la circuitería de control contra sobre-corrientes o cortocircuitos.
-                        </p>
-                      </div>
-
-                      <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 shadow-sm space-y-2">
-                        <span className="w-6 h-6 rounded-full bg-indigo-600/10 text-indigo-600 text-xs font-black flex items-center justify-center">6</span>
-                        <h4 className="text-sm font-black text-slate-800">Varistor</h4>
-                        <p className="text-slate-500 text-xs leading-relaxed">
-                          Componente de protección contra picos de voltaje transitorios en la red eléctrica comercial (220V).
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Topic: Specs 32l */}
-                {activeTopic === 'specs_32l' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 12 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">Especificaciones técnicas RINGASN32C</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-                      {/* Specifications Table */}
-                      <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm bg-slate-50">
-                        <table className="w-full text-left border-collapse text-xs">
-                          <thead>
-                            <tr className="bg-slate-100 border-b border-slate-200 font-black text-slate-700 uppercase">
-                              <th className="px-4 py-3">Parámetro</th>
-                              <th className="px-4 py-3">Especificación</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-200 font-semibold text-slate-600">
-                            <tr>
-                              <td className="px-4 py-2.5 bg-white font-bold">Capacidad nominal</td>
-                              <td className="px-4 py-2.5 bg-white">32 Litros/min a Δ25°C</td>
-                            </tr>
-                            <tr>
-                              <td className="px-4 py-2.5 bg-white font-bold">Caudal Mínimo / Máximo</td>
-                              <td className="px-4 py-2.5 bg-white">1.5 L/min / 37 L/min</td>
-                            </tr>
-                            <tr>
-                              <td className="px-4 py-2.5 bg-white font-bold">Rango de temperatura</td>
-                              <td className="px-4 py-2.5 bg-white">35°C a 85°C (regulable)</td>
-                            </tr>
-                            <tr>
-                              <td className="px-4 py-2.5 bg-white font-bold">Tipo de gas</td>
-                              <td className="px-4 py-2.5 bg-white">GLP / Gas Natural (GN)</td>
-                            </tr>
-                            <tr>
-                              <td className="px-4 py-2.5 bg-white font-bold">Suministro eléctrico</td>
-                              <td className="px-4 py-2.5 bg-white">220 V - 60 Hz</td>
-                            </tr>
-                            <tr>
-                              <td className="px-4 py-2.5 bg-white font-bold">Conexiones agua / gas</td>
-                              <td className="px-4 py-2.5 bg-white">R 3/4" (Rosca exterior)</td>
-                            </tr>
-                            <tr>
-                              <td className="px-4 py-2.5 bg-white font-bold">Peso neto</td>
-                              <td className="px-4 py-2.5 bg-white">23 kg</td>
-                            </tr>
-                            <tr>
-                              <td className="px-4 py-2.5 bg-white font-bold">Controlador remoto</td>
-                              <td className="px-4 py-2.5 bg-white">MC-601-BR (Incluido de fábrica)</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* Commercial Details */}
-                      <div className="space-y-6">
-                        <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 space-y-4">
-                          <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Características Destacadas</h4>
-                          
-                          <div className="space-y-3">
-                            <div className="flex gap-2.5 items-start">
-                              <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 text-xs font-bold">✓</span>
-                              <p className="text-xs font-semibold text-slate-600 leading-normal">
-                                <strong>5 Años de Garantía:</strong> En el intercambiador de calor de cobre y quemadores.
-                              </p>
-                            </div>
-                            <div className="flex gap-2.5 items-start">
-                              <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 text-xs font-bold">✓</span>
-                              <p className="text-xs font-semibold text-slate-600 leading-normal">
-                                <strong>Tipo B (Tiro Forzado):</strong> Incorpora ventilador interno para inyección forzada de gases de combustión.
-                              </p>
-                            </div>
-                            <div className="flex gap-2.5 items-start">
-                              <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 text-xs font-bold">✓</span>
-                              <p className="text-xs font-semibold text-slate-600 leading-normal">
-                                <strong>Funcionamiento en Altura:</strong> Configurable mediante switch electrónico de compensación de oxígeno para zonas geográficas altas.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-slate-900 text-slate-300 rounded-2xl p-5 border border-slate-800">
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Capacidad de Abastecimiento</span>
-                          <p className="text-sm font-black text-white">Hasta 7 servicios simultáneos en condiciones óptimas.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Topic: Instalacion 32l */}
-                {activeTopic === 'instalacion_32l' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 13 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">Instalación y dimensiones de tuberías</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-black text-indigo-600 uppercase tracking-widest">Especificaciones de Instalación</h4>
-                        
-                        <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 space-y-3">
-                          <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Notas Técnicas de Chimenea</h5>
-                          <ul className="text-xs text-slate-500 font-semibold space-y-2 list-disc list-inside">
-                            <li>Instalación interior con evacuación obligatoria de gases al exterior (ducto de chimenea).</li>
-                            <li><strong>Diámetro de chimenea:</strong> Φ 100 mm.</li>
-                            <li><strong>Longitud de chimenea máxima:</strong> 7 m con 4 curvas de 90° o hasta 15 m sin curvas. (Cada codo de 90° reduce 2 metros lineales de capacidad).</li>
-                            <li><strong>Inclinación recomendada:</strong> 2 cm de inclinación hacia el exterior por cada 1 metro de longitud horizontal para evitar retorno de condensados.</li>
-                            <li>Verificar el estricto cumplimiento de las normativas de gas <strong>NTP 111.022 y 111.23</strong>.</li>
-                          </ul>
-                        </div>
-                      </div>
-
-                      {/* Dimensions & Connections */}
-                      <div className="bg-slate-950 text-white rounded-2xl p-6 border border-slate-800 space-y-6">
-                        <div className="space-y-2">
-                          <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest">Dimensiones Físicas</h4>
-                          <div className="grid grid-cols-3 gap-2 text-center pt-2">
-                            <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                              <span className="block text-[8px] text-slate-500 uppercase font-black">Ancho</span>
-                              <span className="text-base font-mono font-black text-white mt-1 block">470 mm</span>
-                            </div>
-                            <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                              <span className="block text-[8px] text-slate-500 uppercase font-black">Alto</span>
-                              <span className="text-base font-mono font-black text-white mt-1 block">600 mm</span>
-                            </div>
-                            <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                              <span className="block text-[8px] text-slate-500 uppercase font-black">Profundidad</span>
-                              <span className="text-base font-mono font-black text-white mt-1 block">240 mm</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2 border-t border-slate-800 pt-4">
-                          <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest">Conexiones de Tuberías</h4>
-                          <div className="space-y-2 pt-2">
-                            <div className="flex justify-between text-xs font-bold text-slate-400">
-                              <span>Tubería de Gas:</span>
-                              <span className="font-mono text-white">R 3/4"</span>
-                            </div>
-                            <div className="flex justify-between text-xs font-bold text-slate-400">
-                              <span>Entrada de Agua Fría:</span>
-                              <span className="font-mono text-white">R 3/4"</span>
-                            </div>
-                            <div className="flex justify-between text-xs font-bold text-slate-400">
-                              <span>Salida de Agua Caliente:</span>
-                              <span className="font-mono text-white">R 3/4"</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Topic: Auto Diagnostico */}
-                {activeTopic === 'auto_diagnostico' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 14 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">Funcionamiento de autodiagnóstico y servoválvula</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
-                      {/* Auto-diagnostic system */}
-                      <div className="bg-slate-950 text-white rounded-2xl p-6 border border-slate-800 space-y-4">
-                        <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-ping" />
-                          Sistema de Auto-diagnóstico Inteligente
-                        </h4>
-                        
-                        <p className="text-slate-400 text-xs leading-relaxed">
-                          La tarjeta de control principal monitorea continuamente las variables del equipo (corriente del ventilador, temperaturas de entrada/salida, ionización de flama). Si se detecta cualquier anomalía, el sistema detiene el equipo antes de una falla crítica, evitando daños mayores y mostrando un código de error numérico en el panel remoto.
-                        </p>
-
-                        <div className="border-t border-slate-800 pt-3 space-y-2">
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Monitoreo del Ventilador DC</span>
-                          <p className="text-xs text-slate-300">
-                            Genera y ajusta el flujo de aire óptimo para la combustión y la evacuación de gases. Si la velocidad o corriente se alteran (debido a obstrucción de chimenea), la tarjeta activa protección.
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Water Flow control & Servovalve */}
-                      <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-5 space-y-4">
-                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                          <Sliders size={16} className="text-indigo-600" />
-                          Regulación de Caudal: Servoválvula
-                        </h4>
-
-                        <p className="text-slate-600 text-xs leading-relaxed font-semibold">
-                          Cuando la demanda de caudal de agua caliente de las griferías supera la capacidad térmica de calefacción momentánea del calentador, la <strong>servoválvula interna</strong> regula automáticamente la apertura para mantener una temperatura de salida estable y segura.
-                        </p>
-
-                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Motor paso a paso integrado</span>
-                          <p className="text-slate-600 text-xs mt-1 leading-normal font-semibold">
-                            La servoválvula incorpora un motor eléctrico que ajusta de forma continua la restricción del agua, regulando el caudal para mantener la temperatura preestablecida exacta en el controlador remoto MC-601.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Topic: Codigos Error */}
-                {activeTopic === 'codigos_error' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div>
-                        <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 15 de 16</span>
-                        <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">Tabla de códigos de error de autodiagnóstico</h3>
-                      </div>
-                      <input 
-                        type="text" 
-                        placeholder="Buscar código o descripción..." 
-                        value={errorSearch}
-                        onChange={(e) => setErrorSearch(e.target.value)}
-                        className="bg-slate-50 border border-slate-200/80 rounded-xl px-4 py-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold w-full sm:w-60"
+                {/* Left Side: Slide Image Card */}
+                <div className="w-full lg:w-3/5 flex flex-col justify-between space-y-4">
+                  <div className="relative rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden shadow-inner group flex-1 min-h-[300px] flex items-center justify-center">
+                    {slideImages[activeTopic] ? (
+                      <img 
+                        src={slideImages[activeTopic]} 
+                        alt={activeTopicObj?.title} 
+                        className="w-full h-full object-contain cursor-zoom-in"
+                        onClick={() => setIsFullscreen(true)}
+                        referrerPolicy="no-referrer"
                       />
-                    </div>
-
-                    {/* Table */}
-                    <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm max-h-96 overflow-y-auto custom-scrollbar">
-                      <table className="w-full text-left border-collapse text-xs">
-                        <thead>
-                          <tr className="bg-slate-100 border-b border-slate-200 font-black text-slate-700 uppercase tracking-wider sticky top-0 z-10">
-                            <th className="px-5 py-3.5 w-16">Cód.</th>
-                            <th className="px-5 py-3.5">Descripción del Error</th>
-                            <th className="px-5 py-3.5">Acción Recomendada / Solución</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200 font-semibold text-slate-600">
-                          {filteredErrors.length === 0 ? (
-                            <tr>
-                              <td colSpan={3} className="px-5 py-8 text-center text-slate-400 font-medium bg-white">
-                                No se encontraron códigos que coincidan con la búsqueda.
-                              </td>
-                            </tr>
-                          ) : (
-                            filteredErrors.map((err, i) => (
-                              <tr key={i} className="hover:bg-slate-50/50 bg-white transition-colors">
-                                <td className="px-5 py-3 font-mono font-black text-slate-900">{err.code}</td>
-                                <td className="px-5 py-3 text-slate-700">{err.desc}</td>
-                                <td className="px-5 py-3 text-indigo-600 font-medium bg-indigo-50/10">{err.sol}</td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                    ) : (
+                      <div className="p-8 text-center text-slate-400 flex flex-col items-center">
+                        <Info size={32} className="mb-2" />
+                        <span className="text-xs font-bold uppercase">Sin imagen de diapositiva</span>
+                      </div>
+                    )}
+                    <button 
+                      onClick={() => setIsFullscreen(true)}
+                      className="absolute bottom-4 right-4 bg-slate-900/80 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      Expandir Diapositiva
+                    </button>
                   </div>
-                )}
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
+                    👉 Haz clic en la imagen para verla en pantalla completa de alta definición.
+                  </div>
+                </div>
 
-                {/* Topic: Kits Instalacion */}
-                {activeTopic === 'kits_instalacion' && (
-                  <div className="space-y-6">
-                    <div className="border-b border-slate-100 pb-4">
-                      <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Temario 16 de 16</span>
-                      <h3 className="text-2xl font-black text-slate-900 mt-1 uppercase">Kit de instalación residencial / comercial</h3>
-                    </div>
+                {/* Right Side: Structured Technical Explanation Notes for Technicians */}
+                <div className="w-full lg:w-2/5 flex flex-col justify-between border-l border-slate-100 lg:pl-8 space-y-6">
+                  <div>
+                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
+                      Diapositiva {topics.findIndex(t => t.id === activeTopic) + 1} de {topics.length}
+                    </span>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight mt-1 mb-4 uppercase">
+                      {activeTopicObj?.title.substring(activeTopicObj.title.indexOf(' ') + 1)}
+                    </h3>
 
-                    <p className="text-slate-600 text-xs leading-relaxed">
-                      El kit de instalación incluye las piezas de conexión y accesorios de anclaje necesarios para garantizar una conexión hidráulica y de gas segura:
-                    </p>
+                    {/* Explanation details matching current slide */}
+                    <div className="text-xs text-slate-600 leading-relaxed font-medium space-y-4">
+                      
+                      {activeTopic === 'suministro' && (
+                        <>
+                          <p>
+                            El suministro de agua caliente en proyectos se resuelve mediante tres arquitecturas fundamentales. Cada una responde a diferentes necesidades de costo, infraestructura y confort:
+                          </p>
+                          <ul className="space-y-3 pt-2">
+                            <li className="bg-slate-50 border border-slate-200/50 p-3 rounded-xl">
+                              <strong className="text-slate-800 block text-xs mb-0.5">1. Individual</strong>
+                              Un calentador de paso por departamento. Simple en planos, pero exige múltiples salidas de gases al exterior, multiplicando los ductos y puntos de falla.
+                            </li>
+                            <li className="bg-indigo-50/50 border border-indigo-100 p-3 rounded-xl">
+                              <strong className="text-indigo-950 block text-xs mb-0.5">2. Cascada Modular</strong>
+                              Varios calentadores modulantes conectados en paralelo. Se activan secuencialmente según el caudal real de grifería que fluye. Alta eficiencia.
+                            </li>
+                            <li className="bg-emerald-50/50 border border-emerald-100 p-3 rounded-xl">
+                              <strong className="text-emerald-950 block text-xs mb-0.5">3. Mixto con Acumulación</strong>
+                              Calentadores de paso + tanques termoacumuladores. Absorbe picos extremos de consumo en hoteles y hospitales con la máxima inercia térmica.
+                            </li>
+                          </ul>
+                        </>
+                      )}
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-                      {[
-                        { id: '1', name: 'Reductor campana 3/4" a 1/2"', desc: 'Ajuste de roscas de agua.' },
-                        { id: '2', name: 'Niple 1/2"', desc: 'Tubo de unión roscado.' },
-                        { id: '3', name: 'Tornillo AISI 304', desc: 'Anclaje de alta resistencia.' },
-                        { id: '4', name: 'Tarugo N°8', desc: 'Fijación en pared de concreto.' },
-                        { id: '5', name: 'Pipeta GLP G1/2" hembra - 3/8" macho', desc: 'Conexión de entrada de gas.' },
-                        { id: '6', name: 'Empaque', desc: 'Sellado hermético de juntas.' },
-                        { id: '7', name: 'Ductería AISI304 Φ 10 cm', desc: 'Chimenea inoxidable de evacuación.' },
-                        { id: '8', name: 'Tubos de abasto 1/2"', desc: 'Conexión flexible de agua.' }
-                      ].map((item) => (
-                        <div key={item.id} className="bg-slate-50 border border-slate-200/50 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
-                          <div>
-                            <span className="w-5 h-5 rounded-full bg-indigo-600/10 text-indigo-600 text-[10px] font-black flex items-center justify-center mb-3">
-                              {item.id}
-                            </span>
-                            <h4 className="text-xs font-black text-slate-800 leading-snug">{item.name}</h4>
+                      {activeTopic === 'centralizar' && (
+                        <>
+                          <p>
+                            En proyectos modernos de edificación, las instalaciones individuales presentan limitaciones críticas de espacio, ductos de gases y seguridad.
+                          </p>
+                          <div className="space-y-3 pt-2">
+                            <div className="bg-red-50/50 border border-red-100 p-3 rounded-xl">
+                              <strong className="text-red-900 block text-xs mb-1">Dolores Inmobiliarios:</strong>
+                              Dificultad de ventilación en ductos técnicos, peligro de monóxido de carbono, mantenimiento disperso y variaciones molestas de temperatura para el usuario final.
+                            </div>
+                            <div className="bg-emerald-50/50 border border-emerald-100 p-3 rounded-xl">
+                              <strong className="text-emerald-900 block text-xs mb-1">La Oportunidad Centralizada:</strong>
+                              Optimización del espacio de ducterías, centralización de mantenimiento en un único punto (azotea o sótano) y provisión de agua caliente estable a presión constante.
+                            </div>
                           </div>
-                          <p className="text-[10px] text-slate-400 mt-2 font-semibold leading-normal">{item.desc}</p>
-                        </div>
-                      ))}
+                        </>
+                      )}
+
+                      {activeTopic === 'criterios' && (
+                        <>
+                          <p>
+                            El dimensionamiento de una central de agua caliente debe justificarse técnicamente mediante metodologías de ingeniería hidráulica:
+                          </p>
+                          <ul className="space-y-2.5 pt-2 list-disc list-inside">
+                            <li><strong>Demanda Probable:</strong> Se utiliza el método de las Curvas de Hunter para calcular el caudal simultáneo máximo esperado, evitando sobredimensionar.</li>
+                            <li><strong>Modulación Inteligente:</strong> Permite que la central module su quemador adaptándose al consumo real, logrando hasta un 30% de ahorro de combustible.</li>
+                            <li><strong>Redundancia:</strong> Diseñar con equipos modulares permite aislar una unidad para mantenimiento sin suspender el servicio del edificio.</li>
+                          </ul>
+                        </>
+                      )}
+
+                      {activeTopic === 'modulacion' && (
+                        <>
+                          <p>
+                            La modulación de gas es la clave tecnológica para lograr eficiencia energética. Ajusta la inyección de gas y aire en el quemador conforme varía el flujo de agua caliente.
+                          </p>
+                          <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-2">
+                            <span className="font-bold text-slate-800 block">Diferencias clave:</span>
+                            <div className="text-[11px] text-slate-500 leading-normal">
+                              - <strong>Calderas:</strong> Encienden y apagan en ciclos completos a máxima potencia, generando pérdidas térmicas masivas.
+                              <br />- <strong>Rinnai Modulante:</strong> El fuego se adapta milimétricamente al caudal instantáneo.
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {activeTopic === 'funcion_cascada' && (
+                        <>
+                          <p>
+                            La operación en cascada Rinnai administra los calentadores de forma coordinada e inteligente para responder a demandas variables:
+                          </p>
+                          <div className="space-y-2.5 pt-2">
+                            <div className="flex gap-2">
+                              <span className="text-emerald-500 font-bold">✓</span>
+                              <span>Activa secuencialmente las unidades conforme fluye más caudal de agua caliente en el colector.</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="text-emerald-500 font-bold">✓</span>
+                              <span>Distribuye el arranque para balancear el desgaste físico de los intercambiadores de cobre.</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="text-emerald-500 font-bold">✓</span>
+                              <span>Proporciona redundancia activa: ante fallas de un equipo, los demás asumen la carga hidráulica.</span>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {activeTopic === 'conexion_cascada' && (
+                        <>
+                          <p>
+                            Para habilitar la cascada inteligente, los calentadores se interconectan mediante cables de cascada específicos que comunican las tarjetas lógicas de control:
+                          </p>
+                          <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-2 font-mono text-[11px] text-slate-500">
+                            <span className="font-bold text-slate-800 block text-xs">Especificaciones de conexión:</span>
+                            - Interconexión de hasta 25 equipos.
+                            <br />- Tarjetas de control dedicadas.
+                            <br />- Rotación por ciclos de combustión.
+                            <br />- Configuración de unidades de respaldo (standby).
+                          </div>
+                        </>
+                      )}
+
+                      {activeTopic === 'funcion_mixto' && (
+                        <>
+                          <p>
+                            En aplicaciones como hoteles o gimnasios donde el consumo punta ocurre en lapsos muy cortos y de forma masiva, la acumulación térmica es indispensable:
+                          </p>
+                          <ul className="space-y-2.5 pt-2 list-disc list-inside">
+                            <li>El agua caliente se almacena en tanques termo-aislados (acumuladores).</li>
+                            <li>Los calentadores Rinnai operan a régimen constante de alta eficiencia para reponer el volumen consumido en el tanque.</li>
+                            <li>Se reduce la potencia instantánea de gas requerida en el edificio.</li>
+                          </ul>
+                        </>
+                      )}
+
+                      {activeTopic === 'recirculacion' && (
+                        <>
+                          <p>
+                            La red de recirculación asegura que el usuario tenga agua caliente inmediata al abrir la grifería, evitando desperdicios de agua fría estancada en tuberías largas:
+                          </p>
+                          <div className="bg-indigo-50/50 border border-indigo-100 p-3.5 rounded-xl space-y-1.5">
+                            <span className="font-bold text-indigo-950 block text-xs">Parámetros de Control:</span>
+                            <div className="text-[11px] text-indigo-900 leading-normal">
+                              - <strong>Temp. Salida:</strong> 55°C - 60°C.
+                              <br />- <strong>Temp. Retorno:</strong> 45°C - 50°C.
+                              <br />- <strong>Control:</strong> Bomba comandada por termostato para evitar ciclos de encendido continuos e innecesarios.
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {activeTopic === 'codigos_error' ? (
+                        <p>
+                          Utiliza el campo de búsqueda a la izquierda para filtrar la tabla de códigos de error reportados por la tarjeta electrónica. Esto agiliza el diagnóstico en campo de los técnicos.
+                        </p>
+                      ) : (
+                        <p>
+                          Consulte la diapositiva técnica en el visor para identificar esquemas de conexión, diámetros de chimenea, detalles del kit residencial de gas y características del intercambiador de cobre del calentador <strong>RINGASN32C</strong>.
+                        </p>
+                      )}
+
                     </div>
                   </div>
-                )}
+
+                  {/* Navigation buttons */}
+                  <div className="border-t border-slate-100 pt-6 flex justify-between gap-4 shrink-0">
+                    <button
+                      disabled={topics.findIndex(t => t.id === activeTopic) === 0}
+                      onClick={() => {
+                        const idx = topics.findIndex(t => t.id === activeTopic);
+                        if (idx > 0) setActiveTopic(topics[idx - 1].id);
+                      }}
+                      className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
+                    >
+                      Anterior
+                    </button>
+                    <button
+                      disabled={topics.findIndex(t => t.id === activeTopic) === topics.length - 1}
+                      onClick={() => {
+                        const idx = topics.findIndex(t => t.id === activeTopic);
+                        if (idx < topics.length - 1) setActiveTopic(topics[idx + 1].id);
+                      }}
+                      className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black tracking-wide transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
+                    >
+                      Siguiente Diapositiva
+                    </button>
+                  </div>
+                </div>
 
               </motion.div>
             </AnimatePresence>
 
-            {/* Navigation buttons */}
-            <div className="border-t border-slate-100 pt-6 mt-8 flex justify-between">
-              <button
-                disabled={topics.findIndex(t => t.id === activeTopic) === 0}
-                onClick={() => {
-                  const idx = topics.findIndex(t => t.id === activeTopic);
-                  if (idx > 0) setActiveTopic(topics[idx - 1].id);
-                }}
-                className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
-              >
-                Anterior
-              </button>
-              <button
-                disabled={topics.findIndex(t => t.id === activeTopic) === topics.length - 1}
-                onClick={() => {
-                  const idx = topics.findIndex(t => t.id === activeTopic);
-                  if (idx < topics.length - 1) setActiveTopic(topics[idx + 1].id);
-                }}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black tracking-wide transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
-              >
-                Siguiente Tema
-              </button>
-            </div>
+            {/* Special display for error codes below if it's the active topic */}
+            {activeTopic === 'codigos_error' && (
+              <div className="border-t border-slate-100 pt-6 mt-6 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Tabla de códigos de error de autodiagnóstico</h4>
+                  <input 
+                    type="text" 
+                    placeholder="Filtrar por código o descripción..." 
+                    value={errorSearch}
+                    onChange={(e) => setErrorSearch(e.target.value)}
+                    className="bg-slate-50 border border-slate-200/80 rounded-xl px-4 py-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500/20 font-semibold w-full sm:w-60"
+                  />
+                </div>
+                
+                <div className="border border-slate-200 rounded-xl overflow-hidden max-h-60 overflow-y-auto custom-scrollbar">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 font-black text-slate-700 uppercase sticky top-0">
+                        <th className="px-4 py-2 w-16">Cód.</th>
+                        <th className="px-4 py-2">Falla Reportada</th>
+                        <th className="px-4 py-2">Solución</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-600 font-semibold bg-white">
+                      {filteredErrors.map((err, i) => (
+                        <tr key={i} className="hover:bg-slate-50/50">
+                          <td className="px-4 py-2 font-mono font-black text-slate-900">{err.code}</td>
+                          <td className="px-4 py-2">{err.desc}</td>
+                          <td className="px-4 py-2 text-indigo-600 font-medium">{err.sol}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       ) : (
-        /* Sizing Calculators Tab (ASHRAE vs ASPE methods) */
+        /* Calculators Tab */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Method Selection & Inputs */}
           <div className="lg:col-span-5 bg-white border border-slate-200/80 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
-            
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-black text-slate-900">Configuración del Proyecto</h3>
-                <p className="text-slate-500 text-xs font-medium mt-1">Selecciona el método e ingresa los datos para dimensionar la central térmica Rinnai.</p>
+                <p className="text-slate-500 text-xs font-medium mt-1">Selecciona el método e ingresa los datos para realizar una pre-evaluación del proyecto.</p>
               </div>
 
               {/* Selector buttons */}
@@ -1354,7 +634,6 @@ export default function SizingModule() {
               {/* Input Forms */}
               {calcMethod === 'ashrae' ? (
                 <div className="space-y-4">
-                  {/* apartments */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Número de Departamentos / Viviendas</label>
                     <input 
@@ -1364,8 +643,6 @@ export default function SizingModule() {
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20"
                     />
                   </div>
-
-                  {/* Showers per apartment */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Duchas por departamento (1.5 FU c/u)</label>
                     <input 
@@ -1376,8 +653,6 @@ export default function SizingModule() {
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20"
                     />
                   </div>
-
-                  {/* Washbasins per apartment */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Lavatorios por departamento (0.75 FU c/u)</label>
                     <input 
@@ -1388,10 +663,8 @@ export default function SizingModule() {
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20"
                     />
                   </div>
-
-                  {/* Sinks per apartment */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Lavaplatos/Lavaderos por departamento (1.5 FU c/u)</label>
+                    <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Lavaplatos por departamento (1.5 FU c/u)</label>
                     <input 
                       type="number" 
                       step="1"
@@ -1400,8 +673,6 @@ export default function SizingModule() {
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20"
                     />
                   </div>
-
-                  {/* Temp delta */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Diferencia de temperatura (ΔT en °C)</label>
                     <input 
@@ -1414,7 +685,6 @@ export default function SizingModule() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Building Type */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Tipo de Edificación / Destino</label>
                     <select
@@ -1427,8 +697,6 @@ export default function SizingModule() {
                       <option value="hospital">Hospitales / Clínicas de salud</option>
                     </select>
                   </div>
-
-                  {/* units count */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
                       Cantidad de {buildingType === 'multifamily' ? 'Departamentos' : buildingType === 'hotel' ? 'Habitaciones' : 'Camas'}
@@ -1443,7 +711,6 @@ export default function SizingModule() {
                 </div>
               )}
             </div>
-
             <div className="mt-8 pt-4 border-t border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
               * El cálculo utiliza coeficientes estándar de normas técnicas.
             </div>
@@ -1453,13 +720,11 @@ export default function SizingModule() {
           <div className="lg:col-span-7 bg-[#0f172a] text-white rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-800 flex flex-col justify-between">
             {calcMethod === 'ashrae' ? (
               <div className="space-y-8">
-                {/* Header info */}
                 <div>
-                  <span className="text-xs font-black text-indigo-400 uppercase tracking-widest block">Resultados de Dimensionamiento</span>
-                  <h3 className="text-xl md:text-2xl font-black text-white mt-1 uppercase">Sistemas en Cascada de Paso Continuo (Método ASHRAE)</h3>
+                  <span className="text-xs font-black text-indigo-400 uppercase tracking-widest block">Resultados del Pre-Dimensionamiento</span>
+                  <h3 className="text-xl md:text-2xl font-black text-white mt-1 uppercase">Sistemas en Cascada (Método ASHRAE)</h3>
                 </div>
 
-                {/* Main Results card */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-center">
                     <span className="block text-[9px] text-slate-500 uppercase font-black tracking-widest">Total Unidades Aparato (FU)</span>
@@ -1485,41 +750,30 @@ export default function SizingModule() {
                   </div>
                 </div>
 
-                {/* Mathematical context using KaTeX */}
                 <div className="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-5 space-y-4">
                   <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                     <FileText size={14} />
-                    Contexto Teórico del Cálculo (Fórmula ASHRAE)
+                    Fórmulas de Apoyo Utilizadas
                   </h4>
                   <div className="space-y-3 text-xs text-slate-400 leading-relaxed">
-                    <p>
-                      El caudal probable se calcula utilizando la aproximación de la curva de Hunter residencial:
-                    </p>
+                    <p>Caudal probable aproximado de la curva de Hunter:</p>
                     <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-center font-mono">
                       <BlockMath math={`Q_{\\text{gpm}} = 1.05 \\times (\\text{FU})^{0.55}`} />
                     </div>
-                    <p>
-                      La potencia térmica de recuperación requerida en la central para cubrir la demanda probable de forma instantánea es:
-                    </p>
+                    <p>Potencia térmica de calefacción requerida:</p>
                     <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-center font-mono">
                       <BlockMath math={`P_{\\text{kW}} = Q_{\\text{L/min}} \\times \\rho \\times C_p \\times \\Delta T`} />
-                    </div>
-                    <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1 font-mono text-[10px] text-slate-500">
-                      <div>Sustituyendo los valores del proyecto:</div>
-                      <div className="text-slate-300 font-semibold">{ashraeCalculations.qProbLpm} L/min × 1 kg/L × 4.186 kJ/kg°C × {tempDelta}°C / 60 = {ashraeCalculations.powerKw} kW</div>
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="space-y-8">
-                {/* Header info */}
                 <div>
-                  <span className="text-xs font-black text-indigo-400 uppercase tracking-widest block">Resultados de Dimensionamiento</span>
-                  <h3 className="text-xl md:text-2xl font-black text-white mt-1 uppercase">Sistemas Mixtos con Acumulación (Método ASPE)</h3>
+                  <span className="text-xs font-black text-indigo-400 uppercase tracking-widest block">Resultados del Pre-Dimensionamiento</span>
+                  <h3 className="text-xl md:text-2xl font-black text-white mt-1 uppercase">Sistemas Mixtos (Método ASPE)</h3>
                 </div>
 
-                {/* Main Results card */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-center">
                     <span className="block text-[9px] text-slate-500 uppercase font-black tracking-widest">Demanda Hora Punta (V_d)</span>
@@ -1547,27 +801,15 @@ export default function SizingModule() {
                   </div>
                 </div>
 
-                {/* Mathematical context using KaTeX */}
                 <div className="bg-slate-900/50 border border-slate-800/80 rounded-2xl p-5 space-y-4">
                   <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                     <FileText size={14} />
-                    Contexto Teórico del Cálculo (Fórmula ASPE)
+                    Ecuación de Conservación Térmica
                   </h4>
                   <div className="space-y-3 text-xs text-slate-400 leading-relaxed">
-                    <p>
-                      La relación entre la acumulación requerida (<InlineMath math="V_s" />) y la recuperación (<InlineMath math="R_x" />) para cubrir la demanda máxima en la hora punta es:
-                    </p>
+                    <p>Relación de balance en hora punta:</p>
                     <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-center font-mono">
                       <BlockMath math={`V_s + (R_x \\times 1 \\text{ h}) = V_d`} />
-                    </div>
-                    <p>
-                      Para evitar la sobredimensión hidráulica de los calentadores, el método ASPE recomienda los siguientes coeficientes empíricos según el destino del proyecto:
-                    </p>
-                    <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1 font-mono text-[10px] text-slate-500">
-                      <div>Edificios multifamiliares:</div>
-                      <div className="text-slate-300 font-semibold">Acumulación: V_s = V_d × 1.2 | Recuperación: R_x = V_d × 0.3</div>
-                      <div className="mt-2">Hoteles / Hospedaje:</div>
-                      <div className="text-slate-300 font-semibold">Acumulación: V_s = V_d × 0.8 | Recuperación: R_x = V_d × 0.25</div>
                     </div>
                   </div>
                 </div>
@@ -1577,12 +819,47 @@ export default function SizingModule() {
             <div className="mt-6 p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-start gap-3 text-xs text-slate-400 leading-relaxed">
               <Info size={16} className="text-indigo-400 mt-0.5 shrink-0" />
               <span>
-                <strong>Recomendación de Diseño:</strong> En base a la capacidad requerida y los caudales resultantes, te sugerimos utilizar calentadores Rinnai de <strong>Línea Comercial RINGASN32C</strong> interconectados en cascada para suministrar el volumen de recuperación calculado.
+                <strong>Nota Técnica:</strong> Para realizar un cálculo formal e interactivo detallado con guardado de registros, utiliza el botón <strong>Dimensionamiento de Agua Caliente</strong> en la cabecera.
               </span>
             </div>
           </div>
         </div>
       )}
+
+      {/* Lightbox / Fullscreen Slide Modal Overlay */}
+      <AnimatePresence>
+        {isFullscreen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-950/95 z-[9999] flex items-center justify-center p-4"
+            onClick={() => setIsFullscreen(false)}
+          >
+            <button 
+              className="absolute top-6 right-6 text-white/75 hover:text-white font-black text-sm uppercase tracking-widest bg-white/10 px-4 py-2 rounded-xl backdrop-blur-md"
+              onClick={() => setIsFullscreen(false)}
+            >
+              Cerrar (ESC)
+            </button>
+            <motion.div 
+              initial={{ scale: 0.95, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 10 }}
+              className="max-w-[92vw] max-h-[90vh] bg-slate-900 rounded-3xl overflow-hidden border border-white/10 shadow-2xl flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img 
+                src={slideImages[activeTopic]} 
+                alt={activeTopicObj?.title} 
+                className="max-w-full max-h-[85vh] object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

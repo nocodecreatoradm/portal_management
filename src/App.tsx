@@ -1232,7 +1232,7 @@ export default function App() {
 
 
     if (activeModule === 'sizing_module') {
-      return <SizingModule />;
+      return <SizingModule onModuleChange={handleModuleChange} />;
     }
 
     if (activeModule === 'calculations_dashboard') {
