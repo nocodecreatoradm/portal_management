@@ -801,7 +801,7 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
                         Para edificios residenciales se aplica la <strong>Curva C (Edificios de departamentos)</strong>. 
                       </p>
                       <p>
-                        Las unidades de gasto calculadas ({ashraeCalculations.totalFU} FU) se proyectan en la curva para obtener el caudal simultáneo probable ($Q_{\\text{prob}} = {ashraeCalculations.qProbLpm} \\text{ L/min}$).
+                        Las unidades de gasto calculadas ({ashraeCalculations.totalFU} FU) se proyectan en la curva para obtener el caudal simultáneo probable (<InlineMath math={`Q_{\\text{prob}} = ${ashraeCalculations.qProbLpm} \\text{ L/min}`} />).
                       </p>
                     </div>
                   </div>
@@ -863,10 +863,10 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
                     </div>
                     <div className="text-[11px] text-slate-400 leading-relaxed space-y-2">
                       <p>
-                        La demanda pico se cubre con el volumen almacenado en los termoacumuladores ($V_s = {aspeCalculations.storageTankVolume} \\text{ L}$).
+                        La demanda pico se cubre con el volumen almacenado en los termoacumuladores (<InlineMath math={`V_s = ${aspeCalculations.storageTankVolume} \\text{ L}`} />).
                       </p>
                       <p>
-                        Los calentadores Rinnai {aspeCalculations.requiredHeaters} uds. operan de forma continua a su máxima potencia para recuperar el calor consumido ($R_x = {aspeCalculations.recoveryRate} \\text{ L/h}$).
+                        Los calentadores Rinnai {aspeCalculations.requiredHeaters} uds. operan de forma continua a su máxima potencia para recuperar el calor consumido (<InlineMath math={`R_x = ${aspeCalculations.recoveryRate} \\text{ L/h}`} />).
                       </p>
                     </div>
                   </div>
