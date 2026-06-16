@@ -277,6 +277,8 @@ export default function ProductDetailModal({
                     type === 'technical_sheet' ? 'technicalSheets' : 
                     'commercialSheets';
 
+    const currentList = ((record as any)[listKey] as DocumentVersion[]) || [];
+
     const updatedList = currentList.map(v => {
       if (Number(v.version) === Number(version.version) && v.category === version.category && v.subcategory === version.subcategory) {
         const updatedFiles = v.files.filter((_, i) => i !== fileIndex);
@@ -299,6 +301,8 @@ export default function ProductDetailModal({
     const listKey = type === 'artwork' ? 'artworks' : 
                     type === 'technical_sheet' ? 'technicalSheets' : 
                     'commercialSheets';
+
+    const currentList = ((record as any)[listKey] as DocumentVersion[]) || [];
 
     const updatedList = currentList.filter(v => !(Number(v.version) === Number(version.version) && v.category === version.category && v.subcategory === version.subcategory));
 
