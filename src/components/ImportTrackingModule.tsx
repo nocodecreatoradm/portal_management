@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { SupabaseService } from '../lib/SupabaseService';
-import { Supplier } from '../types';
+import { Supplier, Brand, ProductLine, Category } from '../types';
 
 interface SampleItem {
   id: string;
@@ -64,6 +64,12 @@ interface ImportShipment {
   supplierId: string;
   supplierName: string;
   supplierLine: string;
+  lineId?: string;
+  lineName?: string;
+  categoryId?: string;
+  categoryName?: string;
+  brandId?: string;
+  brandName?: string;
   responsible: string;
   delegate: string;
   trackingNumber: string;
@@ -215,6 +221,15 @@ export default function ImportTrackingModule() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
+  // Master data states
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [productLines, setProductLines] = useState<ProductLine[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [appUsers, setAppUsers] = useState<{ id: string; full_name: string; email?: string }[]>([]);
+
+  // Form Wizard state
+  const [activeFormTab, setActiveFormTab] = useState<'general' | 'samples'>('general');
+
   // Modals state
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -238,8 +253,18 @@ export default function ImportTrackingModule() {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const sups = await SupabaseService.getSuppliers();
+        const [sups, brs, lines, cats, profs] = await Promise.all([
+          SupabaseService.getSuppliers(),
+          SupabaseService.getBrands(),
+          SupabaseService.getProductLines(),
+          SupabaseService.getCategories(),
+          SupabaseService.getProfiles()
+        ]);
         setSuppliers(sups);
+        setBrands(brs || []);
+        setProductLines(lines || []);
+        setCategories(cats || []);
+        setAppUsers(profs || []);
         
         // Try getting from DB or fallback to local
         const stored = localStorage.getItem('import_tracking_shipments');
@@ -364,6 +389,12 @@ export default function ImportTrackingModule() {
     supplierId: string;
     supplierName: string;
     supplierLine: string;
+    lineId: string;
+    lineName: string;
+    categoryId: string;
+    categoryName: string;
+    brandId: string;
+    brandName: string;
     responsible: string;
     delegate: string;
     trackingNumber: string;
@@ -378,6 +409,12 @@ export default function ImportTrackingModule() {
     supplierId: '',
     supplierName: '',
     supplierLine: '',
+    lineId: '',
+    lineName: '',
+    categoryId: '',
+    categoryName: '',
+    brandId: '',
+    brandName: '',
     responsible: '',
     delegate: '',
     trackingNumber: '',
@@ -487,6 +524,12 @@ export default function ImportTrackingModule() {
       supplierId: newShipment.supplierId,
       supplierName: newShipment.supplierName,
       supplierLine: newShipment.supplierLine || 'MUESTRAS GENERAL',
+      lineId: newShipment.lineId || undefined,
+      lineName: newShipment.lineName || undefined,
+      categoryId: newShipment.categoryId || undefined,
+      categoryName: newShipment.categoryName || undefined,
+      brandId: newShipment.brandId || undefined,
+      brandName: newShipment.brandName || undefined,
       responsible: newShipment.responsible,
       delegate: newShipment.delegate || 'No asignado',
       trackingNumber: newShipment.trackingNumber,
@@ -517,6 +560,12 @@ export default function ImportTrackingModule() {
       supplierId: '',
       supplierName: '',
       supplierLine: '',
+      lineId: '',
+      lineName: '',
+      categoryId: '',
+      categoryName: '',
+      brandId: '',
+      brandName: '',
       responsible: '',
       delegate: '',
       trackingNumber: '',
@@ -833,6 +882,27 @@ Equipo de Importaciones & Desarrollo`;
                       </div>
                     </div>
 
+                    {/* Brand, Line, Category badges */}
+                    {(s.brandName || s.lineName || s.categoryName) && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {s.brandName && (
+                          <span className="inline-flex items-center px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-[10px] font-black uppercase tracking-wider border border-indigo-100">
+                            {s.brandName}
+                          </span>
+                        )}
+                        {s.lineName && (
+                          <span className="inline-flex items-center px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[10px] font-black uppercase tracking-wider border border-emerald-100">
+                            {s.lineName}
+                          </span>
+                        )}
+                        {s.categoryName && (
+                          <span className="inline-flex items-center px-2 py-0.5 bg-sky-50 text-sky-700 rounded text-[10px] font-black uppercase tracking-wider border border-sky-100">
+                            {s.categoryName}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     {/* Attached Documents */}
                     <div>
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
@@ -1096,26 +1166,127 @@ Equipo de Importaciones & Desarrollo`;
                       />
                     </div>
 
+                    {/* Brand / Product Line / Category Selectors */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Marca</label>
+                        <select 
+                          value={newShipment.brandId} 
+                          onChange={(e) => {
+                            const id = e.target.value;
+                            const b = brands.find(x => x.id === id);
+                            setNewShipment(prev => ({ 
+                              ...prev, 
+                              brandId: id,
+                              brandName: b ? b.name : ''
+                            }));
+                          }}
+                          className="w-full mt-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        >
+                          <option value="">Marca...</option>
+                          {brands.map(b => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Línea Prod.</label>
+                        <select 
+                          value={newShipment.lineId} 
+                          onChange={(e) => {
+                            const id = e.target.value;
+                            const l = productLines.find(x => x.id === id);
+                            setNewShipment(prev => ({ 
+                              ...prev, 
+                              lineId: id,
+                              lineName: l ? l.name : '',
+                              categoryId: '',
+                              categoryName: ''
+                            }));
+                          }}
+                          className="w-full mt-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        >
+                          <option value="">Línea...</option>
+                          {productLines.map(l => (
+                            <option key={l.id} value={l.id}>{l.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Categoría</label>
+                        <select 
+                          value={newShipment.categoryId} 
+                          disabled={!newShipment.lineId}
+                          onChange={(e) => {
+                            const id = e.target.value;
+                            const c = categories.find(x => x.id === id);
+                            setNewShipment(prev => ({ 
+                              ...prev, 
+                              categoryId: id,
+                              categoryName: c ? c.name : ''
+                            }));
+                          }}
+                          className="w-full mt-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <option value="">Categoría...</option>
+                          {categories
+                            .filter(c => !newShipment.lineId || c.productLineId === newShipment.lineId)
+                            .map(c => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))
+                          }
+                        </select>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Responsable Titular *</label>
-                        <input 
-                          type="text"
-                          placeholder="Nombre completo"
-                          value={newShipment.responsible}
-                          onChange={(e) => setNewShipment(prev => ({ ...prev, responsible: e.target.value }))}
-                          className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
-                        />
+                        {appUsers.length > 0 ? (
+                          <select
+                            value={newShipment.responsible}
+                            onChange={(e) => setNewShipment(prev => ({ ...prev, responsible: e.target.value }))}
+                            className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                          >
+                            <option value="">Seleccione responsable...</option>
+                            {appUsers.map(user => (
+                              <option key={user.id} value={user.full_name}>{user.full_name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input 
+                            type="text"
+                            placeholder="Nombre completo"
+                            value={newShipment.responsible}
+                            onChange={(e) => setNewShipment(prev => ({ ...prev, responsible: e.target.value }))}
+                            className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                          />
+                        )}
                       </div>
                       <div>
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Delegado de Recepción</label>
-                        <input 
-                          type="text"
-                          placeholder="Nombre del delegado"
-                          value={newShipment.delegate}
-                          onChange={(e) => setNewShipment(prev => ({ ...prev, delegate: e.target.value }))}
-                          className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
-                        />
+                        {appUsers.length > 0 ? (
+                          <select
+                            value={newShipment.delegate}
+                            onChange={(e) => setNewShipment(prev => ({ ...prev, delegate: e.target.value }))}
+                            className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                          >
+                            <option value="">Seleccione delegado...</option>
+                            {appUsers.map(user => (
+                              <option key={user.id} value={user.full_name}>{user.full_name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input 
+                            type="text"
+                            placeholder="Nombre del delegado"
+                            value={newShipment.delegate}
+                            onChange={(e) => setNewShipment(prev => ({ ...prev, delegate: e.target.value }))}
+                            className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
