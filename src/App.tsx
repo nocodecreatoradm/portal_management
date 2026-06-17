@@ -148,18 +148,64 @@ export default function App() {
                             record.trackingType === 'technical' ? record.technicalAssignment :
                             record.commercialAssignment;
       const designerOrTechName = assignmentObj?.designer || '';
+      const reviewerName = assignmentObj?.reviewer || '';
+
+      const docList = record.trackingType === 'artwork' ? record.artworks :
+                      record.trackingType === 'technical' ? (record.technicalSheets || []) :
+                      (record.commercialSheets || []);
+
+      let statusLabel = 'En Proceso';
+      if (!designerOrTechName) {
+        statusLabel = 'Sin Asignar';
+      } else if (docList.length === 0) {
+        statusLabel = record.trackingType === 'artwork' ? 'Pendiente de Arte' : 'Pendiente';
+      } else {
+        const hasRejected = docList.some(v => 
+          v.idApproval.status === 'rejected' || 
+          (record.trackingType === 'artwork' && (v.mktApproval?.status === 'rejected' || v.provApproval?.status === 'rejected' || v.planApproval?.status === 'rejected'))
+        );
+        if (hasRejected) {
+          statusLabel = 'Observado';
+        } else {
+          const allApproved = docList.every(v => {
+            const idOk = v.idApproval.status === 'approved';
+            if (record.trackingType !== 'artwork') return idOk;
+            return idOk && v.mktApproval?.status === 'approved' && v.provApproval?.status === 'approved' && v.planApproval?.status === 'approved';
+          });
+          if (allApproved) {
+            statusLabel = 'Aprobado Final';
+          } else {
+            const hasIdPending = docList.some(v => v.idApproval.status === 'pending');
+            if (hasIdPending) {
+              statusLabel = 'En Revisión I+D';
+            } else if (record.trackingType === 'artwork') {
+              const hasMktPending = docList.some(v => v.mktApproval?.status === 'pending');
+              if (hasMktPending) {
+                statusLabel = 'En Revisión MKT';
+              } else {
+                const hasProvPending = docList.some(v => v.provApproval?.status === 'pending');
+                if (hasProvPending) {
+                  statusLabel = 'En Revisión PROV';
+                }
+              }
+            }
+          }
+        }
+      }
       
       const searchIndex = [
         record.id || '',
-        record.sapCode || '',
-        record.sapDescription || '',
+        record.correlativeId || '',
+        record.codigoSAP || '',
+        record.descripcionSAP || '',
         record.comments || '',
         record.linea || '',
-        record.category || '',
+        record.categoria || '',
         record.marca || '',
-        record.status || '',
+        record.proveedor || '',
         designerOrTechName,
-        record.provider || '',
+        reviewerName,
+        statusLabel,
       ].map(str => str.toLowerCase()).join(' ');
 
       matchSearch = searchTerms.every(term => searchIndex.includes(term));
