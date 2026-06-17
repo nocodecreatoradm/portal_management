@@ -25,7 +25,8 @@ import {
   Menu,
   Shield,
   AlertCircle,
-  TrendingUp
+  TrendingUp,
+  Truck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ModuleId } from '../types';
@@ -90,6 +91,7 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
         { id: 'technical_datasheet', label: t('menu.technical_datasheet'), icon: <FileText size={18} />, permission: 'technical_sheets:view' },
         { id: 'commercial_datasheet', label: t('menu.commercial_datasheet'), icon: <FileSpreadsheet size={18} />, permission: 'technical_sheets:view' },
         { id: 'quality_claims', label: t('menu.quality_claims'), icon: <AlertCircle size={18} />, permission: 'artwork:view' },
+        { id: 'import_tracking', label: 'Seguimiento Importaciones', icon: <Truck size={18} />, permission: 'artwork:view' },
       ]
     },
     {

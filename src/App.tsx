@@ -52,6 +52,7 @@ import OvenExperimental from './components/OvenExperimental';
 import MasterDataModule from './components/MasterDataModule';
 import ArtworkGantt from './components/ArtworkGantt';
 import ModuleActions from './components/ModuleActions';
+import ImportTrackingModule from './components/ImportTrackingModule';
 import { exportToExcel, generateReportPDF, exportToPPT } from './lib/exportUtils';
 import { saveCalculationRecord, fetchCalculationRecords } from './lib/api';
 import { outlookService } from './services/outlookService';
@@ -1256,7 +1257,8 @@ export default function App() {
       master_data: 'Maestro de Datos',
       quality_claims: t('menu.quality_claims'),
       price_gmroi_simulator: t('menu.price_gmroi_simulator'),
-      sizing_module: t('menu.sizing_module')
+      sizing_module: t('menu.sizing_module'),
+      import_tracking: 'Seguimiento Importaciones'
     };
 
     if (activeModule === 'user_management') {
@@ -1475,6 +1477,10 @@ export default function App() {
 
     if (activeModule === 'rd_projects') {
       return <ProjectsModule onExportPPT={handleExportPPT} />;
+    }
+
+    if (activeModule === 'import_tracking') {
+      return <ImportTrackingModule />;
     }
 
     const isFollowupModule = ['artwork_followup', 'technical_datasheet', 'commercial_datasheet'].includes(activeModule);

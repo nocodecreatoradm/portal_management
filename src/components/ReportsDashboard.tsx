@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, ReferenceLine
+  PieChart, Pie, Cell, LineChart, Line, ReferenceLine, ComposedChart
 } from 'recharts';
 import { Calendar, Download, ArrowLeft, Filter, CheckCircle2, XCircle, Clock, Target, Users, BarChart3, X } from 'lucide-react';
 import { ProductRecord, ModuleId } from '../types';
@@ -556,7 +556,7 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
 
             <div className="flex-1 min-h-[450px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart 
+                <ComposedChart 
                   data={stats.performanceTimeline} 
                   margin={{ top: 20, right: 60, left: 20, bottom: 20 }}
                   onClick={(state) => {
@@ -609,21 +609,15 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                     }}
                   />
                    <Tooltip 
-                    wrapperStyle={{ pointerEvents: 'auto', cursor: 'pointer', outline: 'none' }}
+                    wrapperStyle={{ pointerEvents: 'none', outline: 'none' }}
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
                         return (
-                          <div 
-                            className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl cursor-pointer select-none active:scale-95 transition-transform"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedPointDetails(data);
-                            }}
-                          >
+                          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl select-none">
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{data.displayMonth}</p>
                             <p className="text-sm font-black text-white mt-1">
-                              Promedio: <span className="text-indigo-400 font-mono font-bold">{payload[0].value} días</span>
+                              Promedio: <span className="text-indigo-400 font-mono font-bold">{data.avgDays} días</span>
                             </p>
                             <div className="mt-2.5 pt-2 border-t border-slate-800/80 text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
                               <span>👉</span>
@@ -680,13 +674,30 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                     }} 
                   />
 
+                  {/* Clickable glassmorphic background columns */}
+                  <Bar 
+                    dataKey="avgDays" 
+                    fill="rgba(99, 102, 241, 0.08)"
+                    activeBar={{ fill: 'rgba(99, 102, 241, 0.22)' }}
+                    radius={[8, 8, 0, 0]}
+                    cursor="pointer"
+                    onClick={(data: any) => {
+                      if (data) {
+                        const payload = data.payload || data;
+                        if (payload && typeof payload === 'object' && 'displayMonth' in payload) {
+                          setSelectedPointDetails(payload);
+                        }
+                      }
+                    }}
+                  />
+
                   <Line 
                     type="monotone" 
                     dataKey="avgDays" 
-                    stroke="#fff" 
+                    stroke="#818cf8" 
                     strokeWidth={4} 
-                    dot={{ r: 6, fill: '#fff', strokeWidth: 3, stroke: '#1e293b', style: { cursor: 'pointer' } }}
-                    activeDot={{ r: 8, fill: '#6366f1', strokeWidth: 0, style: { cursor: 'pointer' } }}
+                    dot={{ r: 6, fill: '#fff', strokeWidth: 3, stroke: '#818cf8', style: { cursor: 'pointer' } }}
+                    activeDot={{ r: 8, fill: '#fff', strokeWidth: 4, stroke: '#4f46e5', style: { cursor: 'pointer' } }}
                     onClick={(data: any) => {
                       if (data) {
                         const payload = data.payload || data;
@@ -705,7 +716,7 @@ export default function ReportsDashboard({ data, activeModule, onBack }: Reports
                     }}
                     animationDuration={1500}
                   />
-                </LineChart>
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
             
