@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
-import { Plus, Settings, FileText, ArrowLeft, Beaker } from 'lucide-react';
+import { Plus, Settings, FileText, ArrowLeft, Beaker, Search, X } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
@@ -123,6 +123,7 @@ export default function App() {
     linea: '',
     proveedor: '',
   });
+  const [globalSearch, setGlobalSearch] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Filtered data
@@ -139,7 +140,32 @@ export default function App() {
     const matchMarca = !filters.marca || record.marca === filters.marca;
     const matchLinea = !filters.linea || record.linea === filters.linea;
     const matchProveedor = !filters.proveedor || record.proveedor === filters.proveedor;
-    return matchMarca && matchLinea && matchProveedor;
+
+    let matchSearch = true;
+    if (globalSearch.trim()) {
+      const searchTerms = globalSearch.toLowerCase().split(/\s+/).filter(Boolean);
+      const assignmentObj = record.trackingType === 'artwork' ? record.artworkAssignment :
+                            record.trackingType === 'technical' ? record.technicalAssignment :
+                            record.commercialAssignment;
+      const designerOrTechName = assignmentObj?.designer || '';
+      
+      const searchIndex = [
+        record.id || '',
+        record.sapCode || '',
+        record.sapDescription || '',
+        record.comments || '',
+        record.linea || '',
+        record.category || '',
+        record.marca || '',
+        record.status || '',
+        designerOrTechName,
+        record.provider || '',
+      ].map(str => str.toLowerCase()).join(' ');
+
+      matchSearch = searchTerms.every(term => searchIndex.includes(term));
+    }
+
+    return matchMarca && matchLinea && matchProveedor && matchSearch;
   });
 
   // Detail Modal state
@@ -1477,10 +1503,29 @@ export default function App() {
         </div>
 
         <div id="artwork-table" className="bg-white rounded-3xl shadow-sm border border-slate-200/60 overflow-hidden">
-          <div className="px-8 pb-4 flex justify-between items-center pt-6">
+          <div className="px-8 pb-4 flex flex-col md:flex-row md:justify-between md:items-center gap-4 pt-6">
             <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">
               Mostrando <span className="text-slate-900">{filteredData.length}</span> registros
             </p>
+            
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input
+                type="text"
+                placeholder="Buscar en cualquier columna..."
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+                className="w-full pl-10 pr-8 py-2 text-xs font-bold text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white focus:border-blue-500 transition-all"
+              />
+              {globalSearch && (
+                <button
+                  onClick={() => setGlobalSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-450 hover:text-slate-600 hover:bg-slate-200/50 rounded-md transition-all"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
           </div>
           <DataTable 
             data={filteredData} 
@@ -1538,12 +1583,14 @@ export default function App() {
     setShowReport(false);
     setShowGantt(false);
     setClaimSearchTerm('');
+    setGlobalSearch('');
   };
 
   const handleNavigateFromCalendar = (moduleId: ModuleId, itemId: string, sapCode?: string) => {
     setActiveModule(moduleId);
     setShowReport(false);
     setShowGantt(false);
+    setGlobalSearch('');
     if (moduleId === 'quality_claims') {
       setClaimSearchTerm(sapCode || '');
     } else {
