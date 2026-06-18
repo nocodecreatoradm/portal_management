@@ -354,6 +354,102 @@ const resolveTrackingDetails = (
   };
 };
 
+// ── SearchCombo: dropdown con búsqueda en tiempo real ────────────────────
+interface SearchComboProps {
+  placeholder?: string;
+  value: string;
+  options: { id: string; label: string }[];
+  onSelect: (id: string, label: string) => void;
+  onClear: () => void;
+  allowCustom?: boolean;
+  onCustom?: (val: string) => void;
+  disabled?: boolean;
+}
+
+function SearchCombo({ placeholder, value, options, onSelect, onClear, allowCustom, onCustom, disabled }: SearchComboProps) {
+  const [query, setQuery] = React.useState('');
+  const [open, setOpen] = React.useState(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const filtered = options.filter(o =>
+    !query || o.label.toLowerCase().includes(query.toLowerCase())
+  );
+
+  const handleFocus = () => { setQuery(''); setOpen(true); };
+  const handleBlur = () => setTimeout(() => setOpen(false), 150);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(e.target.value);
+    setOpen(true);
+    if (allowCustom && onCustom) onCustom(e.target.value);
+  };
+
+  const handleSelect = (id: string, label: string) => {
+    onSelect(id, label);
+    setQuery('');
+    setOpen(false);
+  };
+
+  const handleClear = () => {
+    onClear();
+    setQuery('');
+    inputRef.current?.focus();
+  };
+
+  return (
+    <div className="relative mt-1.5">
+      <div className="relative flex items-center">
+        <input
+          ref={inputRef}
+          type="text"
+          disabled={disabled}
+          placeholder={disabled ? 'Seleccione línea primero' : placeholder}
+          value={open ? query : value}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onChange={handleChange}
+          className="w-full px-3.5 py-2.5 pr-8 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+        {value && !disabled && (
+          <button
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); handleClear(); }}
+            className="absolute right-2.5 text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <X size={12} />
+          </button>
+        )}
+      </div>
+      {open && !disabled && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+          {filtered.length === 0 && !allowCustom && (
+            <p className="px-3 py-2.5 text-xs text-slate-400 font-semibold">Sin coincidencias</p>
+          )}
+          {filtered.map(o => (
+            <button
+              key={o.id}
+              type="button"
+              onMouseDown={() => handleSelect(o.id, o.label)}
+              className={`w-full text-left px-3.5 py-2 text-xs font-semibold hover:bg-blue-50 transition-colors ${value === o.label ? 'text-blue-600 bg-blue-50/50' : 'text-slate-700'}`}
+            >
+              {o.label}
+            </button>
+          ))}
+          {allowCustom && query && !filtered.find(o => o.label.toLowerCase() === query.toLowerCase()) && (
+            <button
+              type="button"
+              onMouseDown={() => { if (onCustom) onCustom(query); setOpen(false); }}
+              className="w-full text-left px-3.5 py-2 text-xs font-semibold text-blue-500 hover:bg-blue-50 border-t border-slate-100 transition-colors"
+            >
+              ✏️ Usar "{query}" como valor personalizado
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ImportTrackingModule() {
   const [shipments, setShipments] = useState<ImportShipment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -673,25 +769,42 @@ export default function ImportTrackingModule() {
   };
 
   // Adding attachment to new request
-  const [docType, setDocType] = useState('FACTURA COMERCIAL');
-  const [docName, setDocName] = useState('');
-  
+  const DOC_TYPES = [
+    '🧾 FACTURA COMERCIAL',
+    '📄 COTIZACIÓN',
+    '📜 CERTIFICADO OEKOTEX',
+    '📦 PACKING LIST',
+    '🚢 BL / AWB',
+    '🛃 DUA / DECLARACIÓN ADUANERA',
+    '📂 OTROS DOCUMENTOS',
+  ];
+  const [docType, setDocType] = useState(DOC_TYPES[0]);
+  const [docCustomType, setDocCustomType] = useState('');
+  const [docTypeSearch, setDocTypeSearch] = useState('');
+  const [showDocTypeDropdown, setShowDocTypeDropdown] = useState(false);
+  const [docFile, setDocFile] = useState<File | null>(null);
+
+  const effectiveDocType = docType === '📂 OTROS DOCUMENTOS' && docCustomType.trim()
+    ? docCustomType.trim().toUpperCase()
+    : docType.replace(/^[^\w]+/, '').trim();
+
   const handleAddDoc = () => {
-    if (!docName.trim()) {
-      toast.error('Ingrese el nombre o referencia del documento');
+    if (!docFile) {
+      toast.error('Seleccione un archivo para adjuntar');
       return;
     }
+    const fileUrl = URL.createObjectURL(docFile);
     const doc: AttachedDoc = {
-      name: `${docType}: ${docName}`,
-      url: '#',
-      type: 'application/pdf'
+      name: `${effectiveDocType}: ${docFile.name}`,
+      url: fileUrl,
+      type: docFile.type || 'application/pdf'
     };
     setNewShipment(prev => ({
       ...prev,
       documents: [...prev.documents, doc]
     }));
-    setDocName('');
-    toast.success('Documento adjuntado');
+    setDocFile(null);
+    toast.success(`Documento "${docFile.name}" adjuntado`);
   };
 
   const handleEditClick = (shipment: ImportShipment) => {
@@ -1455,34 +1568,15 @@ Equipo de Importaciones & Desarrollo`;
                   <div className="space-y-4">
                     <div>
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Proveedor *</label>
-                      <select 
-                        value={newShipment.supplierId} 
-                        onChange={(e) => {
-                          const id = e.target.value;
-                          const s = suppliers.find(x => x.id === id);
-                          setNewShipment(prev => ({ 
-                            ...prev, 
-                            supplierId: id,
-                            supplierName: s ? (s.commercialAlias || s.legalName) : ''
-                          }));
-                        }}
-                        className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                      >
-                        <option value="">Seleccione un proveedor...</option>
-                        {suppliers.map(s => (
-                          <option key={s.id} value={s.id}>{s.commercialAlias || s.legalName}</option>
-                        ))}
-                      </select>
-                      {/* Fallback text input in case provider is not in master data */}
-                      {!newShipment.supplierId && (
-                        <input
-                          type="text"
-                          placeholder="O escriba el nombre del proveedor..."
-                          value={newShipment.supplierName}
-                          onChange={(e) => setNewShipment(prev => ({ ...prev, supplierName: e.target.value }))}
-                          className="w-full mt-2 px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                        />
-                      )}
+                      <SearchCombo
+                        placeholder="Buscar proveedor..."
+                        value={newShipment.supplierName}
+                        options={suppliers.map(s => ({ id: s.id, label: s.commercialAlias || s.legalName }))}
+                        onSelect={(id, label) => setNewShipment(prev => ({ ...prev, supplierId: id, supplierName: label }))}
+                        onClear={() => setNewShipment(prev => ({ ...prev, supplierId: '', supplierName: '' }))}
+                        allowCustom
+                        onCustom={(val) => setNewShipment(prev => ({ ...prev, supplierId: '', supplierName: val }))}
+                      />
                     </div>
 
                     {/* Redundant Line/Category input removed, brand/line/category selectors below handle this */}
@@ -1491,123 +1585,63 @@ Equipo de Importaciones & Desarrollo`;
                     <div className="grid grid-cols-3 gap-3">
                       <div>
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Marca</label>
-                        <select 
-                          value={newShipment.brandId} 
-                          onChange={(e) => {
-                            const id = e.target.value;
-                            const b = brands.find(x => x.id === id);
-                            setNewShipment(prev => ({ 
-                              ...prev, 
-                              brandId: id,
-                              brandName: b ? b.name : ''
-                            }));
-                          }}
-                          className="w-full mt-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                        >
-                          <option value="">Marca...</option>
-                          {brands.map(b => (
-                            <option key={b.id} value={b.id}>{b.name}</option>
-                          ))}
-                        </select>
+                        <SearchCombo
+                          placeholder="Marca..."
+                          value={newShipment.brandName}
+                          options={brands.map(b => ({ id: b.id, label: b.name }))}
+                          onSelect={(id, label) => setNewShipment(prev => ({ ...prev, brandId: id, brandName: label }))}
+                          onClear={() => setNewShipment(prev => ({ ...prev, brandId: '', brandName: '' }))}
+                        />
                       </div>
-
                       <div>
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Línea Prod.</label>
-                        <select 
-                          value={newShipment.lineId} 
-                          onChange={(e) => {
-                            const id = e.target.value;
-                            const l = productLines.find(x => x.id === id);
-                            setNewShipment(prev => ({ 
-                              ...prev, 
-                              lineId: id,
-                              lineName: l ? l.name : '',
-                              categoryId: '',
-                              categoryName: ''
-                            }));
-                          }}
-                          className="w-full mt-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                        >
-                          <option value="">Línea...</option>
-                          {productLines.map(l => (
-                            <option key={l.id} value={l.id}>{l.name}</option>
-                          ))}
-                        </select>
+                        <SearchCombo
+                          placeholder="Línea..."
+                          value={newShipment.lineName}
+                          options={productLines.map(l => ({ id: l.id, label: l.name }))}
+                          onSelect={(id, label) => setNewShipment(prev => ({ ...prev, lineId: id, lineName: label, categoryId: '', categoryName: '' }))}
+                          onClear={() => setNewShipment(prev => ({ ...prev, lineId: '', lineName: '', categoryId: '', categoryName: '' }))}
+                        />
                       </div>
-
                       <div>
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Categoría</label>
-                        <select 
-                          value={newShipment.categoryId} 
-                          disabled={!newShipment.lineId}
-                          onChange={(e) => {
-                            const id = e.target.value;
-                            const c = categories.find(x => x.id === id);
-                            setNewShipment(prev => ({ 
-                              ...prev, 
-                              categoryId: id,
-                              categoryName: c ? c.name : ''
-                            }));
-                          }}
-                          className="w-full mt-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <option value="">Categoría...</option>
-                          {categories
+                        <SearchCombo
+                          placeholder="Categoría..."
+                          value={newShipment.categoryName}
+                          options={categories
                             .filter(c => !newShipment.lineId || c.productLineId === newShipment.lineId)
-                            .map(c => (
-                              <option key={c.id} value={c.id}>{c.name}</option>
-                            ))
-                          }
-                        </select>
+                            .map(c => ({ id: c.id, label: c.name }))}
+                          onSelect={(id, label) => setNewShipment(prev => ({ ...prev, categoryId: id, categoryName: label }))}
+                          onClear={() => setNewShipment(prev => ({ ...prev, categoryId: '', categoryName: '' }))}
+                          disabled={!newShipment.lineId}
+                        />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Responsable Titular *</label>
-                        {appUsers.length > 0 ? (
-                          <select
-                            value={newShipment.responsible}
-                            onChange={(e) => setNewShipment(prev => ({ ...prev, responsible: e.target.value }))}
-                            className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                          >
-                            <option value="">Seleccione responsable...</option>
-                            {appUsers.map(user => (
-                              <option key={user.id} value={user.full_name}>{user.full_name}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input 
-                            type="text"
-                            placeholder="Nombre completo"
-                            value={newShipment.responsible}
-                            onChange={(e) => setNewShipment(prev => ({ ...prev, responsible: e.target.value }))}
-                            className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                          />
-                        )}
+                        <SearchCombo
+                          placeholder="Buscar responsable..."
+                          value={newShipment.responsible}
+                          options={appUsers.map(u => ({ id: u.id, label: u.full_name }))}
+                          onSelect={(_id, label) => setNewShipment(prev => ({ ...prev, responsible: label }))}
+                          onClear={() => setNewShipment(prev => ({ ...prev, responsible: '' }))}
+                          allowCustom
+                          onCustom={(val) => setNewShipment(prev => ({ ...prev, responsible: val }))}
+                        />
                       </div>
                       <div>
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Delegado de Recepción</label>
-                        {appUsers.length > 0 ? (
-                          <select
-                            value={newShipment.delegate}
-                            onChange={(e) => setNewShipment(prev => ({ ...prev, delegate: e.target.value }))}
-                            className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                          >
-                            <option value="">Seleccione delegado...</option>
-                            {appUsers.map(user => (
-                              <option key={user.id} value={user.full_name}>{user.full_name}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input 
-                            type="text"
-                            placeholder="Nombre del delegado"
-                            value={newShipment.delegate}
-                            onChange={(e) => setNewShipment(prev => ({ ...prev, delegate: e.target.value }))}
-                            className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                          />
-                        )}
+                        <SearchCombo
+                          placeholder="Buscar delegado..."
+                          value={newShipment.delegate}
+                          options={appUsers.map(u => ({ id: u.id, label: u.full_name }))}
+                          onSelect={(_id, label) => setNewShipment(prev => ({ ...prev, delegate: label }))}
+                          onClear={() => setNewShipment(prev => ({ ...prev, delegate: '' }))}
+                          allowCustom
+                          onCustom={(val) => setNewShipment(prev => ({ ...prev, delegate: val }))}
+                        />
                       </div>
                     </div>
                   </div>
@@ -1669,40 +1703,76 @@ Equipo de Importaciones & Desarrollo`;
                     </span>
                   </div>
 
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-4">
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tipo Documento</label>
-                        <select 
-                          value={docType} 
-                          onChange={(e) => setDocType(e.target.value)}
-                          className="w-full mt-1 px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none"
-                        >
-                          <option value="FACTURA COMERCIAL">🧾 FACTURA COMERCIAL</option>
-                          <option value="COTIZACIÓN">📄 COTIZACIÓN</option>
-                          <option value="CERTIFICADO OEKOTEX">📜 CERTIFICADO OEKOTEX</option>
-                          <option value="OTROS DOCUMENTOS">📂 OTROS DOCUMENTOS</option>
-                        </select>
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                    {/* Tipo de documento con búsqueda */}
+                    <div>
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tipo Documento</label>
+                      <div className="relative mt-1">
+                        <input
+                          type="text"
+                          value={docTypeSearch || docType}
+                          onFocus={() => { setDocTypeSearch(''); setShowDocTypeDropdown(true); }}
+                          onChange={(e) => { setDocTypeSearch(e.target.value); setShowDocTypeDropdown(true); }}
+                          onBlur={() => setTimeout(() => setShowDocTypeDropdown(false), 150)}
+                          className="w-full px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          placeholder="Buscar tipo..."
+                        />
+                        {showDocTypeDropdown && (
+                          <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-44 overflow-y-auto">
+                            {DOC_TYPES
+                              .filter(t => !docTypeSearch || t.toLowerCase().includes(docTypeSearch.toLowerCase()))
+                              .map(t => (
+                                <button key={t} type="button"
+                                  onMouseDown={() => { setDocType(t); setDocTypeSearch(''); setShowDocTypeDropdown(false); }}
+                                  className={`w-full text-left px-3 py-2 text-xs font-semibold hover:bg-blue-50 transition-colors ${ docType === t ? 'text-blue-600 bg-blue-50/50' : 'text-slate-700' }`}
+                                >{t}</button>
+                              ))}
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Nombre / Ref</label>
-                        <div className="flex gap-2 mt-1">
-                          <input 
-                            type="text" 
-                            placeholder="Ej: INV-2026-001"
-                            value={docName}
-                            onChange={(e) => setDocName(e.target.value)}
-                            className="flex-1 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none"
-                          />
-                          <button
-                            onClick={handleAddDoc}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-blue-700 transition-all active:scale-95 shadow-sm shrink-0"
-                          >
-                            Adjuntar
-                          </button>
-                        </div>
-                      </div>
+                      {/* Nombre personalizado si elige OTROS */}
+                      {docType === '📂 OTROS DOCUMENTOS' && (
+                        <input
+                          type="text"
+                          placeholder="Nombre del tipo de documento..."
+                          value={docCustomType}
+                          onChange={(e) => setDocCustomType(e.target.value)}
+                          className="w-full mt-2 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      )}
                     </div>
+
+                    {/* Adjuntar archivo */}
+                    <div>
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Archivo</label>
+                      <div className="flex gap-2 mt-1 items-center">
+                        <label className="flex-1 flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 border-dashed rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all group">
+                          <Upload size={13} className="text-slate-400 group-hover:text-blue-400 shrink-0" />
+                          <span className="text-xs font-semibold text-slate-500 group-hover:text-blue-500 truncate">
+                            {docFile ? docFile.name : 'Seleccionar archivo...'}
+                          </span>
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                            onChange={(e) => setDocFile(e.target.files?.[0] || null)}
+                          />
+                        </label>
+                        <button
+                          onClick={handleAddDoc}
+                          disabled={!docFile}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-blue-700 transition-all active:scale-95 shadow-sm shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Adjuntar
+                        </button>
+                      </div>
+                      {docFile && (
+                        <p className="text-[9px] text-slate-400 mt-1 ml-1">
+                          Se adjuntará como: <span className="font-bold text-slate-600">{effectiveDocType}: {docFile.name}</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
                     {/* List of attachments */}
                     <div className="space-y-1.5">
