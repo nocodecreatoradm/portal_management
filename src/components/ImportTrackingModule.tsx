@@ -1644,54 +1644,13 @@ Equipo de Importaciones & Desarrollo`;
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">País / Origen</label>
-                        <input
-                          type="text"
-                          placeholder="Ej: NAGOYA, HONG KONG"
-                          value={newShipment.origin}
-                          onChange={(e) => setNewShipment(prev => ({ ...prev, origin: e.target.value.toUpperCase() }))}
-                          className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Destino / Oficina</label>
-                        <input
-                          type="text"
-                          placeholder="Ej: LIMA, CALLAO"
-                          value={newShipment.destination}
-                          onChange={(e) => setNewShipment(prev => ({ ...prev, destination: e.target.value.toUpperCase() }))}
-                          className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado Manual del Tracking</label>
-                        <input
-                          type="text"
-                          placeholder="Ej: En tránsito internacional (Dejar vacío para auto-calcular)"
-                          value={newShipment.trackingStatus}
-                          onChange={(e) => setNewShipment(prev => ({ ...prev, trackingStatus: e.target.value }))}
-                          className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progreso de Entrega (%)</label>
-                        <select
-                          value={newShipment.progress}
-                          onChange={(e) => setNewShipment(prev => ({ ...prev, progress: parseInt(e.target.value) }))}
-                          className="w-full mt-1.5 px-3.5 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
-                        >
-                          <option value="10">10% - Registrado / Info Recibida</option>
-                          <option value="30">30% - Recolectado por Courier</option>
-                          <option value="50">50% - En Tránsito Internacional</option>
-                          <option value="75">75% - En Aduanas / Tránsito Local</option>
-                          <option value="100">100% - Entregado con Firma</option>
-                        </select>
-                      </div>
+                    {/* País/Origen, Destino, Estado y Progreso se obtienen automáticamente
+                        de la API de DHL/FedEx al hacer el primer refresh tras registrar */}
+                    <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-blue-50 border border-blue-100 rounded-xl">
+                      <RefreshCw size={13} className="text-blue-400 shrink-0" />
+                      <p className="text-[10px] font-semibold text-blue-500 leading-tight">
+                        Origen, destino, estado y progreso se completarán automáticamente al sincronizar con {newShipment.carrier || 'DHL / FedEx'}.
+                      </p>
                     </div>
                   </div>
                 </div>
