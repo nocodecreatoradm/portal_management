@@ -215,6 +215,38 @@ const DEFAULT_IMPORT_SHIPMENTS: ImportShipment[] = [
   }
 ];
 
+// ── Live carrier tracking via server proxy ──────────────────────────────
+async function fetchLiveTracking(
+  carrier: 'DHL' | 'FedEx',
+  trackingNumber: string
+): Promise<{
+  trackingStatus: string;
+  progress: number;
+  estimatedDelivery: string;
+  origin: string;
+  destination: string;
+  trackingHistory: { date: string; status: string; location: string }[];
+} | null> {
+  try {
+    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || '';
+    const endpoint = carrier === 'DHL' ? '/api/track/dhl' : '/api/track/fedex';
+    const url = `${endpoint}?trackingNumber=${encodeURIComponent(trackingNumber.trim())}`;
+    const resp = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({})) as any;
+      console.warn(`[Tracking] ${carrier} API error ${resp.status}:`, errData?.error);
+      return null;
+    }
+    return await resp.json();
+  } catch (err) {
+    console.warn('[Tracking] Network error:', err);
+    return null;
+  }
+}
+
+// Legacy resolver kept only as offline fallback (not called when API succeeds)
 const resolveTrackingDetails = (
   carrier: 'DHL' | 'FedEx', 
   trackingNumber: string, 
@@ -402,64 +434,80 @@ export default function ImportTrackingModule() {
     setExpandedShipments(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // Simulated Carrier API check
+  // Live carrier tracking via server proxy
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
-  
-  const handleRefreshTracking = (shipmentId: string) => {
+
+  // Tracks the last date (YYYY-MM-DD) each shipment was refreshed — persisted in localStorage
+  const [lastRefreshedDates, setLastRefreshedDates] = useState<Record<string, string>>(() => {
+    try {
+      const stored = localStorage.getItem('import_tracking_last_refresh');
+      return stored ? JSON.parse(stored) : {};
+    } catch { return {}; }
+  });
+
+  const todayStr = () => new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
+
+  // Returns true if this shipment is allowed to refresh today
+  const canRefresh = (shipment: ImportShipment): boolean => {
+    if (shipment.progress >= 100) return false;  // already delivered
+    const lastDate = lastRefreshedDates[shipment.id];
+    return !lastDate || lastDate !== todayStr();  // not yet refreshed today
+  };
+
+  const markRefreshed = (shipmentId: string) => {
+    const updated = { ...lastRefreshedDates, [shipmentId]: todayStr() };
+    setLastRefreshedDates(updated);
+    localStorage.setItem('import_tracking_last_refresh', JSON.stringify(updated));
+  };
+
+  const handleRefreshTracking = async (shipmentId: string) => {
+    const shipment = shipments.find(s => s.id === shipmentId);
+    if (!shipment) return;
+    if (!canRefresh(shipment)) return; // guard — should not happen if button is properly disabled
+
     setRefreshingId(shipmentId);
-    toast.loading('Sincronizando con servidores de la transportadora...');
-    
-    setTimeout(() => {
-      const updated = shipments.map(s => {
-        if (s.id === shipmentId) {
-          if (s.progress >= 100) {
-            toast.dismiss();
-            toast.success('El envío ya fue entregado con éxito.');
-            return s;
-          }
+    const toastId = toast.loading(`Consultando ${shipment.carrier}... ⏳`);
 
-          // Generate simulated status updates
-          const nextProgress = Math.min(s.progress + 15, 100);
-          const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 16);
-          
-          let newStatus = '';
-          let newLocation = s.destination;
+    try {
+      const liveData = await fetchLiveTracking(shipment.carrier, shipment.trackingNumber);
 
-          if (nextProgress >= 100) {
-            newStatus = 'Entregado / Firma de conformidad';
-            newLocation = s.destination;
-          } else if (nextProgress >= 80) {
-            newStatus = 'En tránsito local para distribución';
-            newLocation = s.destination;
-          } else if (nextProgress >= 60) {
-            newStatus = 'Procesado en centro de distribución local';
-            newLocation = 'LIMA, PERÚ';
-          } else {
-            newStatus = 'Envío en tránsito internacional';
-            newLocation = 'MIAMI, FL';
-          }
-
-          const updatedHistory = [
-            { date: nowStr, status: newStatus, location: newLocation },
-            ...s.trackingHistory
-          ];
-
-          toast.dismiss();
-          toast.success(`Tracking actualizado: ${newStatus}`);
-
-          return {
-            ...s,
-            progress: nextProgress,
-            trackingStatus: newStatus,
-            trackingHistory: updatedHistory
-          };
+      if (liveData) {
+        // ✅ Real data from carrier API
+        const updated = shipments.map(s =>
+          s.id === shipmentId
+            ? {
+                ...s,
+                trackingStatus: liveData.trackingStatus,
+                progress: liveData.progress,
+                estimatedDelivery: liveData.estimatedDelivery || s.estimatedDelivery,
+                origin: liveData.origin || s.origin,
+                destination: liveData.destination || s.destination,
+                trackingHistory: liveData.trackingHistory.length > 0
+                  ? liveData.trackingHistory
+                  : s.trackingHistory,
+              }
+            : s
+        );
+        saveShipments(updated);
+        markRefreshed(shipmentId); // record today's date for this shipment
+        toast.dismiss(toastId);
+        toast.success(`✅ Status real de ${shipment.carrier}: ${liveData.trackingStatus}`);
+      } else {
+        // ⚠️ API not available — show warning but don't update data
+        toast.dismiss(toastId);
+        if (shipment.carrier === 'FedEx') {
+          toast.error('FedEx aún no configurado. Completa el registro en developer.fedex.com.', { duration: 5000 });
+        } else {
+          toast.error('No se pudo conectar con DHL. Verifica que el número de tracking sea válido.', { duration: 5000 });
         }
-        return s;
-      });
-      
-      saveShipments(updated);
+      }
+    } catch (err) {
+      toast.dismiss(toastId);
+      toast.error('Error de conexión con el servidor.');
+      console.error('[handleRefreshTracking]', err);
+    } finally {
       setRefreshingId(null);
-    }, 1500);
+    }
   };
 
   // Filtered shipments
@@ -1221,14 +1269,35 @@ Equipo de Importaciones & Desarrollo`;
                             {s.trackingNumber}
                           </p>
                         </div>
-                        <button 
-                          onClick={() => handleRefreshTracking(s.id)}
-                          disabled={refreshingId === s.id}
-                          className={`p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all ${refreshingId === s.id ? 'animate-spin' : ''}`}
-                          title="Actualizar rastreo en vivo"
-                        >
-                          <RefreshCw size={14} />
-                        </button>
+                        {(() => {
+                          const isDelivered = s.progress >= 100;
+                          const alreadyRefreshedToday = !isDelivered && lastRefreshedDates[s.id] === todayStr();
+                          const isRefreshing = refreshingId === s.id;
+                          const disabled = isDelivered || alreadyRefreshedToday || isRefreshing;
+
+                          const title = isDelivered
+                            ? 'Envío entregado — no requiere actualización'
+                            : alreadyRefreshedToday
+                            ? 'Ya se consultó hoy. Vuelve mañana para una nueva actualización'
+                            : 'Actualizar rastreo en vivo';
+
+                          return (
+                            <button
+                              onClick={() => handleRefreshTracking(s.id)}
+                              disabled={disabled}
+                              className={[
+                                'p-1.5 rounded-lg transition-all',
+                                isRefreshing ? 'animate-spin text-blue-400' : '',
+                                isDelivered ? 'text-slate-600 cursor-not-allowed' : '',
+                                alreadyRefreshedToday ? 'text-amber-600 cursor-not-allowed' : '',
+                                !disabled ? 'text-slate-400 hover:text-white hover:bg-slate-800' : '',
+                              ].join(' ')}
+                              title={title}
+                            >
+                              <RefreshCw size={14} />
+                            </button>
+                          );
+                        })()}
                       </div>
 
                       <div className="flex items-center gap-2">

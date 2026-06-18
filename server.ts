@@ -494,6 +494,205 @@ async function startServer() {
     }
   });
 
+  // ============================================================
+  // CARRIER TRACKING PROXY ENDPOINTS
+  // ============================================================
+
+  // DHL Tracking — uses Shipment Tracking - Unified API
+  // Docs: https://developer.dhl.com/api-reference/shipment-tracking
+  app.get("/api/track/dhl", requireAuth, async (req: any, res) => {
+    const trackingNumber = (req.query.trackingNumber as string || '').trim();
+    if (!trackingNumber) {
+      return res.status(400).json({ error: "trackingNumber is required" });
+    }
+
+    const apiKey = process.env.DHL_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ error: "DHL API key not configured on server" });
+    }
+
+    try {
+      const url = `https://api.dhl.com/track/shipments?trackingNumber=${encodeURIComponent(trackingNumber)}&language=es`;
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "DHL-API-Key": apiKey,
+          "Accept": "application/json",
+        },
+      });
+
+      const data = await response.json() as any;
+
+      if (!response.ok) {
+        console.error(`DHL API error ${response.status}:`, data);
+        return res.status(response.status).json({ error: data?.title || "Error from DHL API", details: data });
+      }
+
+      // Normalise response to our internal format
+      const shipments = data.shipments || [];
+      if (shipments.length === 0) {
+        return res.status(404).json({ error: "No DHL shipment found for this tracking number" });
+      }
+
+      const s = shipments[0];
+      const events: any[] = s.events || [];
+      const latestEvent = events[0] || {};
+      const estimatedDelivery: string =
+        s.estimatedTimeOfDelivery?.split("T")[0] ||
+        s.estimatedDeliveryTimeFrame?.estimatedFrom?.split("T")[0] ||
+        "";
+
+      // Map DHL status codes to Spanish labels
+      const statusMap: Record<string, string> = {
+        "pre-transit": "Información registrada",
+        "transit": "En tránsito internacional",
+        "delivered": "Entregado",
+        "failure": "Intento de entrega fallido",
+        "unknown": "Estado desconocido",
+      };
+
+      const rawStatus = (s.status?.status || "unknown").toLowerCase();
+      const statusLabel = statusMap[rawStatus] || latestEvent.description || rawStatus;
+
+      // Progress percentage based on status
+      const progressMap: Record<string, number> = {
+        "pre-transit": 10,
+        "transit": 55,
+        "delivered": 100,
+        "failure": 80,
+        "unknown": 5,
+      };
+      const progress = progressMap[rawStatus] ?? 10;
+
+      const origin = s.origin?.address?.addressLocality || s.origin?.address?.countryCode || "";
+      const destination = s.destination?.address?.addressLocality || s.destination?.address?.countryCode || "";
+
+      const history = events.map((e: any) => ({
+        date: (e.timestamp || "").replace("T", " ").substring(0, 16),
+        status: e.description || "",
+        location: e.location?.address?.addressLocality || e.location?.address?.countryCode || "",
+      }));
+
+      return res.json({
+        carrier: "DHL",
+        trackingStatus: statusLabel,
+        progress,
+        estimatedDelivery,
+        origin: origin.toUpperCase(),
+        destination: destination.toUpperCase(),
+        trackingHistory: history,
+        raw: data,
+      });
+    } catch (err: any) {
+      console.error("DHL tracking fetch error:", err);
+      return res.status(500).json({ error: "Internal server error while contacting DHL API" });
+    }
+  });
+
+  // FedEx Tracking — OAuth2 + Track API v1
+  // Docs: https://developer.fedex.com/api/en-us/catalog/track/v1/docs.html
+  // Cache FedEx token in memory
+  let fedexToken: string | null = null;
+  let fedexTokenExpiry: number = 0;
+
+  async function getFedExToken(): Promise<string> {
+    if (fedexToken && Date.now() < fedexTokenExpiry - 60000) return fedexToken;
+    const clientId = process.env.FEDEX_CLIENT_ID;
+    const clientSecret = process.env.FEDEX_CLIENT_SECRET;
+    if (!clientId || !clientSecret) throw new Error("FedEx credentials not configured");
+
+    const params = new URLSearchParams();
+    params.append("grant_type", "client_credentials");
+    params.append("client_id", clientId);
+    params.append("client_secret", clientSecret);
+
+    const resp = await fetch("https://apis.fedex.com/oauth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params,
+    });
+    const data = await resp.json() as any;
+    if (!resp.ok) throw new Error(data?.error_description || "FedEx OAuth failed");
+    fedexToken = data.access_token;
+    fedexTokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
+    return fedexToken!;
+  }
+
+  app.get("/api/track/fedex", requireAuth, async (req: any, res) => {
+    const trackingNumber = (req.query.trackingNumber as string || '').trim();
+    if (!trackingNumber) {
+      return res.status(400).json({ error: "trackingNumber is required" });
+    }
+
+    if (!process.env.FEDEX_CLIENT_ID || !process.env.FEDEX_CLIENT_SECRET) {
+      return res.status(503).json({ error: "FedEx credentials not configured on server" });
+    }
+
+    try {
+      const token = await getFedExToken();
+      const body = {
+        trackingInfo: [{ trackingNumberInfo: { trackingNumber } }],
+        includeDetailedScans: true,
+      };
+
+      const response = await fetch("https://apis.fedex.com/track/v1/trackingnumbers", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "X-locale": "es_PE",
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json() as any;
+
+      if (!response.ok) {
+        console.error(`FedEx API error ${response.status}:`, data);
+        return res.status(response.status).json({ error: data?.errors?.[0]?.message || "Error from FedEx API", details: data });
+      }
+
+      const trackResult = data.output?.completeTrackResults?.[0]?.trackResults?.[0];
+      if (!trackResult) {
+        return res.status(404).json({ error: "No FedEx shipment found for this tracking number" });
+      }
+
+      // Map FedEx status to Spanish
+      const latestStatus = trackResult.latestStatusDetail?.description || "Desconocido";
+      const derivedStatus = trackResult.derivedStatusCode || "";
+      const progressMapFx: Record<string, number> = {
+        "OC": 10, "PU": 25, "IT": 55, "OD": 80, "DL": 100, "DE": 75,
+      };
+      const progress = progressMapFx[derivedStatus] ?? 30;
+
+      const origin = trackResult.originLocation?.locationContactAndAddress?.address?.city || "";
+      const destination = trackResult.destinationLocation?.locationContactAndAddress?.address?.city || "";
+      const estimatedDelivery =
+        trackResult.estimatedDeliveryTimeWindow?.window?.ends?.split("T")[0] ||
+        trackResult.standardTransitTimeWindow?.window?.ends?.split("T")[0] || "";
+
+      const history = (trackResult.scanEvents || []).map((e: any) => ({
+        date: (e.date || "").replace("T", " ").substring(0, 16),
+        status: e.eventDescription || "",
+        location: e.scanLocation?.city || e.scanLocation?.countryCode || "",
+      }));
+
+      return res.json({
+        carrier: "FedEx",
+        trackingStatus: latestStatus,
+        progress,
+        estimatedDelivery,
+        origin: origin.toUpperCase(),
+        destination: destination.toUpperCase(),
+        trackingHistory: history,
+        raw: data,
+      });
+    } catch (err: any) {
+      console.error("FedEx tracking fetch error:", err);
+      return res.status(500).json({ error: "Internal server error while contacting FedEx API" });
+    }
+  });
+
   // Endpoint to send email notifications via MS Graph API (Protected)
   app.post("/api/send-email", requireAuth, async (req, res) => {
     const { to, subject, body, attachments } = req.body;
