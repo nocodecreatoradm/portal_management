@@ -786,7 +786,7 @@ export default function ImportTrackingModule() {
 
   const effectiveDocType = docType === '📂 OTROS DOCUMENTOS' && docCustomType.trim()
     ? docCustomType.trim().toUpperCase()
-    : docType.replace(/^[^\w]+/, '').trim();
+    : docType.split(' ').slice(1).join(' ').trim();
 
   const handleAddDoc = () => {
     if (!docFile) {
