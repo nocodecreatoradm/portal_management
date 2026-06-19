@@ -1774,35 +1774,34 @@ Equipo de Importaciones & Desarrollo`;
                     </div>
                   </div>
 
-                    {/* List of attachments */}
-                    <div className="space-y-1.5">
-                      {newShipment.documents.length === 0 ? (
-                        <div className="text-center py-6 text-slate-400 text-xs">
-                          <Upload className="mx-auto opacity-25 mb-1.5" size={24} />
-                          <p className="font-semibold">Sin documentos adjuntos todavía</p>
+                  {/* List of attachments */}
+                  <div className="space-y-1.5">
+                    {newShipment.documents.length === 0 ? (
+                      <div className="text-center py-6 text-slate-400 text-xs">
+                        <Upload className="mx-auto opacity-25 mb-1.5" size={24} />
+                        <p className="font-semibold">Sin documentos adjuntos todavía</p>
+                      </div>
+                    ) : (
+                      newShipment.documents.map((doc, idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-slate-200/50">
+                          <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                            <FileText size={12} className="text-slate-400" />
+                            {doc.name}
+                          </span>
+                          <button
+                            onClick={() => {
+                              setNewShipment(prev => ({
+                                ...prev,
+                                documents: prev.documents.filter((_, i) => i !== idx)
+                              }));
+                            }}
+                            className="text-slate-350 hover:text-red-500 p-1"
+                          >
+                            <X size={14} />
+                          </button>
                         </div>
-                      ) : (
-                        newShipment.documents.map((doc, idx) => (
-                          <div key={idx} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-slate-200/50">
-                            <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                              <FileText size={12} className="text-slate-400" />
-                              {doc.name}
-                            </span>
-                            <button
-                              onClick={() => {
-                                setNewShipment(prev => ({
-                                  ...prev,
-                                  documents: prev.documents.filter((_, i) => i !== idx)
-                                }));
-                              }}
-                              className="text-slate-350 hover:text-red-500 p-1"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
