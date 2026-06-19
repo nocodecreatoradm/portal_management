@@ -606,15 +606,18 @@ async function startServer() {
     params.append("client_id", clientId);
     params.append("client_secret", clientSecret);
 
+    console.log("[FedEx] Requesting OAuth token...");
     const resp = await fetch("https://apis.fedex.com/oauth/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: params,
     });
     const data = await resp.json() as any;
-    if (!resp.ok) throw new Error(data?.error_description || "FedEx OAuth failed");
+    console.log(`[FedEx] OAuth response status: ${resp.status}`, JSON.stringify(data).substring(0, 200));
+    if (!resp.ok) throw new Error(data?.error_description || data?.message || `FedEx OAuth failed: ${resp.status}`);
     fedexToken = data.access_token;
     fedexTokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
+    console.log("[FedEx] Token obtained successfully");
     return fedexToken!;
   }
 
@@ -635,6 +638,7 @@ async function startServer() {
         includeDetailedScans: true,
       };
 
+      console.log(`[FedEx] Tracking number: ${trackingNumber}`);
       const response = await fetch("https://apis.fedex.com/track/v1/trackingnumbers", {
         method: "POST",
         headers: {
@@ -645,7 +649,11 @@ async function startServer() {
         body: JSON.stringify(body),
       });
 
-      const data = await response.json() as any;
+      const rawText = await response.text();
+      console.log(`[FedEx] Track API status: ${response.status}, body: ${rawText.substring(0, 500)}`);
+      
+      let data: any;
+      try { data = JSON.parse(rawText); } catch { data = { raw: rawText }; }
 
       if (!response.ok) {
         console.error(`FedEx API error ${response.status}:`, data);
@@ -654,6 +662,7 @@ async function startServer() {
 
       const trackResult = data.output?.completeTrackResults?.[0]?.trackResults?.[0];
       if (!trackResult) {
+        console.warn("[FedEx] No trackResult found in response:", JSON.stringify(data).substring(0, 300));
         return res.status(404).json({ error: "No FedEx shipment found for this tracking number" });
       }
 
@@ -688,8 +697,8 @@ async function startServer() {
         raw: data,
       });
     } catch (err: any) {
-      console.error("FedEx tracking fetch error:", err);
-      return res.status(500).json({ error: "Internal server error while contacting FedEx API" });
+      console.error("FedEx tracking fetch error:", err?.message || err);
+      return res.status(500).json({ error: "Internal server error while contacting FedEx API", detail: err?.message });
     }
   });
 
