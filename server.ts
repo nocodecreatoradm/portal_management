@@ -589,144 +589,109 @@ async function startServer() {
     }
   });
 
-  // FedEx Tracking — OAuth2 + Track API v1
-  // Docs: https://developer.fedex.com/api/en-us/catalog/track/v1/docs.html
-  // Cache FedEx token
-  let fedexToken: string | null = null;
-  let fedexTokenExpiry: number = 0;
-  let fedexEnv: "production" | "sandbox" = "production";
-
-  async function getFedExToken(): Promise<string> {
-    if (fedexToken && Date.now() < fedexTokenExpiry - 60000) return fedexToken;
-    const clientId = process.env.FEDEX_CLIENT_ID;
-    const clientSecret = process.env.FEDEX_CLIENT_SECRET;
-    if (!clientId || !clientSecret) throw new Error("FedEx credentials not configured");
-
-    const params = new URLSearchParams();
-    params.append("grant_type", "client_credentials");
-    params.append("client_id", clientId);
-    params.append("client_secret", clientSecret);
-
-    const environments: { name: "production" | "sandbox"; url: string }[] = [
-      { name: "production", url: "https://apis.fedex.com/oauth/token" },
-      { name: "sandbox",    url: "https://apis-sandbox.fedex.com/oauth/token" },
-    ];
-
-    let lastError = "";
-    for (const env of environments) {
-      console.log(`[FedEx] Trying OAuth at ${env.name}: ${env.url}`);
-      try {
-        const resp = await fetch(env.url, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: params,
-        });
-        const data = await resp.json() as any;
-        console.log(`[FedEx] OAuth ${env.name} status ${resp.status}:`, JSON.stringify(data).substring(0, 300));
-
-        if (resp.ok && data.access_token) {
-          fedexToken = data.access_token;
-          fedexTokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
-          fedexEnv = env.name;
-          console.log(`[FedEx] Token OK — using ${env.name} environment`);
-          return fedexToken!;
-        }
-        lastError = data?.error_description || data?.message || data?.error || `HTTP ${resp.status}`;
-      } catch (e: any) {
-        lastError = e?.message || "Network error";
-        console.error(`[FedEx] OAuth fetch error at ${env.name}:`, lastError);
-      }
-    }
-    throw new Error(`FedEx OAuth failed: ${lastError}`);
-  }
-
+  // FedEx Tracking — scraping del endpoint interno de fedex.com (sin cuenta, sin OAuth)
   app.get("/api/track/fedex", requireAuth, async (req: any, res) => {
     const trackingNumber = (req.query.trackingNumber as string || '').trim();
     if (!trackingNumber) {
       return res.status(400).json({ error: "trackingNumber is required" });
     }
 
-    if (!process.env.FEDEX_CLIENT_ID || !process.env.FEDEX_CLIENT_SECRET) {
-      return res.status(503).json({ error: "FedEx credentials not configured on server" });
-    }
-
     try {
-      const token = await getFedExToken();
+      console.log(`[FedEx] Tracking público: ${trackingNumber}`);
 
-      // Use the correct track endpoint based on which OAuth env worked
-      const trackBaseUrl = fedexEnv === "sandbox"
-        ? "https://apis-sandbox.fedex.com"
-        : "https://apis.fedex.com";
+      const formData = new URLSearchParams();
+      formData.append("data", JSON.stringify({
+        TrackPackagesRequest: {
+          appType: "WTRK",
+          appDeviceType: "DESKTOP",
+          supportHTML: true,
+          supportCurrentLocation: true,
+          uniqueKey: "",
+          processingParameters: {},
+          trackingInfoList: [{
+            trackNumberInfo: {
+              trackingNumber,
+              trackingQualifier: "",
+              trackingCarrier: ""
+            }
+          }]
+        }
+      }));
+      formData.append("action", "trackpackages");
+      formData.append("locale", "en_US");
+      formData.append("version", "99");
+      formData.append("format", "json");
 
-      const body = {
-        trackingInfo: [{ trackingNumberInfo: { trackingNumber } }],
-        includeDetailedScans: true,
-      };
-
-      console.log(`[FedEx] Tracking ${trackingNumber} via ${fedexEnv} (${trackBaseUrl})`);
-      const response = await fetch(`${trackBaseUrl}/track/v1/trackingnumbers`, {
+      const response = await fetch("https://www.fedex.com/trackingCal/track", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "X-locale": "es_PE",
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Accept": "application/json, text/plain, */*",
+          "Accept-Language": "en-US,en;q=0.9,es;q=0.8",
+          "Origin": "https://www.fedex.com",
+          "Referer": `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber}`,
         },
-        body: JSON.stringify(body),
+        body: formData,
       });
 
       const rawText = await response.text();
-      console.log(`[FedEx] Track API status: ${response.status}, body: ${rawText.substring(0, 500)}`);
-      
+      console.log(`[FedEx] trackingCal status: ${response.status}, body: ${rawText.substring(0, 600)}`);
+
       let data: any;
-      try { data = JSON.parse(rawText); } catch { data = { raw: rawText }; }
-
-      if (!response.ok) {
-        console.error(`FedEx API error ${response.status}:`, data);
-        return res.status(response.status).json({ error: data?.errors?.[0]?.message || "Error from FedEx API", details: data });
+      try { data = JSON.parse(rawText); } catch {
+        return res.status(502).json({ error: "FedEx no devolvió JSON válido", raw: rawText.substring(0, 300) });
       }
 
-      const trackResult = data.output?.completeTrackResults?.[0]?.trackResults?.[0];
-      if (!trackResult) {
-        console.warn("[FedEx] No trackResult found in response:", JSON.stringify(data).substring(0, 300));
-        return res.status(404).json({ error: "No FedEx shipment found for this tracking number" });
+      // Extraer el paquete del response
+      const pkg = data?.TrackPackagesResponse?.packageList?.[0];
+      if (!pkg) {
+        return res.status(404).json({ error: "No se encontró el envío en FedEx", raw: JSON.stringify(data).substring(0, 300) });
       }
 
-      // Map FedEx status to Spanish
-      const latestStatus = trackResult.latestStatusDetail?.description || "Desconocido";
-      const derivedStatus = trackResult.derivedStatusCode || "";
-      const progressMapFx: Record<string, number> = {
-        "OC": 10, "PU": 25, "IT": 55, "OD": 80, "DL": 100, "DE": 75,
+      // Estado y progreso
+      const keyStatus = pkg.keyStatus || pkg.displayStatus || "Desconocido";
+      const statusProgressMap: Record<string, number> = {
+        "Delivered":           100,
+        "Out for Delivery":     80,
+        "In Transit":           55,
+        "At Destination":       70,
+        "Customs Cleared":      65,
+        "In Customs":           60,
+        "Picked Up":            25,
+        "Label Created":        10,
+        "Shipment Information": 10,
       };
-      const progress = progressMapFx[derivedStatus] ?? 30;
+      const progress = statusProgressMap[keyStatus] ?? 30;
 
-      const origin = trackResult.originLocation?.locationContactAndAddress?.address?.city || "";
-      const destination = trackResult.destinationLocation?.locationContactAndAddress?.address?.city || "";
-      const estimatedDelivery =
-        trackResult.estimatedDeliveryTimeWindow?.window?.ends?.split("T")[0] ||
-        trackResult.standardTransitTimeWindow?.window?.ends?.split("T")[0] || "";
-
-      const history = (trackResult.scanEvents || []).map((e: any) => ({
-        date: (e.date || "").replace("T", " ").substring(0, 16),
-        status: e.eventDescription || "",
-        location: e.scanLocation?.city || e.scanLocation?.countryCode || "",
+      // Historial de eventos
+      const events: any[] = pkg.scanEventList || [];
+      const history = events.map((e: any) => ({
+        date: e.date && e.time ? `${e.date} ${e.time}`.substring(0, 16) : e.date || "",
+        status: e.status || e.scanDetails || "",
+        location: [e.scanLocation, e.city, e.state, e.countryCode].filter(Boolean).join(", "),
       }));
+
+      // Origen y destino
+      const origin = pkg.originCity || pkg.shipperCity || "";
+      const destination = pkg.destCity || pkg.recipientCity || "";
+      const estimatedDelivery = pkg.displayDeliveryDt || pkg.deliveredDt || "";
 
       return res.json({
         carrier: "FedEx",
-        trackingStatus: latestStatus,
+        trackingStatus: keyStatus,
         progress,
         estimatedDelivery,
         origin: origin.toUpperCase(),
         destination: destination.toUpperCase(),
         trackingHistory: history,
-        raw: data,
       });
+
     } catch (err: any) {
-      console.error("FedEx tracking fetch error:", err?.message || err);
-      return res.status(500).json({ error: "Internal server error while contacting FedEx API", detail: err?.message });
+      console.error("[FedEx] Error en tracking público:", err?.message || err);
+      return res.status(500).json({ error: "Error consultando FedEx", detail: err?.message });
     }
   });
-
   // Endpoint to send email notifications via MS Graph API (Protected)
   app.post("/api/send-email", requireAuth, async (req, res) => {
     const { to, subject, body, attachments } = req.body;
