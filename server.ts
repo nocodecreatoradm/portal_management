@@ -591,9 +591,10 @@ async function startServer() {
 
   // FedEx Tracking — OAuth2 + Track API v1
   // Docs: https://developer.fedex.com/api/en-us/catalog/track/v1/docs.html
-  // Cache FedEx token in memory
+  // Cache FedEx token
   let fedexToken: string | null = null;
   let fedexTokenExpiry: number = 0;
+  let fedexEnv: "production" | "sandbox" = "production";
 
   async function getFedExToken(): Promise<string> {
     if (fedexToken && Date.now() < fedexTokenExpiry - 60000) return fedexToken;
@@ -606,34 +607,34 @@ async function startServer() {
     params.append("client_id", clientId);
     params.append("client_secret", clientSecret);
 
-    // Try production first, then sandbox as fallback
-    const endpoints = [
-      "https://apis.fedex.com/oauth/token",
-      "https://apis-sandbox.fedex.com/oauth/token",
+    const environments: { name: "production" | "sandbox"; url: string }[] = [
+      { name: "production", url: "https://apis.fedex.com/oauth/token" },
+      { name: "sandbox",    url: "https://apis-sandbox.fedex.com/oauth/token" },
     ];
 
     let lastError = "";
-    for (const endpoint of endpoints) {
-      console.log(`[FedEx] Trying OAuth at: ${endpoint}`);
+    for (const env of environments) {
+      console.log(`[FedEx] Trying OAuth at ${env.name}: ${env.url}`);
       try {
-        const resp = await fetch(endpoint, {
+        const resp = await fetch(env.url, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: params,
         });
         const data = await resp.json() as any;
-        console.log(`[FedEx] OAuth status ${resp.status}:`, JSON.stringify(data).substring(0, 300));
+        console.log(`[FedEx] OAuth ${env.name} status ${resp.status}:`, JSON.stringify(data).substring(0, 300));
 
         if (resp.ok && data.access_token) {
           fedexToken = data.access_token;
           fedexTokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
-          console.log(`[FedEx] Token OK from ${endpoint}`);
+          fedexEnv = env.name;
+          console.log(`[FedEx] Token OK — using ${env.name} environment`);
           return fedexToken!;
         }
         lastError = data?.error_description || data?.message || data?.error || `HTTP ${resp.status}`;
       } catch (e: any) {
         lastError = e?.message || "Network error";
-        console.error(`[FedEx] OAuth fetch error at ${endpoint}:`, lastError);
+        console.error(`[FedEx] OAuth fetch error at ${env.name}:`, lastError);
       }
     }
     throw new Error(`FedEx OAuth failed: ${lastError}`);
@@ -651,13 +652,19 @@ async function startServer() {
 
     try {
       const token = await getFedExToken();
+
+      // Use the correct track endpoint based on which OAuth env worked
+      const trackBaseUrl = fedexEnv === "sandbox"
+        ? "https://apis-sandbox.fedex.com"
+        : "https://apis.fedex.com";
+
       const body = {
         trackingInfo: [{ trackingNumberInfo: { trackingNumber } }],
         includeDetailedScans: true,
       };
 
-      console.log(`[FedEx] Tracking number: ${trackingNumber}`);
-      const response = await fetch("https://apis.fedex.com/track/v1/trackingnumbers", {
+      console.log(`[FedEx] Tracking ${trackingNumber} via ${fedexEnv} (${trackBaseUrl})`);
+      const response = await fetch(`${trackBaseUrl}/track/v1/trackingnumbers`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
