@@ -606,19 +606,37 @@ async function startServer() {
     params.append("client_id", clientId);
     params.append("client_secret", clientSecret);
 
-    console.log("[FedEx] Requesting OAuth token...");
-    const resp = await fetch("https://apis.fedex.com/oauth/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: params,
-    });
-    const data = await resp.json() as any;
-    console.log(`[FedEx] OAuth response status: ${resp.status}`, JSON.stringify(data).substring(0, 200));
-    if (!resp.ok) throw new Error(data?.error_description || data?.message || `FedEx OAuth failed: ${resp.status}`);
-    fedexToken = data.access_token;
-    fedexTokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
-    console.log("[FedEx] Token obtained successfully");
-    return fedexToken!;
+    // Try production first, then sandbox as fallback
+    const endpoints = [
+      "https://apis.fedex.com/oauth/token",
+      "https://apis-sandbox.fedex.com/oauth/token",
+    ];
+
+    let lastError = "";
+    for (const endpoint of endpoints) {
+      console.log(`[FedEx] Trying OAuth at: ${endpoint}`);
+      try {
+        const resp = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: params,
+        });
+        const data = await resp.json() as any;
+        console.log(`[FedEx] OAuth status ${resp.status}:`, JSON.stringify(data).substring(0, 300));
+
+        if (resp.ok && data.access_token) {
+          fedexToken = data.access_token;
+          fedexTokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
+          console.log(`[FedEx] Token OK from ${endpoint}`);
+          return fedexToken!;
+        }
+        lastError = data?.error_description || data?.message || data?.error || `HTTP ${resp.status}`;
+      } catch (e: any) {
+        lastError = e?.message || "Network error";
+        console.error(`[FedEx] OAuth fetch error at ${endpoint}:`, lastError);
+      }
+    }
+    throw new Error(`FedEx OAuth failed: ${lastError}`);
   }
 
   app.get("/api/track/fedex", requireAuth, async (req: any, res) => {
