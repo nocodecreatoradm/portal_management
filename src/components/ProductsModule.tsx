@@ -93,25 +93,23 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
     }
   }
 
-  // --- Sizing constants ---
-  const CARD_SLOT_H = 112;  // vertical slot per card center
-  const CARD_SLOT_W = 162;  // horizontal slot per card
-  const MARGIN_H = 14;      // left/right margin inside each column
-  const CARD_HALF_H = 78;   // approx half card height — used as PAD so cards don't clip at edges
-  const PAD = CARD_HALF_H;  // padding = half card height so top/bottom cards are never clipped
+  // --- Sizing constants for compact chip design ---
+  const CARD_SLOT_H = 72;   // vertical slot per chip center (chip ~56px tall + 16px gap)
+  const CARD_SLOT_W = 80;   // horizontal slot per chip (chip 64px + 16px gap)
+  const MARGIN_H = 20;      // left/right margin inside each column
+  const CARD_HALF_H = 36;   // half chip height (56/2) — used as PAD
+  const PAD = CARD_HALF_H + 20; // extra clearance for X-axis ruler at bottom
 
-  // --- CHART_H: one slot per distinct PVP level, so every product has visual room ---
-  // Avoids dividing by minPvpGap (which can be 0 when products share PVP values)
+  // --- CHART_H based on distinct PVP levels ---
   const pvpRange = maxPvp - minPvp;
-  let CHART_H = 300;
+  let CHART_H = 280;
   if (allPvps.length > 0) {
     const distinctPvpCount = new Set(allPvps).size;
-    // Each distinct PVP level gets CARD_SLOT_H pixels, plus PAD at top and bottom
     const needed = distinctPvpCount * CARD_SLOT_H + PAD * 2;
-    CHART_H = Math.max(300, Math.min(560, needed));
+    CHART_H = Math.max(280, Math.min(520, needed));
   }
 
-  // --- colWidths: based on max simultaneous horizontal cards at any Y level ---
+  // --- colWidths: based on max simultaneous chips at any Y level ---
   const colWidths = useMemo(() => {
     const widths: Record<'ticket_value' | 'mainstream' | 'premium', number> = {
       ticket_value: 0,
@@ -121,10 +119,9 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
 
     segments.forEach(seg => {
       const segRecords = filteredRecords.filter(r => r.segment === seg);
-      if (segRecords.length === 0) { widths[seg] = 100; return; }
+      if (segRecords.length === 0) { widths[seg] = 80; return; }
       if (segRecords.length === 1) { widths[seg] = CARD_SLOT_W + MARGIN_H * 2; return; }
 
-      // Compute Y positions for each product
       const positions = segRecords.map(record => {
         const pvp = record.pvp || 0;
         if (!pvp) return null;
@@ -133,16 +130,14 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
         return { id: record.id, top };
       }).filter(Boolean) as { id: string; top: number }[];
 
-      // For each card, count how many others are within CARD_SLOT_H (vertical band)
       let maxSimultaneous = 1;
       positions.forEach(p1 => {
         const simultaneous = positions.filter(p2 => Math.abs(p1.top - p2.top) < CARD_SLOT_H).length;
         if (simultaneous > maxSimultaneous) maxSimultaneous = simultaneous;
       });
 
-      // Width = enough to place maxSimultaneous cards side by side + margins
       widths[seg] = Math.max(
-        CARD_SLOT_W + MARGIN_H * 2,
+        CARD_SLOT_W * 2 + MARGIN_H * 2,
         maxSimultaneous * CARD_SLOT_W + MARGIN_H * 2
       );
     });
@@ -155,7 +150,7 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
       <div className="p-5 border-b border-slate-100 flex items-center justify-between">
         <div>
           <h3 className="text-base font-black text-slate-900">Posicionamiento de Productos</h3>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">Eje Y: PVP (S/)  ·  Eje X: FOB efectivo ($)</p>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">Eje Y: PVP (S/)  ·  Eje X: FOB efectivo ($)  ·  Pasa el cursor sobre una imagen para ver detalles</p>
         </div>
         <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
           {segments.map(s => (
@@ -180,8 +175,7 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
             const segRecords = filteredRecords.filter(r => r.segment === seg);
             const cfg = SEGMENT_CONFIG[seg];
             const colWidth = colWidths[seg];
-            
-            // Calculate local FOB bounds dynamically for this segment
+
             const segFobs = segRecords.map(getFobEffective).filter(v => v > 0);
             let minFob = 0;
             let maxFob = 100;
@@ -192,37 +186,34 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                 minFob = Math.max(0, minVal - 10);
                 maxFob = maxVal + 10;
               } else {
-                const buffer = (maxVal - minVal) * 0.1;
+                const buffer = (maxVal - minVal) * 0.12;
                 minFob = Math.max(0, minVal - buffer);
                 maxFob = maxVal + buffer;
               }
             }
 
-            // Calculate overlap-adjusted positions using dynamic colWidth
+            // Position calculation
             const placed: { left: number; top: number }[] = [];
+            const fobToX = (fob: number) => MARGIN_H + ((fob - minFob) / (maxFob - minFob || 1)) * (colWidth - CARD_SLOT_W - MARGIN_H * 2) + CARD_SLOT_W / 2;
+            const pvpToY = (pvp: number) => PAD + (1 - (pvp - minPvp) / (maxPvp - minPvp || 1)) * (CHART_H - PAD * 2);
+
             const positionedRecords = segRecords.map(record => {
               const fob = getFobEffective(record);
               const pvp = record.pvp || 0;
               if (!pvp && !fob) return null;
-
               const xPct = maxFob === minFob ? 0.5 : (fob - minFob) / (maxFob - minFob);
               let left = MARGIN_H + xPct * (colWidth - CARD_SLOT_W - MARGIN_H * 2) + CARD_SLOT_W / 2;
-              
               const yPct = maxPvp === minPvp ? 0.5 : 1 - (pvp - minPvp) / (maxPvp - minPvp);
               const top = PAD + yPct * (CHART_H - PAD * 2);
-              
               return { record, left, top, fob, pvp };
             }).filter(Boolean) as { record: ProductManagementRecord; left: number; top: number; fob: number; pvp: number }[];
 
-            // Sort by top position to process overlap adjustment sequentially from top to bottom
             positionedRecords.sort((a, b) => a.top - b.top);
 
-            // Shift card horizontal coordinates when they overlap vertically
             const adjustedRecords = positionedRecords.map(item => {
               let left = item.left;
               const top = item.top;
               let shiftCount = 0;
-              
               for (const p of placed) {
                 const dy = Math.abs(top - p.top);
                 const dx = Math.abs(left - p.left);
@@ -240,7 +231,7 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
               return { ...item, left };
             });
 
-            // --- Trendline calculation (linear regression: PVP ~ FOB) ---
+            // Trendline
             const trendPoints = positionedRecords.filter(p => p.fob > 0 && p.pvp > 0);
             let trendLine: { x1: number; y1: number; x2: number; y2: number } | null = null;
             if (trendPoints.length >= 2) {
@@ -253,8 +244,6 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
               if (denom !== 0) {
                 const slope = (n * sumXY - sumX * sumY) / denom;
                 const intercept = (sumY - slope * sumX) / n;
-                const fobToX = (fob: number) => MARGIN_H + ((fob - minFob) / (maxFob - minFob || 1)) * (colWidth - CARD_SLOT_W - MARGIN_H * 2) + CARD_SLOT_W / 2;
-                const pvpToY = (pvp: number) => PAD + (1 - (pvp - minPvp) / (maxPvp - minPvp || 1)) * (CHART_H - PAD * 2);
                 const x1 = fobToX(minFob);
                 const y1 = pvpToY(intercept + slope * minFob);
                 const x2 = fobToX(maxFob);
@@ -263,7 +252,15 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
               }
             }
 
-            // Segment visual config
+            // X-axis ticks (5 ticks across FOB range)
+            const xTicks = segRecords.length > 0
+              ? [...Array(5)].map((_, i) => {
+                  const fobVal = minFob + (i / 4) * (maxFob - minFob);
+                  const xPos = fobToX(fobVal);
+                  return { fobVal, xPos };
+                })
+              : [];
+
             const segGradient = seg === 'ticket_value'
               ? 'from-slate-50/60 to-white'
               : seg === 'mainstream'
@@ -293,7 +290,7 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                   flexDirection: 'column',
                   overflow: 'visible',
                 }}>
-                {/* Column header — richer design */}
+                {/* Column header */}
                 <div className={`text-center py-3 border-b bg-gradient-to-r ${headerGradient}`} style={{ borderColor }}>
                   <div className="flex items-center justify-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${cfg.dot} shadow-sm`}/>
@@ -306,48 +303,59 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                     <p className="text-[9px] text-slate-400 font-medium mt-0.5">FOB ${minFob.toFixed(0)}–${maxFob.toFixed(0)}</p>
                   )}
                 </div>
-                {/* Chart area — outer div grows with column flex */}
+                {/* Chart area */}
                 <div className={`bg-gradient-to-b ${segGradient} flex`} style={{ height: CHART_H, position: 'relative', overflow: 'visible' }}>
-                  {/* Grid lines span full column width */}
+                  {/* Horizontal grid lines */}
                   <div className="absolute inset-0 pointer-events-none">
                     {[...Array(5)].map((_, i) => (
                       <div key={i} style={{ position: 'absolute', left: 0, right: 0, top: PAD + (i / 4) * (CHART_H - PAD * 2), borderTop: i === 0 || i === 4 ? `1px solid ${borderColor}` : '1px dashed #e8edf5' }}/>
                     ))}
-                    <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', borderLeft: '1px dashed #f0f4f8' }}/>
+                    {/* Vertical FOB grid lines at X ticks */}
+                    {xTicks.map(({ xPos }, i) => (
+                      <div key={`vg-${i}`} style={{ position: 'absolute', top: 0, bottom: 0, left: xPos, borderLeft: i === 0 || i === 4 ? `1px solid ${borderColor}` : '1px dashed #edf0f7', opacity: 0.6 }}/>
+                    ))}
                   </div>
 
                   {segRecords.length === 0 ? (
-                    /* Empty column: centered label */
                     <div className="flex-1 flex items-center justify-center">
                       <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Sin productos</p>
                     </div>
                   ) : (
-                    /* Inner canvas: fixed colWidth, centered via margin:auto */
                     <div style={{ width: colWidth, margin: '0 auto', height: '100%', position: 'relative', flexShrink: 0 }}>
                       {/* SVG Trendline */}
                       {trendLine && (
                         <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
                           <defs>
                             <linearGradient id={`tg-${seg}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                              <stop offset="0%" stopColor={trendColor} stopOpacity="0.15"/>
-                              <stop offset="50%" stopColor={trendColor} stopOpacity="0.55"/>
-                              <stop offset="100%" stopColor={trendColor} stopOpacity="0.15"/>
+                              <stop offset="0%" stopColor={trendColor} stopOpacity="0.1"/>
+                              <stop offset="50%" stopColor={trendColor} stopOpacity="0.5"/>
+                              <stop offset="100%" stopColor={trendColor} stopOpacity="0.1"/>
                             </linearGradient>
                           </defs>
                           <line x1={trendLine.x1} y1={trendLine.y1} x2={trendLine.x2} y2={trendLine.y2}
-                            stroke={trendColor} strokeWidth="6" strokeOpacity="0.12" strokeLinecap="round"/>
+                            stroke={trendColor} strokeWidth="6" strokeOpacity="0.1" strokeLinecap="round"/>
                           <line x1={trendLine.x1} y1={trendLine.y1} x2={trendLine.x2} y2={trendLine.y2}
-                            stroke={trendColor} strokeWidth="2" strokeOpacity="0.7"
-                            strokeDasharray="6 3" strokeLinecap="round"/>
-                          <circle cx={trendLine.x1} cy={trendLine.y1} r="4" fill={trendColor} fillOpacity="0.5"/>
-                          <circle cx={trendLine.x2} cy={trendLine.y2} r="4" fill={trendColor} fillOpacity="0.5"/>
-                          <text x={(trendLine.x1 + trendLine.x2) / 2} y={Math.min(trendLine.y1, trendLine.y2) - 8}
-                            textAnchor="middle" fill={trendColor} fontSize="9" fontWeight="700"
-                            fontFamily="sans-serif" opacity="0.8">TENDENCIA</text>
+                            stroke={trendColor} strokeWidth="1.5" strokeOpacity="0.6"
+                            strokeDasharray="5 3" strokeLinecap="round"/>
+                          <circle cx={trendLine.x1} cy={trendLine.y1} r="3" fill={trendColor} fillOpacity="0.4"/>
+                          <circle cx={trendLine.x2} cy={trendLine.y2} r="3" fill={trendColor} fillOpacity="0.4"/>
+                          <text x={(trendLine.x1 + trendLine.x2) / 2} y={Math.min(trendLine.y1, trendLine.y2) - 7}
+                            textAnchor="middle" fill={trendColor} fontSize="8" fontWeight="700"
+                            fontFamily="sans-serif" opacity="0.7">TENDENCIA</text>
                         </svg>
                       )}
 
-                      {/* Product cards */}
+                      {/* X-axis ruler: ticks + FOB labels along the bottom */}
+                      {xTicks.map(({ fobVal, xPos }, i) => (
+                        <div key={`xt-${i}`} style={{ position: 'absolute', bottom: 6, left: xPos, transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, pointerEvents: 'none' }}>
+                          <div style={{ width: 1, height: 5, background: '#94a3b8', opacity: 0.6 }}/>
+                          <span style={{ fontSize: 7, fontWeight: 800, color: '#64748b', letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
+                            ${fobVal.toFixed(0)}
+                          </span>
+                        </div>
+                      ))}
+
+                      {/* Compact chip cards */}
                       {adjustedRecords.map(({ record, left, top, fob, pvp }) => {
                         const growth = getGrowthPct(record);
                         const isHovered = hoveredId === record.id;
@@ -360,110 +368,157 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                         );
                         const logoUrl = matchingSupplier?.logoUrl || record.supplierLogoUrl;
 
+                        // Hover card appears above or below based on position
+                        const showAbove = top > CHART_H * 0.45;
+
                         return (
-                          <div key={record.id} style={{ position: 'absolute', top, left, transform: 'translate(-50%, -50%)', zIndex: isHovered ? 50 : 10 }}>
-                            {/* Tooltip */}
+                          <div key={record.id}
+                            style={{ position: 'absolute', top, left, transform: 'translate(-50%, -50%)', zIndex: isHovered ? 50 : 10 }}
+                            onMouseEnter={() => setHoveredId(record.id)}
+                            onMouseLeave={() => setHoveredId(null)}
+                          >
+                            {/* ── COMPACT CHIP (always visible) ── */}
+                            <div
+                              className="relative cursor-pointer transition-all duration-150"
+                              style={{
+                                width: 64,
+                                borderRadius: 10,
+                                border: `2px solid ${isHovered ? trendColor : borderColor}`,
+                                background: '#fff',
+                                boxShadow: isHovered
+                                  ? `0 4px 16px ${trendColor}40, 0 0 0 3px ${trendColor}20`
+                                  : '0 1px 4px rgba(0,0,0,0.08)',
+                                transform: isHovered ? 'scale(1.12)' : 'scale(1)',
+                                overflow: 'hidden',
+                              }}
+                              onClick={() => handleOpenEditModal(record)}
+                            >
+                              {/* Image */}
+                              <div style={{ width: 60, height: 52, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                {productImgUrl ? (
+                                  <img
+                                    src={productImgUrl}
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 3 }}
+                                    alt=""
+                                    onClick={(e) => { e.stopPropagation(); window.open(productImgUrl, '_blank'); }}
+                                  />
+                                ) : (
+                                  <Package size={16} className="text-slate-300"/>
+                                )}
+                              </div>
+                              {/* FOB badge at bottom */}
+                              <div style={{ background: isHovered ? trendColor : '#f1f5f9', padding: '2px 4px', textAlign: 'center' }}>
+                                <span style={{ fontSize: 8, fontWeight: 800, color: isHovered ? '#fff' : '#475569', letterSpacing: '0.02em' }}>
+                                  ${fob > 0 ? fob.toFixed(1) : '—'}
+                                </span>
+                              </div>
+                              {/* Logo badge top-right */}
+                              {logoUrl && (
+                                <div style={{ position: 'absolute', top: 2, right: 2, width: 14, height: 14, background: '#fff', borderRadius: 3, border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 1 }}>
+                                  <img src={logoUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt=""/>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* ── HOVER FULL CARD (floating panel) ── */}
                             {isHovered && (
-                              <div className={`absolute ${top < CHART_H * 0.4 ? 'top-full mt-2' : 'bottom-full mb-2'} left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-64 pointer-events-none`}>
-                                <p className="text-[9px] font-black text-slate-400 uppercase">{getLineName(record)}{getCategoryName(record) ? ` | ${getCategoryName(record)}` : ''}</p>
-                                <p className="text-xs font-black mt-0.5">{record.commercialName || record.descripcionSAP}</p>
-                                {record.catalogComments && (
-                                  <div className="mt-2 border-t border-slate-700 pt-2 space-y-1">
-                                    {(record.catalogComments || '')
-                                      .split('\n')
-                                      .map(c => c.trim())
-                                      .filter(Boolean)
-                                      .map((c, i) => (
-                                        <p key={i} className="text-[9px] text-slate-300 flex items-start gap-1">
-                                          <span className="text-slate-400">•</span>
-                                          <span>{c}</span>
-                                        </p>
-                                      ))
-                                    }
+                              <div
+                                className="absolute z-50 pointer-events-none"
+                                style={{
+                                  width: 210,
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  ...(showAbove ? { bottom: 'calc(100% + 10px)' } : { top: 'calc(100% + 10px)' }),
+                                  background: '#fff',
+                                  borderRadius: 14,
+                                  border: `2px solid ${trendColor}`,
+                                  boxShadow: `0 8px 32px ${trendColor}30, 0 2px 8px rgba(0,0,0,0.12)`,
+                                  padding: 12,
+                                }}
+                              >
+                                {/* Arrow indicator */}
+                                <div style={{
+                                  position: 'absolute',
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  ...(showAbove ? { bottom: -7, borderTop: `7px solid ${trendColor}`, borderLeft: '7px solid transparent', borderRight: '7px solid transparent' } : { top: -7, borderBottom: `7px solid ${trendColor}`, borderLeft: '7px solid transparent', borderRight: '7px solid transparent' }),
+                                  width: 0, height: 0,
+                                }}/>
+                                {/* Product image full */}
+                                <div style={{ width: '100%', height: 90, background: '#f8fafc', borderRadius: 8, overflow: 'hidden', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${borderColor}` }}>
+                                  {productImgUrl ? (
+                                    <img src={productImgUrl} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6 }} alt=""/>
+                                  ) : (
+                                    <Package size={24} className="text-slate-200"/>
+                                  )}
+                                </div>
+                                {/* Supplier + segment row */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                  {logoUrl ? (
+                                    <img src={logoUrl} style={{ width: 20, height: 20, objectFit: 'contain', borderRadius: 4, border: '1px solid #e2e8f0', background: '#fff', padding: 1 }} alt=""/>
+                                  ) : (
+                                    <div style={{ width: 20, height: 20, borderRadius: 4, background: '#f1f5f9', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                                      {record.proveedor?.slice(0, 2)}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p style={{ fontSize: 8, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>{getLineName(record)}{getCategoryName(record) ? ` · ${getCategoryName(record)}` : ''}</p>
+                                  </div>
+                                </div>
+                                {/* Product name */}
+                                <p style={{ fontSize: 11, fontWeight: 900, color: '#0f172a', lineHeight: 1.3, marginBottom: 6 }}>
+                                  {record.commercialName || record.descripcionSAP}
+                                </p>
+                                <p style={{ fontSize: 8, color: '#94a3b8', fontWeight: 600, marginBottom: 8 }}>{record.codigoSAP}</p>
+                                {/* Pricing grid */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: growth !== null ? 6 : 0 }}>
+                                  <div style={{ background: '#f8fafc', borderRadius: 8, padding: '5px 8px', border: `1px solid ${borderColor}` }}>
+                                    <p style={{ fontSize: 7, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 1 }}>PVP</p>
+                                    <p style={{ fontSize: 12, fontWeight: 900, color: '#0f172a' }}>S/ {pvp || '—'}</p>
+                                  </div>
+                                  <div style={{ background: '#f8fafc', borderRadius: 8, padding: '5px 8px', border: `1px solid ${borderColor}` }}>
+                                    <p style={{ fontSize: 7, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 1 }}>FOB</p>
+                                    <p style={{ fontSize: 12, fontWeight: 900, color: trendColor }}>${fob.toFixed(2)}</p>
+                                  </div>
+                                </div>
+                                {/* Growth */}
+                                {growth !== null && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 20, background: growth >= 0 ? '#dcfce7' : '#fee2e2', color: growth >= 0 ? '#16a34a' : '#dc2626', fontSize: 9, fontWeight: 800 }}>
+                                      {growth >= 0 ? <ArrowUp size={9}/> : <ArrowDown size={9}/>}
+                                      {Math.abs(growth).toFixed(1)}% vs año anterior
+                                    </div>
                                   </div>
                                 )}
-                                <div className="mt-2 flex justify-between text-[9px]">
-                                  <span className="text-slate-400">Precio PVP <span className="text-white font-black">S/ {pvp}</span></span>
-                                  <span className="text-slate-400">FOB <span className="text-white font-black">${fob.toFixed(2)}</span></span>
+                                {/* Comments */}
+                                {record.catalogComments && (
+                                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 6, marginBottom: 8 }}>
+                                    {(record.catalogComments || '').split('\n').map(c => c.trim()).filter(Boolean).map((c, i) => (
+                                      <p key={i} style={{ fontSize: 8, color: '#64748b', display: 'flex', alignItems: 'flex-start', gap: 4, marginBottom: 2 }}>
+                                        <span style={{ color: trendColor, fontWeight: 900 }}>•</span>{c}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+                                {/* Action buttons */}
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                  <button
+                                    className="pointer-events-auto flex-1 py-1.5 rounded-lg text-white text-[9px] font-black uppercase tracking-wide transition-all hover:opacity-90"
+                                    style={{ background: trendColor }}
+                                    onClick={(e) => { e.stopPropagation(); handleOpenEditModal(record); }}
+                                  >
+                                    Editar
+                                  </button>
+                                  <button
+                                    className="pointer-events-auto flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wide transition-all hover:opacity-90 border"
+                                    style={{ color: trendColor, borderColor: trendColor, background: '#fff' }}
+                                    onClick={(e) => { e.stopPropagation(); onOpenQuickView(record); }}
+                                  >
+                                    <Eye size={9} className="inline mr-1"/>Resumen
+                                  </button>
                                 </div>
                               </div>
                             )}
-                            {/* Card */}
-                            <div className="relative group/card">
-                            <button
-                              onMouseEnter={() => setHoveredId(record.id)}
-                              onMouseLeave={() => setHoveredId(null)}
-                              onClick={() => handleOpenEditModal(record)}
-                              className="bg-white border-2 rounded-xl p-2 shadow-sm hover:shadow-lg transition-all w-[148px] text-left relative flex flex-col gap-1.5"
-                              style={{
-                                borderColor: isHovered ? trendColor : borderColor,
-                                boxShadow: isHovered ? `0 4px 20px ${trendColor}33` : undefined
-                              }}
-                            >
-                              {/* Image */}
-                              <div
-                                className={`relative w-full h-20 rounded-lg overflow-hidden flex-shrink-0 border ${productImgUrl ? 'cursor-pointer hover:opacity-85 transition-opacity bg-white' : 'bg-slate-50'}`}
-                                style={{ borderColor: isHovered ? `${trendColor}40` : '#f1f5f9' }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (productImgUrl) {
-                                    window.open(productImgUrl, '_blank');
-                                  } else {
-                                    onOpenQuickView(record);
-                                  }
-                                }}
-                                title={productImgUrl ? 'Abrir imagen en tamaño completo' : 'Ver resumen del producto'}
-                              >
-                                {productImgUrl ? (
-                                  <img src={productImgUrl} className="w-full h-full object-contain p-1" alt="" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                    <Package size={18} />
-                                  </div>
-                                )}
-                                <div className="absolute top-1 right-1">
-                                  {logoUrl ? (
-                                    <img src={logoUrl} className="w-6 h-6 object-contain rounded border border-white bg-white shadow-sm p-0.5" alt="Logo"/>
-                                  ) : (
-                                    <div className="w-5 h-5 rounded border border-white bg-slate-200 flex items-center justify-center text-[7px] font-bold text-slate-500 shadow-sm uppercase">
-                                      {record.proveedor.slice(0, 2)}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Info */}
-                              <div>
-                                <div className="flex items-center gap-1">
-                                  <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot} flex-shrink-0`}/>
-                                  <p className="text-[9px] font-black text-slate-900 line-clamp-1 truncate">
-                                    {record.commercialName || record.descripcionSAP}
-                                  </p>
-                                </div>
-                                <p className="text-[8px] text-slate-400 truncate mt-0.5">{record.codigoSAP}</p>
-                              </div>
-                              <div className="border-t border-slate-100 pt-1 flex items-center justify-between">
-                                <span className="text-[9px] font-black text-slate-700">S/ {pvp || '—'}</span>
-                                <span className="text-[9px] font-bold text-slate-400">${fob.toFixed(2)}</span>
-                              </div>
-                              {growth !== null && (
-                                <div className={`text-[8px] font-black flex items-center gap-0.5 mt-[-2px] ${growth >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                                  {growth >= 0 ? <ArrowUp size={8}/> : <ArrowDown size={8}/>}
-                                  {Math.abs(growth).toFixed(1)}%
-                                </div>
-                              )}
-                            </button>
-                            {/* Quick View pill */}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); onOpenQuickView(record); }}
-                              title="Ver resumen del producto"
-                              className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2.5 py-1 rounded-full text-white text-[8px] font-black uppercase tracking-wide shadow-md hover:scale-105 active:scale-95 transition-all z-20 opacity-0 group-hover/card:opacity-100"
-                              style={{ backgroundColor: trendColor }}
-                            >
-                              <Eye size={9}/>
-                              Resumen
-                            </button>
-                            </div>
                           </div>
                         );
                       })}
