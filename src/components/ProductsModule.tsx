@@ -174,9 +174,9 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
         </div>
       </div>
       <div className="overflow-x-auto">
-        <div style={{ display: 'flex', minWidth: colWidths.ticket_value + colWidths.mainstream + colWidths.premium + PAD + 60 }}>
+        <div style={{ display: 'flex', width: '100%', minWidth: colWidths.ticket_value + colWidths.mainstream + colWidths.premium + 52 }}>
           {/* Y-axis */}
-          <div style={{ width: 60, flexShrink: 0, paddingTop: PAD, paddingBottom: PAD, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-end', paddingRight: 8 }}>
+          <div style={{ width: 52, flexShrink: 0, paddingTop: PAD, paddingBottom: PAD, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-end', paddingRight: 6 }}>
             {[...Array(6)].map((_, i) => {
               const val = Math.round(maxPvp - (i / 5) * (maxPvp - minPvp));
               return <span key={i} className="text-[9px] font-black text-slate-400">S/{val}</span>;
@@ -290,7 +290,16 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
             const borderColor = seg === 'ticket_value' ? '#e2e8f0' : seg === 'mainstream' ? '#c7d2fe' : '#ddd6fe';
 
             return (
-              <div key={seg} style={{ width: colWidth, flexShrink: 0, position: 'relative', borderLeft: `2px solid ${borderColor}`, display: 'flex', flexDirection: 'column' }}>
+              <div key={seg}
+                style={{
+                  flex: segRecords.length === 0 ? '0 0 80px' : `1 0 ${colWidth}px`,
+                  minWidth: segRecords.length === 0 ? 80 : colWidth,
+                  position: 'relative',
+                  borderLeft: `2px solid ${borderColor}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                }}>
                 {/* Column header — richer design */}
                 <div className={`text-center py-3 border-b bg-gradient-to-r ${headerGradient}`} style={{ borderColor }}>
                   <div className="flex items-center justify-center gap-2">
@@ -304,178 +313,167 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                     <p className="text-[9px] text-slate-400 font-medium mt-0.5">FOB ${minFob.toFixed(0)}–${maxFob.toFixed(0)}</p>
                   )}
                 </div>
-                {/* Chart area */}
-                <div className={`bg-gradient-to-b ${segGradient}`} style={{ height: CHART_H, position: 'relative', overflow: 'visible', padding: segRecords.length === 0 ? '0' : `${PAD}px 16px` }}>
-                  {/* Horizontal grid lines */}
-                  <div className="absolute inset-0 pointer-events-none" key="grid-lines">
+                {/* Chart area — outer div grows with column flex */}
+                <div className={`bg-gradient-to-b ${segGradient} flex`} style={{ height: CHART_H, position: 'relative', overflow: 'visible' }}>
+                  {/* Grid lines span full column width */}
+                  <div className="absolute inset-0 pointer-events-none">
                     {[...Array(5)].map((_, i) => (
                       <div key={i} style={{ position: 'absolute', left: 0, right: 0, top: PAD + (i / 4) * (CHART_H - PAD * 2), borderTop: i === 0 || i === 4 ? `1px solid ${borderColor}` : '1px dashed #e8edf5' }}/>
                     ))}
-                    {/* Vertical center guide */}
                     <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', borderLeft: '1px dashed #f0f4f8' }}/>
                   </div>
 
-                  {/* SVG Trendline */}
-                  {trendLine && (
-                    <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
-                      <defs>
-                        <linearGradient id={`tg-${seg}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor={trendColor} stopOpacity="0.15"/>
-                          <stop offset="50%" stopColor={trendColor} stopOpacity="0.55"/>
-                          <stop offset="100%" stopColor={trendColor} stopOpacity="0.15"/>
-                        </linearGradient>
-                      </defs>
-                      {/* Glow */}
-                      <line x1={trendLine.x1} y1={trendLine.y1} x2={trendLine.x2} y2={trendLine.y2}
-                        stroke={trendColor} strokeWidth="6" strokeOpacity="0.12" strokeLinecap="round"/>
-                      {/* Main line */}
-                      <line x1={trendLine.x1} y1={trendLine.y1} x2={trendLine.x2} y2={trendLine.y2}
-                        stroke={trendColor} strokeWidth="2" strokeOpacity="0.7"
-                        strokeDasharray="6 3" strokeLinecap="round"/>
-                      {/* Endpoint dots */}
-                      <circle cx={trendLine.x1} cy={trendLine.y1} r="4" fill={trendColor} fillOpacity="0.5"/>
-                      <circle cx={trendLine.x2} cy={trendLine.y2} r="4" fill={trendColor} fillOpacity="0.5"/>
-                      {/* Label */}
-                      <text x={(trendLine.x1 + trendLine.x2) / 2} y={Math.min(trendLine.y1, trendLine.y2) - 8}
-                        textAnchor="middle" fill={trendColor} fontSize="9" fontWeight="700"
-                        fontFamily="sans-serif" opacity="0.8">TENDENCIA</text>
-                    </svg>
-                  )}
+                  {segRecords.length === 0 ? (
+                    /* Empty column: centered label */
+                    <div className="flex-1 flex items-center justify-center">
+                      <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Sin productos</p>
+                    </div>
+                  ) : (
+                    /* Inner canvas: fixed colWidth, centered via margin:auto */
+                    <div style={{ width: colWidth, margin: '0 auto', height: '100%', position: 'relative', flexShrink: 0 }}>
+                      {/* SVG Trendline */}
+                      {trendLine && (
+                        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
+                          <defs>
+                            <linearGradient id={`tg-${seg}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                              <stop offset="0%" stopColor={trendColor} stopOpacity="0.15"/>
+                              <stop offset="50%" stopColor={trendColor} stopOpacity="0.55"/>
+                              <stop offset="100%" stopColor={trendColor} stopOpacity="0.15"/>
+                            </linearGradient>
+                          </defs>
+                          <line x1={trendLine.x1} y1={trendLine.y1} x2={trendLine.x2} y2={trendLine.y2}
+                            stroke={trendColor} strokeWidth="6" strokeOpacity="0.12" strokeLinecap="round"/>
+                          <line x1={trendLine.x1} y1={trendLine.y1} x2={trendLine.x2} y2={trendLine.y2}
+                            stroke={trendColor} strokeWidth="2" strokeOpacity="0.7"
+                            strokeDasharray="6 3" strokeLinecap="round"/>
+                          <circle cx={trendLine.x1} cy={trendLine.y1} r="4" fill={trendColor} fillOpacity="0.5"/>
+                          <circle cx={trendLine.x2} cy={trendLine.y2} r="4" fill={trendColor} fillOpacity="0.5"/>
+                          <text x={(trendLine.x1 + trendLine.x2) / 2} y={Math.min(trendLine.y1, trendLine.y2) - 8}
+                            textAnchor="middle" fill={trendColor} fontSize="9" fontWeight="700"
+                            fontFamily="sans-serif" opacity="0.8">TENDENCIA</text>
+                        </svg>
+                      )}
 
-                  {adjustedRecords.length > 0 ? (
-                    adjustedRecords.map(({ record, left, top, fob, pvp }) => {
-                      const growth = getGrowthPct(record);
-                      const isHovered = hoveredId === record.id;
-                      const productImgUrl = getProductImageUrl(record);
-                      const matchingSupplier = suppliers.find(s => 
-                        s.id === record.supplierId || 
-                        s.id === record.proveedor || 
-                        s.legalName === record.proveedor || 
-                        s.commercialAlias === record.proveedor
-                      );
-                      const logoUrl = matchingSupplier?.logoUrl || record.supplierLogoUrl;
+                      {/* Product cards */}
+                      {adjustedRecords.map(({ record, left, top, fob, pvp }) => {
+                        const growth = getGrowthPct(record);
+                        const isHovered = hoveredId === record.id;
+                        const productImgUrl = getProductImageUrl(record);
+                        const matchingSupplier = suppliers.find(s =>
+                          s.id === record.supplierId ||
+                          s.id === record.proveedor ||
+                          s.legalName === record.proveedor ||
+                          s.commercialAlias === record.proveedor
+                        );
+                        const logoUrl = matchingSupplier?.logoUrl || record.supplierLogoUrl;
 
-                      return (
-                        <div key={record.id} style={{ position: 'absolute', top, left, transform: 'translateX(-50%)', zIndex: isHovered ? 50 : 10 }}>
-                          {/* Tooltip — position above/below based on space */}
-                          {isHovered && (
-                            <div className={`absolute ${top < CHART_H * 0.4 ? 'top-full mt-2' : 'bottom-full mb-2'} left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-64 pointer-events-none`}>
-                              <p className="text-[9px] font-black text-slate-400 uppercase">{getLineName(record)}{getCategoryName(record) ? ` | ${getCategoryName(record)}` : ''}</p>
-                              <p className="text-xs font-black mt-0.5">{record.commercialName || record.descripcionSAP}</p>
-                              {record.catalogComments && (
-                                <div className="mt-2 border-t border-slate-700 pt-2 space-y-1">
-                                  {(record.catalogComments || '')
-                                    .split('\n')
-                                    .map(c => c.trim())
-                                    .filter(Boolean)
-                                    .map((c, i) => (
-                                      <p key={i} className="text-[9px] text-slate-300 flex items-start gap-1">
-                                        <span className="text-slate-400">•</span>
-                                        <span>{c}</span>
-                                      </p>
-                                    ))
-                                  }
-                                </div>
-                              )}
-                              <div className="mt-2 flex justify-between text-[9px]">
-                                <span className="text-slate-400">Precio PVP <span className="text-white font-black">S/ {pvp}</span></span>
-                                <span className="text-slate-400">FOB <span className="text-white font-black">${fob.toFixed(2)}</span></span>
-                              </div>
-                            </div>
-                          )}
-                          {/* Card */}
-                          <div className="relative group/card">
-                          <button
-                            onMouseEnter={() => setHoveredId(record.id)}
-                            onMouseLeave={() => setHoveredId(null)}
-                            onClick={() => handleOpenEditModal(record)}
-                            className="bg-white border-2 rounded-xl p-2 shadow-sm hover:shadow-lg transition-all w-[148px] text-left relative flex flex-col gap-1.5"
-                            style={{
-                              borderColor: isHovered ? trendColor : borderColor,
-                              boxShadow: isHovered ? `0 4px 20px ${trendColor}33` : undefined
-                            }}
-                          >
-                                         {/* Image container */}
-                            <div className={`relative w-full h-20 rounded-lg overflow-hidden flex-shrink-0 border ${productImgUrl ? 'cursor-pointer hover:opacity-85 transition-opacity bg-white' : 'bg-slate-50'}`}
-                              style={{ borderColor: isHovered ? `${trendColor}40` : '#f1f5f9' }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (productImgUrl) {
-                                  window.open(productImgUrl, '_blank');
-                                } else {
-                                  onOpenQuickView(record);
-                                }
-                              }}
-                              title={productImgUrl ? 'Abrir imagen en tamaño completo' : 'Ver resumen del producto'}
-                            >
-                              {productImgUrl ? (
-                                <img src={productImgUrl} className="w-full h-full object-contain p-1" alt="" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                  <Package size={18} />
-                                </div>
-                              )}
-                              {/* Supplier logo overlay */}
-                              <div className="absolute top-1 right-1">
-                                {logoUrl ? (
-                                  <img 
-                                    src={logoUrl} 
-                                    className="w-6 h-6 object-contain rounded border border-white bg-white shadow-sm p-0.5" 
-                                    alt="Logo" 
-                                  />
-                                ) : (
-                                  <div className="w-5 h-5 rounded border border-white bg-slate-200 flex items-center justify-center text-[7px] font-bold text-slate-500 shadow-sm uppercase">
-                                    {record.proveedor.slice(0, 2)}
+                        return (
+                          <div key={record.id} style={{ position: 'absolute', top, left, transform: 'translateX(-50%)', zIndex: isHovered ? 50 : 10 }}>
+                            {/* Tooltip */}
+                            {isHovered && (
+                              <div className={`absolute ${top < CHART_H * 0.4 ? 'top-full mt-2' : 'bottom-full mb-2'} left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-64 pointer-events-none`}>
+                                <p className="text-[9px] font-black text-slate-400 uppercase">{getLineName(record)}{getCategoryName(record) ? ` | ${getCategoryName(record)}` : ''}</p>
+                                <p className="text-xs font-black mt-0.5">{record.commercialName || record.descripcionSAP}</p>
+                                {record.catalogComments && (
+                                  <div className="mt-2 border-t border-slate-700 pt-2 space-y-1">
+                                    {(record.catalogComments || '')
+                                      .split('\n')
+                                      .map(c => c.trim())
+                                      .filter(Boolean)
+                                      .map((c, i) => (
+                                        <p key={i} className="text-[9px] text-slate-300 flex items-start gap-1">
+                                          <span className="text-slate-400">•</span>
+                                          <span>{c}</span>
+                                        </p>
+                                      ))
+                                    }
                                   </div>
                                 )}
-                              </div>
-                            </div>
-                            
-                            {/* Product info */}
-                            <div>
-                              <div className="flex items-center gap-1">
-                                <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot} flex-shrink-0`}/>
-                                <p className="text-[9px] font-black text-slate-900 line-clamp-1 truncate">
-                                  {record.commercialName || record.descripcionSAP}
-                                </p>
-                              </div>
-                              <p className="text-[8px] text-slate-400 truncate mt-0.5">
-                                {record.codigoSAP}
-                              </p>
-                            </div>
-
-                            {/* Pricing and Growth */}
-                            <div className="border-t border-slate-100 pt-1 flex items-center justify-between">
-                              <span className="text-[9px] font-black text-slate-700">S/ {pvp || '—'}</span>
-                              <span className="text-[9px] font-bold text-slate-400">${fob.toFixed(2)}</span>
-                            </div>
-                            {growth !== null && (
-                              <div className={`text-[8px] font-black flex items-center gap-0.5 mt-[-2px] ${growth >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                                {growth >= 0 ? <ArrowUp size={8}/> : <ArrowDown size={8}/>}
-                                {Math.abs(growth).toFixed(1)}%
+                                <div className="mt-2 flex justify-between text-[9px]">
+                                  <span className="text-slate-400">Precio PVP <span className="text-white font-black">S/ {pvp}</span></span>
+                                  <span className="text-slate-400">FOB <span className="text-white font-black">${fob.toFixed(2)}</span></span>
+                                </div>
                               </div>
                             )}
-                          </button>
-                          {/* Quick View button — always visible, opens product summary */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOpenQuickView(record);
-                            }}
-                            title="Ver resumen del producto"
-                            className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2.5 py-1 rounded-full text-white text-[8px] font-black uppercase tracking-wide shadow-md hover:scale-105 active:scale-95 transition-all z-20 opacity-0 group-hover/card:opacity-100"
-                            style={{ backgroundColor: trendColor }}
-                          >
-                            <Eye size={9}/>
-                            Resumen
-                          </button>
+                            {/* Card */}
+                            <div className="relative group/card">
+                            <button
+                              onMouseEnter={() => setHoveredId(record.id)}
+                              onMouseLeave={() => setHoveredId(null)}
+                              onClick={() => handleOpenEditModal(record)}
+                              className="bg-white border-2 rounded-xl p-2 shadow-sm hover:shadow-lg transition-all w-[148px] text-left relative flex flex-col gap-1.5"
+                              style={{
+                                borderColor: isHovered ? trendColor : borderColor,
+                                boxShadow: isHovered ? `0 4px 20px ${trendColor}33` : undefined
+                              }}
+                            >
+                              {/* Image */}
+                              <div
+                                className={`relative w-full h-20 rounded-lg overflow-hidden flex-shrink-0 border ${productImgUrl ? 'cursor-pointer hover:opacity-85 transition-opacity bg-white' : 'bg-slate-50'}`}
+                                style={{ borderColor: isHovered ? `${trendColor}40` : '#f1f5f9' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (productImgUrl) {
+                                    window.open(productImgUrl, '_blank');
+                                  } else {
+                                    onOpenQuickView(record);
+                                  }
+                                }}
+                                title={productImgUrl ? 'Abrir imagen en tamaño completo' : 'Ver resumen del producto'}
+                              >
+                                {productImgUrl ? (
+                                  <img src={productImgUrl} className="w-full h-full object-contain p-1" alt="" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                    <Package size={18} />
+                                  </div>
+                                )}
+                                <div className="absolute top-1 right-1">
+                                  {logoUrl ? (
+                                    <img src={logoUrl} className="w-6 h-6 object-contain rounded border border-white bg-white shadow-sm p-0.5" alt="Logo"/>
+                                  ) : (
+                                    <div className="w-5 h-5 rounded border border-white bg-slate-200 flex items-center justify-center text-[7px] font-bold text-slate-500 shadow-sm uppercase">
+                                      {record.proveedor.slice(0, 2)}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Info */}
+                              <div>
+                                <div className="flex items-center gap-1">
+                                  <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot} flex-shrink-0`}/>
+                                  <p className="text-[9px] font-black text-slate-900 line-clamp-1 truncate">
+                                    {record.commercialName || record.descripcionSAP}
+                                  </p>
+                                </div>
+                                <p className="text-[8px] text-slate-400 truncate mt-0.5">{record.codigoSAP}</p>
+                              </div>
+                              <div className="border-t border-slate-100 pt-1 flex items-center justify-between">
+                                <span className="text-[9px] font-black text-slate-700">S/ {pvp || '—'}</span>
+                                <span className="text-[9px] font-bold text-slate-400">${fob.toFixed(2)}</span>
+                              </div>
+                              {growth !== null && (
+                                <div className={`text-[8px] font-black flex items-center gap-0.5 mt-[-2px] ${growth >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                  {growth >= 0 ? <ArrowUp size={8}/> : <ArrowDown size={8}/>}
+                                  {Math.abs(growth).toFixed(1)}%
+                                </div>
+                              )}
+                            </button>
+                            {/* Quick View pill */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onOpenQuickView(record); }}
+                              title="Ver resumen del producto"
+                              className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2.5 py-1 rounded-full text-white text-[8px] font-black uppercase tracking-wide shadow-md hover:scale-105 active:scale-95 transition-all z-20 opacity-0 group-hover/card:opacity-100"
+                              style={{ backgroundColor: trendColor }}
+                            >
+                              <Eye size={9}/>
+                              Resumen
+                            </button>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="h-full flex items-center justify-center" key="no-products">
-                      <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Sin productos</p>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
