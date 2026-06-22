@@ -354,7 +354,7 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
             {(action === 'view' || action === 'approve') && activeVersion && (
               <div className="space-y-6">
                 {/* Version Selector Dropdowns */}
-                {stage !== 'PLAN' && action !== 'approve' && (
+                {stage !== 'PLAN' && action !== 'approve' && type !== 'artwork' && (
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     {type === 'artwork' && (
                       <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
