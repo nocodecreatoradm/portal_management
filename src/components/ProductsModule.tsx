@@ -93,9 +93,11 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
     }
   }
 
-  const BASE_COL_W = 360;
-  const CHART_H = 520;
-  const PAD = 48;
+  const BASE_COL_W = 280;
+  const EMPTY_COL_W = 120;
+  const pvpRange = maxPvp - minPvp;
+  const CHART_H = Math.max(380, Math.min(520, Math.round(pvpRange * 1.2 + 240)));
+  const PAD = 36;
 
   // Pre-calculate column widths per segment based on vertical overlap density
   const colWidths = useMemo(() => {
@@ -107,7 +109,16 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
 
     segments.forEach(seg => {
       const segRecords = filteredRecords.filter(r => r.segment === seg);
-      if (segRecords.length === 0) return;
+      // Collapse empty columns
+      if (segRecords.length === 0) {
+        widths[seg] = EMPTY_COL_W;
+        return;
+      }
+      // Single product — compact
+      if (segRecords.length === 1) {
+        widths[seg] = 200;
+        return;
+      }
 
       const segFobs = segRecords.map(getFobEffective).filter(v => v > 0);
       let minFob = 0;
@@ -125,47 +136,40 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
         }
       }
 
-      // Calculate raw positions at base width of 360px
+      // Calculate raw positions at base width
       const rawPositions = segRecords.map(record => {
         const fob = getFobEffective(record);
         const pvp = record.pvp || 0;
         if (!pvp && !fob) return null;
 
         const xPct = maxFob === minFob ? 0.5 : (fob - minFob) / (maxFob - minFob);
-        const left = 75 + xPct * (BASE_COL_W - 150);
+        const left = 70 + xPct * (BASE_COL_W - 140);
         
         const yPct = maxPvp === minPvp ? 0.5 : 1 - (pvp - minPvp) / (maxPvp - minPvp);
-        const top = 65 + yPct * (CHART_H - 130);
+        const top = PAD + yPct * (CHART_H - PAD * 2);
         
         return { id: record.id, left, top };
       }).filter(Boolean) as { id: string; left: number; top: number }[];
 
-      // Find maximum number of vertical overlaps for any card (vertical proximity < 95px)
+      // Find maximum number of vertical overlaps for any card
       let maxOverlapCount = 0;
       rawPositions.forEach(p1 => {
         let overlaps = 0;
         rawPositions.forEach(p2 => {
           if (p1.id === p2.id) return;
           const dy = Math.abs(p1.top - p2.top);
-          if (dy < 95) {
-            overlaps++;
-          }
+          if (dy < 100) overlaps++;
         });
-        if (overlaps > maxOverlapCount) {
-          maxOverlapCount = overlaps;
-        }
+        if (overlaps > maxOverlapCount) maxOverlapCount = overlaps;
       });
 
-      // Expand column width based on overlap density:
-      // 1 other vertical overlap: 480px
-      // 2 other vertical overlaps: 600px
-      // 3 or more vertical overlaps: 720px
+      // Expand column width based on overlap density (tighter increments)
       if (maxOverlapCount === 1) {
-        widths[seg] = 480;
+        widths[seg] = BASE_COL_W + 140;
       } else if (maxOverlapCount === 2) {
-        widths[seg] = 600;
+        widths[seg] = BASE_COL_W + 280;
       } else if (maxOverlapCount >= 3) {
-        widths[seg] = 720;
+        widths[seg] = BASE_COL_W + 420;
       }
     });
 
@@ -228,10 +232,10 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
               if (!pvp && !fob) return null;
 
               const xPct = maxFob === minFob ? 0.5 : (fob - minFob) / (maxFob - minFob);
-              let left = 75 + xPct * (colWidth - 150);
+              let left = 70 + xPct * (colWidth - 140);
               
               const yPct = maxPvp === minPvp ? 0.5 : 1 - (pvp - minPvp) / (maxPvp - minPvp);
-              const top = 65 + yPct * (CHART_H - 130);
+              const top = PAD + yPct * (CHART_H - PAD * 2);
               
               return { record, left, top, fob, pvp };
             }).filter(Boolean) as { record: ProductManagementRecord; left: number; top: number; fob: number; pvp: number }[];
@@ -248,12 +252,12 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
               for (const p of placed) {
                 const dy = Math.abs(top - p.top);
                 const dx = Math.abs(left - p.left);
-                if (dy < 95 && dx < 135) {
+                if (dy < 100 && dx < 130) {
                   shiftCount++;
                   if (shiftCount % 2 === 1) {
-                    left = Math.max(75, left - 65);
+                    left = Math.max(70, left - 60);
                   } else {
-                    left = Math.min(colWidth - 75, left + 65);
+                    left = Math.min(colWidth - 70, left + 60);
                   }
                 }
               }
@@ -274,8 +278,8 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
               if (denom !== 0) {
                 const slope = (n * sumXY - sumX * sumY) / denom;
                 const intercept = (sumY - slope * sumX) / n;
-                const fobToX = (fob: number) => 75 + ((fob - minFob) / (maxFob - minFob || 1)) * (colWidth - 150);
-                const pvpToY = (pvp: number) => 65 + (1 - (pvp - minPvp) / (maxPvp - minPvp || 1)) * (CHART_H - 130);
+                const fobToX = (fob: number) => 70 + ((fob - minFob) / (maxFob - minFob || 1)) * (colWidth - 140);
+                const pvpToY = (pvp: number) => PAD + (1 - (pvp - minPvp) / (maxPvp - minPvp || 1)) * (CHART_H - PAD * 2);
                 const x1 = fobToX(minFob);
                 const y1 = pvpToY(intercept + slope * minFob);
                 const x2 = fobToX(maxFob);
@@ -306,7 +310,7 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
             return (
               <div key={seg} style={{ width: colWidth, flexShrink: 0, position: 'relative', borderLeft: `2px solid ${borderColor}`, display: 'flex', flexDirection: 'column' }}>
                 {/* Column header — richer design */}
-                <div className={`text-center py-3.5 border-b bg-gradient-to-r ${headerGradient}`} style={{ borderColor }}>
+                <div className={`text-center py-3 border-b bg-gradient-to-r ${headerGradient}`} style={{ borderColor }}>
                   <div className="flex items-center justify-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${cfg.dot} shadow-sm`}/>
                     <span className={`text-xs font-black uppercase tracking-widest ${headerText}`}>
@@ -314,10 +318,12 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                     </span>
                     <span className="text-[10px] font-bold text-slate-400 bg-white/70 rounded-full px-2 py-0.5 border border-slate-200">{segRecords.length}</span>
                   </div>
-                  <p className="text-[9px] text-slate-400 font-medium mt-0.5">FOB ${minFob.toFixed(0)}–${maxFob.toFixed(0)}</p>
+                  {segRecords.length > 0 && (
+                    <p className="text-[9px] text-slate-400 font-medium mt-0.5">FOB ${minFob.toFixed(0)}–${maxFob.toFixed(0)}</p>
+                  )}
                 </div>
                 {/* Chart area */}
-                <div className={`bg-gradient-to-b ${segGradient}`} style={{ height: CHART_H, position: 'relative', overflow: 'visible', padding: `${PAD}px 24px` }}>
+                <div className={`bg-gradient-to-b ${segGradient}`} style={{ height: CHART_H, position: 'relative', overflow: 'visible', padding: segRecords.length === 0 ? '0' : `${PAD}px 16px` }}>
                   {/* Horizontal grid lines */}
                   <div className="absolute inset-0 pointer-events-none" key="grid-lines">
                     {[...Array(5)].map((_, i) => (
@@ -369,9 +375,9 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
 
                       return (
                         <div key={record.id} style={{ position: 'absolute', top, left, transform: 'translateX(-50%)', zIndex: isHovered ? 50 : 10 }}>
-                          {/* Tooltip */}
+                          {/* Tooltip — position above/below based on space */}
                           {isHovered && (
-                            <div className={`absolute ${top < 220 ? 'top-full mt-2' : 'bottom-full mb-2'} left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-64 pointer-events-none`}>
+                            <div className={`absolute ${top < CHART_H * 0.4 ? 'top-full mt-2' : 'bottom-full mb-2'} left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-64 pointer-events-none`}>
                               <p className="text-[9px] font-black text-slate-400 uppercase">{getLineName(record)}{getCategoryName(record) ? ` | ${getCategoryName(record)}` : ''}</p>
                               <p className="text-xs font-black mt-0.5">{record.commercialName || record.descripcionSAP}</p>
                               {record.catalogComments && (
@@ -396,6 +402,7 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                             </div>
                           )}
                           {/* Card */}
+                          <div className="relative group/card">
                           <button
                             onMouseEnter={() => setHoveredId(record.id)}
                             onMouseLeave={() => setHoveredId(null)}
@@ -467,6 +474,20 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                               </div>
                             )}
                           </button>
+                          {/* Quick View button — always visible, opens product summary */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenQuickView(record);
+                            }}
+                            title="Ver resumen del producto"
+                            className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2.5 py-1 rounded-full text-white text-[8px] font-black uppercase tracking-wide shadow-md hover:scale-105 active:scale-95 transition-all z-20 opacity-0 group-hover/card:opacity-100"
+                            style={{ backgroundColor: trendColor }}
+                          >
+                            <Eye size={9}/>
+                            Resumen
+                          </button>
+                          </div>
                         </div>
                       );
                     })
