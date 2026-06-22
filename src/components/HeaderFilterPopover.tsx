@@ -4,8 +4,8 @@ import { Search, X, Filter, ArrowUp, ArrowDown } from 'lucide-react';
 interface HeaderFilterPopoverProps {
   column: string;
   label: string;
-  currentFilter: string;
-  onFilterChange: (column: string, value: string) => void;
+  selectedValues: string[];
+  onFilterChange: (column: string, values: string[]) => void;
   currentSort: { column: string; direction: 'asc' | 'desc' | null };
   onSortChange: (column: string, direction: 'asc' | 'desc' | null) => void;
   align?: 'left' | 'right' | 'center';
@@ -15,7 +15,7 @@ interface HeaderFilterPopoverProps {
 export default function HeaderFilterPopover({
   column,
   label,
-  currentFilter,
+  selectedValues = [],
   onFilterChange,
   currentSort,
   onSortChange,
@@ -23,6 +23,7 @@ export default function HeaderFilterPopover({
   uniqueValues
 }: HeaderFilterPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchText, setSearchText] = useState('');
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const filteredOptions = useMemo(() => {
@@ -30,9 +31,9 @@ export default function HeaderFilterPopover({
     return uniqueValues
       .filter(Boolean)
       .map(v => String(v))
-      .filter(opt => opt.toLowerCase().includes(currentFilter.toLowerCase()))
+      .filter(opt => opt.toLowerCase().includes(searchText.toLowerCase()))
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-  }, [uniqueValues, currentFilter]);
+  }, [uniqueValues, searchText]);
 
   // Close the popover when clicking outside
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function HeaderFilterPopover({
   }, [isOpen]);
 
   const isActiveSort = currentSort.column === column && currentSort.direction !== null;
-  const isActiveFilter = currentFilter !== '';
+  const isActiveFilter = selectedValues.length > 0;
 
   return (
     <div className="relative inline-block ml-1 select-none font-sans" ref={popoverRef}>
@@ -148,18 +149,18 @@ export default function HeaderFilterPopover({
             <div className="relative">
               <input
                 type="text"
-                value={currentFilter}
-                onChange={(e) => onFilterChange(column, e.target.value)}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
                 placeholder="Buscar coincidencia..."
                 className="w-full pl-8 pr-8 py-2 text-xs font-bold border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-sans bg-slate-50/50"
                 onClick={(e) => e.stopPropagation()}
               />
               <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              {currentFilter && (
+              {searchText && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onFilterChange(column, '');
+                    setSearchText('');
                   }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100 transition-colors"
                 >
@@ -168,32 +169,83 @@ export default function HeaderFilterPopover({
               )}
             </div>
 
-            {/* List of Unique Values */}
+            {/* List of Unique Values with Checkboxes */}
             {uniqueValues && uniqueValues.length > 0 && (
-              <div className="mt-2 max-h-36 overflow-y-auto border border-slate-100 rounded-xl divide-y divide-slate-50 custom-scrollbar bg-slate-50/20">
+              <div className="mt-2 max-h-48 overflow-y-auto border border-slate-100 rounded-xl divide-y divide-slate-50 custom-scrollbar bg-slate-50/20">
+                {/* Select All option */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allSelected = filteredOptions.every(opt => selectedValues.includes(opt));
+                    let newValues: string[];
+                    if (allSelected) {
+                      // Deselect all filtered options
+                      newValues = selectedValues.filter(v => !filteredOptions.includes(v));
+                    } else {
+                      // Select all filtered options
+                      newValues = Array.from(new Set([...selectedValues, ...filteredOptions]));
+                    }
+                    onFilterChange(column, newValues);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs font-black text-blue-600 hover:bg-blue-50/40 transition-colors flex items-center gap-2"
+                >
+                  <input
+                    type="checkbox"
+                    checked={filteredOptions.length > 0 && filteredOptions.every(opt => selectedValues.includes(opt))}
+                    onChange={() => {}}
+                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/20 cursor-pointer"
+                  />
+                  <span>
+                    {filteredOptions.every(opt => selectedValues.includes(opt)) ? 'Deseleccionar todos' : 'Seleccionar todos'}
+                  </span>
+                </button>
+
                 {filteredOptions.length > 0 ? (
-                  filteredOptions.map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onFilterChange(column, opt === currentFilter ? '' : opt);
-                        setIsOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-1.5 text-xs font-semibold hover:bg-blue-50/40 transition-colors flex items-center justify-between ${
-                        currentFilter === opt ? 'text-blue-600 bg-blue-50/30 font-bold' : 'text-slate-600'
-                      }`}
-                    >
-                      <span className="truncate">{opt}</span>
-                      {currentFilter === opt && <span className="w-1.5 h-1.5 rounded-full bg-blue-600 ml-2 shrink-0" />}
-                    </button>
-                  ))
+                  filteredOptions.map((opt) => {
+                    const isChecked = selectedValues.includes(opt);
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          const newValues = isChecked
+                            ? selectedValues.filter(v => v !== opt)
+                            : [...selectedValues, opt];
+                          onFilterChange(column, newValues);
+                        }}
+                        className={`w-full text-left px-3 py-1.5 text-xs font-semibold hover:bg-blue-50/40 transition-colors flex items-center gap-2 ${
+                          isChecked ? 'text-blue-600 bg-blue-50/20' : 'text-slate-600'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}}
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/20 cursor-pointer"
+                        />
+                        <span className="truncate">{opt}</span>
+                      </button>
+                    );
+                  })
                 ) : (
                   <div className="px-3 py-2 text-[10px] text-slate-400 italic text-center">
                     No hay coincidencias
                   </div>
                 )}
               </div>
+            )}
+
+            {isActiveFilter && (
+              <button
+                type="button"
+                onClick={() => {
+                  onFilterChange(column, []);
+                  setSearchText('');
+                }}
+                className="w-full mt-2 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all text-center"
+              >
+                Limpiar Filtro
+              </button>
             )}
           </div>
         </div>

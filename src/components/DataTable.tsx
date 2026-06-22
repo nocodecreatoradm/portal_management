@@ -42,7 +42,7 @@ export default function DataTable({
   qualityClaims = [],
   onQualityClaimsClick
 }: DataTableProps) {
-  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -159,16 +159,16 @@ export default function DataTable({
     let result = [...data];
 
     // Apply column filters
-    (Object.entries(columnFilters) as [string, string][]).forEach(([key, value]) => {
-      if (!value) return;
-      const lowerValue = value.toLowerCase();
+    (Object.entries(columnFilters) as [string, string[]][]).forEach(([key, values]) => {
+      if (!values || values.length === 0) return;
+      
       result = result.filter(item => {
         if (!item) return false;
         
         // Handle filter mapping if needed
         if (key === 'sampleId') {
           const sampleCorrel = getSampleCorrelative(item.sampleId) || '';
-          return sampleCorrel.toLowerCase().includes(lowerValue);
+          return values.some(val => sampleCorrel.toLowerCase() === val.toLowerCase());
         }
         if (key === 'status') {
           const currentVersions = mode === 'artwork' ? (item.artworks || []) : 
@@ -188,7 +188,7 @@ export default function DataTable({
           }) as DocumentVersion[]
           : (currentVersions && currentVersions.length > 0 ? [currentVersions.sort((a, b) => Number(b.version) - Number(a.version))[0]] : []);
           const generalStatus = getRecordStatus(item, mode, latestByCategory);
-          return generalStatus.label.toLowerCase().includes(lowerValue);
+          return values.some(val => generalStatus.label.toLowerCase() === val.toLowerCase());
         }
         if (key === 'assignment') {
           const assignment = mode === 'artwork' 
@@ -197,28 +197,32 @@ export default function DataTable({
               ? item.technicalAssignment 
               : item.commercialAssignment;
               
-          if (lowerValue === 'sin asignar') {
-            return !assignment || !assignment.designer;
-          }
-          if (!assignment) return false;
+          const isAssigned = !!assignment?.designer;
           
-          if (lowerValue === 'sin fecha') {
-            return !assignment.plannedEndDate;
-          }
-          if (lowerValue === 'vencido / próximo a vencer') {
-            return !!assignment.plannedEndDate && isNearDeadline(assignment.plannedEndDate);
-          }
-          
-          const designerName = assignment.designer || '';
-          const plannedDate = assignment.plannedEndDate 
-            ? `vence: ${format(parseISO(assignment.plannedEndDate), 'dd/MM/yy')}` 
-            : '';
-          
-          return designerName.toLowerCase().includes(lowerValue) || plannedDate.toLowerCase().includes(lowerValue);
+          return values.some(val => {
+            const lowerVal = val.toLowerCase();
+            if (lowerVal === 'sin asignar') {
+              return !isAssigned;
+            }
+            if (!assignment) return false;
+            if (lowerVal === 'sin fecha') {
+              return !assignment.plannedEndDate;
+            }
+            if (lowerVal === 'vencido / próximo a vencer') {
+              return !!assignment.plannedEndDate && isNearDeadline(assignment.plannedEndDate);
+            }
+            
+            const designerName = assignment.designer || '';
+            const plannedDate = assignment.plannedEndDate 
+              ? `vence: ${format(parseISO(assignment.plannedEndDate), 'dd/MM/yy')}` 
+              : '';
+            
+            return designerName.toLowerCase() === lowerVal || plannedDate.toLowerCase() === lowerVal;
+          });
         }
 
         const itemValue = String((item as any)[key] || '').toLowerCase();
-        return itemValue.includes(lowerValue);
+        return values.some(val => itemValue === val.toLowerCase());
       });
     });
 
@@ -279,8 +283,8 @@ export default function DataTable({
     return result;
   }, [data, columnFilters, sortConfig, mode, samples]);
 
-  const handleFilterChange = (column: string, value: string) => {
-    setColumnFilters(prev => ({ ...prev, [column]: value }));
+  const handleFilterChange = (column: string, values: string[]) => {
+    setColumnFilters(prev => ({ ...prev, [column]: values }));
   };
 
   const handleSortChange = (column: string, direction: 'asc' | 'desc' | null) => {
@@ -430,6 +434,54 @@ export default function DataTable({
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+      {/* Active Filter Chips */}
+      {Object.entries(columnFilters).some(([_, values]) => values && values.length > 0) && (
+        <div className="px-6 py-3 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">Filtros Activos:</span>
+          {Object.entries(columnFilters).map(([column, values]) => {
+            if (!values || values.length === 0) return null;
+            
+            // Map column names to friendly labels
+            const columnLabels: Record<string, string> = {
+              correlativeId: 'ID',
+              codigoSAP: 'Código SAP',
+              descripcionSAP: 'Descripción SAP',
+              comments: 'Comentarios',
+              linea: 'Línea',
+              categoria: 'Categoría',
+              marca: 'Marca',
+              status: 'Estado',
+              assignment: 'Asignación'
+            };
+            const label = columnLabels[column] || column;
+            
+            return (
+              <div key={column} className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-[11px] font-bold text-slate-700 shadow-sm">
+                <span className="text-slate-450 font-semibold">{label}:</span>
+                <span className="text-blue-600 truncate max-w-[200px]" title={values.join(', ')}>
+                  {values.join(', ')}
+                </span>
+                <button
+                  onClick={() => handleFilterChange(column, [])}
+                  className="ml-1 p-0.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors cursor-pointer"
+                  title="Eliminar este filtro"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            );
+          })}
+          
+          {/* Button to clear all filters */}
+          <button
+            onClick={() => setColumnFilters({})}
+            className="ml-auto text-[10px] font-black text-red-500 hover:text-red-700 uppercase tracking-wider px-2 py-0.5 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+          >
+            Limpiar Todos
+          </button>
+        </div>
+      )}
+
       {/* Cards for Mobile (lg:hidden) */}
       <div className="lg:hidden divide-y divide-slate-100">
         {filteredAndSortedData.map((record) => {
@@ -712,7 +764,7 @@ export default function DataTable({
                   <HeaderFilterPopover 
                     column="correlativeId" 
                     label="ID" 
-                    currentFilter={columnFilters.correlativeId || ''} 
+                    selectedValues={columnFilters.correlativeId || []} 
                     onFilterChange={handleFilterChange} 
                     currentSort={sortConfig} 
                     onSortChange={handleSortChange} 
@@ -731,7 +783,7 @@ export default function DataTable({
                   <HeaderFilterPopover 
                     column="codigoSAP" 
                     label="Código SAP" 
-                    currentFilter={columnFilters.codigoSAP || ''} 
+                    selectedValues={columnFilters.codigoSAP || []} 
                     onFilterChange={handleFilterChange} 
                     currentSort={sortConfig} 
                     onSortChange={handleSortChange} 
@@ -749,7 +801,7 @@ export default function DataTable({
                   <HeaderFilterPopover 
                     column="descripcionSAP" 
                     label="Descripción SAP" 
-                    currentFilter={columnFilters.descripcionSAP || ''} 
+                    selectedValues={columnFilters.descripcionSAP || []} 
                     onFilterChange={handleFilterChange} 
                     currentSort={sortConfig} 
                     onSortChange={handleSortChange} 
@@ -767,7 +819,7 @@ export default function DataTable({
                   <HeaderFilterPopover 
                     column="comments" 
                     label="Comentarios" 
-                    currentFilter={columnFilters.comments || ''} 
+                    selectedValues={columnFilters.comments || []} 
                     onFilterChange={handleFilterChange} 
                     currentSort={sortConfig} 
                     onSortChange={handleSortChange} 
@@ -785,7 +837,7 @@ export default function DataTable({
                   <HeaderFilterPopover 
                     column="linea" 
                     label="Línea" 
-                    currentFilter={columnFilters.linea || ''} 
+                    selectedValues={columnFilters.linea || []} 
                     onFilterChange={handleFilterChange} 
                     currentSort={sortConfig} 
                     onSortChange={handleSortChange} 
@@ -803,7 +855,7 @@ export default function DataTable({
                   <HeaderFilterPopover 
                     column="categoria" 
                     label="Categoría" 
-                    currentFilter={columnFilters.categoria || ''} 
+                    selectedValues={columnFilters.categoria || []} 
                     onFilterChange={handleFilterChange} 
                     currentSort={sortConfig} 
                     onSortChange={handleSortChange} 
@@ -821,7 +873,7 @@ export default function DataTable({
                   <HeaderFilterPopover 
                     column="marca" 
                     label="Marca" 
-                    currentFilter={columnFilters.marca || ''} 
+                    selectedValues={columnFilters.marca || []} 
                     onFilterChange={handleFilterChange} 
                     currentSort={sortConfig} 
                     onSortChange={handleSortChange} 
@@ -839,7 +891,7 @@ export default function DataTable({
                   <HeaderFilterPopover 
                     column="status" 
                     label="Estado" 
-                    currentFilter={columnFilters.status || ''} 
+                    selectedValues={columnFilters.status || []} 
                     onFilterChange={handleFilterChange} 
                     currentSort={sortConfig} 
                     onSortChange={handleSortChange} 
@@ -857,7 +909,7 @@ export default function DataTable({
                   <HeaderFilterPopover 
                     column="assignment" 
                     label="Asignación" 
-                    currentFilter={columnFilters.assignment || ''} 
+                    selectedValues={columnFilters.assignment || []} 
                     onFilterChange={handleFilterChange} 
                     currentSort={sortConfig} 
                     onSortChange={handleSortChange} 
