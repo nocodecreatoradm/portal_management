@@ -102,11 +102,11 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
 
   // --- CHART_H based on distinct PVP levels ---
   const pvpRange = maxPvp - minPvp;
-  let CHART_H = 280;
+  let CHART_H = 480;
   if (allPvps.length > 0) {
     const distinctPvpCount = new Set(allPvps).size;
     const needed = distinctPvpCount * CARD_SLOT_H + PAD * 2;
-    CHART_H = Math.max(280, Math.min(520, needed));
+    CHART_H = Math.max(480, Math.min(750, needed));
   }
 
   // --- colWidths: based on max simultaneous chips at any Y level ---
