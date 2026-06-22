@@ -422,102 +422,114 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
 
                             {/* ── HOVER FULL CARD (floating panel) ── */}
                             {isHovered && (
-                              <div
-                                className="absolute z-50 pointer-events-none"
-                                style={{
-                                  width: 210,
-                                  left: '50%',
-                                  transform: 'translateX(-50%)',
-                                  ...(showAbove ? { bottom: 'calc(100% + 10px)' } : { top: 'calc(100% + 10px)' }),
-                                  background: '#fff',
-                                  borderRadius: 14,
-                                  border: `2px solid ${trendColor}`,
-                                  boxShadow: `0 8px 32px ${trendColor}30, 0 2px 8px rgba(0,0,0,0.12)`,
-                                  padding: 12,
-                                }}
-                              >
-                                {/* Arrow indicator */}
+                              <>
+                                {/* Bridge to prevent mouse leave when moving to hover card */}
                                 <div style={{
                                   position: 'absolute',
                                   left: '50%',
                                   transform: 'translateX(-50%)',
-                                  ...(showAbove ? { bottom: -7, borderTop: `7px solid ${trendColor}`, borderLeft: '7px solid transparent', borderRight: '7px solid transparent' } : { top: -7, borderBottom: `7px solid ${trendColor}`, borderLeft: '7px solid transparent', borderRight: '7px solid transparent' }),
-                                  width: 0, height: 0,
-                                }}/>
-                                {/* Product image full */}
-                                <div style={{ width: '100%', height: 90, background: '#f8fafc', borderRadius: 8, overflow: 'hidden', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${borderColor}` }}>
-                                  {productImgUrl ? (
-                                    <img src={productImgUrl} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6 }} alt=""/>
-                                  ) : (
-                                    <Package size={24} className="text-slate-200"/>
-                                  )}
-                                </div>
-                                {/* Supplier + segment row */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                                  {logoUrl ? (
-                                    <img src={logoUrl} style={{ width: 20, height: 20, objectFit: 'contain', borderRadius: 4, border: '1px solid #e2e8f0', background: '#fff', padding: 1 }} alt=""/>
-                                  ) : (
-                                    <div style={{ width: 20, height: 20, borderRadius: 4, background: '#f1f5f9', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
-                                      {record.proveedor?.slice(0, 2)}
+                                  width: 80,
+                                  ...(showAbove ? { bottom: '100%', height: 12 } : { top: '100%', height: 12 }),
+                                  background: 'transparent',
+                                  zIndex: 49,
+                                }} />
+                                <div
+                                  className="absolute z-50 pointer-events-auto"
+                                  style={{
+                                    width: 210,
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    ...(showAbove ? { bottom: 'calc(100% + 10px)' } : { top: 'calc(100% + 10px)' }),
+                                    background: '#fff',
+                                    borderRadius: 14,
+                                    border: `2px solid ${trendColor}`,
+                                    boxShadow: `0 8px 32px ${trendColor}30, 0 2px 8px rgba(0,0,0,0.12)`,
+                                    padding: 12,
+                                  }}
+                                >
+                                  {/* Arrow indicator */}
+                                  <div style={{
+                                    position: 'absolute',
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    ...(showAbove ? { bottom: -7, borderTop: `7px solid ${trendColor}`, borderLeft: '7px solid transparent', borderRight: '7px solid transparent' } : { top: -7, borderBottom: `7px solid ${trendColor}`, borderLeft: '7px solid transparent', borderRight: '7px solid transparent' }),
+                                    width: 0, height: 0,
+                                  }}/>
+                                  {/* Product image full */}
+                                  <div style={{ width: '100%', height: 90, background: '#f8fafc', borderRadius: 8, overflow: 'hidden', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${borderColor}` }}>
+                                    {productImgUrl ? (
+                                      <img src={productImgUrl} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6 }} alt=""/>
+                                    ) : (
+                                      <Package size={24} className="text-slate-200"/>
+                                    )}
+                                  </div>
+                                  {/* Supplier + segment row */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                    {logoUrl ? (
+                                      <img src={logoUrl} style={{ width: 20, height: 20, objectFit: 'contain', borderRadius: 4, border: '1px solid #e2e8f0', background: '#fff', padding: 1 }} alt=""/>
+                                    ) : (
+                                      <div style={{ width: 20, height: 20, borderRadius: 4, background: '#f1f5f9', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                                        {record.proveedor?.slice(0, 2)}
+                                      </div>
+                                    )}
+                                    <div>
+                                      <p style={{ fontSize: 8, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>{getLineName(record)}{getCategoryName(record) ? ` · ${getCategoryName(record)}` : ''}</p>
+                                    </div>
+                                  </div>
+                                  {/* Product name */}
+                                  <p style={{ fontSize: 11, fontWeight: 900, color: '#0f172a', lineHeight: 1.3, marginBottom: 6 }}>
+                                    {record.commercialName || record.descripcionSAP}
+                                  </p>
+                                  <p style={{ fontSize: 8, color: '#94a3b8', fontWeight: 600, marginBottom: 8 }}>{record.codigoSAP}</p>
+                                  {/* Pricing grid */}
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: growth !== null ? 6 : 0 }}>
+                                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: '5px 8px', border: `1px solid ${borderColor}` }}>
+                                      <p style={{ fontSize: 7, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 1 }}>PVP</p>
+                                      <p style={{ fontSize: 12, fontWeight: 900, color: '#0f172a' }}>S/ {pvp || '—'}</p>
+                                    </div>
+                                    <div style={{ background: '#f8fafc', borderRadius: 8, padding: '5px 8px', border: `1px solid ${borderColor}` }}>
+                                      <p style={{ fontSize: 7, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 1 }}>FOB</p>
+                                      <p style={{ fontSize: 12, fontWeight: 900, color: trendColor }}>${fob.toFixed(2)}</p>
+                                    </div>
+                                  </div>
+                                  {/* Growth */}
+                                  {growth !== null && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 20, background: growth >= 0 ? '#dcfce7' : '#fee2e2', color: growth >= 0 ? '#16a34a' : '#dc2626', fontSize: 9, fontWeight: 800 }}>
+                                        {growth >= 0 ? <ArrowUp size={9}/> : <ArrowDown size={9}/>}
+                                        {Math.abs(growth).toFixed(1)}% vs año anterior
+                                      </div>
                                     </div>
                                   )}
-                                  <div>
-                                    <p style={{ fontSize: 8, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>{getLineName(record)}{getCategoryName(record) ? ` · ${getCategoryName(record)}` : ''}</p>
-                                  </div>
-                                </div>
-                                {/* Product name */}
-                                <p style={{ fontSize: 11, fontWeight: 900, color: '#0f172a', lineHeight: 1.3, marginBottom: 6 }}>
-                                  {record.commercialName || record.descripcionSAP}
-                                </p>
-                                <p style={{ fontSize: 8, color: '#94a3b8', fontWeight: 600, marginBottom: 8 }}>{record.codigoSAP}</p>
-                                {/* Pricing grid */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: growth !== null ? 6 : 0 }}>
-                                  <div style={{ background: '#f8fafc', borderRadius: 8, padding: '5px 8px', border: `1px solid ${borderColor}` }}>
-                                    <p style={{ fontSize: 7, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 1 }}>PVP</p>
-                                    <p style={{ fontSize: 12, fontWeight: 900, color: '#0f172a' }}>S/ {pvp || '—'}</p>
-                                  </div>
-                                  <div style={{ background: '#f8fafc', borderRadius: 8, padding: '5px 8px', border: `1px solid ${borderColor}` }}>
-                                    <p style={{ fontSize: 7, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 1 }}>FOB</p>
-                                    <p style={{ fontSize: 12, fontWeight: 900, color: trendColor }}>${fob.toFixed(2)}</p>
-                                  </div>
-                                </div>
-                                {/* Growth */}
-                                {growth !== null && (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 20, background: growth >= 0 ? '#dcfce7' : '#fee2e2', color: growth >= 0 ? '#16a34a' : '#dc2626', fontSize: 9, fontWeight: 800 }}>
-                                      {growth >= 0 ? <ArrowUp size={9}/> : <ArrowDown size={9}/>}
-                                      {Math.abs(growth).toFixed(1)}% vs año anterior
+                                  {/* Comments */}
+                                  {record.catalogComments && (
+                                    <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 6, marginBottom: 8 }}>
+                                      {(record.catalogComments || '').split('\n').map(c => c.trim()).filter(Boolean).map((c, i) => (
+                                        <p key={i} style={{ fontSize: 8, color: '#64748b', display: 'flex', alignItems: 'flex-start', gap: 4, marginBottom: 2 }}>
+                                          <span style={{ color: trendColor, fontWeight: 900 }}>•</span>{c}
+                                        </p>
+                                      ))}
                                     </div>
+                                  )}
+                                  {/* Action buttons */}
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    <button
+                                      className="pointer-events-auto flex-1 py-1.5 rounded-lg text-white text-[9px] font-black uppercase tracking-wide transition-all hover:opacity-90"
+                                      style={{ background: trendColor }}
+                                      onClick={(e) => { e.stopPropagation(); handleOpenEditModal(record); }}
+                                    >
+                                      Editar
+                                    </button>
+                                    <button
+                                      className="pointer-events-auto flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wide transition-all hover:opacity-90 border"
+                                      style={{ color: trendColor, borderColor: trendColor, background: '#fff' }}
+                                      onClick={(e) => { e.stopPropagation(); onOpenQuickView(record); }}
+                                    >
+                                      <Eye size={9} className="inline mr-1"/>Resumen
+                                    </button>
                                   </div>
-                                )}
-                                {/* Comments */}
-                                {record.catalogComments && (
-                                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 6, marginBottom: 8 }}>
-                                    {(record.catalogComments || '').split('\n').map(c => c.trim()).filter(Boolean).map((c, i) => (
-                                      <p key={i} style={{ fontSize: 8, color: '#64748b', display: 'flex', alignItems: 'flex-start', gap: 4, marginBottom: 2 }}>
-                                        <span style={{ color: trendColor, fontWeight: 900 }}>•</span>{c}
-                                      </p>
-                                    ))}
-                                  </div>
-                                )}
-                                {/* Action buttons */}
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                  <button
-                                    className="pointer-events-auto flex-1 py-1.5 rounded-lg text-white text-[9px] font-black uppercase tracking-wide transition-all hover:opacity-90"
-                                    style={{ background: trendColor }}
-                                    onClick={(e) => { e.stopPropagation(); handleOpenEditModal(record); }}
-                                  >
-                                    Editar
-                                  </button>
-                                  <button
-                                    className="pointer-events-auto flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wide transition-all hover:opacity-90 border"
-                                    style={{ color: trendColor, borderColor: trendColor, background: '#fff' }}
-                                    onClick={(e) => { e.stopPropagation(); onOpenQuickView(record); }}
-                                  >
-                                    <Eye size={9} className="inline mr-1"/>Resumen
-                                  </button>
                                 </div>
-                              </div>
+                              </>
                             )}
                           </div>
                         );
