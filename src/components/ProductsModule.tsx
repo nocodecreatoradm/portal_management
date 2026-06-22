@@ -93,88 +93,69 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
     }
   }
 
-  const BASE_COL_W = 280;
-  const EMPTY_COL_W = 120;
-  const pvpRange = maxPvp - minPvp;
-  const CHART_H = Math.max(380, Math.min(520, Math.round(pvpRange * 1.2 + 240)));
-  const PAD = 36;
+  // --- Sizing constants ---
+  const CARD_SLOT_H = 112;  // px between card centers vertically (card ~100px + 12px gap)
+  const CARD_SLOT_W = 162;  // px per card horizontally (card 148px + 14px gap)
+  const MARGIN_H = 14;      // left/right margin inside each column
+  const PAD = 32;           // top/bottom padding of chart area
 
-  // Pre-calculate column widths per segment based on vertical overlap density
+  // --- CHART_H: ensure adjacent distinct PVP values are at least CARD_SLOT_H apart ---
+  const pvpRange = maxPvp - minPvp;
+  let CHART_H = 320;
+  if (allPvps.length > 0) {
+    const sortedDistinctPvps = [...new Set(allPvps)].sort((a, b) => a - b);
+    if (sortedDistinctPvps.length === 1) {
+      CHART_H = 320;
+    } else {
+      // Smallest gap between consecutive distinct PVP values
+      const minPvpGap = Math.min(
+        ...sortedDistinctPvps.slice(1).map((v, i) => v - sortedDistinctPvps[i])
+      );
+      // We need: (minPvpGap / pvpRange) * innerH >= CARD_SLOT_H
+      // => innerH >= CARD_SLOT_H * pvpRange / minPvpGap
+      const innerH = Math.round(CARD_SLOT_H * pvpRange / minPvpGap);
+      CHART_H = Math.max(300, Math.min(560, innerH + PAD * 2));
+    }
+  }
+
+  // --- colWidths: based on max simultaneous horizontal cards at any Y level ---
   const colWidths = useMemo(() => {
     const widths: Record<'ticket_value' | 'mainstream' | 'premium', number> = {
-      ticket_value: BASE_COL_W,
-      mainstream: BASE_COL_W,
-      premium: BASE_COL_W
+      ticket_value: 0,
+      mainstream: 0,
+      premium: 0,
     };
 
     segments.forEach(seg => {
       const segRecords = filteredRecords.filter(r => r.segment === seg);
-      // Collapse empty columns
-      if (segRecords.length === 0) {
-        widths[seg] = EMPTY_COL_W;
-        return;
-      }
-      // Single product — compact
-      if (segRecords.length === 1) {
-        widths[seg] = 200;
-        return;
-      }
+      if (segRecords.length === 0) { widths[seg] = 100; return; }
+      if (segRecords.length === 1) { widths[seg] = CARD_SLOT_W + MARGIN_H * 2; return; }
 
-      const segFobs = segRecords.map(getFobEffective).filter(v => v > 0);
-      let minFob = 0;
-      let maxFob = 100;
-      if (segFobs.length > 0) {
-        const minVal = Math.min(...segFobs);
-        const maxVal = Math.max(...segFobs);
-        if (minVal === maxVal) {
-          minFob = Math.max(0, minVal - 10);
-          maxFob = maxVal + 10;
-        } else {
-          const buffer = (maxVal - minVal) * 0.1;
-          minFob = Math.max(0, minVal - buffer);
-          maxFob = maxVal + buffer;
-        }
-      }
-
-      // Calculate raw positions at base width
-      const rawPositions = segRecords.map(record => {
-        const fob = getFobEffective(record);
+      // Compute Y positions for each product
+      const positions = segRecords.map(record => {
         const pvp = record.pvp || 0;
-        if (!pvp && !fob) return null;
-
-        const xPct = maxFob === minFob ? 0.5 : (fob - minFob) / (maxFob - minFob);
-        const left = 70 + xPct * (BASE_COL_W - 140);
-        
+        if (!pvp) return null;
         const yPct = maxPvp === minPvp ? 0.5 : 1 - (pvp - minPvp) / (maxPvp - minPvp);
         const top = PAD + yPct * (CHART_H - PAD * 2);
-        
-        return { id: record.id, left, top };
-      }).filter(Boolean) as { id: string; left: number; top: number }[];
+        return { id: record.id, top };
+      }).filter(Boolean) as { id: string; top: number }[];
 
-      // Find maximum number of vertical overlaps for any card
-      let maxOverlapCount = 0;
-      rawPositions.forEach(p1 => {
-        let overlaps = 0;
-        rawPositions.forEach(p2 => {
-          if (p1.id === p2.id) return;
-          const dy = Math.abs(p1.top - p2.top);
-          if (dy < 100) overlaps++;
-        });
-        if (overlaps > maxOverlapCount) maxOverlapCount = overlaps;
+      // For each card, count how many others are within CARD_SLOT_H (vertical band)
+      let maxSimultaneous = 1;
+      positions.forEach(p1 => {
+        const simultaneous = positions.filter(p2 => Math.abs(p1.top - p2.top) < CARD_SLOT_H).length;
+        if (simultaneous > maxSimultaneous) maxSimultaneous = simultaneous;
       });
 
-      // Expand column width based on overlap density (tighter increments)
-      if (maxOverlapCount === 1) {
-        widths[seg] = BASE_COL_W + 140;
-      } else if (maxOverlapCount === 2) {
-        widths[seg] = BASE_COL_W + 280;
-      } else if (maxOverlapCount >= 3) {
-        widths[seg] = BASE_COL_W + 420;
-      }
+      // Width = enough to place maxSimultaneous cards side by side + margins
+      widths[seg] = Math.max(
+        CARD_SLOT_W + MARGIN_H * 2,
+        maxSimultaneous * CARD_SLOT_W + MARGIN_H * 2
+      );
     });
 
     return widths;
-  }, [filteredRecords, minPvp, maxPvp]);
+  }, [filteredRecords, minPvp, maxPvp, CHART_H]);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -232,7 +213,7 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
               if (!pvp && !fob) return null;
 
               const xPct = maxFob === minFob ? 0.5 : (fob - minFob) / (maxFob - minFob);
-              let left = 70 + xPct * (colWidth - 140);
+              let left = MARGIN_H + xPct * (colWidth - CARD_SLOT_W - MARGIN_H * 2) + CARD_SLOT_W / 2;
               
               const yPct = maxPvp === minPvp ? 0.5 : 1 - (pvp - minPvp) / (maxPvp - minPvp);
               const top = PAD + yPct * (CHART_H - PAD * 2);
@@ -252,12 +233,13 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
               for (const p of placed) {
                 const dy = Math.abs(top - p.top);
                 const dx = Math.abs(left - p.left);
-                if (dy < 100 && dx < 130) {
+                if (dy < CARD_SLOT_H && dx < CARD_SLOT_W) {
                   shiftCount++;
+                  const shift = CARD_SLOT_W;
                   if (shiftCount % 2 === 1) {
-                    left = Math.max(70, left - 60);
+                    left = Math.max(MARGIN_H + CARD_SLOT_W / 2, left - shift);
                   } else {
-                    left = Math.min(colWidth - 70, left + 60);
+                    left = Math.min(colWidth - MARGIN_H - CARD_SLOT_W / 2, left + shift);
                   }
                 }
               }
@@ -278,7 +260,7 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
               if (denom !== 0) {
                 const slope = (n * sumXY - sumX * sumY) / denom;
                 const intercept = (sumY - slope * sumX) / n;
-                const fobToX = (fob: number) => 70 + ((fob - minFob) / (maxFob - minFob || 1)) * (colWidth - 140);
+                const fobToX = (fob: number) => MARGIN_H + ((fob - minFob) / (maxFob - minFob || 1)) * (colWidth - CARD_SLOT_W - MARGIN_H * 2) + CARD_SLOT_W / 2;
                 const pvpToY = (pvp: number) => PAD + (1 - (pvp - minPvp) / (maxPvp - minPvp || 1)) * (CHART_H - PAD * 2);
                 const x1 = fobToX(minFob);
                 const y1 = pvpToY(intercept + slope * minFob);
