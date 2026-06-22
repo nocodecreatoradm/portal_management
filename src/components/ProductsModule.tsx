@@ -257,28 +257,102 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                   }
                 }
               }
-              
               placed.push({ left, top });
               return { ...item, left };
             });
 
+            // --- Trendline calculation (linear regression: PVP ~ FOB) ---
+            const trendPoints = positionedRecords.filter(p => p.fob > 0 && p.pvp > 0);
+            let trendLine: { x1: number; y1: number; x2: number; y2: number } | null = null;
+            if (trendPoints.length >= 2) {
+              const n = trendPoints.length;
+              const sumX = trendPoints.reduce((s, p) => s + p.fob, 0);
+              const sumY = trendPoints.reduce((s, p) => s + p.pvp, 0);
+              const sumXY = trendPoints.reduce((s, p) => s + p.fob * p.pvp, 0);
+              const sumX2 = trendPoints.reduce((s, p) => s + p.fob * p.fob, 0);
+              const denom = n * sumX2 - sumX * sumX;
+              if (denom !== 0) {
+                const slope = (n * sumXY - sumX * sumY) / denom;
+                const intercept = (sumY - slope * sumX) / n;
+                const fobToX = (fob: number) => 75 + ((fob - minFob) / (maxFob - minFob || 1)) * (colWidth - 150);
+                const pvpToY = (pvp: number) => 65 + (1 - (pvp - minPvp) / (maxPvp - minPvp || 1)) * (CHART_H - 130);
+                const x1 = fobToX(minFob);
+                const y1 = pvpToY(intercept + slope * minFob);
+                const x2 = fobToX(maxFob);
+                const y2 = pvpToY(intercept + slope * maxFob);
+                trendLine = { x1, y1, x2, y2 };
+              }
+            }
+
+            // Segment visual config
+            const segGradient = seg === 'ticket_value'
+              ? 'from-slate-50/60 to-white'
+              : seg === 'mainstream'
+              ? 'from-indigo-50/40 to-white'
+              : 'from-violet-50/50 to-white';
+            const headerGradient = seg === 'ticket_value'
+              ? 'from-slate-100 to-slate-50'
+              : seg === 'mainstream'
+              ? 'from-indigo-100 to-indigo-50'
+              : 'from-violet-200 to-violet-50';
+            const headerText = seg === 'ticket_value'
+              ? 'text-slate-700'
+              : seg === 'mainstream'
+              ? 'text-indigo-800'
+              : 'text-violet-900';
+            const trendColor = seg === 'ticket_value' ? '#94a3b8' : seg === 'mainstream' ? '#6366f1' : '#7c3aed';
+            const borderColor = seg === 'ticket_value' ? '#e2e8f0' : seg === 'mainstream' ? '#c7d2fe' : '#ddd6fe';
+
             return (
-              <div key={seg} style={{ width: colWidth, flexShrink: 0, position: 'relative', borderLeft: '1px dashed #e2e8f0', display: 'flex', flexDirection: 'column' }}>
-                {/* Column header */}
-                <div className="text-center py-3 border-b border-slate-100 bg-slate-50/20">
-                  <span className={`text-xs font-black uppercase tracking-widest ${seg === 'ticket_value' ? 'text-slate-600' : seg === 'mainstream' ? 'text-slate-800' : 'text-slate-900'}`}>
-                    {cfg.label}
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-bold ml-2">({segRecords.length})</span>
+              <div key={seg} style={{ width: colWidth, flexShrink: 0, position: 'relative', borderLeft: `2px solid ${borderColor}`, display: 'flex', flexDirection: 'column' }}>
+                {/* Column header — richer design */}
+                <div className={`text-center py-3.5 border-b bg-gradient-to-r ${headerGradient}`} style={{ borderColor }}>
+                  <div className="flex items-center justify-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${cfg.dot} shadow-sm`}/>
+                    <span className={`text-xs font-black uppercase tracking-widest ${headerText}`}>
+                      {cfg.label}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 bg-white/70 rounded-full px-2 py-0.5 border border-slate-200">{segRecords.length}</span>
+                  </div>
+                  <p className="text-[9px] text-slate-400 font-medium mt-0.5">FOB ${minFob.toFixed(0)}–${maxFob.toFixed(0)}</p>
                 </div>
                 {/* Chart area */}
-                <div style={{ height: CHART_H, position: 'relative', overflow: 'visible', padding: `${PAD}px 24px` }}>
+                <div className={`bg-gradient-to-b ${segGradient}`} style={{ height: CHART_H, position: 'relative', overflow: 'visible', padding: `${PAD}px 24px` }}>
                   {/* Horizontal grid lines */}
                   <div className="absolute inset-0 pointer-events-none" key="grid-lines">
                     {[...Array(5)].map((_, i) => (
-                      <div key={i} style={{ position: 'absolute', left: 0, right: 0, top: PAD + (i / 4) * (CHART_H - PAD * 2), borderTop: '1px dashed #f1f5f9' }}/>
+                      <div key={i} style={{ position: 'absolute', left: 0, right: 0, top: PAD + (i / 4) * (CHART_H - PAD * 2), borderTop: i === 0 || i === 4 ? `1px solid ${borderColor}` : '1px dashed #e8edf5' }}/>
                     ))}
+                    {/* Vertical center guide */}
+                    <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', borderLeft: '1px dashed #f0f4f8' }}/>
                   </div>
+
+                  {/* SVG Trendline */}
+                  {trendLine && (
+                    <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
+                      <defs>
+                        <linearGradient id={`tg-${seg}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor={trendColor} stopOpacity="0.15"/>
+                          <stop offset="50%" stopColor={trendColor} stopOpacity="0.55"/>
+                          <stop offset="100%" stopColor={trendColor} stopOpacity="0.15"/>
+                        </linearGradient>
+                      </defs>
+                      {/* Glow */}
+                      <line x1={trendLine.x1} y1={trendLine.y1} x2={trendLine.x2} y2={trendLine.y2}
+                        stroke={trendColor} strokeWidth="6" strokeOpacity="0.12" strokeLinecap="round"/>
+                      {/* Main line */}
+                      <line x1={trendLine.x1} y1={trendLine.y1} x2={trendLine.x2} y2={trendLine.y2}
+                        stroke={trendColor} strokeWidth="2" strokeOpacity="0.7"
+                        strokeDasharray="6 3" strokeLinecap="round"/>
+                      {/* Endpoint dots */}
+                      <circle cx={trendLine.x1} cy={trendLine.y1} r="4" fill={trendColor} fillOpacity="0.5"/>
+                      <circle cx={trendLine.x2} cy={trendLine.y2} r="4" fill={trendColor} fillOpacity="0.5"/>
+                      {/* Label */}
+                      <text x={(trendLine.x1 + trendLine.x2) / 2} y={Math.min(trendLine.y1, trendLine.y2) - 8}
+                        textAnchor="middle" fill={trendColor} fontSize="9" fontWeight="700"
+                        fontFamily="sans-serif" opacity="0.8">TENDENCIA</text>
+                    </svg>
+                  )}
 
                   {adjustedRecords.length > 0 ? (
                     adjustedRecords.map(({ record, left, top, fob, pvp }) => {
@@ -326,19 +400,27 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                             onMouseEnter={() => setHoveredId(record.id)}
                             onMouseLeave={() => setHoveredId(null)}
                             onClick={() => handleOpenEditModal(record)}
-                            className="bg-white border-2 border-slate-200 rounded-xl p-2 shadow-sm hover:shadow-md hover:border-slate-400 transition-all w-[140px] text-left relative flex flex-col gap-1.5"
-                            style={{ borderColor: isHovered ? cfg.accent : undefined }}
+                            className="bg-white border-2 rounded-xl p-2 shadow-sm hover:shadow-lg transition-all w-[148px] text-left relative flex flex-col gap-1.5"
+                            style={{
+                              borderColor: isHovered ? trendColor : borderColor,
+                              boxShadow: isHovered ? `0 4px 20px ${trendColor}33` : undefined
+                            }}
                           >
-                             {/* Image container */}
-                            <div className={`relative w-full h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-50 border border-slate-100 ${productImgUrl ? 'cursor-pointer hover:opacity-85 transition-opacity' : ''}`}
+                                         {/* Image container */}
+                            <div className={`relative w-full h-20 rounded-lg overflow-hidden flex-shrink-0 border ${productImgUrl ? 'cursor-pointer hover:opacity-85 transition-opacity bg-white' : 'bg-slate-50'}`}
+                              style={{ borderColor: isHovered ? `${trendColor}40` : '#f1f5f9' }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onOpenQuickView(record);
+                                if (productImgUrl) {
+                                  window.open(productImgUrl, '_blank');
+                                } else {
+                                  onOpenQuickView(record);
+                                }
                               }}
-                              title="Ver resumen del producto"
+                              title={productImgUrl ? 'Abrir imagen en tamaño completo' : 'Ver resumen del producto'}
                             >
                               {productImgUrl ? (
-                                <img src={productImgUrl} className="w-full h-full object-cover" alt="" />
+                                <img src={productImgUrl} className="w-full h-full object-contain p-1" alt="" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-slate-300">
                                   <Package size={18} />
@@ -349,11 +431,11 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                                 {logoUrl ? (
                                   <img 
                                     src={logoUrl} 
-                                    className="w-5 h-5 object-cover rounded-full border border-white bg-white shadow-sm" 
+                                    className="w-6 h-6 object-contain rounded border border-white bg-white shadow-sm p-0.5" 
                                     alt="Logo" 
                                   />
                                 ) : (
-                                  <div className="w-5 h-5 rounded-full border border-white bg-slate-200 flex items-center justify-center text-[7px] font-bold text-slate-500 shadow-sm uppercase">
+                                  <div className="w-5 h-5 rounded border border-white bg-slate-200 flex items-center justify-center text-[7px] font-bold text-slate-500 shadow-sm uppercase">
                                     {record.proveedor.slice(0, 2)}
                                   </div>
                                 )}
@@ -394,25 +476,17 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                     </div>
                   )}
                 </div>
-                {/* Column footer */}
-                <div className="text-center py-2 border-t border-slate-100 bg-slate-50/50 text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                  FOB: ${minFob.toFixed(2)} — ${maxFob.toFixed(2)}
-                </div>
               </div>
             );
           })}
         </div>
       </div>
       {/* X-axis label */}
-      <div className="text-center py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border-t border-slate-100">
+      <div className="text-center py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border-t border-slate-100 bg-slate-50/30">
         Costo FOB Unitario (Dólares Americanos — USD) ↗
       </div>
     </div>
   );
-}
-
-interface ProductsModuleProps {
-  onExportPPT?: () => void;
 }
 
 export default function ProductsModule({ 
@@ -1639,7 +1713,7 @@ export default function ProductsModule({
                       title={record.gallery?.length > 0 && record.gallery[0].photos?.length > 0 ? 'Ver imagen en tamaño completo' : undefined}
                     >
                       {record.gallery?.length > 0 && record.gallery[0].photos?.length > 0
-                        ? <img src={record.gallery[0].photos[0].url} className="w-full h-full object-cover rounded-xl" alt=""/>
+                        ? <img src={record.gallery[0].photos[0].url} className="w-full h-full object-contain rounded-xl p-1" alt=""/>
                         : <Package size={28} className="text-slate-300"/>
                       }
                     </div>
