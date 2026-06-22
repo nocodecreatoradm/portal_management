@@ -137,8 +137,8 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
       });
 
       widths[seg] = Math.max(
-        CARD_SLOT_W * 2 + MARGIN_H * 2,
-        maxSimultaneous * CARD_SLOT_W + MARGIN_H * 2
+        CARD_SLOT_W * 3 + MARGIN_H * 2,
+        maxSimultaneous * (CARD_SLOT_W + 32) + MARGIN_H * 2
       );
     });
 
@@ -208,28 +208,61 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
               return { record, left, top, fob, pvp };
             }).filter(Boolean) as { record: ProductManagementRecord; left: number; top: number; fob: number; pvp: number }[];
 
-            positionedRecords.sort((a, b) => a.top - b.top);
+            // 1. Ordenar por left (FOB) para procesar estrictamente de izquierda a derecha
+            positionedRecords.sort((a, b) => a.left - b.left);
 
+            // Pasada 1 (Izquierda a Derecha): Coloca cada elemento y lo empuja a la derecha de cualquier solapamiento
             const adjustedRecords = positionedRecords.map(item => {
               let left = item.left;
               const top = item.top;
-              let shiftCount = 0;
+              
+              let maxRight = left;
               for (const p of placed) {
                 const dy = Math.abs(top - p.top);
-                const dx = Math.abs(left - p.left);
-                if (dy < CARD_SLOT_H && dx < CARD_SLOT_W) {
-                  shiftCount++;
-                  const shift = CARD_SLOT_W;
-                  if (shiftCount % 2 === 1) {
-                    left = Math.max(MARGIN_H + CARD_SLOT_W / 2, left - shift);
-                  } else {
-                    left = Math.min(colWidth - MARGIN_H - CARD_SLOT_W / 2, left + shift);
+                if (dy < CARD_SLOT_H) {
+                  // Si están en la misma banda vertical (solapamiento Y), empuja a la derecha
+                  if (p.left + CARD_SLOT_W > maxRight) {
+                    maxRight = p.left + CARD_SLOT_W;
                   }
                 }
               }
+              left = maxRight;
               placed.push({ left, top });
               return { ...item, left };
             });
+
+            const minAllowedLeft = MARGIN_H + CARD_SLOT_W / 2;
+            const maxAllowedLeft = colWidth - MARGIN_H - CARD_SLOT_W / 2;
+
+            // Pasada 2 (Derecha a Izquierda): Asegurar que nada sobrepase el borde derecho empujando hacia la izquierda
+            for (let i = adjustedRecords.length - 1; i >= 0; i--) {
+              if (adjustedRecords[i].left > maxAllowedLeft) {
+                adjustedRecords[i].left = maxAllowedLeft;
+              }
+              for (let j = i - 1; j >= 0; j--) {
+                const dy = Math.abs(adjustedRecords[i].top - adjustedRecords[j].top);
+                if (dy < CARD_SLOT_H) {
+                  if (adjustedRecords[j].left > adjustedRecords[i].left - CARD_SLOT_W) {
+                    adjustedRecords[j].left = adjustedRecords[i].left - CARD_SLOT_W;
+                  }
+                }
+              }
+            }
+
+            // Pasada 3 (Izquierda a Derecha): Asegurar que nada baje del borde izquierdo empujando hacia la derecha
+            for (let i = 0; i < adjustedRecords.length; i++) {
+              if (adjustedRecords[i].left < minAllowedLeft) {
+                adjustedRecords[i].left = minAllowedLeft;
+              }
+              for (let j = i + 1; j < adjustedRecords.length; j++) {
+                const dy = Math.abs(adjustedRecords[i].top - adjustedRecords[j].top);
+                if (dy < CARD_SLOT_H) {
+                  if (adjustedRecords[j].left < adjustedRecords[i].left + CARD_SLOT_W) {
+                    adjustedRecords[j].left = adjustedRecords[i].left + CARD_SLOT_W;
+                  }
+                }
+              }
+            }
 
             // Trendline
             const trendPoints = positionedRecords.filter(p => p.fob > 0 && p.pvp > 0);
