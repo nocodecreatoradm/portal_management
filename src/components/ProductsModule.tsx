@@ -94,28 +94,21 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
   }
 
   // --- Sizing constants ---
-  const CARD_SLOT_H = 112;  // px between card centers vertically (card ~100px + 12px gap)
-  const CARD_SLOT_W = 162;  // px per card horizontally (card 148px + 14px gap)
+  const CARD_SLOT_H = 112;  // vertical slot per card center
+  const CARD_SLOT_W = 162;  // horizontal slot per card
   const MARGIN_H = 14;      // left/right margin inside each column
-  const PAD = 32;           // top/bottom padding of chart area
+  const CARD_HALF_H = 78;   // approx half card height — used as PAD so cards don't clip at edges
+  const PAD = CARD_HALF_H;  // padding = half card height so top/bottom cards are never clipped
 
-  // --- CHART_H: ensure adjacent distinct PVP values are at least CARD_SLOT_H apart ---
+  // --- CHART_H: one slot per distinct PVP level, so every product has visual room ---
+  // Avoids dividing by minPvpGap (which can be 0 when products share PVP values)
   const pvpRange = maxPvp - minPvp;
-  let CHART_H = 320;
+  let CHART_H = 300;
   if (allPvps.length > 0) {
-    const sortedDistinctPvps = [...new Set(allPvps)].sort((a, b) => a - b);
-    if (sortedDistinctPvps.length === 1) {
-      CHART_H = 320;
-    } else {
-      // Smallest gap between consecutive distinct PVP values
-      const minPvpGap = Math.min(
-        ...sortedDistinctPvps.slice(1).map((v, i) => v - sortedDistinctPvps[i])
-      );
-      // We need: (minPvpGap / pvpRange) * innerH >= CARD_SLOT_H
-      // => innerH >= CARD_SLOT_H * pvpRange / minPvpGap
-      const innerH = Math.round(CARD_SLOT_H * pvpRange / minPvpGap);
-      CHART_H = Math.max(300, Math.min(560, innerH + PAD * 2));
-    }
+    const distinctPvpCount = new Set(allPvps).size;
+    // Each distinct PVP level gets CARD_SLOT_H pixels, plus PAD at top and bottom
+    const needed = distinctPvpCount * CARD_SLOT_H + PAD * 2;
+    CHART_H = Math.max(300, Math.min(560, needed));
   }
 
   // --- colWidths: based on max simultaneous horizontal cards at any Y level ---
@@ -298,7 +291,7 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                   borderLeft: `2px solid ${borderColor}`,
                   display: 'flex',
                   flexDirection: 'column',
-                  overflow: 'hidden',
+                  overflow: 'visible',
                 }}>
                 {/* Column header — richer design */}
                 <div className={`text-center py-3 border-b bg-gradient-to-r ${headerGradient}`} style={{ borderColor }}>
@@ -368,7 +361,7 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                         const logoUrl = matchingSupplier?.logoUrl || record.supplierLogoUrl;
 
                         return (
-                          <div key={record.id} style={{ position: 'absolute', top, left, transform: 'translateX(-50%)', zIndex: isHovered ? 50 : 10 }}>
+                          <div key={record.id} style={{ position: 'absolute', top, left, transform: 'translate(-50%, -50%)', zIndex: isHovered ? 50 : 10 }}>
                             {/* Tooltip */}
                             {isHovered && (
                               <div className={`absolute ${top < CHART_H * 0.4 ? 'top-full mt-2' : 'bottom-full mb-2'} left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-xl shadow-2xl p-3 w-64 pointer-events-none`}>
