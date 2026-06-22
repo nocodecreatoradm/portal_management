@@ -162,12 +162,12 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
         </div>
       </div>
       <div className="overflow-x-auto">
-        <div style={{ display: 'flex', width: '100%', minWidth: colWidths.ticket_value + colWidths.mainstream + colWidths.premium + 52 }}>
+        <div style={{ display: 'flex', width: '100%', minWidth: colWidths.ticket_value + colWidths.mainstream + colWidths.premium + 60 }}>
           {/* Y-axis */}
-          <div style={{ width: 52, flexShrink: 0, paddingTop: PAD, paddingBottom: PAD, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-end', paddingRight: 6 }}>
+          <div style={{ width: 60, flexShrink: 0, paddingTop: PAD, paddingBottom: PAD, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-end', paddingRight: 8 }}>
             {[...Array(6)].map((_, i) => {
               const val = Math.round(maxPvp - (i / 5) * (maxPvp - minPvp));
-              return <span key={i} className="text-[9px] font-black text-slate-400">S/{val}</span>;
+              return <span key={i} className="text-[11px] font-black text-slate-500">S/{val}</span>;
             })}
           </div>
           {/* Columns */}
@@ -380,9 +380,9 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
 
                       {/* X-axis ruler: ticks + FOB labels along the bottom */}
                       {xTicks.map(({ fobVal, xPos }, i) => (
-                        <div key={`xt-${i}`} style={{ position: 'absolute', bottom: 6, left: xPos, transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, pointerEvents: 'none' }}>
+                        <div key={`xt-${i}`} style={{ position: 'absolute', bottom: 4, left: xPos, transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, pointerEvents: 'none' }}>
                           <div style={{ width: 1, height: 5, background: '#94a3b8', opacity: 0.6 }}/>
-                          <span style={{ fontSize: 7, fontWeight: 800, color: '#64748b', letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: 10.5, fontWeight: 900, color: '#475569', letterSpacing: '0.01em', whiteSpace: 'nowrap' }}>
                             ${fobVal.toFixed(0)}
                           </span>
                         </div>
@@ -440,8 +440,8 @@ function LinealView({ filteredRecords, handleOpenEditModal, onOpenQuickView, get
                                 )}
                               </div>
                               {/* FOB badge at bottom */}
-                              <div style={{ background: isHovered ? trendColor : '#f1f5f9', padding: '2px 4px', textAlign: 'center' }}>
-                                <span style={{ fontSize: 8, fontWeight: 800, color: isHovered ? '#fff' : '#475569', letterSpacing: '0.02em' }}>
+                              <div style={{ background: isHovered ? trendColor : '#e2e8f0', padding: '3px 2px', textAlign: 'center', borderTop: isHovered ? `1px solid ${trendColor}` : '1px solid #cbd5e1' }}>
+                                <span style={{ fontSize: 11, fontWeight: 900, color: isHovered ? '#fff' : '#0f172a', letterSpacing: '0.01em' }}>
                                   ${fob > 0 ? fob.toFixed(1) : '—'}
                                 </span>
                               </div>
