@@ -1665,6 +1665,7 @@ export default function EnergyEfficiency({
   );
 }
 
+
 const DEFAULT_LEGAL_TEXT = `Compare este producto con otros de similares características
 
 Los resultados se obtienen aplicando los métodos de ensayo descritos en las Normas Técnicas Peruanas e Internacionales correspondientes
@@ -1751,10 +1752,21 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
       await new Promise(resolve => setTimeout(resolve, 300));
 
       const canvas = await html2canvas(element, {
-        scale: 3,
+        scale: 3.5, // Even higher scale for crisp high-quality print preview
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
+        onclone: (clonedDoc) => {
+          // Remove all stylesheets and style elements to prevent oklch parsing errors
+          const styleTags = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]');
+          styleTags.forEach((style: any) => {
+            try {
+              style.remove();
+            } catch (e) {
+              console.warn('Could not remove stylesheet during clone:', e);
+            }
+          });
+        }
       });
 
       const imgData = canvas.toDataURL('image/png');
@@ -1764,6 +1776,8 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
         format: 'a4',
       });
 
+      // Render the card centered on A4 or fitting full page.
+      // Since it's exactly 1:1.414 aspect ratio, it fills A4 (210x297mm) perfectly!
       pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
       pdf.save(`Etiqueta_EE_${fabricante.replace(/\s+/g, '_')}_${modelo.replace(/\s+/g, '_')}.pdf`);
       toast.dismiss();
@@ -1975,52 +1989,63 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
               <span className="text-[10px] font-medium text-slate-400 uppercase">La etiqueta se exportará exactamente como se muestra aquí</span>
             </div>
             
-            {/* Label Container (Strictly styled according to Peru regulation layout) */}
+            {/* Label Container (Strictly styled according to Peru regulation layout using raw standard CSS to avoid oklch crashes) */}
             <div 
               id="energy-label-card" 
-              className="w-[495px] h-[700px] bg-white border-[3px] border-black p-4 flex flex-col justify-between shadow-lg select-none"
-              style={{ contentVisibility: 'auto' }}
+              style={{
+                width: '500px',
+                height: '707px',
+                backgroundColor: '#ffffff',
+                border: '4px solid #000000',
+                padding: '20px 24px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                fontFamily: 'Arial, Helvetica, sans-serif',
+                boxSizing: 'border-box',
+                color: '#000000',
+              }}
             >
               {/* Header */}
-              <div className="flex flex-col border-b-[3px] border-black pb-2">
-                <div className="flex justify-between items-start">
-                  <div className="flex flex-col">
-                    <h1 className="text-[34px] font-black tracking-tight leading-none">ENERGIA</h1>
-                    <span className="text-[11px] font-bold text-slate-700 mt-1 leading-none">Fabricante</span>
-                    <span className="text-[11px] font-bold text-slate-700 mt-2 leading-none">Modelo</span>
+              <div style={{ display: 'flex', flexDirection: 'column', borderBottom: '3.5px solid #000000', paddingBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <h1 style={{ fontSize: '42px', fontWeight: 900, letterSpacing: '1px', lineHeight: '1', margin: 0, color: '#000000' }}>ENERGIA</h1>
+                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#000000', marginTop: '4px', lineHeight: '1' }}>Fabricante</span>
+                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#000000', marginTop: '6px', lineHeight: '1' }}>Modelo</span>
                   </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[18px] font-black tracking-tight leading-none mb-1">{fabricante.toUpperCase()}</span>
-                    <span className="text-[16px] font-black tracking-tight leading-none mt-1">{modelo.toUpperCase()}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                    <span style={{ fontSize: '20px', fontWeight: 900, color: '#000000', margin: 0, lineHeight: '1' }}>{fabricante.toUpperCase()}</span>
+                    <span style={{ fontSize: '18px', fontWeight: 900, color: '#000000', marginTop: '6px', lineHeight: '1' }}>{modelo.toUpperCase()}</span>
                   </div>
                 </div>
                 
-                <div className="flex justify-between items-end mt-2 pt-1 border-t border-slate-100">
-                  <div className="flex flex-col pr-2 max-w-[280px]">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo de Artefacto</span>
-                    <span className="text-[13px] font-extrabold leading-tight text-slate-900 mt-0.5">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '8px', paddingTop: '6px', borderTop: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '280px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tipo de Artefacto</span>
+                    <span style={{ fontSize: '14px', fontWeight: 900, color: '#000000', marginTop: '2px', lineHeight: '1.2' }}>
                       {tipo === 'instantaneo' ? 'Calentador de agua eléctrico instantáneo' : 'Calentador de agua eléctrico tipo acumulación'}
                     </span>
                   </div>
                   {tipo === 'instantaneo' && (
-                    <div className="flex flex-col text-[11px] font-bold border border-black p-1 bg-slate-50 rounded-lg min-w-[120px]">
-                      <div className="flex items-center gap-1.5 py-0.5">
-                        <div className="w-3.5 h-3.5 border border-black flex items-center justify-center font-black bg-white">
+                    <div style={{ display: 'flex', flexDirection: 'column', fontSize: '11px', fontWeight: 'bold', border: '1.5px solid #000000', padding: '2px 6px', backgroundColor: '#ffffff', minWidth: '100px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '2px 0' }}>
+                        <div style={{ width: '14px', height: '14px', border: '1.5px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, backgroundColor: '#ffffff', color: '#000000', fontSize: '10px' }}>
                           {ducha ? 'X' : ''}
                         </div>
-                        <span>Ducha</span>
+                        <span style={{ color: '#000000' }}>Ducha</span>
                       </div>
-                      <div className="flex items-center gap-1.5 py-0.5">
-                        <div className="w-3.5 h-3.5 border border-black flex items-center justify-center font-black bg-white">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '2px 0' }}>
+                        <div style={{ width: '14px', height: '14px', border: '1.5px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, backgroundColor: '#ffffff', color: '#000000', fontSize: '10px' }}>
                           {grifo ? 'X' : ''}
                         </div>
-                        <span>Grifo</span>
+                        <span style={{ color: '#000000' }}>Grifo</span>
                       </div>
-                      <div className="flex items-center gap-1.5 py-0.5">
-                        <div className="w-3.5 h-3.5 border border-black flex items-center justify-center font-black bg-white">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '2px 0' }}>
+                        <div style={{ width: '14px', height: '14px', border: '1.5px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, backgroundColor: '#ffffff', color: '#000000', fontSize: '10px' }}>
                           {calentador ? 'X' : ''}
                         </div>
-                        <span>Calentador</span>
+                        <span style={{ color: '#000000' }}>Calentador</span>
                       </div>
                     </div>
                   )}
@@ -2028,38 +2053,38 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
               </div>
 
               {/* Letter Scale Section */}
-              <div className="grid grid-cols-12 gap-1 py-3 border-b-[3px] border-black flex-1 min-h-[220px]">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '4px', padding: '10px 0', borderBottom: '3.5px solid #000000', flex: 1, minHeight: '230px' }}>
                 {/* Left Scale */}
-                <div className="col-span-8 flex flex-col justify-between pr-2 border-r-2 border-black">
-                  <span className="text-[10px] font-extrabold text-black uppercase tracking-tight">Más eficiente (Menor consumo)</span>
-                  <div className="flex flex-col gap-[5px] my-1">
+                <div style={{ gridColumn: 'span 7 / span 7', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingRight: '8px', borderRight: '2px solid #000000' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 900, color: '#000000', textTransform: 'uppercase' }}>Más eficiente (Menor consumo)</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', margin: '4px 0' }}>
                     {ARROWS.map(arrow => (
-                      <div key={arrow.letter} className="h-[24px] flex items-center relative" style={{ width: arrow.width }}>
-                        <svg viewBox="0 0 100 20" width="100%" height="20" preserveAspectRatio="none" className="absolute inset-0">
+                      <div key={arrow.letter} style={{ height: '24px', display: 'flex', alignItems: 'center', position: 'relative', width: arrow.width }}>
+                        <svg viewBox="0 0 100 20" width="100%" height="20" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }}>
                           <path d="M 0,0 L 92,0 L 100,10 L 92,20 L 0,20 Z" fill={arrow.color} />
                         </svg>
-                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white font-black text-[13px] pointer-events-none">
+                        <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: '#ffffff', fontWeight: 900, fontSize: '13px' }}>
                           {arrow.letter}
                         </span>
                       </div>
                     ))}
                   </div>
-                  <span className="text-[10px] font-extrabold text-black uppercase tracking-tight">Menos eficiente (Mayor consumo)</span>
+                  <span style={{ fontSize: '11px', fontWeight: 900, color: '#000000', textTransform: 'uppercase' }}>Menos eficiente (Mayor consumo)</span>
                 </div>
 
                 {/* Right selected arrow */}
-                <div className="col-span-4 flex flex-col justify-center items-start pl-3 relative overflow-visible">
-                  <div className="flex flex-col gap-[5px] my-1 w-full justify-center">
+                <div style={{ gridColumn: 'span 5 / span 5', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', paddingLeft: '16px', overflow: 'visible', position: 'relative' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', margin: '4px 0', width: '100%', justifyContent: 'center' }}>
                     {ARROWS.map(arrow => {
                       const isSelected = letra === arrow.letter;
                       return (
-                        <div key={arrow.letter} className="h-[24px] flex items-center justify-start overflow-visible">
+                        <div key={arrow.letter} style={{ height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'start', overflow: 'visible' }}>
                           {isSelected && (
-                            <div className="relative w-[70px] h-[34px] overflow-visible">
-                              <svg viewBox="0 0 70 34" width="70" height="34" className="absolute inset-0 overflow-visible">
-                                <path d="M 70,0 L 12,0 L 0,17 L 12,34 L 70,34 Z" fill="black" />
+                            <div style={{ position: 'relative', width: '76px', height: '36px', overflow: 'visible' }}>
+                              <svg viewBox="0 0 76 36" width="76" height="36" style={{ position: 'absolute', inset: 0, overflow: 'visible' }}>
+                                <path d="M 76,0 L 14,0 L 0,18 L 14,36 L 76,36 Z" fill="#000000" />
                               </svg>
-                              <span className="absolute left-[41px] top-1/2 -translate-y-1/2 text-white font-black text-[18px] -translate-x-1/2 pointer-events-none">
+                              <span style={{ position: 'absolute', left: '44px', top: '50%', transform: 'translate(-50%, -50%)', color: '#ffffff', fontWeight: 900, fontSize: '20px', fontFamily: 'Arial, sans-serif' }}>
                                 {arrow.letter}
                               </span>
                             </div>
@@ -2072,43 +2097,43 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
               </div>
 
               {/* Technical Data Section */}
-              <div className="flex flex-col border-b-[3px] border-black">
+              <div style={{ display: 'flex', flexDirection: 'column', borderBottom: '3.5px solid #000000' }}>
                 {/* Eficiencia Row */}
-                <div className="flex border-b border-black py-1.5">
-                  <div className="w-[70%] pr-2">
-                    <span className="text-[13px] font-black block leading-none">Eficiencia energética(%)</span>
-                    <span className="text-[9px] text-slate-800 leading-tight block mt-1">
+                <div style={{ display: 'flex', borderBottom: '1.5px solid #000000', padding: '6px 0' }}>
+                  <div style={{ width: '70%', paddingRight: '8px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 900, color: '#000000', display: 'block', lineHeight: '1.1' }}>Eficiencia energética(%)</span>
+                    <span style={{ fontSize: '9px', color: '#000000', leading: 'tight', display: 'block', marginTop: '4px', fontWeight: 500 }}>
                       El desempeño energético depende de las condiciones de uso del calentador y su localización
                     </span>
                   </div>
-                  <div className="w-[30%] flex items-center justify-end">
-                    <span className="text-[34px] font-black tracking-tighter leading-none pr-1">
+                  <div style={{ width: '30%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <span style={{ fontSize: '38px', fontWeight: 900, letterSpacing: '-1px', lineHeight: '1', color: '#000000', paddingRight: '4px' }}>
                       {eficiencia}
                     </span>
                   </div>
                 </div>
                 
                 {/* Variable Row */}
-                <div className="flex border-b border-black py-2.5">
-                  <div className="w-[70%]">
-                    <span className="text-[12px] font-bold block leading-none">
+                <div style={{ display: 'flex', borderBottom: '1.5px solid #000000', padding: '8px 0' }}>
+                  <div style={{ width: '70%' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#000000', display: 'block', lineHeight: '1' }}>
                       {tipo === 'instantaneo' ? 'Caudal de agua litros/minuto' : 'Capacidad litros'}
                     </span>
                   </div>
-                  <div className="w-[30%] flex items-center justify-end">
-                    <span className="text-[20px] font-black tracking-tight leading-none pr-1">
+                  <div style={{ width: '30%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <span style={{ fontSize: '20px', fontWeight: 900, color: '#000000', lineHeight: '1', paddingRight: '4px' }}>
                       {formatValue(variableValue, showDecimalVariable)}
                     </span>
                   </div>
                 </div>
                 
                 {/* Potencia Row */}
-                <div className="flex py-2.5">
-                  <div className="w-[70%]">
-                    <span className="text-[12px] font-bold block leading-none">Potencia kW</span>
+                <div style={{ display: 'flex', padding: '8px 0' }}>
+                  <div style={{ width: '70%' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#000000', display: 'block', lineHeight: '1' }}>Potencia kW</span>
                   </div>
-                  <div className="w-[30%] flex items-center justify-end">
-                    <span className="text-[20px] font-black tracking-tight leading-none pr-1">
+                  <div style={{ width: '30%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <span style={{ fontSize: '20px', fontWeight: 900, color: '#000000', lineHeight: '1', paddingRight: '4px' }}>
                       {formatValue(potencia, showDecimalPotencia)}
                     </span>
                   </div>
@@ -2116,52 +2141,53 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
               </div>
 
               {/* Legal and Certifier */}
-              <div className="grid grid-cols-12 gap-2 pt-3 flex-1 min-h-[140px] items-center">
-                <div className="col-span-8 text-[8px] text-slate-800 leading-tight space-y-1.5 pr-2">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '8px', paddingTop: '10px', flex: 1, minHeight: '140px', alignItems: 'center' }}>
+                <div style={{ gridColumn: 'span 8 / span 8', fontSize: '8.5px', color: '#000000', lineHeight: '1.3', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '8px', fontWeight: 600 }}>
                   {legalText.split('\n\n').map((paragraph, index) => (
-                    <p key={index} className="m-0 font-medium">{paragraph}</p>
+                    <p key={index} style={{ margin: 0 }}>{paragraph}</p>
                   ))}
                 </div>
-                <div className="col-span-0.5 border-l border-black self-stretch my-1"></div>
-                <div className="col-span-3.5 flex flex-col items-center justify-center pr-1 select-none">
+                <div style={{ gridColumn: 'span 0.5 / span 0.5', borderLeft: '1.5px solid #000000', alignSelf: 'stretch', margin: '4px 0' }}></div>
+                <div style={{ gridColumn: 'span 3.5 / span 3.5', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyStyle: 'center', justifyContent: 'center', paddingRight: '4px' }}>
                   {certificador === 'lenor1' && (
-                    <div className="flex flex-col items-center justify-center">
-                      <svg viewBox="0 0 100 60" className="w-18 h-10" fill="none" stroke="#008060" strokeWidth="13" strokeLinecap="butt" strokeLinejoin="miter">
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg viewBox="0 0 100 60" style={{ width: '70px', height: '40px' }} fill="none" stroke="#008060" strokeWidth="13" strokeLinecap="butt" strokeLinejoin="miter">
                         <path d="M 68 12 L 34 46 L 76 46" />
                       </svg>
-                      <span className="font-sans font-black text-slate-900 text-[12px] tracking-widest mt-1">LENOR</span>
+                      <span style={{ fontFamily: 'Arial, sans-serif', fontWeight: 900, color: '#000000', fontSize: '12px', letterSpacing: '0.1em', marginTop: '4px' }}>LENOR</span>
                     </div>
                   )}
                   {certificador === 'lenor2' && (
-                    <div className="flex flex-col items-center justify-center">
-                      <svg viewBox="0 0 100 100" className="w-14 h-14">
-                        <circle cx="50" cy="50" r="32" fill="none" stroke="#0070c0" strokeWidth="4.5" />
-                        <path d="M 50,22 L 50,78 M 22,50 L 78,50" stroke="#00a0e9" strokeWidth="4.5" strokeLinecap="square" />
-                        <path id="curve-top-modal" d="M 20,45 A 30,30 0 0,1 80,45" fill="none" />
-                        <text fontSize="7.5" fontWeight="bold" fill="#0070c0" letterSpacing="0.8">
-                          <textPath href="#curve-top-modal" startOffset="50%" textAnchor="middle">
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg viewBox="0 0 100 100" style={{ width: '60px', height: '60px' }}>
+                        <circle cx="50" cy="50" r="30" fill="none" stroke="#0f6fa9" strokeWidth="3" />
+                        <path d="M 50,23 L 50,77 M 23,50 L 77,50" stroke="#009fe3" strokeWidth="3.5" />
+                        <path d="M 45,23 L 55,23 M 45,77 L 55,77 M 23,45 L 23,55 M 77,45 L 77,55" stroke="#009fe3" strokeWidth="2.5" />
+                        <path id="curve-cert-p" d="M 23,47 A 27,27 0 0,1 77,47" fill="none" />
+                        <text fontSize="7" fontWeight="bold" fill="#0f6fa9" letterSpacing="0.3">
+                          <textPath href="#curve-cert-p" startOffset="50%" textAnchor="middle">
                             CERTIFICADO
                           </textPath>
                         </text>
-                        <text x="50" y="93" fontSize="12" fontWeight="900" fill="#0070c0" textAnchor="middle" letterSpacing="0.8">
+                        <text x="50" y="93" fontSize="11" fontWeight="900" fill="#0f6fa9" textAnchor="middle" letterSpacing="0.5" style={{ fontFamily: 'Arial, sans-serif' }}>
                           LENOR
                         </text>
                       </svg>
                     </div>
                   )}
                   {certificador === 'dekra' && (
-                    <div className="flex items-center justify-center gap-1">
-                      <svg viewBox="0 0 60 60" className="w-7 h-7" fill="none" stroke="#2c853c" strokeWidth="9" strokeLinecap="butt" strokeLinejoin="miter">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <svg viewBox="0 0 60 60" style={{ width: '28px', height: '28px' }} fill="none" stroke="#2c853c" strokeWidth="9" strokeLinecap="butt" strokeLinejoin="miter">
                         <path d="M 16 12 L 44 30 L 16 48" />
                       </svg>
-                      <span className="font-sans font-black text-[#2c853c] text-[16px] tracking-tighter">DEKRA</span>
+                      <span style={{ fontFamily: 'Arial, sans-serif', fontWeight: 900, color: '#2c853c', fontSize: '16px', letterSpacing: '-0.5px' }}>DEKRA</span>
                     </div>
                   )}
                   {certificador === 'custom' && customLogoUrl && (
-                    <img src={customLogoUrl} alt="Logo Certificador" className="max-h-[80px] max-w-[100px] object-contain" />
+                    <img src={customLogoUrl} alt="Logo Certificador" style={{ maxHeight: '80px', maxWidth: '100px', objectFit: 'contain' }} />
                   )}
                   {certificador === 'custom' && !customLogoUrl && (
-                    <div className="border border-dashed border-slate-300 rounded-lg p-2 text-center text-[9px] text-slate-400 font-bold uppercase">
+                    <div style={{ border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '8px', textAlign: 'center', fontSize: '9px', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' }}>
                       Sin Logo
                     </div>
                   )}
@@ -2192,4 +2218,5 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
     </div>
   );
 }
+
 
