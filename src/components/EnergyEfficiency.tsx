@@ -16,6 +16,9 @@ import { toast } from 'sonner';
 import { SupabaseService } from '../lib/SupabaseService';
 import { Loader2 } from 'lucide-react';
 import HeaderFilterPopover from './HeaderFilterPopover';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+
 
 interface EnergyEfficiencyProps {
   onExportPPT?: () => void;
@@ -70,6 +73,8 @@ export default function EnergyEfficiency({
     title: string;
     onConfirm: () => void;
   } | null>(null);
+  const [showLabelGenerator, setShowLabelGenerator] = useState(false);
+
 
   useEffect(() => {
     loadData();
@@ -1248,6 +1253,13 @@ export default function EnergyEfficiency({
             onExportPPT={handleExportPPT}
           />
           <button 
+            onClick={() => setShowLabelGenerator(true)}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 active:scale-95"
+          >
+            <FileText size={20} />
+            Generar Etiqueta
+          </button>
+          <button 
             onClick={() => setShowAddModal(true)}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95"
           >
@@ -1255,6 +1267,7 @@ export default function EnergyEfficiency({
             Nuevo Registro
           </button>
         </div>
+
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">
@@ -1477,6 +1490,11 @@ export default function EnergyEfficiency({
 
       {viewingRecord && <DetailModal record={viewingRecord} />}
 
+      {showLabelGenerator && (
+        <LabelGeneratorModal onClose={() => setShowLabelGenerator(false)} />
+      )}
+
+
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
@@ -1646,3 +1664,532 @@ export default function EnergyEfficiency({
     </div>
   );
 }
+
+const DEFAULT_LEGAL_TEXT = `Compare este producto con otros de similares características
+
+Los resultados se obtienen aplicando los métodos de ensayo descritos en las Normas Técnicas Peruanas e Internacionales correspondientes
+
+Esta etiqueta no debe retirarse del artefacto hasta que este haya sido adquirido por el consumidor final`;
+
+const ARROWS = [
+  { letter: 'A', color: '#00A859', width: '38%' },
+  { letter: 'B', color: '#3BB54A', width: '46%' },
+  { letter: 'C', color: '#8DC63F', width: '54%' },
+  { letter: 'D', color: '#FFF200', width: '62%' },
+  { letter: 'E', color: '#F7931E', width: '70%' },
+  { letter: 'F', color: '#F15A24', width: '78%' },
+  { letter: 'G', color: '#ED1C24', width: '86%' },
+];
+
+function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
+  const [tipo, setTipo] = useState<'instantaneo' | 'acumulacion'>('instantaneo');
+  const [fabricante, setFabricante] = useState('SOLE');
+  const [modelo, setModelo] = useState('SOLRD3000C');
+  const [letra, setLetra] = useState<'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'>('B');
+  const [ducha, setDucha] = useState(false);
+  const [grifo, setGrifo] = useState(false);
+  const [calentador, setCalentador] = useState(true);
+  const [eficiencia, setEficiencia] = useState('98');
+  const [variableValue, setVariableValue] = useState('3');
+  const [potencia, setPotencia] = useState('3.0');
+  const [showDecimalVariable, setShowDecimalVariable] = useState(false);
+  const [showDecimalPotencia, setShowDecimalPotencia] = useState(true);
+  const [certificador, setCertificador] = useState<'lenor1' | 'lenor2' | 'dekra' | 'custom'>('lenor1');
+  const [customLogoUrl, setCustomLogoUrl] = useState<string>('');
+  const [legalText, setLegalText] = useState(DEFAULT_LEGAL_TEXT);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
+    if (tipo === 'instantaneo') {
+      setVariableValue('3');
+      setPotencia('3.0');
+      setShowDecimalVariable(false);
+      setShowDecimalPotencia(true);
+    } else {
+      setVariableValue('250');
+      setPotencia('4.5');
+      setShowDecimalVariable(false);
+      setShowDecimalPotencia(true);
+    }
+  }, [tipo]);
+
+  const handleCustomLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setCustomLogoUrl(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const formatValue = (valStr: string, forceDecimal: boolean) => {
+    if (!valStr) return '';
+    const num = parseFloat(valStr.replace(',', '.'));
+    if (isNaN(num)) return valStr;
+    if (forceDecimal) {
+      return num.toFixed(1).replace('.', ',');
+    } else {
+      return Math.round(num).toString();
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById('energy-label-card');
+    if (!element) {
+      toast.error('No se pudo encontrar la etiqueta para exportar');
+      return;
+    }
+
+    setIsGenerating(true);
+    toast.loading('Generando etiqueta en formato PDF...');
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      const canvas = await html2canvas(element, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+      pdf.save(`Etiqueta_EE_${fabricante.replace(/\s+/g, '_')}_${modelo.replace(/\s+/g, '_')}.pdf`);
+      toast.dismiss();
+      toast.success('Etiqueta PDF descargada correctamente');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.dismiss();
+      toast.error('Error al generar el archivo PDF');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+      <div className="bg-white rounded-[32px] w-full max-w-6xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden flex flex-col max-h-[92vh]">
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+              <FileText size={24} />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Generador de Etiquetas de Eficiencia Energética</h3>
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mt-0.5">Crea, previsualiza y descarga etiquetas PDF listas para imprimir</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white rounded-full text-slate-400 transition-colors shadow-sm border border-transparent hover:border-slate-100">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Form Controls */}
+          <div className="lg:col-span-6 space-y-6">
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200/60 space-y-4">
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-2">Información del Artefacto</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo de Calentador</label>
+                  <select 
+                    value={tipo} 
+                    onChange={e => setTipo(e.target.value as any)}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700 text-sm"
+                  >
+                    <option value="instantaneo">Calentador Eléctrico Instantáneo</option>
+                    <option value="acumulacion">Calentador Eléctrico de Acumulación</option>
+                  </select>
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fabricante</label>
+                  <input 
+                    type="text" 
+                    value={fabricante} 
+                    onChange={e => setFabricante(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Modelo</label>
+                  <input 
+                    type="text" 
+                    value={modelo} 
+                    onChange={e => setModelo(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700 text-sm"
+                  />
+                </div>
+              </div>
+
+              {tipo === 'instantaneo' && (
+                <div className="space-y-1.5 pt-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Aplicaciones (Checkboxes)</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input type="checkbox" checked={ducha} onChange={e => setDucha(e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500/20" />
+                      <span className="text-xs font-bold text-slate-600">Ducha</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input type="checkbox" checked={grifo} onChange={e => setGrifo(e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500/20" />
+                      <span className="text-xs font-bold text-slate-600">Grifo</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input type="checkbox" checked={calentador} onChange={e => setCalentador(e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500/20" />
+                      <span className="text-xs font-bold text-slate-600">Calentador</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200/60 space-y-4">
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-2">Rendimiento y Eficiencia</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Letra de Eficiencia</label>
+                  <select 
+                    value={letra} 
+                    onChange={e => setLetra(e.target.value as any)}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700 text-sm"
+                  >
+                    {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(l => (
+                      <option key={l} value={l}>{l}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Eficiencia energética (%)</label>
+                  <input 
+                    type="text" 
+                    value={eficiencia} 
+                    onChange={e => setEficiencia(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    {tipo === 'instantaneo' ? 'Caudal (litros/minuto)' : 'Capacidad (litros)'}
+                  </label>
+                  <input 
+                    type="text" 
+                    value={variableValue} 
+                    onChange={e => setVariableValue(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700 text-sm"
+                  />
+                  <label className="flex items-center gap-1.5 cursor-pointer mt-1 select-none">
+                    <input type="checkbox" checked={showDecimalVariable} onChange={e => setShowDecimalVariable(e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500/20" />
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Mostrar con decimal</span>
+                  </label>
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Potencia (kW)</label>
+                  <input 
+                    type="text" 
+                    value={potencia} 
+                    onChange={e => setPotencia(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700 text-sm"
+                  />
+                  <label className="flex items-center gap-1.5 cursor-pointer mt-1 select-none">
+                    <input type="checkbox" checked={showDecimalPotencia} onChange={e => setShowDecimalPotencia(e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500/20" />
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Mostrar con decimal</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200/60 space-y-4">
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-2">Certificación y Textos Legales</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Certificador</label>
+                  <select 
+                    value={certificador} 
+                    onChange={e => setCertificador(e.target.value as any)}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700 text-sm"
+                  >
+                    <option value="lenor1">LENOR (L Verde)</option>
+                    <option value="lenor2">LENOR (Cruz Azul)</option>
+                    <option value="dekra">DEKRA</option>
+                    <option value="custom">Subir Logo Personalizado</option>
+                  </select>
+                </div>
+                
+                <div className="space-y-1.5">
+                  {certificador === 'custom' ? (
+                    <>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cargar Imagen Logo</label>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleCustomLogoSelect}
+                        className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100"
+                      />
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-center h-full pt-4">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Logo vectorial integrado</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="col-span-2 space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Textos Legales / Aclaraciones</label>
+                    <button 
+                      type="button" 
+                      onClick={() => setLegalText(DEFAULT_LEGAL_TEXT)}
+                      className="text-[9px] font-black text-indigo-600 uppercase tracking-wider hover:text-indigo-700"
+                    >
+                      Restaurar por defecto
+                    </button>
+                  </div>
+                  <textarea 
+                    value={legalText} 
+                    onChange={e => setLegalText(e.target.value)}
+                    rows={4}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-bold text-slate-600 text-xs leading-relaxed"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Live Preview Column */}
+          <div className="lg:col-span-6 flex flex-col items-center justify-center bg-slate-100 p-6 rounded-[24px] border border-slate-200/50 min-h-[600px] overflow-hidden">
+            <div className="mb-4 text-center">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vista Previa Real</span>
+              <span className="text-[10px] font-medium text-slate-400 uppercase">La etiqueta se exportará exactamente como se muestra aquí</span>
+            </div>
+            
+            {/* Label Container (Strictly styled according to Peru regulation layout) */}
+            <div 
+              id="energy-label-card" 
+              className="w-[495px] h-[700px] bg-white border-[3px] border-black p-4 flex flex-col justify-between shadow-lg select-none"
+              style={{ contentVisibility: 'auto' }}
+            >
+              {/* Header */}
+              <div className="flex flex-col border-b-[3px] border-black pb-2">
+                <div className="flex justify-between items-start">
+                  <div className="flex flex-col">
+                    <h1 className="text-[34px] font-black tracking-tight leading-none">ENERGIA</h1>
+                    <span className="text-[11px] font-bold text-slate-700 mt-1 leading-none">Fabricante</span>
+                    <span className="text-[11px] font-bold text-slate-700 mt-2 leading-none">Modelo</span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[18px] font-black tracking-tight leading-none mb-1">{fabricante.toUpperCase()}</span>
+                    <span className="text-[16px] font-black tracking-tight leading-none mt-1">{modelo.toUpperCase()}</span>
+                  </div>
+                </div>
+                
+                <div className="flex justify-between items-end mt-2 pt-1 border-t border-slate-100">
+                  <div className="flex flex-col pr-2 max-w-[280px]">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo de Artefacto</span>
+                    <span className="text-[13px] font-extrabold leading-tight text-slate-900 mt-0.5">
+                      {tipo === 'instantaneo' ? 'Calentador de agua eléctrico instantáneo' : 'Calentador de agua eléctrico tipo acumulación'}
+                    </span>
+                  </div>
+                  {tipo === 'instantaneo' && (
+                    <div className="flex flex-col text-[11px] font-bold border border-black p-1 bg-slate-50 rounded-lg min-w-[120px]">
+                      <div className="flex items-center gap-1.5 py-0.5">
+                        <div className="w-3.5 h-3.5 border border-black flex items-center justify-center font-black bg-white">
+                          {ducha ? 'X' : ''}
+                        </div>
+                        <span>Ducha</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 py-0.5">
+                        <div className="w-3.5 h-3.5 border border-black flex items-center justify-center font-black bg-white">
+                          {grifo ? 'X' : ''}
+                        </div>
+                        <span>Grifo</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 py-0.5">
+                        <div className="w-3.5 h-3.5 border border-black flex items-center justify-center font-black bg-white">
+                          {calentador ? 'X' : ''}
+                        </div>
+                        <span>Calentador</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Letter Scale Section */}
+              <div className="grid grid-cols-12 gap-1 py-3 border-b-[3px] border-black flex-1 min-h-[220px]">
+                {/* Left Scale */}
+                <div className="col-span-8 flex flex-col justify-between pr-2 border-r-2 border-black">
+                  <span className="text-[10px] font-extrabold text-black uppercase tracking-tight">Más eficiente (Menor consumo)</span>
+                  <div className="flex flex-col gap-[5px] my-1">
+                    {ARROWS.map(arrow => (
+                      <div key={arrow.letter} className="h-[24px] flex items-center relative" style={{ width: arrow.width }}>
+                        <svg viewBox="0 0 100 20" width="100%" height="20" preserveAspectRatio="none" className="absolute inset-0">
+                          <path d="M 0,0 L 92,0 L 100,10 L 92,20 L 0,20 Z" fill={arrow.color} />
+                        </svg>
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white font-black text-[13px] pointer-events-none">
+                          {arrow.letter}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <span className="text-[10px] font-extrabold text-black uppercase tracking-tight">Menos eficiente (Mayor consumo)</span>
+                </div>
+
+                {/* Right selected arrow */}
+                <div className="col-span-4 flex flex-col justify-center items-start pl-3 relative overflow-visible">
+                  <div className="flex flex-col gap-[5px] my-1 w-full justify-center">
+                    {ARROWS.map(arrow => {
+                      const isSelected = letra === arrow.letter;
+                      return (
+                        <div key={arrow.letter} className="h-[24px] flex items-center justify-start overflow-visible">
+                          {isSelected && (
+                            <div className="relative w-[70px] h-[34px] overflow-visible">
+                              <svg viewBox="0 0 70 34" width="70" height="34" className="absolute inset-0 overflow-visible">
+                                <path d="M 70,0 L 12,0 L 0,17 L 12,34 L 70,34 Z" fill="black" />
+                              </svg>
+                              <span className="absolute left-[41px] top-1/2 -translate-y-1/2 text-white font-black text-[18px] -translate-x-1/2 pointer-events-none">
+                                {arrow.letter}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Technical Data Section */}
+              <div className="flex flex-col border-b-[3px] border-black">
+                {/* Eficiencia Row */}
+                <div className="flex border-b border-black py-1.5">
+                  <div className="w-[70%] pr-2">
+                    <span className="text-[13px] font-black block leading-none">Eficiencia energética(%)</span>
+                    <span className="text-[9px] text-slate-800 leading-tight block mt-1">
+                      El desempeño energético depende de las condiciones de uso del calentador y su localización
+                    </span>
+                  </div>
+                  <div className="w-[30%] flex items-center justify-end">
+                    <span className="text-[34px] font-black tracking-tighter leading-none pr-1">
+                      {eficiencia}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Variable Row */}
+                <div className="flex border-b border-black py-2.5">
+                  <div className="w-[70%]">
+                    <span className="text-[12px] font-bold block leading-none">
+                      {tipo === 'instantaneo' ? 'Caudal de agua litros/minuto' : 'Capacidad litros'}
+                    </span>
+                  </div>
+                  <div className="w-[30%] flex items-center justify-end">
+                    <span className="text-[20px] font-black tracking-tight leading-none pr-1">
+                      {formatValue(variableValue, showDecimalVariable)}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Potencia Row */}
+                <div className="flex py-2.5">
+                  <div className="w-[70%]">
+                    <span className="text-[12px] font-bold block leading-none">Potencia kW</span>
+                  </div>
+                  <div className="w-[30%] flex items-center justify-end">
+                    <span className="text-[20px] font-black tracking-tight leading-none pr-1">
+                      {formatValue(potencia, showDecimalPotencia)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Legal and Certifier */}
+              <div className="grid grid-cols-12 gap-2 pt-3 flex-1 min-h-[140px] items-center">
+                <div className="col-span-8 text-[8px] text-slate-800 leading-tight space-y-1.5 pr-2">
+                  {legalText.split('\n\n').map((paragraph, index) => (
+                    <p key={index} className="m-0 font-medium">{paragraph}</p>
+                  ))}
+                </div>
+                <div className="col-span-0.5 border-l border-black self-stretch my-1"></div>
+                <div className="col-span-3.5 flex flex-col items-center justify-center pr-1 select-none">
+                  {certificador === 'lenor1' && (
+                    <div className="flex flex-col items-center justify-center">
+                      <svg viewBox="0 0 100 60" className="w-18 h-10" fill="none" stroke="#008060" strokeWidth="13" strokeLinecap="butt" strokeLinejoin="miter">
+                        <path d="M 68 12 L 34 46 L 76 46" />
+                      </svg>
+                      <span className="font-sans font-black text-slate-900 text-[12px] tracking-widest mt-1">LENOR</span>
+                    </div>
+                  )}
+                  {certificador === 'lenor2' && (
+                    <div className="flex flex-col items-center justify-center">
+                      <svg viewBox="0 0 100 100" className="w-14 h-14">
+                        <circle cx="50" cy="50" r="32" fill="none" stroke="#0070c0" strokeWidth="4.5" />
+                        <path d="M 50,22 L 50,78 M 22,50 L 78,50" stroke="#00a0e9" strokeWidth="4.5" strokeLinecap="square" />
+                        <path id="curve-top-modal" d="M 20,45 A 30,30 0 0,1 80,45" fill="none" />
+                        <text fontSize="7.5" fontWeight="bold" fill="#0070c0" letterSpacing="0.8">
+                          <textPath href="#curve-top-modal" startOffset="50%" textAnchor="middle">
+                            CERTIFICADO
+                          </textPath>
+                        </text>
+                        <text x="50" y="93" fontSize="12" fontWeight="900" fill="#0070c0" textAnchor="middle" letterSpacing="0.8">
+                          LENOR
+                        </text>
+                      </svg>
+                    </div>
+                  )}
+                  {certificador === 'dekra' && (
+                    <div className="flex items-center justify-center gap-1">
+                      <svg viewBox="0 0 60 60" className="w-7 h-7" fill="none" stroke="#2c853c" strokeWidth="9" strokeLinecap="butt" strokeLinejoin="miter">
+                        <path d="M 16 12 L 44 30 L 16 48" />
+                      </svg>
+                      <span className="font-sans font-black text-[#2c853c] text-[16px] tracking-tighter">DEKRA</span>
+                    </div>
+                  )}
+                  {certificador === 'custom' && customLogoUrl && (
+                    <img src={customLogoUrl} alt="Logo Certificador" className="max-h-[80px] max-w-[100px] object-contain" />
+                  )}
+                  {certificador === 'custom' && !customLogoUrl && (
+                    <div className="border border-dashed border-slate-300 rounded-lg p-2 text-center text-[9px] text-slate-400 font-bold uppercase">
+                      Sin Logo
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-4">
+          <button 
+            onClick={onClose} 
+            disabled={isGenerating}
+            className="flex-1 px-6 py-4 border border-slate-200 rounded-2xl font-black uppercase text-sm text-slate-500 hover:bg-slate-100 transition-all bg-white disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button 
+            onClick={handleDownloadPDF}
+            disabled={isGenerating}
+            className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isGenerating && <Loader2 className="w-5 h-5 animate-spin" />}
+            Descargar PDF de Etiqueta
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
