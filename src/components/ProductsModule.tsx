@@ -2533,15 +2533,22 @@ export default function ProductsModule({
                       </div>
                       <div className="grid grid-cols-6 gap-1.5">
                         {group.photos.map((photo, pIdx) => (
-                          <div key={photo.url || pIdx} className="aspect-square rounded-lg overflow-hidden border border-slate-200 relative group/p flex flex-col items-center justify-center bg-slate-50">
-                            <img src={photo.url} alt="" className="w-full h-full object-cover absolute inset-0"/>
-                            <button type="button" onClick={() => setFormData(prev => ({ ...prev, gallery: prev.gallery.map(g => g.id === group.id ? { ...g, photos: g.photos.filter((_, i) => i !== pIdx) } : g) }))} className="absolute top-0.5 right-0.5 p-0.5 bg-red-600 text-white rounded opacity-0 group-hover/p:opacity-100 transition-opacity z-10"><X size={8}/></button>
+                          <div key={photo.url || pIdx} className="aspect-square rounded-lg overflow-hidden border border-slate-200 relative group/p flex flex-col items-center justify-center bg-white cursor-pointer"
+                            onClick={() => window.open(photo.url, '_blank')}
+                            title="Ver imagen en tamaño completo"
+                          >
+                            <img src={photo.url} alt="" className="w-full h-full object-contain p-1 absolute inset-0"/>
+                            {/* Zoom icon on hover */}
+                            <div className="absolute inset-0 bg-black/0 group-hover/p:bg-black/30 transition-all flex items-center justify-center">
+                              <Eye size={16} className="text-white opacity-0 group-hover/p:opacity-100 transition-opacity drop-shadow-lg"/>
+                            </div>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setFormData(prev => ({ ...prev, gallery: prev.gallery.map(g => g.id === group.id ? { ...g, photos: g.photos.filter((_, i) => i !== pIdx) } : g) })); }} className="absolute top-0.5 right-0.5 p-0.5 bg-red-600 text-white rounded opacity-0 group-hover/p:opacity-100 transition-opacity z-10"><X size={8}/></button>
                             
                             <div className="absolute inset-x-0 bottom-0 flex justify-between bg-black/60 p-1 opacity-0 group-hover/p:opacity-100 transition-opacity z-10">
                               <button 
                                 type="button" 
                                 disabled={pIdx === 0} 
-                                onClick={() => handleMovePhoto(group.id, pIdx, pIdx - 1)} 
+                                onClick={(e) => { e.stopPropagation(); handleMovePhoto(group.id, pIdx, pIdx - 1); }} 
                                 className="p-0.5 text-white hover:text-indigo-300 disabled:opacity-30 transition-colors"
                               >
                                 <ChevronLeft size={12}/>
@@ -2550,7 +2557,7 @@ export default function ProductsModule({
                               <button 
                                 type="button" 
                                 disabled={pIdx === group.photos.length - 1} 
-                                onClick={() => handleMovePhoto(group.id, pIdx, pIdx + 1)} 
+                                onClick={(e) => { e.stopPropagation(); handleMovePhoto(group.id, pIdx, pIdx + 1); }} 
                                 className="p-0.5 text-white hover:text-indigo-300 disabled:opacity-30 transition-colors"
                               >
                                 <ChevronRight size={12}/>
