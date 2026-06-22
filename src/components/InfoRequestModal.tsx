@@ -13,7 +13,7 @@ interface InfoRequestModalProps {
 }
 
 export default function InfoRequestModal({ isOpen, onClose, record, type, onSave }: InfoRequestModalProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [newRequestText, setNewRequestText] = useState('');
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
   const [responseText, setResponseText] = useState('');
@@ -37,7 +37,7 @@ export default function InfoRequestModal({ isOpen, onClose, record, type, onSave
       id: `req-${Date.now()}`,
       requestText: newRequestText,
       requestDate: new Date().toISOString().split('T')[0],
-      requestedBy: user?.name || 'Sistema',
+      requestedBy: profile?.full_name || 'Sistema',
     };
 
     onSave([...requests, newRequest]);
@@ -55,7 +55,7 @@ export default function InfoRequestModal({ isOpen, onClose, record, type, onSave
           response: {
             text: responseText,
             date: new Date().toISOString().split('T')[0],
-            user: user?.name || 'Sistema',
+            user: profile?.full_name || 'Sistema',
             files: [] // In a real app, handle file uploads
           }
         };

@@ -28,7 +28,7 @@ export default function PDFReviewer({
   onClose,
   title
 }: PDFReviewerProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
@@ -119,7 +119,7 @@ export default function PDFReviewer({
       x: clickPosition.x,
       y: clickPosition.y,
       text: newComment,
-      user: user?.name || 'Sistema',
+      user: profile?.full_name || 'Sistema',
       date: new Date().toISOString(),
       resolved: false,
       fileIndex: activeFileIndex

@@ -38,7 +38,7 @@ interface SamplesProps {
 
 
 export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, productLines, categories }: Omit<SamplesProps, 'samples' | 'onUpdateSample' | 'onAddSample'>) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { samples, addSample, updateSample, deleteSample } = useSamples();
   const onUpdateSample = updateSample;
   const [searchTerm, setSearchTerm] = useState('');
@@ -345,7 +345,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
       inspectionStatus: newStatus,
       history: [
         ...samples.find(s => s.id === id)!.history,
-        { date: new Date().toISOString().split('T')[0], status: newStatus, user: user?.name || 'Sistema' }
+        { date: new Date().toISOString().split('T')[0], status: newStatus, user: profile?.full_name || 'Sistema' }
       ]
     });
   };
@@ -406,7 +406,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
         warehouseEntryDate: (formData.get('warehouseEntryDate') as string) || undefined,
         receptionPhoto: uploadedPhoto,
         history: [
-          { date: new Date().toISOString().split('T')[0], status: 'Inspeccionado sin informe', user: user?.name || 'Sistema', comment: 'Muestra registrada y recepcionada' }
+          { date: new Date().toISOString().split('T')[0], status: 'Inspeccionado sin informe', user: profile?.full_name || 'Sistema', comment: 'Muestra registrada y recepcionada' }
         ]
       };
       await addSample(newSample);
@@ -439,7 +439,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
       plannedStartDate: formData.get('startDate') as string,
       history: [
         ...selectedSample.history,
-        { date: new Date().toISOString().split('T')[0], status: 'Inspeccionado sin informe', user: user?.name || 'Sistema', comment: `Asignado a ${formData.get('technician')}` }
+        { date: new Date().toISOString().split('T')[0], status: 'Inspeccionado sin informe', user: profile?.full_name || 'Sistema', comment: `Asignado a ${formData.get('technician')}` }
       ]
     });
     setIsAssignModalOpen(false);
@@ -487,7 +487,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
         reportDate: new Date().toISOString().split('T')[0],
         history: [
           ...samples.find(s => s.id === sampleId)!.history,
-          { date: new Date().toISOString().split('T')[0], status: 'Aprobado', user: user?.name || 'Sistema', comment: `Informe subido: ${file.name}` }
+          { date: new Date().toISOString().split('T')[0], status: 'Aprobado', user: profile?.full_name || 'Sistema', comment: `Informe subido: ${file.name}` }
         ]
       });
       toast.dismiss();
@@ -521,7 +521,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
           { 
             date: new Date().toISOString().split('T')[0], 
             status: sample.inspectionStatus, 
-            user: user?.name || 'Sistema', 
+            user: profile?.full_name || 'Sistema', 
             comment: `Documentos de proveedor subidos: ${uploadedDocs.map(d => d.name).join(', ')}` 
           }
         ]

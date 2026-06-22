@@ -22,7 +22,7 @@ interface OvenExperimentalProps {
 }
 
 export default function OvenExperimental({ initialData, onExportPPT }: OvenExperimentalProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [record, setRecord] = useState<OvenExperimentalRecord>(initialData || {
     ovenModel: '',
     points: [],
@@ -225,7 +225,7 @@ export default function OvenExperimental({ initialData, onExportPPT }: OvenExper
     if (!record.ovenModel) return;
     try {
       toast.promise(
-        exportToPDF('oven-experimental-container', `Analisis_Horno_${record.ovenModel}`, `ANÁLISIS TÉRMICO - HORNO ${record.ovenModel}`, user?.name || 'Sistema'),
+        exportToPDF('oven-experimental-container', `Analisis_Horno_${record.ovenModel}`, `ANÁLISIS TÉRMICO - HORNO ${record.ovenModel}`, profile?.full_name || 'Sistema'),
         {
           loading: 'Generando reporte PDF...',
           success: 'Reporte PDF generado',

@@ -24,7 +24,7 @@ interface EnergyEfficiencyProps {
 export default function EnergyEfficiency({ 
   onExportPPT 
 }: EnergyEfficiencyProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [records, setRecords] = useState<EnergyEfficiencyRecord[]>([]);
   const [samples, setSamples] = useState<SampleRecord[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -421,7 +421,7 @@ export default function EnergyEfficiency({
                 ...certificado,
                 version: certificadoHistory.length + 1,
                 uploadDate: new Date().toISOString(),
-                uploadedBy: user?.name || 'Sistema',
+                uploadedBy: profile?.full_name || 'Sistema',
                 changeDescription: 'Nueva versión cargada'
               };
               setCertificadoHistory(prev => [historyEntry, ...prev]);
@@ -433,7 +433,7 @@ export default function EnergyEfficiency({
                 ...etiqueta,
                 version: etiquetaHistory.length + 1,
                 uploadDate: new Date().toISOString(),
-                uploadedBy: user?.name || 'Sistema',
+                uploadedBy: profile?.full_name || 'Sistema',
                 changeDescription: 'Nueva versión cargada'
               };
               setEtiquetaHistory(prev => [historyEntry, ...prev]);
@@ -445,7 +445,7 @@ export default function EnergyEfficiency({
                 ...testReport,
                 version: testReportHistory.length + 1,
                 uploadDate: new Date().toISOString(),
-                uploadedBy: user?.name || 'Sistema',
+                uploadedBy: profile?.full_name || 'Sistema',
                 changeDescription: 'Nueva versión cargada'
               };
               setTestReportHistory(prev => [historyEntry, ...prev]);

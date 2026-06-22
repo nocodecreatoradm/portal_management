@@ -76,7 +76,7 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
   const [loggingProgress, setLoggingProgress] = useState<{ projectId: string, activity: ProjectActivity, date: Date } | null>(null);
   const [copiedProgress, setCopiedProgress] = useState<{ progress: number, comments: string } | null>(null);
 
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,7 +173,7 @@ export default function WorkPlan({ initialData, onExportPPT }: WorkPlanProps) {
     }
     try {
       const newLog = await SupabaseService.createAuditLog({
-        user: user?.name || 'Usuario',
+        user: profile?.full_name || 'Usuario',
         userEmail: user?.email || '',
         action,
         entityType,

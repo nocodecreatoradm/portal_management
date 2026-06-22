@@ -418,7 +418,7 @@ interface ProductsModuleProps {
 export default function ProductsModule({ 
   onExportPPT 
 }: ProductsModuleProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [records, setRecords] = useState<ProductManagementRecord[]>([]);
   const [samples, setSamples] = useState<SampleRecord[]>([]);
   const [allProducts, setAllProducts] = useState<ProductRecord[]>([]);
@@ -1448,7 +1448,7 @@ export default function ProductsModule({
       price,
       reason: fobChangeReason.trim(),
       date: new Date().toISOString(),
-      user: user?.name || 'Sistema'
+      user: profile?.full_name || 'Sistema'
     };
 
     const updatedRecord: ProductManagementRecord = {

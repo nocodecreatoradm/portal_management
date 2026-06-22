@@ -484,7 +484,7 @@ export default function App() {
               proformaNumber: actionData.proformaNumber,
               solpedNumber: actionData.solpedNumber,
               uploadDate: new Date().toISOString().split('T')[0],
-              uploadedBy: user?.name || 'Sistema',
+              uploadedBy: profile?.full_name || 'Sistema',
               aplicaA: `V${nextVersionNumber}`,
               changeDescription: actionData.changeDescription,
               idApproval: { status: 'not_started' },
@@ -521,7 +521,7 @@ export default function App() {
                 ...v,
                 planApproval: {
                   status: actionData.status,
-                  user: user?.name || 'Sistema',
+                  user: profile?.full_name || 'Sistema',
                   date: new Date().toISOString().split('T')[0],
                   comments: actionData.comments
                 },
@@ -538,7 +538,7 @@ export default function App() {
                 ...currentDocs[versionIndex],
                 [stageKey]: {
                   status: actionData.status,
-                  user: user?.name || 'Sistema',
+                  user: profile?.full_name || 'Sistema',
                   date: new Date().toISOString().split('T')[0],
                   comments: actionData.comments
                 }
@@ -649,7 +649,7 @@ export default function App() {
                       modalConfig.stage, 
                       nextStageName, 
                       actionData.comments || '', 
-                      user?.name || 'Sistema'
+                      profile?.full_name || 'Sistema'
                     );
                   }
                 }
@@ -663,7 +663,7 @@ export default function App() {
                   modalConfig.stage || '', 
                   'Aprobación Técnica', 
                   actionData.comments || '', 
-                  user?.name || 'Sistema',
+                  profile?.full_name || 'Sistema',
                   modalConfig.type || 'technical_sheet'
                 );
               } else if (actionData.status === 'rejected') {

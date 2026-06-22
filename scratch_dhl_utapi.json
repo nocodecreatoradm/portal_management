@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="utf-8" />
+    <title>Your tracking attempt has been blocked</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="language" content="en" />
+    <meta name="region" content="global" />
+    <meta name="robots" content="noindex,nofollow" />
+</head>
+<body>
+    <header>
+        <h1>
+            Your tracking attempt has been blocked
+        </h1>
+    </header>
+    <section>
+        <p>
+            Please note that the tracking status information on this website is intended for human consumption via the
+            website only. It is not intended to be used for integration with your systems. Automated extraction of
+            information by bots, website scraping etc. is prohibited.
+        </p>
+        <p>
+            If you require direct system integration, kindly visit <a
+                href="https://developer.dhl.com/">https://developer.dhl.com/</a> for API access options.
+        </p>
+    </section>
+</body>
+</html>
