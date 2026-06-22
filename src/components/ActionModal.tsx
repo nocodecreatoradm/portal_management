@@ -44,7 +44,7 @@ const ARTWORK_CATEGORIES: ArtworkCategory[] = [
 const ARTWORK_SUBCATEGORIES: ArtworkSubcategory[] = ['Printing', 'Editable'];
 
 export default function ActionModal({ isOpen, onClose, record, type, action, version, stage, onSave }: ActionModalProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [comments, setComments] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -127,7 +127,8 @@ export default function ActionModal({ isOpen, onClose, record, type, action, ver
             : (selectedStatus || 'approved'),
           targetVersion: activeVersion,
           userEmail: user?.email,
-          userId: user?.id
+          userId: user?.id,
+          userName: profile?.full_name || user?.email || 'Sistema'
         });
 
         toast.dismiss(toastId);
