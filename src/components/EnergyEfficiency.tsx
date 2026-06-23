@@ -2250,18 +2250,18 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                     Certificadora
                   </span>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '64px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '96px' }}>
                     {certificador === 'lenor1' && (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg viewBox="0 0 100 60" style={{ width: '65px', height: '36px' }} fill="none" stroke="#008060" strokeWidth="13" strokeLinecap="butt" strokeLinejoin="miter">
+                        <svg viewBox="0 0 100 60" style={{ width: '100px', height: '56px' }} fill="none" stroke="#008060" strokeWidth="13" strokeLinecap="butt" strokeLinejoin="miter">
                           <path d="M 68 12 L 34 46 L 76 46" />
                         </svg>
-                        <span style={{ fontFamily: 'Arial, sans-serif', fontWeight: 900, color: '#000000', fontSize: '12px', letterSpacing: '0.1em', marginTop: '2px' }}>LENOR</span>
+                        <span style={{ fontFamily: 'Arial, sans-serif', fontWeight: 900, color: '#000000', fontSize: '18px', letterSpacing: '0.1em', marginTop: '4px' }}>LENOR</span>
                       </div>
                     )}
                     {certificador === 'lenor2' && (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg viewBox="0 0 100 100" style={{ width: '50px', height: '50px' }}>
+                        <svg viewBox="0 0 100 100" style={{ width: '80px', height: '80px' }}>
                           <circle cx="50" cy="50" r="30" fill="none" stroke="#0f6fa9" strokeWidth="3" />
                           <path d="M 50,23 L 50,77 M 23,50 L 77,50" stroke="#009fe3" strokeWidth="3.5" />
                           <path d="M 45,23 L 55,23 M 45,77 L 55,77 M 23,45 L 23,55 M 77,45 L 77,55" stroke="#009fe3" strokeWidth="2.5" />
@@ -2278,15 +2278,15 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                       </div>
                     )}
                     {certificador === 'dekra' && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
-                        <svg viewBox="0 0 60 60" style={{ width: '26px', height: '26px' }} fill="none" stroke="#2c853c" strokeWidth="9" strokeLinecap="butt" strokeLinejoin="miter">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                        <svg viewBox="0 0 60 60" style={{ width: '40px', height: '40px' }} fill="none" stroke="#2c853c" strokeWidth="9" strokeLinecap="butt" strokeLinejoin="miter">
                           <path d="M 16 12 L 44 30 L 16 48" />
                         </svg>
-                        <span style={{ fontFamily: 'Arial, sans-serif', fontWeight: 900, color: '#2c853c', fontSize: '15px', letterSpacing: '-0.5px' }}>DEKRA</span>
+                        <span style={{ fontFamily: 'Arial, sans-serif', fontWeight: 900, color: '#2c853c', fontSize: '22px', letterSpacing: '-0.5px' }}>DEKRA</span>
                       </div>
                     )}
                     {certificador === 'custom' && customLogoUrl && (
-                      <img src={customLogoUrl} alt="Logo Certificador" style={{ maxHeight: '64px', maxWidth: '90px', objectFit: 'contain' }} />
+                      <img src={customLogoUrl} alt="Logo Certificador" style={{ maxHeight: '90px', maxWidth: '120px', objectFit: 'contain' }} />
                     )}
                     {certificador === 'custom' && !customLogoUrl && (
                       <div style={{ border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '6px', textAlign: 'center', fontSize: '9px', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase', alignSelf: 'center' }}>
