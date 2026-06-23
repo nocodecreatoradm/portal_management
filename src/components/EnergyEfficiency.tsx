@@ -1790,6 +1790,53 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const handleDownloadImage = async () => {
+    const element = document.getElementById('energy-label-card');
+    if (!element) {
+      toast.error('No se pudo encontrar la etiqueta para exportar');
+      return;
+    }
+
+    setIsGenerating(true);
+    toast.loading('Generando imagen de etiqueta...');
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      const canvas = await html2canvas(element, {
+        scale: 4, // High resolution
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        onclone: (clonedDoc) => {
+          const styleTags = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]');
+          styleTags.forEach((style: any) => {
+            try {
+              style.remove();
+            } catch (e) {
+              console.warn(e);
+            }
+          });
+        }
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `Etiqueta_EE_${fabricante.replace(/\s+/g, '_')}_${modelo.replace(/\s+/g, '_')}.png`;
+      link.href = imgData;
+      link.click();
+      
+      toast.dismiss();
+      toast.success('Etiqueta descargada como imagen PNG');
+    } catch (error) {
+      console.error('Error generating Image:', error);
+      toast.dismiss();
+      toast.error('Error al generar la imagen');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
       <div className="bg-white rounded-[32px] w-full max-w-6xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden flex flex-col max-h-[92vh]">
@@ -2005,26 +2052,26 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                 color: '#000000',
               }}
             >
-              {/* Header: Height 125px */}
-              <div style={{ position: 'relative', height: '125px', borderBottom: '3.5px solid #000000', padding: '10px 22.5px 6px 22.5px', boxSizing: 'border-box', color: '#000000' }}>
+              {/* Header: Height 130px (Adjusted height for safety and overlaps) */}
+              <div style={{ position: 'relative', height: '130px', borderBottom: '3.5px solid #000000', padding: '10px 22.5px 6px 22.5px', boxSizing: 'border-box', color: '#000000' }}>
                 {/* Left Side: Labels */}
                 <h1 style={{ position: 'absolute', left: '22.5px', top: '10px', fontSize: '24px', fontWeight: 900, letterSpacing: '1px', margin: 0, lineHeight: '1' }}>ENERGIA</h1>
-                <span style={{ position: 'absolute', left: '22.5px', top: '42px', fontSize: '14px', fontWeight: 'normal', lineHeight: '1' }}>Fabricante</span>
+                <span style={{ position: 'absolute', left: '22.5px', top: '40px', fontSize: '14px', fontWeight: 'normal', lineHeight: '1' }}>Fabricante</span>
                 <span style={{ position: 'absolute', left: '22.5px', top: '66px', fontSize: '14px', fontWeight: 'normal', lineHeight: '1' }}>Modelo</span>
-                <span style={{ position: 'absolute', left: '22.5px', top: '90px', fontSize: '14px', fontWeight: 'normal', lineHeight: '1' }}>Tipo de Artefacto</span>
+                <span style={{ position: 'absolute', left: '22.5px', top: '92px', fontSize: '14px', fontWeight: 'normal', lineHeight: '1' }}>Tipo de Artefacto</span>
 
                 {/* Right Side: Values */}
-                <span style={{ position: 'absolute', right: '22.5px', top: '42px', fontSize: '14px', fontWeight: 'bold', lineHeight: '1' }}>{fabricante.toUpperCase()}</span>
+                <span style={{ position: 'absolute', right: '22.5px', top: '40px', fontSize: '14px', fontWeight: 'bold', lineHeight: '1' }}>{fabricante.toUpperCase()}</span>
                 <span style={{ position: 'absolute', right: '22.5px', top: '66px', fontSize: '14px', fontWeight: 'bold', lineHeight: '1' }}>{modelo.toUpperCase()}</span>
 
                 {tipo === 'instantaneo' ? (
                   <>
-                    <span style={{ position: 'absolute', left: '150px', top: '90px', fontSize: '14px', fontWeight: 'bold', lineHeight: '1.2', textAlign: 'left' }}>
+                    <span style={{ position: 'absolute', left: '150px', top: '92px', fontSize: '14px', fontWeight: 'bold', lineHeight: '1.2', textAlign: 'left' }}>
                       Calentador de agua
                       <br />
                       eléctrico instantáneo
                     </span>
-                    <div style={{ position: 'absolute', right: '22.5px', top: '78px', display: 'flex', flexDirection: 'column', gap: '2px', width: '95px' }}>
+                    <div style={{ position: 'absolute', right: '22.5px', top: '76px', display: 'flex', flexDirection: 'column', gap: '2px', width: '95px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '5px', height: '12px' }}>
                         <div style={{ width: '12px', height: '12px', border: '1.5px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '9px', boxSizing: 'border-box', lineHeight: '1', margin: 0, padding: 0 }}>
                           {ducha ? 'X' : ''}
@@ -2046,7 +2093,7 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                     </div>
                   </>
                 ) : (
-                  <span style={{ position: 'absolute', right: '22.5px', top: '90px', fontSize: '14px', fontWeight: 'bold', textAlign: 'right', lineHeight: '1.2', maxWidth: '300px' }}>
+                  <span style={{ position: 'absolute', right: '22.5px', top: '92px', fontSize: '14px', fontWeight: 'bold', textAlign: 'right', lineHeight: '1.2', maxWidth: '300px' }}>
                     Calentador de agua eléctrico
                     <br />
                     tipo acumulación
@@ -2099,20 +2146,31 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                         style={{ 
                           position: 'absolute', 
                           top: `${chevronTop}px`,
-                          left: '0px', 
+                          right: '22.5px', // Aligned to the right margin of the card content
                           width: '100px', 
                           height: '52px',
+                          backgroundColor: '#000000',
+                          boxSizing: 'border-box',
                           overflow: 'visible' 
                         }}
                       >
-                        <svg viewBox="0 0 100 52" width="100" height="52" style={{ overflow: 'visible' }}>
-                          <path d="M 100,0 L 12,0 L 0,26 L 12,52 L 100,52 Z" fill="#000000" />
-                        </svg>
+                        {/* Triangle tip pointing left, custom drawn in CSS to avoid SVG rendering bugs in html2canvas */}
+                        <div style={{
+                          position: 'absolute',
+                          left: '-15px',
+                          top: '0px',
+                          width: '0px',
+                          height: '0px',
+                          borderTop: '26px solid transparent',
+                          borderBottom: '26px solid transparent',
+                          borderRight: '15px solid #000000'
+                        }} />
+                        {/* Selected Letter */}
                         <span style={{
                           position: 'absolute',
-                          left: '56px',
+                          left: '0px',
                           top: '0px',
-                          width: '40px',
+                          width: '100px',
                           height: '52px',
                           display: 'flex',
                           alignItems: 'center',
@@ -2123,8 +2181,7 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                           fontFamily: 'Arial, sans-serif',
                           lineHeight: '1',
                           margin: 0,
-                          padding: 0,
-                          transform: 'translateX(-50%)'
+                          padding: 0
                         }}>
                           {arrow.letter}
                         </span>
@@ -2239,8 +2296,8 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                 )}
               </div>
 
-              {/* Legal and Certifier: Height 156px */}
-              <div style={{ display: 'flex', height: '156px', boxSizing: 'border-box' }}>
+              {/* Legal and Certifier: Height 151px */}
+              <div style={{ display: 'flex', height: '151px', boxSizing: 'border-box' }}>
                 {/* Left cell (legal texts) */}
                 <div style={{ width: '352.5px', borderRight: '2px solid #000000', paddingLeft: '22.5px', paddingRight: '8px', paddingTop: '6px', paddingBottom: '6px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px', boxSizing: 'border-box' }}>
                   {tipo === 'instantaneo' ? (
@@ -2322,9 +2379,17 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
           <button 
             onClick={onClose} 
             disabled={isGenerating}
-            className="flex-1 px-6 py-4 border border-slate-200 rounded-2xl font-black uppercase text-sm text-slate-500 hover:bg-slate-100 transition-all bg-white disabled:opacity-50"
+            className="px-6 py-4 border border-slate-200 rounded-2xl font-black uppercase text-sm text-slate-500 hover:bg-slate-100 transition-all bg-white disabled:opacity-50"
           >
             Cancelar
+          </button>
+          <button 
+            onClick={handleDownloadImage}
+            disabled={isGenerating}
+            className="flex-1 px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isGenerating && <Loader2 className="w-5 h-5 animate-spin" />}
+            Descargar Imagen (PNG)
           </button>
           <button 
             onClick={handleDownloadPDF}
