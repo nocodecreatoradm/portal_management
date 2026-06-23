@@ -1773,12 +1773,11 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4',
+        format: [105, 148.5],
       });
 
-      // A4 is 210mm x 297mm. Since the label height and width are in exactly A4 ratio,
-      // we place it centered on the page or stretching exactly to edges.
-      pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+      // Exact label size is 105mm x 148.5mm (A6 size) as per Peruvian standards
+      pdf.addImage(imgData, 'PNG', 0, 0, 105, 148.5);
       pdf.save(`Etiqueta_EE_${fabricante.replace(/\s+/g, '_')}_${modelo.replace(/\s+/g, '_')}.pdf`);
       toast.dismiss();
       toast.success('Etiqueta PDF descargada correctamente');
@@ -2045,21 +2044,21 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                     </span>
                   </div>
                   {tipo === 'instantaneo' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', fontSize: '12.5px', fontWeight: 'normal', border: '1.5px solid #000000', padding: '1px 5px', backgroundColor: '#ffffff', minWidth: '95px', boxSizing: 'border-box', marginBottom: '2px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '1px 0', color: '#000000' }}>
-                        <div style={{ width: '12px', height: '12px', border: '1.5px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', backgroundColor: '#ffffff', color: '#000000', fontSize: '9px', boxSizing: 'border-box' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', fontSize: '11px', fontWeight: 'normal', border: '1.5px solid #000000', padding: '3px 6px', backgroundColor: '#ffffff', minWidth: '95px', height: '46px', justifyContent: 'space-between', boxSizing: 'border-box', marginBottom: '2px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#000000' }}>
+                        <div style={{ width: '11px', height: '11px', border: '1.2px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', backgroundColor: '#ffffff', color: '#000000', fontSize: '8px', boxSizing: 'border-box' }}>
                           {ducha ? 'X' : ''}
                         </div>
                         <span style={{ color: '#000000', lineHeight: '1' }}>Ducha</span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '1px 0', color: '#000000' }}>
-                        <div style={{ width: '12px', height: '12px', border: '1.5px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', backgroundColor: '#ffffff', color: '#000000', fontSize: '9px', boxSizing: 'border-box' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#000000' }}>
+                        <div style={{ width: '11px', height: '11px', border: '1.2px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', backgroundColor: '#ffffff', color: '#000000', fontSize: '8px', boxSizing: 'border-box' }}>
                           {grifo ? 'X' : ''}
                         </div>
                         <span style={{ color: '#000000', lineHeight: '1' }}>Grifo</span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '1px 0', color: '#000000' }}>
-                        <div style={{ width: '12px', height: '12px', border: '1.5px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', backgroundColor: '#ffffff', color: '#000000', fontSize: '9px', boxSizing: 'border-box' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#000000' }}>
+                        <div style={{ width: '11px', height: '11px', border: '1.2px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', backgroundColor: '#ffffff', color: '#000000', fontSize: '8px', boxSizing: 'border-box' }}>
                           {calentador ? 'X' : ''}
                         </div>
                         <span style={{ color: '#000000', lineHeight: '1' }}>Calentador</span>

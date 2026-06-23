@@ -43,7 +43,7 @@ export const outlookService = {
     const t = type?.toLowerCase() || '';
     let moduleParam = 'artwork_followup'; // default
     if (t.includes('technical') || t.includes('fichas') || t.includes('técnica')) moduleParam = 'technical_datasheet';
-    if (t.includes('commercial') || t.includes('comercial')) moduleParam = 'commercial_sheet';
+    if (t.includes('commercial') || t.includes('comercial')) moduleParam = 'commercial_datasheet';
     
     // In browser context
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://portal-management.mtindustrial.com.pe';
@@ -359,6 +359,70 @@ export const outlookService = {
       toast.success('Notificación de aprobación enviada');
     } catch (e) {
       toast.error('Error al enviar notificación de aprobación');
+    }
+  },
+
+  /**
+   * Notifies final datasheet approval (Technical or Commercial Sheet).
+   */
+  sendFinalDatasheetApprovalEmail: async (record: ProductRecord, version: DocumentVersion, moduleType: 'technical_sheet' | 'commercial_sheet') => {
+    const isTechnical = moduleType === 'technical_sheet';
+    const typeLabel = isTechnical ? 'Ficha Técnica' : 'Ficha Comercial';
+    
+    const subject = `[APROBACIÓN FINAL] - ${typeLabel} - ${record.codigoSAP} - ${record.descripcionSAP}`;
+    const title = `${typeLabel} Aprobada`;
+
+    const docTypeParam = isTechnical ? 'technical' : 'commercial';
+    const activeFiles = outlookService.getLatestFiles(record, docTypeParam);
+    const filesListHTML = outlookService.generateFilesListHTML(activeFiles);
+
+    const comments = version.idApproval?.comments || '';
+    const user = version.idApproval?.user || 'I+D';
+
+    const content = `
+      <p>Nos complace informarle que la <strong>${typeLabel}</strong> para el producto <strong>${record.codigoSAP} - ${record.descripcionSAP}</strong> ha recibido la aprobación final por parte de I+D.</p>
+      <div style="background-color: #f1f5f9; border-radius: 8px; padding: 16px; margin: 16px 0;">
+        <p style="margin: 0;"><strong>Producto:</strong> ${record.codigoSAP} - ${record.descripcionSAP}</p>
+        <p style="margin: 4px 0;"><strong>Marca:</strong> ${record.marca || '-'}</p>
+        <p style="margin: 4px 0;"><strong>Línea:</strong> ${record.linea || '-'}</p>
+        <p style="margin: 4px 0;"><strong>Versión:</strong> V${version.version}</p>
+        <p style="margin: 4px 0;"><strong>Aprobado por:</strong> ${user}</p>
+        \${comments ? `<p style="margin: 4px 0;"><strong>Comentarios de la aprobación:</strong> \${comments}</p>` : ''}
+      </div>
+
+      \${filesListHTML}
+
+      <p>El flujo para este documento ha finalizado correctamente. Los archivos aprobados ya están disponibles en el portal para su consulta y uso respectivo.</p>
+    `;
+
+    try {
+      const providerRecipients = record.correoProveedor || [];
+      const designerEmail = isTechnical 
+        ? (record.technicalAssignment?.designerEmail || '') 
+        : (record.commercialAssignment?.designerEmail || '');
+      
+      const adminEmails = await outlookService.getAdminEmails();
+      const idEmails = await outlookService.getDepartmentEmailsForRecord('I+D', record);
+      const mktEmails = await outlookService.getDepartmentEmailsForRecord('Marketing', record);
+      const planEmails = await outlookService.getDepartmentEmailsForRecord('Planeamiento', record);
+
+      const recipients = [...new Set([
+        ...providerRecipients, 
+        designerEmail, 
+        ...adminEmails,
+        ...idEmails,
+        ...mktEmails,
+        ...planEmails
+      ].filter(Boolean))];
+
+      if (recipients.length === 0) return;
+
+      const actionUrl = outlookService.getModuleUrl(moduleType);
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
+      toast.success('Notificación de aprobación final enviada');
+    } catch (e) {
+      console.error('Error sending final datasheet approval email:', e);
+      toast.error('Error al enviar la notificación de aprobación final');
     }
   },
 

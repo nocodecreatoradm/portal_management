@@ -657,14 +657,10 @@ export default function App() {
             } else {
               // Non-artworks evaluation notification logic
               if (actionData.status === 'approved' || actionData.status === 'approved_with_observation') {
-                outlookService.sendStageApprovalEmail(
+                outlookService.sendFinalDatasheetApprovalEmail(
                   record, 
                   updatedVersion, 
-                  modalConfig.stage || '', 
-                  'Aprobación Técnica', 
-                  actionData.comments || '', 
-                  actionData.userName || profile?.full_name || 'Sistema',
-                  modalConfig.type || 'technical_sheet'
+                  (modalConfig.type as 'technical_sheet' | 'commercial_sheet') || 'technical_sheet'
                 );
               } else if (actionData.status === 'rejected') {
                 outlookService.sendObservationEmail(record, modalConfig.stage || '', actionData.comments, modalConfig.type || 'technical_sheet');
