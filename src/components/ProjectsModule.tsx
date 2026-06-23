@@ -2073,7 +2073,7 @@ export default function ProjectsModule() {
                         return;
                       }
                       if (templates.find(t => t.id === templateFormData.id)) {
-                        handleUpdateTemplate(templateFormData as RDProjectTemplate);
+                        handleSaveTemplate(templateFormData as RDProjectTemplate);
                       } else {
                         handleAddTemplate(templateFormData as RDProjectTemplate);
                       }

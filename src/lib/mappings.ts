@@ -530,15 +530,38 @@ export const mapTemplateToDB = (template: Partial<RDProjectTemplate>) => {
   return dbTemplate;
 };
 
-export const mapDBToTemplate = (dbTemplate: any): RDProjectTemplate => ({
-  id: dbTemplate.id,
-  name: dbTemplate.name,
-  description: dbTemplate.description,
-  icon: dbTemplate.icon,
-  backgroundImage: dbTemplate.background_image,
-  isCustom: dbTemplate.is_custom,
-  sections: dbTemplate.sections
-});
+export const mapDBToTemplate = (dbTemplate: any): RDProjectTemplate => {
+  let sections = dbTemplate.sections;
+  if (typeof sections === 'string') {
+    try {
+      sections = JSON.parse(sections);
+    } catch (e) {
+      sections = [];
+    }
+  }
+  if (!Array.isArray(sections)) {
+    sections = [];
+  }
+  return {
+    id: dbTemplate.id,
+    name: dbTemplate.name,
+    description: dbTemplate.description,
+    icon: dbTemplate.icon,
+    backgroundImage: dbTemplate.background_image,
+    isCustom: dbTemplate.is_custom,
+    sections: sections.map((s: any) => ({
+      id: s.id || `section-${Date.now()}-${Math.random()}`,
+      title: s.title || '',
+      fields: Array.isArray(s.fields) ? s.fields.map((f: any) => ({
+        id: f.id || `field-${Date.now()}-${Math.random()}`,
+        label: f.label || '',
+        type: f.type || 'text',
+        required: !!f.required,
+        options: Array.isArray(f.options) ? f.options : []
+      })) : []
+    }))
+  };
+};
 
 export const mapSampleToDB = (sample: Partial<SampleRecord>) => {
   const dbSample: any = {};
@@ -618,22 +641,46 @@ export const mapDBToSample = (dbSample: any): SampleRecord => ({
   })) : []
 });
 
-export const mapDBToRDProject = (dbProject: any): RDProject => ({
-  id: dbProject.id,
-  templateId: dbProject.template_id,
-  name: dbProject.name,
-  description: dbProject.description,
-  status: dbProject.status,
-  priority: dbProject.priority,
-  responsible: dbProject.responsible_id,
-  startDate: dbProject.start_date,
-  endDate: dbProject.end_date,
-  sections: dbProject.sections,
-  attachments: dbProject.attachments || [],
-  updates: dbProject.updates || [],
-  createdAt: dbProject.created_at,
-  updatedAt: dbProject.updated_at
-});
+export const mapDBToRDProject = (dbProject: any): RDProject => {
+  let sections = dbProject.sections;
+  if (typeof sections === 'string') {
+    try {
+      sections = JSON.parse(sections);
+    } catch (e) {
+      sections = [];
+    }
+  }
+  if (!Array.isArray(sections)) {
+    sections = [];
+  }
+  return {
+    id: dbProject.id,
+    templateId: dbProject.template_id,
+    name: dbProject.name,
+    description: dbProject.description,
+    status: dbProject.status,
+    priority: dbProject.priority,
+    responsible: dbProject.responsible_id,
+    startDate: dbProject.start_date,
+    endDate: dbProject.end_date,
+    sections: sections.map((s: any) => ({
+      id: s.id || `section-${Date.now()}-${Math.random()}`,
+      title: s.title || '',
+      fields: Array.isArray(s.fields) ? s.fields.map((f: any) => ({
+        id: f.id || `field-${Date.now()}-${Math.random()}`,
+        label: f.label || '',
+        type: f.type || 'text',
+        required: !!f.required,
+        options: Array.isArray(f.options) ? f.options : [],
+        value: f.value !== undefined ? f.value : ''
+      })) : []
+    })),
+    attachments: Array.isArray(dbProject.attachments) ? dbProject.attachments : (typeof dbProject.attachments === 'string' ? (JSON.parse(dbProject.attachments) || []) : []),
+    updates: Array.isArray(dbProject.updates) ? dbProject.updates : (typeof dbProject.updates === 'string' ? (JSON.parse(dbProject.updates) || []) : []),
+    createdAt: dbProject.created_at,
+    updatedAt: dbProject.updated_at
+  };
+};
 
 export const mapRDProjectToDB = (project: Partial<RDProject>) => {
   const dbProject: any = {};
