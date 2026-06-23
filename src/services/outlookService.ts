@@ -67,6 +67,11 @@ export const outlookService = {
         body: JSON.stringify({ to, subject, body: htmlBody }),
       });
 
+      if (response.status === 401) {
+        await supabase.auth.signOut();
+        throw new Error('Sesión expirada. Por favor, inicie sesión de nuevo.');
+      }
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Error al enviar el correo');
@@ -387,10 +392,10 @@ export const outlookService = {
         <p style="margin: 4px 0;"><strong>Línea:</strong> ${record.linea || '-'}</p>
         <p style="margin: 4px 0;"><strong>Versión:</strong> V${version.version}</p>
         <p style="margin: 4px 0;"><strong>Aprobado por:</strong> ${user}</p>
-        \${comments ? `<p style="margin: 4px 0;"><strong>Comentarios de la aprobación:</strong> \${comments}</p>` : ''}
+        ${comments ? `<p style="margin: 4px 0;"><strong>Comentarios de la aprobación:</strong> ${comments}</p>` : ''}
       </div>
 
-      \${filesListHTML}
+      ${filesListHTML}
 
       <p>El flujo para este documento ha finalizado correctamente. Los archivos aprobados ya están disponibles en el portal para su consulta y uso respectivo.</p>
     `;

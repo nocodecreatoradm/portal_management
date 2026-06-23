@@ -1,5 +1,19 @@
 const authListeners: ((event: string, session: any) => void)[] = [];
 
+function isTokenExpired(token: string): boolean {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (payload.exp && Date.now() >= payload.exp * 1000) {
+      return true;
+    }
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 class SupabaseQueryBuilder {
   private table: string;
   private method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET';
@@ -127,6 +141,13 @@ class SupabaseQueryBuilder {
       body,
     });
 
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      authListeners.forEach(cb => cb('SIGNED_OUT', null));
+      return { data: null, error: { message: 'Session expired. Please log in again.' } };
+    }
+
     if (!response.ok) {
       const errText = await response.text();
       let errMsg = errText;
@@ -195,6 +216,11 @@ export const supabase = {
       const token = localStorage.getItem('auth_token');
       const userStr = localStorage.getItem('auth_user');
       if (token && userStr) {
+        if (isTokenExpired(token)) {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          return { data: { session: null }, error: null };
+        }
         try {
           const user = JSON.parse(userStr);
           const session = { access_token: token, user };
@@ -264,6 +290,12 @@ export const supabase = {
           },
           body: JSON.stringify({ password })
         });
+        if (res.status === 401) {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          authListeners.forEach(cb => cb('SIGNED_OUT', null));
+          return { data: null, error: { message: 'Session expired. Please log in again.' } };
+        }
         if (!res.ok) {
           const err = await res.json();
           return { data: null, error: { message: err.error || 'Update failed' } };
