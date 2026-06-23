@@ -1662,6 +1662,10 @@ export default function EnergyEfficiency({
         </div>
       )}
 
+    </div>
+  );
+}
+
 const DEFAULT_LEGAL_TEXT = `Compare este producto con otros de similares características
 
 Los resultados se obtienen aplicando los métodos de ensayo descritos en las Normas Técnicas Peruanas e Internacionales correspondientes
