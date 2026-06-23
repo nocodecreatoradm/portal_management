@@ -2006,35 +2006,35 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
               }}
             >
               {/* Header: Height 125px */}
-              <div style={{ display: 'flex', flexDirection: 'column', height: '125px', borderBottom: '3.5px solid #000000', padding: '10px 22.5px 6px 22.5px', boxSizing: 'border-box', justifyContent: 'space-between' }}>
-                {/* Top Row: ENERGIA and Fabricante/Modelo */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <h1 style={{ fontSize: '24px', fontWeight: 900, letterSpacing: '1px', margin: 0, lineHeight: '1' }}>ENERGIA</h1>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', width: '220px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', height: '18px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 'normal' }}>Fabricante</span>
-                      <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{fabricante.toUpperCase()}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', height: '18px', marginTop: '4px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 'normal' }}>Modelo</span>
-                      <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{modelo.toUpperCase()}</span>
-                    </div>
+              <div style={{ display: 'flex', flexDirection: 'column', height: '125px', borderBottom: '3.5px solid #000000', padding: '10px 22.5px 6px 22.5px', boxSizing: 'border-box', justifyContent: 'space-between', color: '#000000' }}>
+                {/* Top Section: ENERGIA, Fabricante, Modelo */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', height: '76px', alignItems: 'stretch' }}>
+                  {/* Left Side: Labels */}
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+                    <h1 style={{ fontSize: '24px', fontWeight: 900, letterSpacing: '1px', margin: 0, lineHeight: '1' }}>ENERGIA</h1>
+                    <span style={{ fontSize: '14px', fontWeight: 'normal', lineHeight: '1' }}>Fabricante</span>
+                    <span style={{ fontSize: '14px', fontWeight: 'normal', lineHeight: '1' }}>Modelo</span>
+                  </div>
+
+                  {/* Right Side: Values */}
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', alignItems: 'flex-end' }}>
+                    {/* Empty space matching ENERGIA line height */}
+                    <div style={{ height: '24px' }} />
+                    <span style={{ fontSize: '14px', fontWeight: 'bold', lineHeight: '1' }}>{fabricante.toUpperCase()}</span>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold', lineHeight: '1' }}>{modelo.toUpperCase()}</span>
                   </div>
                 </div>
-                
-                {/* Bottom Row: Tipo de Artefacto & Checkboxes / Description */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', minHeight: '46px' }}>
+
+                {/* Bottom Section: Tipo de Artefacto & Checkboxes / Description */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '36px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 'normal', lineHeight: '1' }}>Tipo de Artefacto</span>
                   {tipo === 'instantaneo' ? (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', flex: 1 }}>
-                        <span style={{ fontSize: '14px', fontWeight: 'normal', whiteSpace: 'nowrap', marginBottom: '2px' }}>Tipo de Artefacto</span>
-                        <span style={{ fontSize: '14px', fontWeight: 'bold', lineHeight: '1.2', flex: 1, paddingLeft: '10px' }}>
-                          Calentador de agua
-                          <br />
-                          eléctrico instantáneo
-                        </span>
-                      </div>
+                    <div style={{ display: 'flex', flex: 1, justifyContent: 'space-between', alignItems: 'flex-end', paddingLeft: '15px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 'bold', lineHeight: '1.2', textAlign: 'left' }}>
+                        Calentador de agua
+                        <br />
+                        eléctrico instantáneo
+                      </span>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '95px', paddingBottom: '2px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                           <div style={{ width: '12px', height: '12px', border: '1.5px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '9px', boxSizing: 'border-box' }}>
@@ -2055,16 +2055,13 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                           <span style={{ fontSize: '11px', fontWeight: 'normal', lineHeight: '1' }}>Calentador</span>
                         </div>
                       </div>
-                    </>
-                  ) : (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'flex-end' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 'normal', marginBottom: '2px' }}>Tipo de Artefacto</span>
-                      <span style={{ fontSize: '14px', fontWeight: 'bold', textAlign: 'right', lineHeight: '1.2', maxWidth: '300px' }}>
-                        Calentador de agua eléctrico
-                        <br />
-                        tipo acumulación
-                      </span>
                     </div>
+                  ) : (
+                    <span style={{ fontSize: '14px', fontWeight: 'bold', textAlign: 'right', lineHeight: '1.2', maxWidth: '300px' }}>
+                      Calentador de agua eléctrico
+                      <br />
+                      tipo acumulación
+                    </span>
                   )}
                 </div>
               </div>
@@ -2080,7 +2077,7 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                         <svg viewBox={`0 0 ${arrow.pxWidth} 27`} width={arrow.pxWidth} height="27" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }}>
                           <path d={`M 0,0 L ${arrow.pxWidth - 14},0 L ${arrow.pxWidth},13.5 L ${arrow.pxWidth - 14},27 L 0,27 Z`} fill={arrow.color} />
                         </svg>
-                        <span style={{ position: 'absolute', right: '18px', top: '50%', transform: 'translateY(-50%)', color: '#ffffff', fontWeight: 'bold', fontSize: '16.5px' }}>
+                        <span style={{ position: 'absolute', right: '18px', top: '50%', transform: 'translateY(-50%)', color: '#ffffff', fontWeight: 'bold', fontSize: '16.5px', lineHeight: '1', margin: 0, padding: 0 }}>
                           {arrow.letter}
                         </span>
                       </div>
@@ -2110,7 +2107,7 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                         <svg viewBox="0 0 100 52" width="100" height="52" style={{ overflow: 'visible' }}>
                           <path d="M 100,0 L 12,0 L 0,26 L 12,52 L 100,52 Z" fill="#000000" />
                         </svg>
-                        <span style={{ position: 'absolute', left: '56px', top: '50%', transform: 'translate(-50%, -50%)', color: '#ffffff', fontWeight: 'bold', fontSize: '33px', fontFamily: 'Arial, sans-serif' }}>
+                        <span style={{ position: 'absolute', left: '56px', top: '50%', transform: 'translate(-50%, -50%)', color: '#ffffff', fontWeight: 'bold', fontSize: '33px', fontFamily: 'Arial, sans-serif', lineHeight: '1', margin: 0, padding: 0 }}>
                           {arrow.letter}
                         </span>
                       </div>
