@@ -2005,79 +2005,80 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                 color: '#000000',
               }}
             >
-              {/* Header: Height 130px */}
-              <div style={{ display: 'flex', flexDirection: 'column', height: '130px', borderBottom: '3.5px solid #000000', padding: '0 22.5px', boxSizing: 'border-box', justifyContent: 'center' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', height: '62px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <h1 style={{ fontSize: '24px', fontWeight: 900, letterSpacing: '1px', lineHeight: '1', margin: '12px 0 0 0', color: '#000000' }}>ENERGIA</h1>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', width: '60%', marginTop: '4px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'baseline', height: '18px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000' }}>Fabricante</span>
-                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#000000' }}>{fabricante.toUpperCase()}</span>
+              {/* Header: Height 125px */}
+              <div style={{ display: 'flex', flexDirection: 'column', height: '125px', borderBottom: '3.5px solid #000000', padding: '10px 22.5px 6px 22.5px', boxSizing: 'border-box', justifyContent: 'space-between' }}>
+                {/* Top Row: ENERGIA and Fabricante/Modelo */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <h1 style={{ fontSize: '24px', fontWeight: 900, letterSpacing: '1px', margin: 0, lineHeight: '1' }}>ENERGIA</h1>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', width: '220px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', height: '18px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 'normal' }}>Fabricante</span>
+                      <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{fabricante.toUpperCase()}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'baseline', height: '18px', marginTop: '4px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000' }}>Modelo</span>
-                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#000000' }}>{modelo.toUpperCase()}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', height: '18px', marginTop: '4px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 'normal' }}>Modelo</span>
+                      <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{modelo.toUpperCase()}</span>
                     </div>
                   </div>
                 </div>
                 
-                {/* Tipo de Artefacto & Checkboxes: Height 56px */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '56px', paddingTop: '4px', borderTop: '1.5px solid #000000', boxSizing: 'border-box' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '280px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000', textTransform: 'none', letterSpacing: 'normal' }}>Tipo de Artefacto</span>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#000000', marginTop: '1px', lineHeight: '1.2' }}>
-                      {tipo === 'instantaneo' ? (
-                        <>
+                {/* Bottom Row: Tipo de Artefacto & Checkboxes / Description */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', minHeight: '46px' }}>
+                  {tipo === 'instantaneo' ? (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', flex: 1 }}>
+                        <span style={{ fontSize: '14px', fontWeight: 'normal', whiteSpace: 'nowrap', marginBottom: '2px' }}>Tipo de Artefacto</span>
+                        <span style={{ fontSize: '14px', fontWeight: 'bold', lineHeight: '1.2', flex: 1, paddingLeft: '10px' }}>
                           Calentador de agua
                           <br />
                           eléctrico instantáneo
-                        </>
-                      ) : (
-                        <>
-                          Calentador de agua eléctrico
-                          <br />
-                          tipo acumulación
-                        </>
-                      )}
-                    </span>
-                  </div>
-                  {tipo === 'instantaneo' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', fontSize: '11px', fontWeight: 'normal', border: '1.5px solid #000000', padding: '3px 6px', backgroundColor: '#ffffff', minWidth: '95px', height: '46px', justifyContent: 'space-between', boxSizing: 'border-box', marginBottom: '2px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#000000' }}>
-                        <div style={{ width: '11px', height: '11px', border: '1.2px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', backgroundColor: '#ffffff', color: '#000000', fontSize: '8px', boxSizing: 'border-box' }}>
-                          {ducha ? 'X' : ''}
-                        </div>
-                        <span style={{ color: '#000000', lineHeight: '1' }}>Ducha</span>
+                        </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#000000' }}>
-                        <div style={{ width: '11px', height: '11px', border: '1.2px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', backgroundColor: '#ffffff', color: '#000000', fontSize: '8px', boxSizing: 'border-box' }}>
-                          {grifo ? 'X' : ''}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '95px', paddingBottom: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <div style={{ width: '12px', height: '12px', border: '1.5px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '9px', boxSizing: 'border-box' }}>
+                            {ducha ? 'X' : ''}
+                          </div>
+                          <span style={{ fontSize: '11px', fontWeight: 'normal', lineHeight: '1' }}>Ducha</span>
                         </div>
-                        <span style={{ color: '#000000', lineHeight: '1' }}>Grifo</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#000000' }}>
-                        <div style={{ width: '11px', height: '11px', border: '1.2px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', backgroundColor: '#ffffff', color: '#000000', fontSize: '8px', boxSizing: 'border-box' }}>
-                          {calentador ? 'X' : ''}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <div style={{ width: '12px', height: '12px', border: '1.5px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '9px', boxSizing: 'border-box' }}>
+                            {grifo ? 'X' : ''}
+                          </div>
+                          <span style={{ fontSize: '11px', fontWeight: 'normal', lineHeight: '1' }}>Grifo</span>
                         </div>
-                        <span style={{ color: '#000000', lineHeight: '1' }}>Calentador</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <div style={{ width: '12px', height: '12px', border: '1.5px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '9px', boxSizing: 'border-box' }}>
+                            {calentador ? 'X' : ''}
+                          </div>
+                          <span style={{ fontSize: '11px', fontWeight: 'normal', lineHeight: '1' }}>Calentador</span>
+                        </div>
                       </div>
+                    </>
+                  ) : (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'flex-end' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 'normal', marginBottom: '2px' }}>Tipo de Artefacto</span>
+                      <span style={{ fontSize: '14px', fontWeight: 'bold', textAlign: 'right', lineHeight: '1.2', maxWidth: '300px' }}>
+                        Calentador de agua eléctrico
+                        <br />
+                        tipo acumulación
+                      </span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Letter Scale Section: Height 300px */}
-              <div style={{ display: 'flex', height: '300px', borderBottom: '3.5px solid #000000', boxSizing: 'border-box', position: 'relative' }}>
+              {/* Letter Scale Section: Height 298px */}
+              <div style={{ display: 'flex', height: '298px', borderBottom: '3.5px solid #000000', boxSizing: 'border-box', position: 'relative' }}>
                 {/* Left Scale: width 352.5px */}
-                <div style={{ width: '352.5px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingLeft: '22.5px', paddingRight: '8px', borderRight: '2px solid #000000', height: '300px', boxSizing: 'border-box' }}>
-                  <span style={{ fontSize: '12.5px', fontWeight: 'bold', color: '#000000', height: '36px', display: 'flex', alignItems: 'center' }}>Más eficiente (Menor consumo)</span>
-                  <div style={{ display: 'flex', flexDirection: 'column', height: '228px', justifyContent: 'space-between', padding: '2px 0', boxSizing: 'border-box' }}>
+                <div style={{ width: '352.5px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingLeft: '22.5px', paddingRight: '8px', borderRight: '2px solid #000000', height: '298px', boxSizing: 'border-box' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 'bold', color: '#000000', height: '34px', display: 'flex', alignItems: 'center' }}>Más eficiente (Menor consumo)</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', height: '230px', justifyContent: 'space-between', padding: '4px 0', boxSizing: 'border-box' }}>
                     {ARROWS.map(arrow => (
-                      <div key={arrow.letter} style={{ height: '28px', display: 'flex', alignItems: 'center', position: 'relative', width: `${arrow.pxWidth}px` }}>
-                        <svg viewBox={`0 0 ${arrow.pxWidth} 28`} width={arrow.pxWidth} height="28" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }}>
-                          <path d={`M 0,0 L ${arrow.pxWidth - 14},0 L ${arrow.pxWidth},14 L ${arrow.pxWidth - 14},28 L 0,28 Z`} fill={arrow.color} />
+                      <div key={arrow.letter} style={{ height: '27px', display: 'flex', alignItems: 'center', position: 'relative', width: `${arrow.pxWidth}px` }}>
+                        <svg viewBox={`0 0 ${arrow.pxWidth} 27`} width={arrow.pxWidth} height="27" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }}>
+                          <path d={`M 0,0 L ${arrow.pxWidth - 14},0 L ${arrow.pxWidth},13.5 L ${arrow.pxWidth - 14},27 L 0,27 Z`} fill={arrow.color} />
                         </svg>
                         <span style={{ position: 'absolute', right: '18px', top: '50%', transform: 'translateY(-50%)', color: '#ffffff', fontWeight: 'bold', fontSize: '16.5px' }}>
                           {arrow.letter}
@@ -2085,15 +2086,15 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                       </div>
                     ))}
                   </div>
-                  <span style={{ fontSize: '12.5px', fontWeight: 'bold', color: '#000000', height: '36px', display: 'flex', alignItems: 'center' }}>Menos eficiente (Mayor consumo)</span>
+                  <span style={{ fontSize: '12.5px', fontWeight: 'bold', color: '#000000', height: '34px', display: 'flex', alignItems: 'center' }}>Menos eficiente (Mayor consumo)</span>
                 </div>
 
                 {/* Right selected arrow: width 172.5px */}
-                <div style={{ width: '172.5px', height: '300px', position: 'relative', overflow: 'visible', boxSizing: 'border-box' }}>
+                <div style={{ width: '172.5px', height: '298px', position: 'relative', overflow: 'visible', boxSizing: 'border-box' }}>
                   {ARROWS.map((arrow, idx) => {
                     const isSelected = letra === arrow.letter;
                     if (!isSelected) return null;
-                    const chevronTop = Math.round(24 + idx * 32.5); // Adjusted slightly to center perfectly with the bars
+                    const chevronTop = Math.round(25.5 + idx * 32.5); // Fixed vertical centering drift
                     return (
                       <div 
                         key={arrow.letter} 
@@ -2130,8 +2131,8 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                           El desempeño energético depende de las condiciones de uso del calentador y su localización
                         </span>
                       </div>
-                      <div style={{ width: '172.5px', paddingRight: '22.5px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box' }}>
-                        <span style={{ fontSize: '28px', fontWeight: 'normal', letterSpacing: '-1px', lineHeight: '1', color: '#000000' }}>
+                      <div style={{ width: '172.5px', paddingRight: '22.5px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box', height: '100%' }}>
+                        <span style={{ fontSize: '28px', fontWeight: 'normal', letterSpacing: '-1px', lineHeight: '1', color: '#000000', margin: 0, padding: 0 }}>
                           {eficiencia}
                         </span>
                       </div>
@@ -2140,12 +2141,12 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                     {/* Instantaneo - Caudal Row: Height 35px */}
                     <div style={{ display: 'flex', borderBottom: '1.5px solid #000000', height: '35px', boxSizing: 'border-box' }}>
                       <div style={{ width: '352.5px', borderRight: '2px solid #000000', paddingLeft: '22.5px', paddingRight: '8px', display: 'flex', alignItems: 'center', boxSizing: 'border-box' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 'normal', color: '#000000' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000' }}>
                           Caudal de agua litros/minuto
                         </span>
                       </div>
-                      <div style={{ width: '172.5px', paddingRight: '22.5px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000' }}>
+                      <div style={{ width: '172.5px', paddingRight: '22.5px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box', height: '100%' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000', margin: 0, padding: 0, lineHeight: '1' }}>
                           {formatValue(variableValue, showDecimalVariable)}
                         </span>
                       </div>
@@ -2154,10 +2155,10 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                     {/* Instantaneo - Potencia Row: Height 35px */}
                     <div style={{ display: 'flex', height: '35px', boxSizing: 'border-box' }}>
                       <div style={{ width: '352.5px', borderRight: '2px solid #000000', paddingLeft: '22.5px', paddingRight: '8px', display: 'flex', alignItems: 'center', boxSizing: 'border-box' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 'normal', color: '#000000' }}>Potencia kW</span>
+                        <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000' }}>Potencia kW</span>
                       </div>
-                      <div style={{ width: '172.5px', paddingRight: '22.5px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000' }}>
+                      <div style={{ width: '172.5px', paddingRight: '22.5px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box', height: '100%' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000', margin: 0, padding: 0, lineHeight: '1' }}>
                           {formatValue(potencia, showDecimalPotencia)}
                         </span>
                       </div>
@@ -2173,8 +2174,8 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                           El desempeño energético depende de las condiciones de uso del calentador y su localización
                         </span>
                       </div>
-                      <div style={{ width: '172.5px', paddingRight: '22.5px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box' }}>
-                        <span style={{ fontSize: '28px', fontWeight: 'normal', letterSpacing: '-1px', lineHeight: '1', color: '#000000' }}>
+                      <div style={{ width: '172.5px', paddingRight: '22.5px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box', height: '100%' }}>
+                        <span style={{ fontSize: '28px', fontWeight: 'normal', letterSpacing: '-1px', lineHeight: '1', color: '#000000', margin: 0, padding: 0 }}>
                           {eficiencia}
                         </span>
                       </div>
@@ -2183,12 +2184,12 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                     {/* Acumulacion - Capacidad Row: Height 35px */}
                     <div style={{ display: 'flex', borderBottom: '1.5px solid #000000', height: '35px', boxSizing: 'border-box' }}>
                       <div style={{ width: '352.5px', borderRight: '2px solid #000000', paddingLeft: '22.5px', paddingRight: '8px', display: 'flex', alignItems: 'center', boxSizing: 'border-box' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 'normal', color: '#000000' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000' }}>
                           Capacidad litros
                         </span>
                       </div>
-                      <div style={{ width: '172.5px', paddingRight: '22.5px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000' }}>
+                      <div style={{ width: '172.5px', paddingRight: '22.5px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box', height: '100%' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000', margin: 0, padding: 0, lineHeight: '1' }}>
                           {formatValue(variableValue, showDecimalVariable)}
                         </span>
                       </div>
@@ -2197,12 +2198,12 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                     {/* Acumulacion - Potencia Row: Height 35px */}
                     <div style={{ display: 'flex', borderBottom: '1.5px solid #000000', height: '35px', boxSizing: 'border-box' }}>
                       <div style={{ width: '352.5px', borderRight: '2px solid #000000', paddingLeft: '22.5px', paddingRight: '8px', display: 'flex', alignItems: 'center', boxSizing: 'border-box' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 'normal', color: '#000000' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000' }}>
                           Potencia kW
                         </span>
                       </div>
-                      <div style={{ width: '172.5px', paddingRight: '22.5px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000' }}>
+                      <div style={{ width: '172.5px', paddingRight: '22.5px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box', height: '100%' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#000000', margin: 0, padding: 0, lineHeight: '1' }}>
                           {formatValue(potencia, showDecimalPotencia)}
                         </span>
                       </div>
@@ -2215,7 +2216,7 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                           Compare este producto con otros de similares características
                         </span>
                       </div>
-                      <div style={{ width: '172.5px', paddingRight: '22.5px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box' }}>
+                      <div style={{ width: '172.5px', paddingRight: '22.5px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', boxSizing: 'border-box', height: '100%' }}>
                         {/* Empty on the right as per standard */}
                       </div>
                     </div>
@@ -2223,10 +2224,10 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                 )}
               </div>
 
-              {/* Legal and Certifier: Height 157px */}
-              <div style={{ display: 'flex', height: '157px', boxSizing: 'border-box' }}>
+              {/* Legal and Certifier: Height 156px */}
+              <div style={{ display: 'flex', height: '156px', boxSizing: 'border-box' }}>
                 {/* Left cell (legal texts) */}
-                <div style={{ width: '352.5px', borderRight: '2px solid #000000', paddingLeft: '22.5px', paddingRight: '8px', paddingTop: '8px', paddingBottom: '8px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px', boxSizing: 'border-box' }}>
+                <div style={{ width: '352.5px', borderRight: '2px solid #000000', paddingLeft: '22.5px', paddingRight: '8px', paddingTop: '6px', paddingBottom: '6px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px', boxSizing: 'border-box' }}>
                   {tipo === 'instantaneo' ? (
                     // Instantaneo legal texts: show all paragraphs
                     legalText.split('\n\n').map((paragraph, index) => (
@@ -2245,14 +2246,14 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                 </div>
 
                 {/* Right cell (certifier) */}
-                <div style={{ width: '172.5px', paddingRight: '22.5px', paddingTop: '8px', paddingBottom: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
+                <div style={{ width: '172.5px', paddingRight: '22.5px', paddingTop: '6px', paddingBottom: '6px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>
                   <span style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', color: '#000000', marginBottom: '6px', textAlign: 'center', display: 'block', lineHeight: '1.1' }}>
                     Entidad
                     <br />
                     Certificadora
                   </span>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '70px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '64px' }}>
                     {certificador === 'lenor1' && (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                         <svg viewBox="0 0 100 60" style={{ width: '65px', height: '36px' }} fill="none" stroke="#008060" strokeWidth="13" strokeLinecap="butt" strokeLinejoin="miter">
@@ -2263,7 +2264,7 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                     )}
                     {certificador === 'lenor2' && (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg viewBox="0 0 100 100" style={{ width: '56px', height: '56px' }}>
+                        <svg viewBox="0 0 100 100" style={{ width: '50px', height: '50px' }}>
                           <circle cx="50" cy="50" r="30" fill="none" stroke="#0f6fa9" strokeWidth="3" />
                           <path d="M 50,23 L 50,77 M 23,50 L 77,50" stroke="#009fe3" strokeWidth="3.5" />
                           <path d="M 45,23 L 55,23 M 45,77 L 55,77 M 23,45 L 23,55 M 77,45 L 77,55" stroke="#009fe3" strokeWidth="2.5" />
@@ -2288,7 +2289,7 @@ function LabelGeneratorModal({ onClose }: { onClose: () => void }) {
                       </div>
                     )}
                     {certificador === 'custom' && customLogoUrl && (
-                      <img src={customLogoUrl} alt="Logo Certificador" style={{ maxHeight: '70px', maxWidth: '90px', objectFit: 'contain' }} />
+                      <img src={customLogoUrl} alt="Logo Certificador" style={{ maxHeight: '64px', maxWidth: '90px', objectFit: 'contain' }} />
                     )}
                     {certificador === 'custom' && !customLogoUrl && (
                       <div style={{ border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '6px', textAlign: 'center', fontSize: '9px', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase', alignSelf: 'center' }}>
