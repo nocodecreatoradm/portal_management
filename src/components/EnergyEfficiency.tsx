@@ -1657,6 +1657,10 @@ export default function EnergyEfficiency({
                   Confirmar Subida
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
 
 const DEFAULT_LEGAL_TEXT = `Compare este producto con otros de similares características
 
