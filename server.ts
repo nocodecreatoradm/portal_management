@@ -694,12 +694,11 @@ async function startServer() {
   });
   // Endpoint to send email notifications via MS Graph API (Protected)
   app.post("/api/send-email", requireAuth, async (req, res) => {
-    const { to, subject, body, attachments } = req.body;
+    const { to, subject, body, attachments, sapCode, isArtwork } = req.body;
     const userEmail = process.env.AZURE_MAIL_USER;
 
     try {
       const accessToken = await getAzureAccessToken();
-      const url = `https://graph.microsoft.com/v1.0/users/${userEmail}/sendMail`;
 
       const recipientsData = await (async () => {
         try {
@@ -747,37 +746,181 @@ async function startServer() {
         }
       })();
 
-      const emailPayload = {
-        message: {
-          subject: subject,
-          body: {
-            contentType: "HTML",
-            content: body,
+      let emailSent = false;
+
+      // Threading logic for artwork tracking module
+      if (isArtwork && sapCode) {
+        try {
+          console.log(`[EMAIL THREAD] Checking for existing thread for SAP code: ${sapCode}`);
+          // 1. Search the user's sent items folder
+          const sentItemsUrl = `https://graph.microsoft.com/v1.0/users/${userEmail}/mailFolders/sentitems/messages?$select=id,subject&$top=100&$orderby=receivedDateTime desc`;
+          const sentItemsRes = await fetch(sentItemsUrl, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: "application/json"
+            }
+          });
+
+          if (sentItemsRes.ok) {
+            const sentData = await sentItemsRes.json() as any;
+            const messages = sentData.value || [];
+            
+            // Find the most recent message whose subject contains the sapCode (case-insensitive)
+            const parentMessage = messages.find((msg: any) => {
+              if (!msg.subject) return false;
+              return msg.subject.toLowerCase().includes(sapCode.toLowerCase());
+            });
+
+            if (parentMessage) {
+              console.log(`[EMAIL THREAD] Found parent message: ID = ${parentMessage.id}, Subject = "${parentMessage.subject}"`);
+              
+              // 2. Create a reply draft
+              const replyUrl = `https://graph.microsoft.com/v1.0/users/${userEmail}/messages/${parentMessage.id}/createReply`;
+              const replyRes = await fetch(replyUrl, {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                  "Content-Type": "application/json"
+                }
+              });
+
+              if (replyRes.ok) {
+                const draft = await replyRes.json() as any;
+                const draftId = draft.id;
+                console.log(`[EMAIL THREAD] Created reply draft: ID = ${draftId}`);
+
+                // 3. Update reply draft with our custom body, toRecipients, and ccRecipients
+                const updateUrl = `https://graph.microsoft.com/v1.0/users/${userEmail}/messages/${draftId}`;
+                const updatePayload = {
+                  body: {
+                    contentType: "HTML",
+                    content: body
+                  },
+                  toRecipients: recipientsData.toRecipients,
+                  ccRecipients: recipientsData.ccRecipients
+                };
+
+                const updateRes = await fetch(updateUrl, {
+                  method: "PATCH",
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json"
+                  },
+                  body: JSON.stringify(updatePayload)
+                });
+
+                if (updateRes.ok) {
+                  console.log(`[EMAIL THREAD] Updated reply draft successfully.`);
+
+                  // 4. Upload attachments if any
+                  let attachmentsUploaded = true;
+                  if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+                    for (const file of attachments) {
+                      const attachUrl = `https://graph.microsoft.com/v1.0/users/${userEmail}/messages/${draftId}/attachments`;
+                      const attachPayload = {
+                        "@odata.type": "#microsoft.graph.fileAttachment",
+                        name: file.name,
+                        contentBytes: file.content
+                      };
+
+                      const attachRes = await fetch(attachUrl, {
+                        method: "POST",
+                        headers: {
+                          Authorization: `Bearer ${accessToken}`,
+                          "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(attachPayload)
+                      });
+
+                      if (!attachRes.ok) {
+                        const attachErr = await attachRes.json() as any;
+                        console.error(`[EMAIL THREAD] Failed to attach file ${file.name} to draft ${draftId}:`, attachErr);
+                        attachmentsUploaded = false;
+                        break;
+                      } else {
+                        console.log(`[EMAIL THREAD] Attached file ${file.name} successfully.`);
+                      }
+                    }
+                  }
+
+                  if (attachmentsUploaded) {
+                    // 5. Send reply draft
+                    const sendUrl = `https://graph.microsoft.com/v1.0/users/${userEmail}/messages/${draftId}/send`;
+                    const sendRes = await fetch(sendUrl, {
+                      method: "POST",
+                      headers: {
+                        Authorization: `Bearer ${accessToken}`
+                      }
+                    });
+
+                    if (sendRes.ok) {
+                      console.log(`[EMAIL THREAD] Threaded email sent successfully via reply draft.`);
+                      emailSent = true;
+                    } else {
+                      try {
+                        const sendErr = await sendRes.json() as any;
+                        console.error(`[EMAIL THREAD] Failed to send draft ${draftId}:`, sendErr);
+                      } catch {
+                        console.error(`[EMAIL THREAD] Failed to send draft ${draftId} (failed to parse error response status ${sendRes.status})`);
+                      }
+                    }
+                  }
+                } else {
+                  const updateErr = await updateRes.json() as any;
+                  console.error(`[EMAIL THREAD] Failed to update draft ${draftId}:`, updateErr);
+                }
+              } else {
+                const replyErr = await replyRes.json() as any;
+                console.error(`[EMAIL THREAD] Failed to create reply for message ${parentMessage.id}:`, replyErr);
+              }
+            } else {
+              console.log(`[EMAIL THREAD] No previous sent message found for SAP code ${sapCode} to thread onto.`);
+            }
+          } else {
+            const sentItemsErr = await sentItemsRes.json() as any;
+            console.error(`[EMAIL THREAD] Failed to fetch sent items:`, sentItemsErr);
+          }
+        } catch (threadError) {
+          console.error(`[EMAIL THREAD] Unexpected error in threading flow:`, threadError);
+        }
+      }
+
+      // Fallback or Standard: If not sent via threading, send standalone new email
+      if (!emailSent) {
+        console.log(`[EMAIL] Sending standalone new email (fallback or standard flow)...`);
+        const url = `https://graph.microsoft.com/v1.0/users/${userEmail}/sendMail`;
+        const emailPayload = {
+          message: {
+            subject: subject,
+            body: {
+              contentType: "HTML",
+              content: body,
+            },
+            toRecipients: recipientsData.toRecipients,
+            ccRecipients: recipientsData.ccRecipients,
+            attachments: (attachments || []).map((file: any) => ({
+              "@odata.type": "#microsoft.graph.fileAttachment",
+              name: file.name,
+              contentBytes: file.content,
+            })),
           },
-          toRecipients: recipientsData.toRecipients,
-          ccRecipients: recipientsData.ccRecipients,
-          attachments: (attachments || []).map((file: any) => ({
-            "@odata.type": "#microsoft.graph.fileAttachment",
-            name: file.name,
-            contentBytes: file.content,
-          })),
-        },
-        saveToSentItems: "true",
-      };
+          saveToSentItems: "true",
+        };
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(emailPayload),
-      });
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(emailPayload),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json() as any;
-        console.error("Graph API Error:", errorData);
-        throw new Error(errorData.error?.message || "Failed to send email");
+        if (!response.ok) {
+          const errorData = await response.json() as any;
+          console.error("Graph API Error:", errorData);
+          throw new Error(errorData.error?.message || "Failed to send email");
+        }
       }
 
       res.json({ success: true });

@@ -53,7 +53,7 @@ export const outlookService = {
   /**
    * Generic send method
    */
-  send: async (to: string | string[], subject: string, htmlBody: string) => {
+  send: async (to: string | string[], subject: string, htmlBody: string, sapCode?: string, isArtwork?: boolean) => {
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const token = localStorage.getItem('auth_token');
@@ -64,7 +64,7 @@ export const outlookService = {
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ to, subject, body: htmlBody }),
+        body: JSON.stringify({ to, subject, body: htmlBody, sapCode, isArtwork }),
       });
 
       if (response.status === 401) {
@@ -382,7 +382,8 @@ export const outlookService = {
 
     try {
       const actionUrl = outlookService.getModuleUrl(moduleType);
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
+      const isArtwork = moduleType === 'artwork' || moduleType === 'Artes';
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl), record.codigoSAP, isArtwork);
       toast.success('Notificación de aprobación enviada');
     } catch (e) {
       toast.error('Error al enviar notificación de aprobación');
@@ -590,7 +591,8 @@ export const outlookService = {
         ...extraPlanningRecipients
       ])].filter(Boolean);
       const actionUrl = outlookService.getModuleUrl(moduleType);
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
+      const isArtwork = moduleType === 'artwork' || moduleType === 'Artes';
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl), record.codigoSAP, isArtwork);
     } catch (e) {
       console.error('Error sending stage approval email:', e);
     }
@@ -636,7 +638,8 @@ export const outlookService = {
       const recipients = [...new Set([...resolvedDesigner, ...adminEmails])].filter(Boolean);
       
       const actionUrl = outlookService.getModuleUrl(type);
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
+      const isArtwork = type === 'artwork' || type === 'Artes';
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl), record.codigoSAP, isArtwork);
       toast.success('Notificación de observación enviada');
     } catch (e) {
       console.error(e);
@@ -668,7 +671,8 @@ export const outlookService = {
       const recipients = [...new Set([...resolvedProvider, ...adminEmails, designerEmail])].filter(Boolean);
       
       const actionUrl = outlookService.getModuleUrl(type);
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
+      const isArtwork = type === 'artwork' || type === 'Artes';
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl), record.codigoSAP, isArtwork);
     } catch (e) {
       console.error(e);
     }
@@ -730,7 +734,8 @@ export const outlookService = {
       const recipients = [...new Set([...assigneeEmails, ...adminEmails])].filter(Boolean);
       
       const actionUrl = outlookService.getModuleUrl(type);
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
+      const isArtwork = type === 'artwork' || type === 'Artes';
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl), info.code, isArtwork);
       toast.success('Notificación de asignación enviada');
     } catch (e) {
       console.error(e);
@@ -780,7 +785,8 @@ export const outlookService = {
       const recipients = [...new Set([...idEmails, designerEmail, ...adminEmails].filter(Boolean))];
       
       const actionUrl = outlookService.getModuleUrl(type);
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
+      const isArtwork = type === 'artwork' || type === 'Artes';
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl), record.codigoSAP, isArtwork);
       toast.info('Notificación de inicio de flujo enviada');
     } catch (e) {
       console.error(e);
@@ -832,7 +838,8 @@ export const outlookService = {
       const recipients = [...new Set([...adminEmails, ...idEmails, ...additionalRecipients])].filter(Boolean);
       
       const actionUrl = outlookService.getModuleUrl(type);
-      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
+      const isArtwork = type === 'artwork' || type === 'Artes';
+      await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl), info.code, isArtwork);
     } catch (e) {
       console.error(e);
     }
