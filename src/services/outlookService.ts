@@ -424,7 +424,6 @@ export const outlookService = {
     `;
 
     try {
-      const providerRecipients = record.correoProveedor || [];
       const designerEmail = isTechnical 
         ? (record.technicalAssignment?.designerEmail || '') 
         : (record.commercialAssignment?.designerEmail || '');
@@ -436,7 +435,6 @@ export const outlookService = {
       const planningRolesEmails = await outlookService.getPlanningEmails();
 
       const recipients = [...new Set([
-        ...providerRecipients, 
         designerEmail, 
         ...adminEmails,
         ...idEmails,

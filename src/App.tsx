@@ -508,10 +508,10 @@ export default function App() {
           } else if (modalConfig.action === 'approve' && (actionData.targetVersion || modalConfig.version) && modalConfig.stage) {
             const targetVersion = actionData.targetVersion || modalConfig.version;
             
+            const isArtwork = modalConfig.type === 'artwork';
             const versionIndex = currentDocs.findIndex(v => 
               Number(v.version) === Number(targetVersion?.version) &&
-              v.category === targetVersion?.category &&
-              v.subcategory === targetVersion?.subcategory
+              (!isArtwork || (v.category === targetVersion?.category && v.subcategory === targetVersion?.subcategory))
             );
             
             let updatedVersion;
@@ -721,10 +721,10 @@ export default function App() {
           }
         });
       } else {
+        const isArtwork = activeModule === 'artwork_followup';
         const versionIndex = docArray.findIndex(v => 
           Number(v.version) === Number(version.version) &&
-          v.category === version.category &&
-          v.subcategory === version.subcategory
+          (!isArtwork || (v.category === version.category && v.subcategory === version.subcategory))
         );
         
         if (versionIndex > -1) {

@@ -258,8 +258,12 @@ export default function ProductDetailModal({
                     'commercialSheets';
 
     const currentList = (record as any)[listKey] as DocumentVersion[];
+    const isArtwork = reviewingVersion.type === 'artwork';
     const updatedList = currentList.map(v => 
-      Number(v.version) === Number(reviewingVersion.version.version) && v.category === reviewingVersion.version.category && v.subcategory === reviewingVersion.version.subcategory ? { ...v, pdfComments: newComments } : v
+      Number(v.version) === Number(reviewingVersion.version.version) && 
+      (!isArtwork || (v.category === reviewingVersion.version.category && v.subcategory === reviewingVersion.version.subcategory))
+        ? { ...v, pdfComments: newComments } 
+        : v
     );
 
     // Update the parent/database
@@ -278,9 +282,11 @@ export default function ProductDetailModal({
                     'commercialSheets';
 
     const currentList = ((record as any)[listKey] as DocumentVersion[]) || [];
+    const isArtwork = type === 'artwork';
 
     const updatedList = currentList.map(v => {
-      if (Number(v.version) === Number(version.version) && v.category === version.category && v.subcategory === version.subcategory) {
+      if (Number(v.version) === Number(version.version) && 
+          (!isArtwork || (v.category === version.category && v.subcategory === version.subcategory))) {
         const updatedFiles = v.files.filter((_, i) => i !== fileIndex);
         return { ...v, files: updatedFiles };
       }
@@ -303,8 +309,12 @@ export default function ProductDetailModal({
                     'commercialSheets';
 
     const currentList = ((record as any)[listKey] as DocumentVersion[]) || [];
+    const isArtwork = type === 'artwork';
 
-    const updatedList = currentList.filter(v => !(Number(v.version) === Number(version.version) && v.category === version.category && v.subcategory === version.subcategory));
+    const updatedList = currentList.filter(v => !(
+      Number(v.version) === Number(version.version) && 
+      (!isArtwork || (v.category === version.category && v.subcategory === version.subcategory))
+    ));
 
     try {
       onUpdateRecord(record.id, { [listKey]: updatedList });
