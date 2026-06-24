@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ProductRecord, ModuleId, CalculationRecord } from '../types';
-import { FileText, CheckCircle, XCircle, Search, X, Eye } from 'lucide-react';
+import { FileText, CheckCircle, XCircle, Search, X, Eye, FolderArchive, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import ModuleActions from './ModuleActions';
 import { exportToExcel, generateReportPDF } from '../lib/exportUtils';
 import { saveCalculationRecord } from '../lib/api';
@@ -11,6 +11,84 @@ import ProductDetailModal from './ProductDetailModal';
 import { SupabaseService } from '../lib/SupabaseService';
 import { Loader2 } from 'lucide-react';
 import HeaderFilterPopover from './HeaderFilterPopover';
+
+interface FolderFilesViewProps {
+  files: Array<{ name: string; url: string; commercialType?: string }>;
+  mode: 'artwork' | 'technical_sheet' | 'commercial_sheet';
+}
+
+function FolderFilesView({ files, mode }: FolderFilesViewProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (!files || files.length === 0) {
+    return <span className="text-slate-400 italic text-[10px]">Sin archivos</span>;
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all text-[11px] font-semibold w-full justify-between group ${
+          isOpen 
+            ? 'bg-amber-50 text-amber-700 border-amber-200 shadow-sm' 
+            : 'bg-slate-50 hover:bg-slate-100/80 text-slate-700 border-slate-200/60'
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          {isOpen ? (
+            <FolderOpen className="w-4 h-4 text-amber-500 shrink-0 group-hover:scale-105 transition-transform" />
+          ) : (
+            <FolderArchive className="w-4 h-4 text-amber-500 shrink-0 group-hover:scale-105 transition-transform" />
+          )}
+          <span className="truncate max-w-[130px]" title="Carpeta comprimida de archivos">
+            {isOpen ? 'Carpeta abierta' : 'Carpeta comprimida'}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 ml-2">
+          <span className="bg-slate-200/60 text-slate-600 px-1.5 py-0.5 rounded-md text-[9px] font-bold">
+            {files.length} {files.length === 1 ? 'pdf' : 'pdfs'}
+          </span>
+          {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 mt-2 p-2 bg-white border border-slate-200/80 rounded-xl space-y-1.5 shadow-lg min-w-[240px] max-w-[280px] z-50 animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider px-1 mb-1">
+            Archivos del Arte:
+          </div>
+          <div className="max-h-[180px] overflow-y-auto pr-1 space-y-1 scrollbar-thin">
+            {files.map((file, i) => (
+              <a
+                key={i}
+                href={file.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-100 text-blue-600 hover:text-blue-800 transition-all group/item"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="w-3.5 h-3.5 text-red-500 shrink-0 group-hover/item:scale-110 transition-transform" />
+                  <span className="text-[10px] font-medium truncate" title={file.name}>
+                    {file.name}
+                  </span>
+                </div>
+                {mode === 'commercial_sheet' && file.commercialType && (
+                  <span className={`px-1 rounded text-[8px] font-black uppercase tracking-wider shrink-0 ${
+                    file.commercialType === 'provisional'
+                      ? 'bg-amber-50 text-amber-600 border border-amber-100'
+                      : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                  }`}>
+                    {file.commercialType === 'provisional' ? 'Prov' : 'Final'}
+                  </span>
+                )}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface CommercialArtworksProps {
   mode?: 'artwork' | 'technical_sheet' | 'commercial_sheet';
@@ -384,40 +462,29 @@ export default function CommercialArtworks({
                       <td className="px-4 py-4 border-r border-gray-100 text-[10px] text-slate-500 font-medium uppercase">
                         {record.linea}
                       </td>
-                      <td className="px-4 py-4 border-r border-gray-100">
-                        <div className="flex flex-col gap-1.5">
-                          {currentVersion.files.map((f, i) => (
-                            <div key={i} className="flex items-center gap-2 flex-wrap">
-                              <a 
-                                href={f.url} 
-                                className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition-colors group"
-                              >
-                                <FileText size={14} className="group-hover:scale-110 transition-transform" />
-                                <span className="text-[10px] font-medium truncate max-w-[120px]" title={f.name}>{f.name}</span>
-                              </a>
-                              {mode === 'commercial_sheet' && f.commercialType && (
-                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                                  f.commercialType === 'provisional' 
-                                    ? 'bg-amber-50 text-amber-600 border border-amber-100' 
-                                    : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                                }`}>
-                                  {f.commercialType === 'provisional' ? 'Provisional' : 'Final'}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                      <td className="px-4 py-4 border-r border-gray-100 min-w-[200px]">
+                        <FolderFilesView files={currentVersion.files} mode={mode} />
                       </td>
                       <td className="px-4 py-4 border-r border-gray-100 text-center font-bold text-slate-600">
-                        <select
-                          value={currentVersion.version}
-                          onChange={(e) => setSelectedVersions(prev => ({ ...prev, [record.id]: parseInt(e.target.value) }))}
-                          className="bg-transparent border-none outline-none text-center cursor-pointer hover:text-blue-600 transition-colors"
-                        >
-                          {[...approvedVersions].sort((a, b) => b.version - a.version).map(v => (
-                            <option key={v.version} value={v.version}>V{v.version}</option>
-                          ))}
-                        </select>
+                        {approvedVersions.length > 1 ? (
+                          <div className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1.5 shadow-sm text-slate-700 font-semibold text-xs">
+                            <select
+                              value={currentVersion.version}
+                              onChange={(e) => setSelectedVersions(prev => ({ ...prev, [record.id]: parseInt(e.target.value) }))}
+                              className="bg-transparent border-none outline-none text-center cursor-pointer hover:text-blue-600 transition-colors font-bold text-xs"
+                            >
+                              {[...approvedVersions].sort((a, b) => b.version - a.version).map(v => (
+                                <option key={v.version} value={v.version}>
+                                  V{v.version} {v.version === latestApproved.version ? '(Última)' : '(Anterior)'}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center bg-slate-50 border border-slate-200/40 rounded-xl px-3 py-1.5 text-slate-500 font-semibold text-xs">
+                            V{latestApproved.version} (Última)
+                          </span>
+                        )}
                       </td>
 
                       <td className="px-4 py-4 text-center">
