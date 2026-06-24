@@ -159,6 +159,26 @@ export const outlookService = {
   },
 
   /**
+   * Helper to get all emails of users belonging to the Planning department or having Planning roles.
+   */
+  getPlanningEmails: async (): Promise<string[]> => {
+    try {
+      const profiles = await SupabaseService.getProfiles();
+      return (profiles || [])
+        .filter(p => p.is_active && (
+          p.role?.toLowerCase() === 'jefe de planeamiento' || 
+          p.role?.toLowerCase() === 'planeamiento' ||
+          p.department?.toLowerCase() === 'planeamiento'
+        ))
+        .map(p => p.email)
+        .filter(Boolean);
+    } catch (e) {
+      console.error('Error getting planning emails:', e);
+      return [];
+    }
+  },
+
+  /**
    * Helper to get the latest file versions for each category.
    */
   getLatestFiles: (record: ProductRecord, docType: string = 'artwork') => {
@@ -299,6 +319,7 @@ export const outlookService = {
     const idEmails = await outlookService.getDepartmentEmailsForRecord('I+D', record);
     const mktEmails = await outlookService.getDepartmentEmailsForRecord('Marketing', record);
     const planEmails = await outlookService.getDepartmentEmailsForRecord('Planeamiento', record);
+    const planningRolesEmails = await outlookService.getPlanningEmails();
 
     const recipients = [...new Set([
       ...providerRecipients, 
@@ -306,7 +327,8 @@ export const outlookService = {
       ...adminEmails,
       ...idEmails,
       ...mktEmails,
-      ...planEmails
+      ...planEmails,
+      ...planningRolesEmails
     ].filter(Boolean))];
 
     if (recipients.length === 0) return;
@@ -410,6 +432,7 @@ export const outlookService = {
       const idEmails = await outlookService.getDepartmentEmailsForRecord('I+D', record);
       const mktEmails = await outlookService.getDepartmentEmailsForRecord('Marketing', record);
       const planEmails = await outlookService.getDepartmentEmailsForRecord('Planeamiento', record);
+      const planningRolesEmails = await outlookService.getPlanningEmails();
 
       const recipients = [...new Set([
         ...providerRecipients, 
@@ -417,7 +440,8 @@ export const outlookService = {
         ...adminEmails,
         ...idEmails,
         ...mktEmails,
-        ...planEmails
+        ...planEmails,
+        ...planningRolesEmails
       ].filter(Boolean))];
 
       if (recipients.length === 0) return;
@@ -553,7 +577,18 @@ export const outlookService = {
                             record.commercialAssignment?.designerEmail || 
                             '';
       
-      const recipients = [...new Set([designerEmail, ...adminEmails, ...nextRecipients, ...currentStageRecipients])].filter(Boolean);
+      let extraPlanningRecipients: string[] = [];
+      if (stage === 'MKT') {
+        extraPlanningRecipients = await outlookService.getPlanningEmails();
+      }
+      
+      const recipients = [...new Set([
+        designerEmail, 
+        ...adminEmails, 
+        ...nextRecipients, 
+        ...currentStageRecipients,
+        ...extraPlanningRecipients
+      ])].filter(Boolean);
       const actionUrl = outlookService.getModuleUrl(moduleType);
       await outlookService.send(recipients, subject, outlookService.wrapInTemplate(title, content, actionUrl));
     } catch (e) {
