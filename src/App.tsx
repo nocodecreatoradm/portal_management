@@ -550,7 +550,6 @@ export default function App() {
             }
 
             // Sequential multi-stage flow logic for artworks
-            const isArtwork = modalConfig.type === 'artwork';
             let allEvaluated = false;
             let hasRejections = false;
 
