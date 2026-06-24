@@ -898,11 +898,33 @@ function buildMimeMessage(options: {
       })();
 
       let emailSent = false;
+      let normalizedSubject = subject;
 
       // Threading logic for artwork tracking module using raw MIME
       if (isArtwork && sapCode) {
         try {
           console.log(`[EMAIL THREAD] Sending MIME threaded email for SAP code: ${sapCode}`);
+          
+          let description = "";
+          try {
+            const poolInstance = await getDBPool();
+            const productRes = await poolInstance.request()
+              .input('sapCode', sapCode)
+              .query('SELECT descripcionSAP FROM ID_PORTAL.products WHERE codigoSAP = @sapCode');
+            if (productRes.recordset && productRes.recordset.length > 0) {
+              description = productRes.recordset[0].descripcionSAP || "";
+            }
+          } catch (dbErr) {
+            console.error("[EMAIL THREAD] Error fetching product description:", dbErr);
+          }
+
+          // Build a single, standardized base subject for this SAP code thread
+          const cleanDesc = description ? ` - ${description}` : "";
+          const baseSubject = `Seguimiento de Arte - ${sapCode}${cleanDesc}`;
+
+          // Check if this is the first email (like NEW REGISTRO). If not, prepend "Re: "
+          const isFirst = subject.toLowerCase().includes('nuevo registro') || subject.toLowerCase().includes('creado');
+          normalizedSubject = isFirst ? baseSubject : `Re: ${baseSubject}`;
           
           const finalTo = recipientsData.toRecipients.map(r => r.emailAddress.address);
           const finalCc = recipientsData.ccRecipients.map(r => r.emailAddress.address);
@@ -911,7 +933,7 @@ function buildMimeMessage(options: {
             from: userEmail!,
             to: finalTo,
             cc: finalCc,
-            subject: subject,
+            subject: normalizedSubject,
             body: body,
             sapCode: sapCode,
             isArtwork: true,
@@ -948,7 +970,7 @@ function buildMimeMessage(options: {
         const url = `https://graph.microsoft.com/v1.0/users/${userEmail}/sendMail`;
         const emailPayload = {
           message: {
-            subject: subject,
+            subject: normalizedSubject,
             body: {
               contentType: "HTML",
               content: body,
