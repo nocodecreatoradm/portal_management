@@ -1029,17 +1029,46 @@ function buildMimeMessage(options: {
       }
 
       const passwordHash = await bcrypt.hash(password, 10);
-      const defaultRoleId = '550e8400-e29b-41d4-a716-446655440004'; // Coordinador de I+D role ID
+      
+      // Get role ID dynamically by name
+      let roleId: string | null = null;
+      let roleName = 'Coordinador de I+D';
+
+      let roleQuery = await dbPool.request()
+        .input('roleName', roleName)
+        .query('SELECT id FROM ID_PORTAL.roles WHERE name = @roleName');
+
+      if (roleQuery.recordset.length > 0) {
+        roleId = roleQuery.recordset[0].id;
+      } else {
+        // Try 'admin'
+        roleQuery = await dbPool.request()
+          .input('roleName', 'admin')
+          .query('SELECT id, name FROM ID_PORTAL.roles WHERE name = @roleName');
+        if (roleQuery.recordset.length > 0) {
+          roleId = roleQuery.recordset[0].id;
+          roleName = roleQuery.recordset[0].name;
+        } else {
+          // Just get the first role
+          roleQuery = await dbPool.request()
+            .query('SELECT TOP 1 id, name FROM ID_PORTAL.roles');
+          if (roleQuery.recordset.length > 0) {
+            roleId = roleQuery.recordset[0].id;
+            roleName = roleQuery.recordset[0].name;
+          }
+        }
+      }
 
       const insertRes = await dbPool.request()
         .input('email', email)
         .input('fullName', fullName)
         .input('passwordHash', passwordHash)
-        .input('roleId', defaultRoleId)
+        .input('roleId', roleId)
+        .input('roleName', roleName)
         .query(`
           INSERT INTO ID_PORTAL.profiles (email, full_name, role, role_id, password_hash, is_active)
           OUTPUT INSERTED.*
-          VALUES (@email, @fullName, 'Coordinador de I+D', @roleId, @passwordHash, 1)
+          VALUES (@email, @fullName, @roleName, @roleId, @passwordHash, 1)
         `);
 
       const userProfile = parseRowJSON(insertRes.recordset[0]);
