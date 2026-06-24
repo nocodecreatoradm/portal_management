@@ -716,6 +716,133 @@ async function startServer() {
       return res.status(500).json({ error: "Error consultando FedEx", detail: err?.message });
     }
   });
+// Helper to wrap base64 strings to 76 chars per line (RFC 2045)
+function splitBase64(str: string): string {
+  const result: string[] = [];
+  for (let i = 0; i < str.length; i += 76) {
+    result.push(str.substring(i, i + 76));
+  }
+  return result.join('\r\n');
+}
+
+// Helper to construct a standard raw MIME message (RFC 2822)
+function buildMimeMessage(options: {
+  from: string;
+  to: string[];
+  cc?: string[];
+  subject: string;
+  body: string;
+  sapCode?: string;
+  isArtwork?: boolean;
+  attachments?: { name: string; content: string }[];
+}) {
+  const boundary = `----=_Part_${Math.random().toString(36).substring(2)}_${Date.now()}`;
+  const lines: string[] = [];
+
+  // Headers
+  lines.push(`From: ${options.from}`);
+  lines.push(`To: ${options.to.join(', ')}`);
+  if (options.cc && options.cc.length > 0) {
+    lines.push(`Cc: ${options.cc.join(', ')}`);
+  }
+
+  // RFC 2047 encoding for Subject to support UTF-8 accents/chars (e.g. ñ, á, é)
+  const encodedSubject = `=?UTF-8?B?${Buffer.from(options.subject, 'utf8').toString('base64')}?=`;
+  lines.push(`Subject: ${encodedSubject}`);
+
+  // Threading headers
+  if (options.isArtwork && options.sapCode) {
+    const baseId = `artwork_${options.sapCode.replace(/[^a-zA-Z0-9]/g, '')}`;
+    const messageId = `<${baseId}_${Date.now()}@portal.sole.com.pe>`;
+    
+    // Deterministic references list. Linking all potential stages in the thread.
+    const references = [
+      `<${baseId}_REG@portal.sole.com.pe>`,
+      `<${baseId}_ASG@portal.sole.com.pe>`,
+      `<${baseId}_INI@portal.sole.com.pe>`,
+      `<${baseId}_ID@portal.sole.com.pe>`,
+      `<${baseId}_MKT@portal.sole.com.pe>`,
+      `<${baseId}_PROV@portal.sole.com.pe>`,
+      `<${baseId}_PLAN@portal.sole.com.pe>`,
+      `<${baseId}_OBS1@portal.sole.com.pe>`,
+      `<${baseId}_OBS2@portal.sole.com.pe>`,
+      `<${baseId}_OBS3@portal.sole.com.pe>`,
+      `<${baseId}_REQ1@portal.sole.com.pe>`,
+      `<${baseId}_REQ2@portal.sole.com.pe>`,
+      `<${baseId}_REQ3@portal.sole.com.pe>`
+    ];
+
+    let currentId = messageId;
+    let parentId = `<${baseId}_REG@portal.sole.com.pe>`;
+    
+    const subLower = options.subject.toLowerCase();
+    if (subLower.includes('nuevo registro') || subLower.includes('creado')) {
+      currentId = `<${baseId}_REG@portal.sole.com.pe>`;
+    } else if (subLower.includes('asignaci')) {
+      currentId = `<${baseId}_ASG@portal.sole.com.pe>`;
+      parentId = `<${baseId}_REG@portal.sole.com.pe>`;
+    } else if (subLower.includes('nueva versi') || subLower.includes('lista para')) {
+      currentId = `<${baseId}_INI@portal.sole.com.pe>`;
+      parentId = `<${baseId}_ASG@portal.sole.com.pe>`;
+    } else if (subLower.includes('listo para revisi') || subLower.includes('marketing')) {
+      currentId = `<${baseId}_ID@portal.sole.com.pe>`;
+      parentId = `<${baseId}_INI@portal.sole.com.pe>`;
+    } else if (subLower.includes('pending provider') || subLower.includes('artwork review')) {
+      currentId = `<${baseId}_MKT@portal.sole.com.pe>`;
+      parentId = `<${baseId}_ID@portal.sole.com.pe>`;
+    } else if (subLower.includes('supplier approved') || subLower.includes('planeamiento')) {
+      currentId = `<${baseId}_PROV@portal.sole.com.pe>`;
+      parentId = `<${baseId}_MKT@portal.sole.com.pe>`;
+    } else if (subLower.includes('aprobaci') && subLower.includes('final')) {
+      currentId = `<${baseId}_PLAN@portal.sole.com.pe>`;
+      parentId = `<${baseId}_PROV@portal.sole.com.pe>`;
+    } else if (subLower.includes('observaci')) {
+      currentId = `<${baseId}_OBS_${Date.now()}@portal.sole.com.pe>`;
+      parentId = `<${baseId}_INI@portal.sole.com.pe>`;
+    } else if (subLower.includes('solicitud')) {
+      currentId = `<${baseId}_REQ_${Date.now()}@portal.sole.com.pe>`;
+      parentId = `<${baseId}_INI@portal.sole.com.pe>`;
+    }
+
+    lines.push(`Message-ID: ${currentId}`);
+    lines.push(`In-Reply-To: ${parentId}`);
+    lines.push(`References: ${references.join(' ')}`);
+  } else {
+    lines.push(`Message-ID: <${Date.now()}@portal.sole.com.pe>`);
+  }
+
+  lines.push(`MIME-Version: 1.0`);
+  lines.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
+  lines.push(``); // End of headers
+
+  // Body Part (HTML)
+  lines.push(`--${boundary}`);
+  lines.push(`Content-Type: text/html; charset=utf-8`);
+  lines.push(`Content-Transfer-Encoding: base64`);
+  lines.push(``);
+  const bodyBase64 = splitBase64(Buffer.from(options.body, 'utf8').toString('base64'));
+  lines.push(bodyBase64);
+  lines.push(``);
+
+  // Attachments
+  if (options.attachments && options.attachments.length > 0) {
+    for (const attach of options.attachments) {
+      lines.push(`--${boundary}`);
+      const encodedName = `=?UTF-8?B?${Buffer.from(attach.name, 'utf8').toString('base64')}?=`;
+      lines.push(`Content-Type: application/octet-stream; name="${encodedName}"`);
+      lines.push(`Content-Disposition: attachment; filename="${encodedName}"`);
+      lines.push(`Content-Transfer-Encoding: base64`);
+      lines.push(``);
+      lines.push(splitBase64(attach.content));
+      lines.push(``);
+    }
+  }
+
+  lines.push(`--${boundary}--`);
+
+  return lines.join('\r\n');
+}
+
   // Endpoint to send email notifications via MS Graph API (Protected)
   app.post("/api/send-email", requireAuth, async (req, res) => {
     const { to, subject, body, attachments, sapCode, isArtwork } = req.body;
@@ -772,140 +899,46 @@ async function startServer() {
 
       let emailSent = false;
 
-      // Threading logic for artwork tracking module
+      // Threading logic for artwork tracking module using raw MIME
       if (isArtwork && sapCode) {
         try {
-          console.log(`[EMAIL THREAD] Checking for existing thread for SAP code: ${sapCode}`);
-          // 1. Search the user's sent items folder
-          const sentItemsUrl = `https://graph.microsoft.com/v1.0/users/${userEmail}/mailFolders/sentitems/messages?$select=id,subject&$top=100&$orderby=receivedDateTime desc`;
-          const sentItemsRes = await fetch(sentItemsUrl, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              Accept: "application/json"
-            }
+          console.log(`[EMAIL THREAD] Sending MIME threaded email for SAP code: ${sapCode}`);
+          
+          const finalTo = recipientsData.toRecipients.map(r => r.emailAddress.address);
+          const finalCc = recipientsData.ccRecipients.map(r => r.emailAddress.address);
+
+          const mimeMessage = buildMimeMessage({
+            from: userEmail!,
+            to: finalTo,
+            cc: finalCc,
+            subject: subject,
+            body: body,
+            sapCode: sapCode,
+            isArtwork: true,
+            attachments: attachments
           });
 
-          if (sentItemsRes.ok) {
-            const sentData = await sentItemsRes.json() as any;
-            const messages = sentData.value || [];
-            
-            // Find the most recent message whose subject contains the sapCode (case-insensitive)
-            const parentMessage = messages.find((msg: any) => {
-              if (!msg.subject) return false;
-              return msg.subject.toLowerCase().includes(sapCode.toLowerCase());
-            });
+          const base64Mime = Buffer.from(mimeMessage, 'utf8').toString('base64');
+          const url = `https://graph.microsoft.com/v1.0/users/${userEmail}/sendMail`;
 
-            if (parentMessage) {
-              console.log(`[EMAIL THREAD] Found parent message: ID = ${parentMessage.id}, Subject = "${parentMessage.subject}"`);
-              
-              // 2. Create a reply draft
-              const replyUrl = `https://graph.microsoft.com/v1.0/users/${userEmail}/messages/${parentMessage.id}/createReply`;
-              const replyRes = await fetch(replyUrl, {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${accessToken}`,
-                  "Content-Type": "application/json"
-                }
-              });
+          const mimeResponse = await fetch(url, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "text/plain",
+            },
+            body: base64Mime,
+          });
 
-              if (replyRes.ok) {
-                const draft = await replyRes.json() as any;
-                const draftId = draft.id;
-                console.log(`[EMAIL THREAD] Created reply draft: ID = ${draftId}`);
-
-                // 3. Update reply draft with our custom body, toRecipients, and ccRecipients
-                const updateUrl = `https://graph.microsoft.com/v1.0/users/${userEmail}/messages/${draftId}`;
-                const updatePayload = {
-                  body: {
-                    contentType: "HTML",
-                    content: body
-                  },
-                  toRecipients: recipientsData.toRecipients,
-                  ccRecipients: recipientsData.ccRecipients
-                };
-
-                const updateRes = await fetch(updateUrl, {
-                  method: "PATCH",
-                  headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    "Content-Type": "application/json"
-                  },
-                  body: JSON.stringify(updatePayload)
-                });
-
-                if (updateRes.ok) {
-                  console.log(`[EMAIL THREAD] Updated reply draft successfully.`);
-
-                  // 4. Upload attachments if any
-                  let attachmentsUploaded = true;
-                  if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-                    for (const file of attachments) {
-                      const attachUrl = `https://graph.microsoft.com/v1.0/users/${userEmail}/messages/${draftId}/attachments`;
-                      const attachPayload = {
-                        "@odata.type": "#microsoft.graph.fileAttachment",
-                        name: file.name,
-                        contentBytes: file.content
-                      };
-
-                      const attachRes = await fetch(attachUrl, {
-                        method: "POST",
-                        headers: {
-                          Authorization: `Bearer ${accessToken}`,
-                          "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify(attachPayload)
-                      });
-
-                      if (!attachRes.ok) {
-                        const attachErr = await attachRes.json() as any;
-                        console.error(`[EMAIL THREAD] Failed to attach file ${file.name} to draft ${draftId}:`, attachErr);
-                        attachmentsUploaded = false;
-                        break;
-                      } else {
-                        console.log(`[EMAIL THREAD] Attached file ${file.name} successfully.`);
-                      }
-                    }
-                  }
-
-                  if (attachmentsUploaded) {
-                    // 5. Send reply draft
-                    const sendUrl = `https://graph.microsoft.com/v1.0/users/${userEmail}/messages/${draftId}/send`;
-                    const sendRes = await fetch(sendUrl, {
-                      method: "POST",
-                      headers: {
-                        Authorization: `Bearer ${accessToken}`
-                      }
-                    });
-
-                    if (sendRes.ok) {
-                      console.log(`[EMAIL THREAD] Threaded email sent successfully via reply draft.`);
-                      emailSent = true;
-                    } else {
-                      try {
-                        const sendErr = await sendRes.json() as any;
-                        console.error(`[EMAIL THREAD] Failed to send draft ${draftId}:`, sendErr);
-                      } catch {
-                        console.error(`[EMAIL THREAD] Failed to send draft ${draftId} (failed to parse error response status ${sendRes.status})`);
-                      }
-                    }
-                  }
-                } else {
-                  const updateErr = await updateRes.json() as any;
-                  console.error(`[EMAIL THREAD] Failed to update draft ${draftId}:`, updateErr);
-                }
-              } else {
-                const replyErr = await replyRes.json() as any;
-                console.error(`[EMAIL THREAD] Failed to create reply for message ${parentMessage.id}:`, replyErr);
-              }
-            } else {
-              console.log(`[EMAIL THREAD] No previous sent message found for SAP code ${sapCode} to thread onto.`);
-            }
+          if (mimeResponse.ok) {
+            console.log(`[EMAIL THREAD] MIME threaded email sent successfully!`);
+            emailSent = true;
           } else {
-            const sentItemsErr = await sentItemsRes.json() as any;
-            console.error(`[EMAIL THREAD] Failed to fetch sent items:`, sentItemsErr);
+            const errBody = await mimeResponse.text();
+            console.error(`[EMAIL THREAD] Failed to send MIME email: Status ${mimeResponse.status}, Error:`, errBody);
           }
         } catch (threadError) {
-          console.error(`[EMAIL THREAD] Unexpected error in threading flow:`, threadError);
+          console.error(`[EMAIL THREAD] Unexpected error in MIME threading flow:`, threadError);
         }
       }
 
