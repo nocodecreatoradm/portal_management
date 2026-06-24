@@ -84,8 +84,11 @@ export default function QualityClaimsModule({
     { name: 'Subsanados', cantidad: stats.resolved, color: '#10b981' }
   ], [stats]);
 
-  const handleProductLinkClick = (sapCode: string) => {
-    const product = products.find(p => p.codigoSAP === sapCode);
+  const handleProductLinkClick = (sapCode: string, trackingType?: string) => {
+    let product = products.find(p => p.codigoSAP === sapCode && p.trackingType === trackingType);
+    if (!product) {
+      product = products.find(p => p.codigoSAP === sapCode);
+    }
     if (product) {
       onOpenClaimsModal(product);
     }
@@ -280,7 +283,7 @@ export default function QualityClaimsModule({
                   <tr key={claim.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-5 font-mono text-xs font-bold text-slate-900">
                       <button
-                        onClick={() => handleProductLinkClick(claim.sapCode)}
+                        onClick={() => handleProductLinkClick(claim.sapCode, claim.trackingType)}
                         className="flex items-center gap-1.5 hover:text-blue-600 outline-none text-left"
                       >
                         {claim.sapCode}
