@@ -83,6 +83,8 @@ import { LoginPage } from './components/LoginPage';
 import ResetPasswordPage from './components/ResetPasswordPage';
 import { useTranslation } from 'react-i18next';
 
+const APP_VERSION = 'V.260624';
+
 export default function App() {
   const { samples, setSamples } = useSamples();
   const { user, profile, loading, isRecovery } = useAuth();
@@ -1889,6 +1891,10 @@ export default function App() {
               localStorage.setItem('is_soly_visible', JSON.stringify(visible));
             }}
           />
+
+          <div className="fixed bottom-1.5 right-6 z-40 pointer-events-none select-none">
+            <span className="text-[9px] font-black text-slate-400 opacity-60 tracking-wider">{APP_VERSION}</span>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
