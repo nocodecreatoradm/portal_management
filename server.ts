@@ -12,6 +12,25 @@ import crypto from "crypto";
 
 dotenv.config();
 
+// In-memory log buffer for troubleshooting in production
+export const debugLogs: string[] = [];
+const originalLog = console.log;
+const originalError = console.error;
+
+console.log = (...args) => {
+  const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+  debugLogs.push(`${new Date().toISOString()} [LOG] ${msg}`);
+  if (debugLogs.length > 2000) debugLogs.shift();
+  originalLog.apply(console, args);
+};
+
+console.error = (...args) => {
+  const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+  debugLogs.push(`${new Date().toISOString()} [ERROR] ${msg}`);
+  if (debugLogs.length > 2000) debugLogs.shift();
+  originalError.apply(console, args);
+};
+
 process.on("uncaughtException", (err) => {
   console.error("SERVER UNCAUGHT EXCEPTION:", err);
 });
@@ -307,6 +326,11 @@ async function startServer() {
 
   // Use a secure JSON payload limit (10MB) to prevent thread block DoS attacks
   app.use(express.json({ limit: '10mb' }));
+
+  app.get("/api/debug-logs", (req, res) => {
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.send(debugLogs.join('\n'));
+  });
 
   // In-memory token cache for Microsoft Graph
   let cachedToken: string | null = null;
