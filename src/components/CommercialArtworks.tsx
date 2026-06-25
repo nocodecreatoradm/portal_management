@@ -15,11 +15,11 @@ import HeaderFilterPopover from './HeaderFilterPopover';
 interface FolderFilesViewProps {
   files: Array<{ name: string; url: string; commercialType?: string }>;
   mode: 'artwork' | 'technical_sheet' | 'commercial_sheet';
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
-function FolderFilesView({ files, mode }: FolderFilesViewProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
+function FolderFilesView({ files, mode, isOpen, onToggle }: FolderFilesViewProps) {
   if (!files || files.length === 0) {
     return <span className="text-slate-400 italic text-[10px]">Sin archivos</span>;
   }
@@ -27,7 +27,7 @@ function FolderFilesView({ files, mode }: FolderFilesViewProps) {
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={onToggle}
         className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all text-[11px] font-semibold w-full justify-between group ${
           isOpen 
             ? 'bg-amber-50 text-amber-700 border-amber-200 shadow-sm' 
@@ -106,6 +106,7 @@ export default function CommercialArtworks({
   const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' | null }>({ column: '', direction: null });
   const [selectedProduct, setSelectedProduct] = useState<ProductRecord | null>(null);
   const [selectedVersions, setSelectedVersions] = useState<Record<string, number>>({});
+  const [openFolderKey, setOpenFolderKey] = useState<string | null>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
 
@@ -429,7 +430,10 @@ export default function CommercialArtworks({
                     } else {
                       return v.idApproval.status === 'approved';
                     }
-                  });
+                  }).map(v => ({
+                    ...v,
+                    files: v.files.filter(f => f.name.toLowerCase().endsWith('.pdf'))
+                  })).filter(v => v.files.length > 0);
 
                   if (approvedVersions.length === 0) return null;
 
@@ -507,7 +511,12 @@ export default function CommercialArtworks({
                                     {group.displayName}
                                   </span>
                                 )}
-                                <FolderFilesView files={currentVersion.files} mode={mode} />
+                                <FolderFilesView 
+                                  files={currentVersion.files} 
+                                  mode={mode} 
+                                  isOpen={openFolderKey === stateKey}
+                                  onToggle={() => setOpenFolderKey(openFolderKey === stateKey ? null : stateKey)}
+                                />
                               </div>
                             );
                           })}
