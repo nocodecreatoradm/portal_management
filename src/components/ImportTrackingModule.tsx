@@ -966,14 +966,18 @@ export default function ImportTrackingModule() {
   };
 
   // Request code email notification
-  const handleOpenPlanningRequest = (shipmentId: string, item: SampleItem) => {
-    setSelectedSampleItem({ shipmentId, item });
-    setPlanningForm({ ...item });
-    
-    // Auto-generate dynamic email details
-    const to = ['planeamientomt@sole.com.pe', 'importaciones@sole.com.pe', 'admin@sole.com.pe'];
-    const subject = `[Solicitud de Código de Muestra] - ${item.commercialDescription}`;
-    const body = `Estimado equipo de Planeamiento,
+  const handleOpenPlanningRequest = (shipmentId: string, item?: SampleItem) => {
+    const shipment = shipments.find(s => s.id === shipmentId);
+    if (!shipment) return;
+
+    if (item) {
+      // Individual request (Fallback / backwards compatibility)
+      setSelectedSampleItem({ shipmentId, item });
+      setPlanningForm({ ...item });
+      
+      const to = ['planeamientomt@sole.com.pe', 'importaciones@sole.com.pe', 'admin@sole.com.pe'];
+      const subject = `[Solicitud de Código de Muestra] - ${item.commercialDescription}`;
+      const body = `Estimado equipo de Planeamiento,
 
 Se solicita la creación del código de material SAP para la siguiente muestra importada:
 
@@ -992,19 +996,69 @@ DETALLES DEL MATERIAL DE MUESTRA
 * Modo de Compra: ${item.modoCompra}
 * Finalidad: ${item.finalidad}
 * Almacén Destino: ${item.almacen}
+* Ficha Técnica En: ${item.fichaTecnicaEn || 'SI'}
 --------------------------------------------------------------------------------
 
 Agradecemos su pronta atención para la generación de este código a la brevedad.
 
 Atentamente,
-Equipo de Importaciones & Desarrollo`;
+Equipos de Investigación y Desarrollo`;
 
-    setEmailPreview({ to, subject, body });
-    setIsPlanningModalOpen(true);
+      setEmailPreview({ to, subject, body });
+      setIsPlanningModalOpen(true);
+    } else {
+      // Bulk request for all pending samples in the shipment
+      const pendingItems = shipment.samples.filter(x => !x.code && x.status !== 'solicitado');
+      if (pendingItems.length === 0) {
+        toast.error('No hay muestras pendientes de código en este envío.');
+        return;
+      }
+
+      setSelectedSampleItem({ shipmentId, item: null as any });
+      setPlanningForm({} as any);
+
+      const to = ['planeamientomt@sole.com.pe', 'importaciones@sole.com.pe', 'admin@sole.com.pe'];
+      const subject = `[Solicitud de Creación de Códigos de Muestras] - Envío ${shipment.trackingNumber || shipment.quoteName || ''}`;
+      
+      let body = `Estimado equipo de Planeamiento,
+
+Se solicita la creación de los códigos de material SAP para las siguientes muestras importadas:
+
+`;
+
+      pendingItems.forEach((x, index) => {
+        body += `================================================================================
+MUESTRA ${index + 1}: ${x.commercialDescription}
+================================================================================
+* Descripción Comercial: ${x.commercialDescription}
+* Descripción Completa: ${x.fullDescription}
+* Dimensiones: ${x.alto} (alto) x ${x.ancho} (ancho) x ${x.profundidad} (profundidad)
+* Peso: ${x.peso}
+* Unidad de Medida: ${x.unidadMedida}
+* Presentación: ${x.presentacion}
+* Costo Unitario: USD ${x.costoUnitario.toFixed(2)}
+* Sujeto a Lote: ${x.sujetoALote}
+* Código Modelo: ${x.codigoModelo}
+* Modo de Compra: ${x.modoCompra}
+* Finalidad: ${x.finalidad}
+* Almacén Destino: ${x.almacen}
+* Ficha Técnica En: ${x.fichaTecnicaEn || 'SI'}
+
+`;
+      });
+
+      body += `Agradecemos su pronta atención para la generación de estos códigos a la brevedad.
+
+Atentamente,
+Equipos de Investigación y Desarrollo`;
+
+      setEmailPreview({ to, subject, body });
+      setIsPlanningModalOpen(true);
+    }
   };
 
   const handleSendPlanningEmail = () => {
-    if (!selectedSampleItem || !planningForm) return;
+    if (!selectedSampleItem) return;
 
     // Simulate sending email
     toast.loading('Enviando correo formal a Planeamiento...');
@@ -1012,8 +1066,15 @@ Equipo de Importaciones & Desarrollo`;
       const updated = shipments.map(s => {
         if (s.id === selectedSampleItem.shipmentId) {
           const updatedItems = s.samples.map(item => {
-            if (item.id === selectedSampleItem.item.id) {
-              return { ...item, ...planningForm, status: 'solicitado' as const };
+            if (selectedSampleItem.item) {
+              if (item.id === selectedSampleItem.item.id) {
+                return { ...item, ...planningForm, status: 'solicitado' as const };
+              }
+            } else {
+              // Bulk update: all samples needing code
+              if (!item.code && item.status !== 'solicitado') {
+                return { ...item, status: 'solicitado' as const };
+              }
             }
             return item;
           });
@@ -1443,11 +1504,24 @@ Equipo de Importaciones & Desarrollo`;
                 {/* Expanded Details: Samples Grid & Code Creator Form */}
                 {isExpanded && (
                   <div className="bg-slate-50 border-t border-slate-100 p-6 space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-4 flex-wrap w-full">
                       <h5 className="text-sm font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
                         <Layers size={16} />
                         Detalle de Muestras a Recibir
                       </h5>
+                      {(() => {
+                        const hasPendingCodes = s.samples.some(item => !item.code && item.status !== 'solicitado');
+                        if (!hasPendingCodes) return null;
+                        return (
+                          <button
+                            onClick={() => handleOpenPlanningRequest(s.id)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 shadow-md shadow-blue-100"
+                          >
+                            <Mail size={12} />
+                            Solicitar Códigos de Muestras
+                          </button>
+                        );
+                      })()}
                     </div>
 
                     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
@@ -1500,13 +1574,6 @@ Equipo de Importaciones & Desarrollo`;
                                   </span>
                                 ) : (
                                   <div className="flex justify-end gap-1.5">
-                                    <button
-                                      onClick={() => handleOpenPlanningRequest(s.id, item)}
-                                      className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-black uppercase tracking-tight transition-all active:scale-95 shadow-sm"
-                                    >
-                                      <Mail size={10} />
-                                      Solicitar
-                                    </button>
                                     <button
                                       onClick={() => handleOpenAssignCode(s.id, item)}
                                       className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase tracking-tight transition-all active:scale-95 shadow-sm border border-slate-700"
@@ -1962,7 +2029,7 @@ Equipo de Importaciones & Desarrollo`;
       )}
 
       {/* MODAL: SOLICITUD DE CÓDIGO (Excel Planning Form) */}
-      {isPlanningModalOpen && selectedSampleItem && planningForm && emailPreview && (
+      {isPlanningModalOpen && selectedSampleItem && emailPreview && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-55 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-4xl w-full p-8 shadow-2xl relative border border-slate-100 max-h-[90vh] overflow-y-auto space-y-6">
             <button 
@@ -1979,20 +2046,25 @@ Equipo de Importaciones & Desarrollo`;
               <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
                 <FileSpreadsheet size={24} />
               </div>
-              <h3 className="text-xl font-black text-slate-950 tracking-tight">Formulario de Creación de Código de Muestra</h3>
+              <h3 className="text-xl font-black text-slate-950 tracking-tight">
+                {selectedSampleItem.item ? 'Formulario de Creación de Código de Muestra' : 'Solicitud de Creación de Códigos'}
+              </h3>
               <p className="text-slate-500 text-xs mt-1">
-                Complete los datos técnicos requeridos por el equipo de Planeamiento para generar el código SAP de la muestra.
+                {selectedSampleItem.item 
+                  ? 'Complete los datos técnicos requeridos por el equipo de Planeamiento para generar el código SAP de la muestra.' 
+                  : 'Verifique las muestras técnicas que se enviarán al equipo de Planeamiento para generar sus códigos SAP.'}
               </p>
             </div>
 
-            {/* Excel Row Form (Styled beautifully) */}
-            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 space-y-6">
-              <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-2">
-                <FileSpreadsheet className="text-green-600" size={18} />
-                <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest">
-                  Plantilla de Carga de Planeamiento
-                </h4>
-              </div>
+            {/* Excel Row Form or Samples Summary List */}
+            {selectedSampleItem.item && planningForm ? (
+              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 space-y-6">
+                <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-2">
+                  <FileSpreadsheet className="text-green-600" size={18} />
+                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                    Plantilla de Carga de Planeamiento
+                  </h4>
+                </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div>
@@ -2142,7 +2214,39 @@ Equipo de Importaciones & Desarrollo`;
                   />
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-2">
+                  <FileSpreadsheet className="text-green-600" size={18} />
+                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                    Muestras Incluidas en la Solicitud ({
+                      (() => {
+                        const s = shipments.find(x => x.id === selectedSampleItem.shipmentId);
+                        return s?.samples.filter(item => !item.code && item.status !== 'solicitado').length || 0;
+                      })()
+                    })
+                  </h4>
+                </div>
+                <div className="max-h-[200px] overflow-y-auto space-y-2 pr-1">
+                  {(() => {
+                    const s = shipments.find(x => x.id === selectedSampleItem.shipmentId);
+                    const pending = s?.samples.filter(item => !item.code && item.status !== 'solicitado') || [];
+                    return pending.map((item) => (
+                      <div key={item.id} className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+                        <div>
+                          <p className="font-bold text-slate-900">{item.commercialDescription}</p>
+                          <p className="text-[10px] text-slate-400 font-medium mt-0.5">{item.fullDescription}</p>
+                        </div>
+                        <div className="text-right text-[10px] font-semibold text-slate-500 space-y-0.5">
+                          <p>Modelo: {item.codigoModelo}</p>
+                          <p>Costo: USD {item.costoUnitario.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
 
             {/* Email notification preview */}
             <div className="space-y-2">
