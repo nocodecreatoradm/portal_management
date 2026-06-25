@@ -843,6 +843,219 @@ function buildMimeMessage(options: {
   return lines.join('\r\n');
 }
 
+  // Temporary endpoint to send the simulated missed email for Horisun SMP-002
+  app.get("/api/send-missed-horisun-email", async (req, res) => {
+    try {
+      const accessToken = await getAzureAccessToken();
+      const userEmail = process.env.AZURE_MAIL_USER;
+      
+      const poolInstance = await getDBPool();
+      const adminsRes = await poolInstance.request().query(`
+        SELECT email FROM ID_PORTAL.profiles 
+        WHERE role = 'admin' AND is_active = 1
+      `);
+      const adminEmails = (adminsRes.recordset || []).map((a: any) => a.email).filter(Boolean);
+      
+      const toEmails = ['planeamientomt@sole.com.pe', 'importaciones@sole.com.pe', 'admin@sole.com.pe'];
+      const finalCc = adminEmails.filter(email => !toEmails.includes(email));
+
+      const subject = `[Solicitud de Creación de Códigos de Muestras] - Envío Pendiente - HORISUN`;
+      const title = 'Solicitud de Creación de Códigos SAP';
+
+      const samplesHTML = `
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: left;">
+          <h3 style="margin-top: 0; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; font-size: 15px; font-weight: bold;">
+            Muestra #1: 5-Burner Gas hob Brass&Aluminum base Horisun
+          </h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: left;">
+            <tbody>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569; width: 40%;">Descripción Comercial:</td>
+                <td style="padding: 6px 0; color: #1e293b;">5-Burner Gas hob Brass&Aluminum base Horisun</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Descripción Completa:</td>
+                <td style="padding: 6px 0; color: #1e293b;">5-Burner Gas hob Brass&Aluminum base Horisun</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Dimensiones (Alto x Ancho x Prof.):</td>
+                <td style="padding: 6px 0; color: #1e293b;">30 cm (alto) x 90 cm (ancho) x 60 cm (profundidad)</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Peso:</td>
+                <td style="padding: 6px 0; color: #1e293b;">10 kg</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Unidad de Medida / Presentación:</td>
+                <td style="padding: 6px 0; color: #1e293b;">UN / Muestra</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Costo Unitario:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-weight: bold;">USD 133.00</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Sujeto a Lote:</td>
+                <td style="padding: 6px 0; color: #1e293b;">NO</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Código Modelo:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-family: monospace;">-</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Modo de Compra / Finalidad:</td>
+                <td style="padding: 6px 0; color: #1e293b;">IMPORTADO / MUESTRAS</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Almacén Destino:</td>
+                <td style="padding: 6px 0; color: #1e293b;">138</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Ficha Técnica En:</td>
+                <td style="padding: 6px 0; color: #1e293b;">SI</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: left;">
+          <h3 style="margin-top: 0; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; font-size: 15px; font-weight: bold;">
+            Muestra #2: 4-Burner Gas hob Horisun
+          </h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: left;">
+            <tbody>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569; width: 40%;">Descripción Comercial:</td>
+                <td style="padding: 6px 0; color: #1e293b;">4-Burner Gas hob Horisun</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Descripción Completa:</td>
+                <td style="padding: 6px 0; color: #1e293b;">5-Burner Gas hob Brass&Aluminum base Horisun</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Dimensiones (Alto x Ancho x Prof.):</td>
+                <td style="padding: 6px 0; color: #1e293b;">30 cm (alto) x 90 cm (ancho) x 60 cm (profundidad)</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Peso:</td>
+                <td style="padding: 6px 0; color: #1e293b;">10 kg</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Unidad de Medida / Presentación:</td>
+                <td style="padding: 6px 0; color: #1e293b;">UN / Muestra</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Costo Unitario:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-weight: bold;">USD 107.00</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Sujeto a Lote:</td>
+                <td style="padding: 6px 0; color: #1e293b;">NO</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Código Modelo:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-family: monospace;">-</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Modo de Compra / Finalidad:</td>
+                <td style="padding: 6px 0; color: #1e293b;">IMPORTADO / MUESTRAS</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Almacén Destino:</td>
+                <td style="padding: 6px 0; color: #1e293b;">138</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Ficha Técnica En:</td>
+                <td style="padding: 6px 0; color: #1e293b;">SI</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      const documentLinesHTML = `
+        <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; margin: 20px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: left;">
+          <p style="margin: 0 0 10px 0; font-weight: bold; color: #334155; font-size: 13px;">Documentación Adjunta del Envío:</p>
+          <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #475569; line-height: 1.5;">
+            <li style="margin-bottom: 8px;">
+              <strong>Cotización principal:</strong> 
+              <a href="#" style="color: #2563eb; text-decoration: underline; font-weight: 500;">Cotización</a>
+            </li>
+          </ul>
+        </div>
+      `;
+
+      const content = `
+        <p>Estimado equipo de Planeamiento y Administradores,</p>
+        <p>Se solicita la creación de los códigos de material SAP para las siguientes muestras importadas pertenecientes al envío <strong>SMP-002</strong> (Tracking: <strong>Pendiente</strong>, Transportadora: <strong>DHL</strong>):</p>
+        
+        <div style="margin-top: 20px;">
+          ${samplesHTML}
+        </div>
+
+        ${documentLinesHTML}
+
+        <p style="margin-top: 24px;">Agradecemos su pronta atención para la generación de estos códigos a la brevedad.</p>
+        <br/>
+        <p style="margin: 0;">Atentamente,</p>
+        <p style="margin: 0;"><strong>Equipos de Investigación y Desarrollo</strong></p>
+        <p style="margin: 0;">Grupo Sole</p>
+      `;
+
+      const htmlBody = `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
+          <div style="background-color: #0f172a; padding: 24px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 20px; letter-spacing: 1px;">PORTAL DE GESTIÓN I+D</h1>
+          </div>
+          <div style="padding: 32px;">
+            <h2 style="color: #1e293b; margin-top: 0; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px;">${title}</h2>
+            <div style="color: #475569; line-height: 1.6; font-size: 14px; margin-top: 20px;">
+              ${content}
+            </div>
+            <div style="margin-top: 32px; text-align: center;">
+              <a href="https://portal-management.mtindustrial.com.pe?module=import_tracking" style="background-color: #ea580c; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Ver Detalles en el Portal</a>
+            </div>
+          </div>
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #f1f5f9;">
+            <p style="margin: 0; color: #94a3b8; font-size: 12px;">&copy; ${new Date().getFullYear()} MT Industrial S.A.C. - Todos los derechos reservados.</p>
+            <p style="margin: 4px 0; color: #cbd5e1; font-size: 10px;">Este es un mensaje automático, por favor no responder.</p>
+          </div>
+        </div>
+      `;
+
+      const url = `https://graph.microsoft.com/v1.0/users/${userEmail}/sendMail`;
+      const emailPayload = {
+        message: {
+          subject,
+          body: {
+            contentType: "HTML",
+            content: htmlBody,
+          },
+          toRecipients: toEmails.map(email => ({ emailAddress: { address: email } })),
+          ccRecipients: finalCc.map(email => ({ emailAddress: { address: email } })),
+        }
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(emailPayload),
+      });
+
+      if (!response.ok) {
+        const errBody = await response.text();
+        throw new Error(`Failed to send email: Status ${response.status}, Error: ${errBody}`);
+      }
+
+      res.json({ success: true, message: "Correo enviado de forma exitosa a Planeamiento y Admins para el caso HORISUN SMP-002." });
+    } catch (err: any) {
+      console.error("[MISSED EMAIL ERROR]", err);
+      res.status(500).json({ error: err.message || "Internal server error" });
+    }
+  });
+
   // Endpoint to send email notifications via MS Graph API (Protected)
   app.post("/api/send-email", requireAuth, async (req, res) => {
     const { to, subject, body, attachments, sapCode, isArtwork } = req.body;

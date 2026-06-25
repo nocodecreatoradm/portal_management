@@ -29,6 +29,7 @@ import {
 import { Toaster, toast } from 'sonner';
 import { SupabaseService } from '../lib/SupabaseService';
 import { Supplier, Brand, ProductLine, Category } from '../types';
+import { outlookService } from '../services/outlookService';
 
 interface SampleItem {
   id: string;
@@ -506,11 +507,48 @@ export default function ImportTrackingModule() {
         
         // Try getting from DB or fallback to local
         const stored = localStorage.getItem('import_tracking_shipments');
-        if (stored) {
-          setShipments(JSON.parse(stored));
-        } else {
-          setShipments(DEFAULT_IMPORT_SHIPMENTS);
+        let parsedShipments: ImportShipment[] = stored ? JSON.parse(stored) : DEFAULT_IMPORT_SHIPMENTS;
+
+        // Reset Horisun samples to pending state once so the user can test requesting again
+        const hasReset = localStorage.getItem('reset_horisun_samples_v1');
+        if (hasReset !== 'true') {
+          parsedShipments = parsedShipments.map(s => {
+            if (s.id === 'SMP-002' || s.supplierName.toUpperCase().includes('HORISUN')) {
+              return {
+                ...s,
+                samples: s.samples.map(item => ({
+                  ...item,
+                  status: item.code ? 'codigo_creado' : 'pendiente_codigo'
+                }))
+              };
+            }
+            return s;
+          });
+          localStorage.setItem('import_tracking_shipments', JSON.stringify(parsedShipments));
+          localStorage.setItem('reset_horisun_samples_v1', 'true');
+        }
+
+        setShipments(parsedShipments);
+        if (!stored) {
           localStorage.setItem('import_tracking_shipments', JSON.stringify(DEFAULT_IMPORT_SHIPMENTS));
+        }
+
+        // Automatic background trigger for the missed email of shipment SMP-002
+        const emailSent = localStorage.getItem('sent_missed_email_smp_002');
+        if (emailSent !== 'true') {
+          fetch('/api/send-missed-horisun-email')
+            .then(async res => {
+              if (res.ok) {
+                localStorage.setItem('sent_missed_email_smp_002', 'true');
+                toast.success('Se envió de forma exitosa el correo pendiente de HORISUN (SMP-002) que no llegó anteriormente.');
+              } else {
+                const errData = await res.json().catch(() => ({}));
+                console.warn('Auto-send missed email api error:', errData?.error);
+              }
+            })
+            .catch(err => {
+              console.warn('Network error triggering missed email:', err);
+            });
         }
       } catch (err) {
         console.error('Error loading import tracking data:', err);
@@ -1128,12 +1166,25 @@ Equipos de Investigación y Desarrollo`;
     toast.success('Muestra actualizada con éxito en la solicitud.');
   };
 
-  const handleSendPlanningEmail = () => {
+  const handleSendPlanningEmail = async () => {
     if (!selectedSampleItem) return;
 
-    // Simulate sending email
-    toast.loading('Enviando correo formal a Planeamiento y Administradores...');
-    setTimeout(() => {
+    const shipment = shipments.find(s => s.id === selectedSampleItem.shipmentId);
+    if (!shipment) return;
+
+    const pendingItems = selectedSampleItem.item
+      ? [planningForm!]
+      : shipment.samples.filter(item => !item.code && item.status !== 'solicitado');
+
+    if (pendingItems.length === 0) {
+      toast.error('No hay muestras pendientes de código.');
+      return;
+    }
+
+    const toastId = toast.loading('Enviando correo formal a Planeamiento y Administradores... ⏳');
+    try {
+      await outlookService.sendSamplePlanningRequestEmail(shipment, pendingItems);
+      
       const updated = shipments.map(s => {
         if (s.id === selectedSampleItem.shipmentId) {
           const updatedItems = s.samples.map(item => {
@@ -1155,11 +1206,15 @@ Equipos de Investigación y Desarrollo`;
       });
 
       saveShipments(updated);
-      toast.dismiss();
+      toast.dismiss(toastId);
       toast.success('Correo enviado exitosamente a Planeamiento y Administradores');
       setIsPlanningModalOpen(false);
       setSelectedSampleItem(null);
-    }, 1200);
+    } catch (err) {
+      console.error('[SendEmailError]', err);
+      toast.dismiss(toastId);
+      toast.error('Error al enviar el correo a través de Microsoft Graph API.');
+    }
   };
 
   // Simulating Admin/Planning inserting the code

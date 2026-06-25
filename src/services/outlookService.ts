@@ -36,14 +36,12 @@ export const outlookService = {
     `;
   },
 
-  /**
-   * Helper to generate a deep link to the portal
-   */
   getModuleUrl: (type: string) => {
     const t = type?.toLowerCase() || '';
     let moduleParam = 'artwork_followup'; // default
     if (t.includes('technical') || t.includes('fichas') || t.includes('técnica')) moduleParam = 'technical_datasheet';
     if (t.includes('commercial') || t.includes('comercial')) moduleParam = 'commercial_datasheet';
+    if (t.includes('import')) moduleParam = 'import_tracking';
     
     // In browser context
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://portal-management.mtindustrial.com.pe';
@@ -451,6 +449,144 @@ export const outlookService = {
     } catch (e) {
       console.error('Error sending final datasheet approval email:', e);
       toast.error('Error al enviar la notificación de aprobación final');
+  },
+
+  /**
+   * Sends the bulk email request to Planning and Admins for SAP Code creation.
+   */
+  sendSamplePlanningRequestEmail: async (shipment: any, pendingItems: any[]) => {
+    if (!shipment || !pendingItems || pendingItems.length === 0) return false;
+
+    const subject = `[Solicitud de Creación de Códigos de Muestras] - Envío ${shipment.trackingNumber || shipment.quoteName || shipment.id || ''}`;
+    const title = 'Solicitud de Creación de Códigos SAP';
+
+    // Build the list of samples in HTML format
+    const samplesHTML = pendingItems.map((x, index) => `
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: left;">
+        <h3 style="margin-top: 0; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; font-size: 15px; font-weight: bold;">
+          Muestra #${index + 1}: ${x.commercialDescription}
+        </h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: left;">
+          <tbody>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569; width: 40%;">Descripción Comercial:</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.commercialDescription}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Descripción Completa:</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.fullDescription}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Dimensiones (Alto x Ancho x Prof.):</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.alto} (alto) x ${x.ancho} (ancho) x ${x.profundidad} (profundidad)</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Peso:</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.peso}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Unidad de Medida / Presentación:</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.unidadMedida} / ${x.presentacion}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Costo Unitario:</td>
+              <td style="padding: 6px 0; color: #1e293b; font-weight: bold;">USD ${typeof x.costoUnitario === 'number' ? x.costoUnitario.toFixed(2) : parseFloat(x.costoUnitario || 0).toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Sujeto a Lote:</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.sujetoALote}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Código Modelo:</td>
+              <td style="padding: 6px 0; color: #1e293b; font-family: monospace;">${x.codigoModelo || '-'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Modo de Compra / Finalidad:</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.modoCompra} / ${x.finalidad}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Almacén Destino:</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.almacen}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Ficha Técnica En:</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.fichaTecnicaEn || 'SI'}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `).join('');
+
+    // Build the list of attached documents
+    let documentLinesHTML = '';
+    const documentLines: string[] = [];
+    if (shipment.quoteName) {
+      documentLines.push(`
+        <li style="margin-bottom: 8px;">
+          <strong>Cotización principal:</strong> 
+          <a href="${shipment.quoteUrl}" target="_blank" style="color: #2563eb; text-decoration: underline; font-weight: 500;">${shipment.quoteName}</a>
+        </li>
+      `);
+    }
+    if (shipment.documents && shipment.documents.length > 0) {
+      shipment.documents.forEach((doc: any) => {
+        documentLines.push(`
+          <li style="margin-bottom: 8px;">
+            <strong>${doc.name.split(':')[0]}:</strong> 
+            <a href="${doc.url}" target="_blank" style="color: #2563eb; text-decoration: underline; font-weight: 500;">${doc.name}</a>
+          </li>
+        `);
+      });
+    }
+
+    if (documentLines.length > 0) {
+      documentLinesHTML = `
+        <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; margin: 20px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: left;">
+          <p style="margin: 0 0 10px 0; font-weight: bold; color: #334155; font-size: 13px;">Documentación Adjunta del Envío:</p>
+          <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #475569; line-height: 1.5;">
+            ${documentLines.join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    const content = `
+      <p>Estimado equipo de Planeamiento y Administradores,</p>
+      <p>Se solicita la creación de los códigos de material SAP para las siguientes muestras importadas pertenecientes al envío <strong>${shipment.id}</strong> (Tracking: <strong>${shipment.trackingNumber || 'Pendiente'}</strong>, Transportadora: <strong>${shipment.carrier}</strong>):</p>
+      
+      <div style="margin-top: 20px;">
+        ${samplesHTML}
+      </div>
+
+      ${documentLinesHTML}
+
+      <p style="margin-top: 24px;">Agradecemos su pronta atención para la generación de estos códigos a la brevedad.</p>
+      <br/>
+      <p style="margin: 0;">Atentamente,</p>
+      <p style="margin: 0;"><strong>Equipos de Investigación y Desarrollo</strong></p>
+      <p style="margin: 0;">Grupo Sole</p>
+    `;
+
+    try {
+      const adminEmails = await outlookService.getAdminEmails();
+      const planningRolesEmails = await outlookService.getPlanningEmails();
+      
+      const recipients = [...new Set([
+        'planeamientomt@sole.com.pe', 
+        'importaciones@sole.com.pe',
+        'admin@sole.com.pe',
+        ...adminEmails,
+        ...planningRolesEmails
+      ].filter(Boolean))];
+
+      const actionUrl = outlookService.getModuleUrl('import_tracking');
+      const htmlBody = outlookService.wrapInTemplate(title, content, actionUrl);
+      
+      await outlookService.send(recipients, subject, htmlBody);
+      return true;
+    } catch (e) {
+      console.error('Error sending sample planning request email:', e);
+      throw e;
     }
   },
 
