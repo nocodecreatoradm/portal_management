@@ -2214,7 +2214,8 @@ Equipos de Investigación y Desarrollo`;
                   />
                 </div>
               </div>
-            ) : (
+            </div>
+          ) : (
               <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-2">
                   <FileSpreadsheet className="text-green-600" size={18} />
@@ -2312,8 +2313,8 @@ Equipos de Investigación y Desarrollo`;
             <div className="space-y-4">
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/60">
                 <p className="text-xs text-slate-550 font-semibold uppercase tracking-wider">Muestra seleccionada:</p>
-                <p className="text-sm font-bold text-slate-800 mt-0.5">{selectedSampleItem.item.commercialDescription}</p>
-                <p className="text-[10px] text-slate-400 font-medium mt-0.5">{selectedSampleItem.item.fullDescription}</p>
+                <p className="text-sm font-bold text-slate-800 mt-0.5">{selectedSampleItem.item?.commercialDescription}</p>
+                <p className="text-[10px] text-slate-400 font-medium mt-0.5">{selectedSampleItem.item?.fullDescription}</p>
               </div>
 
               <div>
