@@ -433,11 +433,39 @@ export default function CommercialArtworks({
 
                   if (approvedVersions.length === 0) return null;
 
-                  // Get currently selected version or default to the latest approved version (highest version number)
-                  const sortedApproved = [...approvedVersions].sort((a, b) => a.version - b.version);
-                  const latestApproved = sortedApproved[sortedApproved.length - 1];
-                  const currentVersionNum = selectedVersions[record.id] || latestApproved.version;
-                  const currentVersion = approvedVersions.find(v => v.version === currentVersionNum) || latestApproved;
+                  // Group approved versions by category & subcategory (for artwork)
+                  const groupsMap: Record<string, {
+                    category?: string;
+                    subcategory?: string;
+                    displayName: string;
+                    versions: DocumentVersion[];
+                  }> = {};
+
+                  approvedVersions.forEach(v => {
+                    let key = '';
+                    let displayName = '';
+                    if (mode === 'artwork') {
+                      const cat = v.category || 'Otros';
+                      const sub = v.subcategory || 'Printing';
+                      key = `${cat}-${sub}`;
+                      displayName = `${cat} (${sub === 'Printing' ? 'Impresión' : 'Editable'})`;
+                    } else {
+                      key = mode === 'technical_sheet' ? 'Ficha Técnica' : 'Ficha Comercial';
+                      displayName = key;
+                    }
+
+                    if (!groupsMap[key]) {
+                      groupsMap[key] = {
+                        category: v.category,
+                        subcategory: v.subcategory,
+                        displayName,
+                        versions: []
+                      };
+                    }
+                    groupsMap[key].versions.push(v);
+                  });
+
+                  const groups = Object.values(groupsMap);
 
                   return (
                     <tr key={record.id} className="hover:bg-slate-50/50 transition-colors">
@@ -463,28 +491,63 @@ export default function CommercialArtworks({
                         {record.linea}
                       </td>
                       <td className="px-4 py-4 border-r border-gray-100 min-w-[200px]">
-                        <FolderFilesView files={currentVersion.files} mode={mode} />
+                        <div className="flex flex-col gap-4 py-1">
+                          {groups.map((group) => {
+                            const groupKey = mode === 'artwork' ? `${group.category || 'Otros'}-${group.subcategory || 'Printing'}` : mode;
+                            const stateKey = `${record.id}-${groupKey}`;
+                            const sortedGroupVersions = [...group.versions].sort((a, b) => a.version - b.version);
+                            const latestApproved = sortedGroupVersions[sortedGroupVersions.length - 1];
+                            const currentVersionNum = selectedVersions[stateKey] || latestApproved.version;
+                            const currentVersion = group.versions.find(v => v.version === currentVersionNum) || latestApproved;
+
+                            return (
+                              <div key={groupKey} className="flex flex-col gap-1 pb-3 last:pb-0 border-b border-slate-100 last:border-0">
+                                {mode === 'artwork' && (
+                                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider mb-0.5">
+                                    {group.displayName}
+                                  </span>
+                                )}
+                                <FolderFilesView files={currentVersion.files} mode={mode} />
+                              </div>
+                            );
+                          })}
+                        </div>
                       </td>
                       <td className="px-4 py-4 border-r border-gray-100 text-center font-bold text-slate-600">
-                        {approvedVersions.length > 1 ? (
-                          <div className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1.5 shadow-sm text-slate-700 font-semibold text-xs">
-                            <select
-                              value={currentVersion.version}
-                              onChange={(e) => setSelectedVersions(prev => ({ ...prev, [record.id]: parseInt(e.target.value) }))}
-                              className="bg-transparent border-none outline-none text-center cursor-pointer hover:text-blue-600 transition-colors font-bold text-xs"
-                            >
-                              {[...approvedVersions].sort((a, b) => b.version - a.version).map(v => (
-                                <option key={v.version} value={v.version}>
-                                  V{v.version} {v.version === latestApproved.version ? '(Última)' : '(Anterior)'}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ) : (
-                          <span className="inline-flex items-center bg-slate-50 border border-slate-200/40 rounded-xl px-3 py-1.5 text-slate-500 font-semibold text-xs">
-                            V{latestApproved.version} (Última)
-                          </span>
-                        )}
+                        <div className="flex flex-col gap-4 py-1 justify-center">
+                          {groups.map((group) => {
+                            const groupKey = mode === 'artwork' ? `${group.category || 'Otros'}-${group.subcategory || 'Printing'}` : mode;
+                            const stateKey = `${record.id}-${groupKey}`;
+                            const sortedGroupVersions = [...group.versions].sort((a, b) => a.version - b.version);
+                            const latestApproved = sortedGroupVersions[sortedGroupVersions.length - 1];
+                            const currentVersionNum = selectedVersions[stateKey] || latestApproved.version;
+
+                            return (
+                              <div key={groupKey} className="flex flex-col items-center justify-end min-h-[38px] pb-3 last:pb-0 border-b border-transparent last:border-0">
+                                {mode === 'artwork' && <div className="h-3.5"></div>}
+                                {group.versions.length > 1 ? (
+                                  <div className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1 shadow-sm text-slate-700 font-semibold text-xs">
+                                    <select
+                                      value={currentVersionNum}
+                                      onChange={(e) => setSelectedVersions(prev => ({ ...prev, [stateKey]: parseInt(e.target.value) }))}
+                                      className="bg-transparent border-none outline-none text-center cursor-pointer hover:text-blue-600 transition-colors font-bold text-xs"
+                                    >
+                                      {[...sortedGroupVersions].reverse().map(v => (
+                                        <option key={v.version} value={v.version}>
+                                          V{v.version} {v.version === latestApproved.version ? '(Última)' : '(Anterior)'}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                ) : (
+                                  <span className="inline-flex items-center bg-slate-50 border border-slate-200/40 rounded-xl px-3 py-1 text-slate-500 font-semibold text-xs">
+                                    V{latestApproved.version} (Última)
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </td>
 
                       <td className="px-4 py-4 text-center">
