@@ -1091,24 +1091,23 @@ function buildMimeMessage(options: {
   app.get("/api/temp-debug-product", async (req, res) => {
     try {
       const dbPool = await getDBPool();
-      const productRes = await dbPool.request()
-        .input('sap', '3120SOLTEGE120C')
-        .query("SELECT * FROM ID_PORTAL.products WHERE sap_code = @sap");
+      const products = await dbPool.request()
+        .query("SELECT id, sap_code, correlative_id, tracking_type, explode_files FROM ID_PORTAL.products WHERE sap_code LIKE '%3120SOLTEGE120%'");
       
-      const logsRes = await dbPool.request()
-        .input('sap', '3120SOLTEGE120C')
+      const pm = await dbPool.request()
+        .query("SELECT id, sap_code, correlative_id, approved_documents FROM ID_PORTAL.product_management WHERE sap_code LIKE '%3120SOLTEGE120%'");
+      
+      const recentLogs = await dbPool.request()
         .query(`
-          SELECT * FROM ID_PORTAL.audit_logs 
-          WHERE entity_name = @sap 
-             OR entity_id = (SELECT CAST(id AS varchar(50)) FROM ID_PORTAL.products WHERE sap_code = @sap)
-             OR previous_data LIKE '%3120SOLTEGE120C%'
-             OR new_data LIKE '%3120SOLTEGE120C%'
+          SELECT TOP 50 id, user_email, action, entity_type, entity_id, entity_name, created_at 
+          FROM ID_PORTAL.audit_logs 
           ORDER BY created_at DESC
         `);
       
       res.json({
-        product: productRes.recordset,
-        logs: logsRes.recordset
+        products: products.recordset,
+        pm: pm.recordset,
+        recentLogs: recentLogs.recordset
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
