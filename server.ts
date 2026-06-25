@@ -1095,11 +1095,13 @@ function buildMimeMessage(options: {
         .query("SELECT id, sap_code, correlative_id, tracking_type, explode_files FROM ID_PORTAL.products WHERE sap_code LIKE '%3120SOLTEGE120%'");
       
       const logsRes = await dbPool.request()
+        .input('pid', '64AE2DE4-1DA8-40B7-A290-6C947C3A214D')
         .query(`
           SELECT id, user_email, action, entity_type, entity_id, entity_name, previous_data, new_data, created_at 
           FROM ID_PORTAL.audit_logs 
-          WHERE previous_data LIKE '%3120SOLTEGE120C%'
-             OR new_data LIKE '%3120SOLTEGE120C%'
+          WHERE entity_id = @pid
+             OR previous_data LIKE '%' + @pid + '%'
+             OR new_data LIKE '%' + @pid + '%'
           ORDER BY created_at DESC
         `);
       
