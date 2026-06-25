@@ -1087,6 +1087,34 @@ function buildMimeMessage(options: {
   app.post("/api/auth/signup", signupHandler);
   app.post("/api/auth/register", signupHandler);
 
+  // Temporary debugging route to inspect 3120SOLTEGE120C and its audit logs
+  app.get("/api/temp-debug-product", async (req, res) => {
+    try {
+      const dbPool = await getDBPool();
+      const productRes = await dbPool.request()
+        .input('sap', '3120SOLTEGE120C')
+        .query("SELECT * FROM ID_PORTAL.products WHERE sap_code = @sap");
+      
+      const logsRes = await dbPool.request()
+        .input('sap', '3120SOLTEGE120C')
+        .query(`
+          SELECT * FROM ID_PORTAL.audit_logs 
+          WHERE entity_name = @sap 
+             OR entity_id = (SELECT CAST(id AS varchar(50)) FROM ID_PORTAL.products WHERE sap_code = @sap)
+             OR previous_data LIKE '%3120SOLTEGE120C%'
+             OR new_data LIKE '%3120SOLTEGE120C%'
+          ORDER BY created_at DESC
+        `);
+      
+      res.json({
+        product: productRes.recordset,
+        logs: logsRes.recordset
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Local JWT Auth: Login
   app.post("/api/auth/login", async (req, res) => {
     const { email, password } = req.body;
