@@ -476,6 +476,8 @@ export default function ImportTrackingModule() {
   const [selectedSampleItem, setSelectedSampleItem] = useState<{ shipmentId: string; item: SampleItem } | null>(null);
   const [planningForm, setPlanningForm] = useState<SampleItem | null>(null);
   const [emailPreview, setEmailPreview] = useState<{ to: string[]; subject: string; body: string } | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<SampleItem | null>(null);
   
   // Set SAP Code Modal
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
@@ -965,6 +967,70 @@ export default function ImportTrackingModule() {
     }
   };
 
+  // Helper to dynamically build and update the email preview based on current state of samples and documents
+  const updateEmailPreview = (shipmentId: string, currentShipments: ImportShipment[]) => {
+    const shipment = currentShipments.find(s => s.id === shipmentId);
+    if (!shipment) return;
+
+    const pendingItems = shipment.samples.filter(x => !x.code && x.status !== 'solicitado');
+    const to = ['planeamientomt@sole.com.pe', 'importaciones@sole.com.pe', 'admin@sole.com.pe'];
+    const subject = `[Solicitud de Creación de Códigos de Muestras] - Envío ${shipment.trackingNumber || shipment.quoteName || ''}`;
+    
+    let body = `Estimado equipo de Planeamiento y Administradores,
+
+Se solicita la creación de los códigos de material SAP para las siguientes muestras importadas:
+
+`;
+
+    pendingItems.forEach((x, index) => {
+      body += `================================================================================
+MUESTRA ${index + 1}: ${x.commercialDescription}
+================================================================================
+* Descripción Comercial: ${x.commercialDescription}
+* Descripción Completa: ${x.fullDescription}
+* Dimensiones: ${x.alto} (alto) x ${x.ancho} (ancho) x ${x.profundidad} (profundidad)
+* Peso: ${x.peso}
+* Unidad de Medida: ${x.unidadMedida}
+* Presentación: ${x.presentacion}
+* Costo Unitario: USD ${x.costoUnitario.toFixed(2)}
+* Sujeto a Lote: ${x.sujetoALote}
+* Código Modelo: ${x.codigoModelo}
+* Modo de Compra: ${x.modoCompra}
+* Finalidad: ${x.finalidad}
+* Almacén Destino: ${x.almacen}
+* Ficha Técnica En: ${x.fichaTecnicaEn || 'SI'}
+
+`;
+    });
+
+    // Append documents to the email body
+    const documentLines: string[] = [];
+    if (shipment.quoteName) {
+      documentLines.push(`* Cotización principal: ${shipment.quoteName}${shipment.quoteUrl && shipment.quoteUrl !== '#' ? ` (${shipment.quoteUrl})` : ''}`);
+    }
+    if (shipment.documents && shipment.documents.length > 0) {
+      shipment.documents.forEach(doc => {
+        documentLines.push(`* ${doc.name}${doc.url && doc.url !== '#' ? ` (${doc.url})` : ''}`);
+      });
+    }
+
+    if (documentLines.length > 0) {
+      body += `--------------------------------------------------------------------------------
+DOCUMENTACIÓN ADJUNTA DEL ENVÍO
+--------------------------------------------------------------------------------
+${documentLines.join('\n')}
+
+`;
+    }
+
+    body += `Agradecemos su pronta atención para la generación de estos códigos a la brevedad.
+
+Atentamente,
+Equipos de Investigación y Desarrollo`;
+
+    setEmailPreview({ to, subject, body });
+  };
+
   // Request code email notification
   const handleOpenPlanningRequest = (shipmentId: string, item?: SampleItem) => {
     const shipment = shipments.find(s => s.id === shipmentId);
@@ -977,7 +1043,7 @@ export default function ImportTrackingModule() {
       
       const to = ['planeamientomt@sole.com.pe', 'importaciones@sole.com.pe', 'admin@sole.com.pe'];
       const subject = `[Solicitud de Código de Muestra] - ${item.commercialDescription}`;
-      const body = `Estimado equipo de Planeamiento,
+      let body = `Estimado equipo de Planeamiento y Administradores,
 
 Se solicita la creación del código de material SAP para la siguiente muestra importada:
 
@@ -999,7 +1065,29 @@ DETALLES DEL MATERIAL DE MUESTRA
 * Ficha Técnica En: ${item.fichaTecnicaEn || 'SI'}
 --------------------------------------------------------------------------------
 
-Agradecemos su pronta atención para la generación de este código a la brevedad.
+`;
+
+      // Append documents for individual too
+      const documentLines: string[] = [];
+      if (shipment.quoteName) {
+        documentLines.push(`* Cotización principal: ${shipment.quoteName}${shipment.quoteUrl && shipment.quoteUrl !== '#' ? ` (${shipment.quoteUrl})` : ''}`);
+      }
+      if (shipment.documents && shipment.documents.length > 0) {
+        shipment.documents.forEach(doc => {
+          documentLines.push(`* ${doc.name}${doc.url && doc.url !== '#' ? ` (${doc.url})` : ''}`);
+        });
+      }
+
+      if (documentLines.length > 0) {
+        body += `--------------------------------------------------------------------------------
+DOCUMENTACIÓN ADJUNTA DEL ENVÍO
+--------------------------------------------------------------------------------
+${documentLines.join('\n')}
+
+`;
+      }
+
+      body += `Agradecemos su pronta atención para la generación de este código a la brevedad.
 
 Atentamente,
 Equipos de Investigación y Desarrollo`;
@@ -1017,51 +1105,34 @@ Equipos de Investigación y Desarrollo`;
       setSelectedSampleItem({ shipmentId, item: null as any });
       setPlanningForm({} as any);
 
-      const to = ['planeamientomt@sole.com.pe', 'importaciones@sole.com.pe', 'admin@sole.com.pe'];
-      const subject = `[Solicitud de Creación de Códigos de Muestras] - Envío ${shipment.trackingNumber || shipment.quoteName || ''}`;
-      
-      let body = `Estimado equipo de Planeamiento,
-
-Se solicita la creación de los códigos de material SAP para las siguientes muestras importadas:
-
-`;
-
-      pendingItems.forEach((x, index) => {
-        body += `================================================================================
-MUESTRA ${index + 1}: ${x.commercialDescription}
-================================================================================
-* Descripción Comercial: ${x.commercialDescription}
-* Descripción Completa: ${x.fullDescription}
-* Dimensiones: ${x.alto} (alto) x ${x.ancho} (ancho) x ${x.profundidad} (profundidad)
-* Peso: ${x.peso}
-* Unidad de Medida: ${x.unidadMedida}
-* Presentación: ${x.presentacion}
-* Costo Unitario: USD ${x.costoUnitario.toFixed(2)}
-* Sujeto a Lote: ${x.sujetoALote}
-* Código Modelo: ${x.codigoModelo}
-* Modo de Compra: ${x.modoCompra}
-* Finalidad: ${x.finalidad}
-* Almacén Destino: ${x.almacen}
-* Ficha Técnica En: ${x.fichaTecnicaEn || 'SI'}
-
-`;
-      });
-
-      body += `Agradecemos su pronta atención para la generación de estos códigos a la brevedad.
-
-Atentamente,
-Equipos de Investigación y Desarrollo`;
-
-      setEmailPreview({ to, subject, body });
+      updateEmailPreview(shipmentId, shipments);
       setIsPlanningModalOpen(true);
     }
+  };
+
+  const handleSaveEditedSampleInline = (shipmentId: string, updatedSample: SampleItem) => {
+    const updated = shipments.map(s => {
+      if (s.id === shipmentId) {
+        return {
+          ...s,
+          samples: s.samples.map(item => item.id === updatedSample.id ? updatedSample : item)
+        };
+      }
+      return s;
+    });
+    
+    saveShipments(updated);
+    updateEmailPreview(shipmentId, updated);
+    setEditingItemId(null);
+    setEditForm(null);
+    toast.success('Muestra actualizada con éxito en la solicitud.');
   };
 
   const handleSendPlanningEmail = () => {
     if (!selectedSampleItem) return;
 
     // Simulate sending email
-    toast.loading('Enviando correo formal a Planeamiento...');
+    toast.loading('Enviando correo formal a Planeamiento y Administradores...');
     setTimeout(() => {
       const updated = shipments.map(s => {
         if (s.id === selectedSampleItem.shipmentId) {
@@ -1085,7 +1156,7 @@ Equipos de Investigación y Desarrollo`;
 
       saveShipments(updated);
       toast.dismiss();
-      toast.success('Correo enviado exitosamente a planeamientomt@sole.com.pe');
+      toast.success('Correo enviado exitosamente a Planeamiento y Administradores');
       setIsPlanningModalOpen(false);
       setSelectedSampleItem(null);
     }, 1200);
@@ -2216,37 +2287,216 @@ Equipos de Investigación y Desarrollo`;
               </div>
             </div>
           ) : (
-              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 space-y-4">
-                <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-2">
-                  <FileSpreadsheet className="text-green-600" size={18} />
-                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest">
-                    Muestras Incluidas en la Solicitud ({
-                      (() => {
-                        const s = shipments.find(x => x.id === selectedSampleItem.shipmentId);
-                        return s?.samples.filter(item => !item.code && item.status !== 'solicitado').length || 0;
-                      })()
-                    })
-                  </h4>
-                </div>
-                <div className="max-h-[200px] overflow-y-auto space-y-2 pr-1">
-                  {(() => {
-                    const s = shipments.find(x => x.id === selectedSampleItem.shipmentId);
-                    const pending = s?.samples.filter(item => !item.code && item.status !== 'solicitado') || [];
-                    return pending.map((item) => (
-                      <div key={item.id} className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs">
-                        <div>
-                          <p className="font-bold text-slate-900">{item.commercialDescription}</p>
-                          <p className="text-[10px] text-slate-400 font-medium mt-0.5">{item.fullDescription}</p>
-                        </div>
-                        <div className="text-right text-[10px] font-semibold text-slate-500 space-y-0.5">
-                          <p>Modelo: {item.codigoModelo}</p>
-                          <p>Costo: USD {item.costoUnitario.toFixed(2)}</p>
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
+               <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 space-y-4">
+                 <div className="flex items-center gap-2 border-b border-slate-200 pb-3 mb-2">
+                   <FileSpreadsheet className="text-green-600" size={18} />
+                   <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                     Muestras Incluidas en la Solicitud ({
+                       (() => {
+                         const s = shipments.find(x => x.id === selectedSampleItem.shipmentId);
+                         return s?.samples.filter(item => !item.code && item.status !== 'solicitado').length || 0;
+                       })()
+                     })
+                   </h4>
+                 </div>
+                 <div className="max-h-[450px] overflow-y-auto space-y-3 pr-1">
+                   {(() => {
+                     const s = shipments.find(x => x.id === selectedSampleItem.shipmentId);
+                     const pending = s?.samples.filter(item => !item.code && item.status !== 'solicitado') || [];
+                     return pending.map((item) => {
+                       const isEditing = editingItemId === item.id;
+                       if (isEditing && editForm) {
+                         return (
+                           <div key={item.id} className="p-4 bg-white border-2 border-blue-500/20 rounded-2xl space-y-4 shadow-sm text-left">
+                             <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                               <span className="text-xs font-black text-blue-600 flex items-center gap-1.5">
+                                 <Edit size={12} /> EDITANDO ESPECIFICACIONES DE MUESTRA
+                               </span>
+                               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Muestra</span>
+                             </div>
+                             
+                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                               <div>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-left">Descripción Comercial</label>
+                                 <input
+                                   type="text"
+                                   value={editForm.commercialDescription}
+                                   onChange={(e) => setEditForm({ ...editForm, commercialDescription: e.target.value })}
+                                   className="w-full mt-1 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                 />
+                               </div>
+                               <div>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-left">Descripción Completa</label>
+                                 <input
+                                   type="text"
+                                   value={editForm.fullDescription}
+                                   onChange={(e) => setEditForm({ ...editForm, fullDescription: e.target.value })}
+                                   className="w-full mt-1 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                 />
+                               </div>
+                               <div>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-left">Código Modelo</label>
+                                 <input
+                                   type="text"
+                                   value={editForm.codigoModelo}
+                                   onChange={(e) => setEditForm({ ...editForm, codigoModelo: e.target.value })}
+                                   className="w-full mt-1 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                 />
+                               </div>
+                             </div>
+
+                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                               <div>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-left">Alto (cm)</label>
+                                 <input
+                                   type="text"
+                                   value={editForm.alto}
+                                   onChange={(e) => setEditForm({ ...editForm, alto: e.target.value })}
+                                   className="w-full mt-1 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                 />
+                               </div>
+                               <div>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-left">Ancho (cm)</label>
+                                 <input
+                                   type="text"
+                                   value={editForm.ancho}
+                                   onChange={(e) => setEditForm({ ...editForm, ancho: e.target.value })}
+                                   className="w-full mt-1 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                 />
+                               </div>
+                               <div>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-left">Profundidad (cm)</label>
+                                 <input
+                                   type="text"
+                                   value={editForm.profundidad}
+                                   onChange={(e) => setEditForm({ ...editForm, profundidad: e.target.value })}
+                                   className="w-full mt-1 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                 />
+                               </div>
+                               <div>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-left">Peso (kg)</label>
+                                 <input
+                                   type="text"
+                                   value={editForm.peso}
+                                   onChange={(e) => setEditForm({ ...editForm, peso: e.target.value })}
+                                   className="w-full mt-1 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                 />
+                               </div>
+                               <div>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-left">Unid. Medida</label>
+                                 <input
+                                   type="text"
+                                   value={editForm.unidadMedida}
+                                   onChange={(e) => setEditForm({ ...editForm, unidadMedida: e.target.value })}
+                                   className="w-full mt-1 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                 />
+                               </div>
+                               <div>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-left">Presentación</label>
+                                 <input
+                                   type="text"
+                                   value={editForm.presentacion}
+                                   onChange={(e) => setEditForm({ ...editForm, presentacion: e.target.value })}
+                                   className="w-full mt-1 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                 />
+                               </div>
+                             </div>
+
+                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                               <div>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-left">Costo Unit. (USD)</label>
+                                 <input
+                                   type="number"
+                                   step="0.01"
+                                   value={editForm.costoUnitario}
+                                   onChange={(e) => setEditForm({ ...editForm, costoUnitario: parseFloat(e.target.value) || 0 })}
+                                   className="w-full mt-1 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                 />
+                               </div>
+                               <div>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-left">Sujeto a Lote</label>
+                                 <select
+                                   value={editForm.sujetoALote}
+                                   onChange={(e) => setEditForm({ ...editForm, sujetoALote: e.target.value as 'SI' | 'NO' })}
+                                   className="w-full mt-1 px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                 >
+                                   <option value="SI">SÍ</option>
+                                   <option value="NO">NO</option>
+                                 </select>
+                               </div>
+                               <div>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-left">Almacén Destino</label>
+                                 <input
+                                   type="text"
+                                   value={editForm.almacen}
+                                   onChange={(e) => setEditForm({ ...editForm, almacen: e.target.value })}
+                                   className="w-full mt-1 px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                 />
+                               </div>
+                               <div>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-left">Ficha Técnica En</label>
+                                 <select
+                                   value={editForm.fichaTecnicaEn}
+                                   onChange={(e) => setEditForm({ ...editForm, fichaTecnicaEn: e.target.value as 'SI' | 'NO' })}
+                                   className="w-full mt-1 px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                 >
+                                   <option value="SI">SÍ</option>
+                                   <option value="NO">NO</option>
+                                 </select>
+                               </div>
+                               <div className="flex items-end gap-2">
+                                 <button
+                                   type="button"
+                                   onClick={() => handleSaveEditedSampleInline(selectedSampleItem.shipmentId, editForm)}
+                                   className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                                 >
+                                   Guardar
+                                 </button>
+                                 <button
+                                   type="button"
+                                   onClick={() => {
+                                     setEditingItemId(null);
+                                     setEditForm(null);
+                                   }}
+                                   className="flex-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                                 >
+                                   Cancelar
+                                 </button>
+                               </div>
+                             </div>
+                           </div>
+                         );
+                       } else {
+                         return (
+                           <div key={item.id} className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs hover:border-slate-300 transition-colors shadow-sm text-left">
+                             <div>
+                               <p className="font-bold text-slate-900">{item.commercialDescription}</p>
+                               <p className="text-[10px] text-slate-400 font-medium mt-0.5">{item.fullDescription}</p>
+                             </div>
+                             <div className="flex items-center gap-4">
+                               <div className="text-right text-[10px] font-semibold text-slate-500 space-y-0.5">
+                                 <p>Modelo: {item.codigoModelo}</p>
+                                 <p>Costo: USD {item.costoUnitario.toFixed(2)}</p>
+                               </div>
+                               <button
+                                 type="button"
+                                 onClick={() => {
+                                   setEditingItemId(item.id);
+                                   setEditForm({ ...item });
+                                 }}
+                                 title="Editar especificaciones de esta muestra"
+                                 className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all active:scale-95"
+                               >
+                                 <Edit size={14} />
+                               </button>
+                             </div>
+                           </div>
+                         );
+                       }
+                     });
+                   })()}
+                 </div>
+               </div>
             )}
 
             {/* Email notification preview */}
