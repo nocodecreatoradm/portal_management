@@ -183,6 +183,21 @@ export default function CommercialArtworks({
     loadData();
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.files-popover-container')) {
+        setOpenFolderKey(null);
+      }
+    };
+    if (openFolderKey) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openFolderKey]);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -403,15 +418,14 @@ export default function CommercialArtworks({
                     onSortChange={handleSortChange} 
                   />
                 </th>
-                <th className="px-4 py-4 border-r border-gray-100">Archivos</th>
-                <th className="px-4 py-4 border-r border-gray-100 text-center">Ver.</th>
+                <th className="px-4 py-4 border-r border-gray-100 text-center">Archivos</th>
                 <th className="px-4 py-4 text-center">Detalles</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {approvedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-10 text-center text-slate-400 italic">
+                  <td colSpan={7} className="px-6 py-10 text-center text-slate-400 italic">
                     No hay elementos aprobados actualmente.
                   </td>
                 </tr>
@@ -494,69 +508,120 @@ export default function CommercialArtworks({
                       <td className="px-4 py-4 border-r border-gray-100 text-[10px] text-slate-500 font-medium uppercase">
                         {record.linea}
                       </td>
-                      <td className="px-4 py-4 border-r border-gray-100 min-w-[200px]">
-                        <div className="flex flex-col gap-4 py-1">
-                          {groups.map((group) => {
-                            const groupKey = mode === 'artwork' ? `${group.category || 'Otros'}-${group.subcategory || 'Printing'}` : mode;
+                      <td className="px-4 py-4 border-r border-gray-100 text-center relative files-popover-container">
+                        {(() => {
+                          const totalFilesCount = groups.reduce((sum, g) => {
+                            const groupKey = mode === 'artwork' ? `${g.category || 'Otros'}-${g.subcategory || 'Printing'}` : mode;
                             const stateKey = `${record.id}-${groupKey}`;
-                            const sortedGroupVersions = [...group.versions].sort((a, b) => a.version - b.version);
+                            const sortedGroupVersions = [...g.versions].sort((a, b) => a.version - b.version);
                             const latestApproved = sortedGroupVersions[sortedGroupVersions.length - 1];
                             const currentVersionNum = selectedVersions[stateKey] || latestApproved.version;
-                            const currentVersion = group.versions.find(v => v.version === currentVersionNum) || latestApproved;
+                            const currentVersion = g.versions.find(v => v.version === currentVersionNum) || latestApproved;
+                            return sum + (currentVersion.files?.length || 0);
+                          }, 0);
 
-                            return (
-                              <div key={groupKey} className="flex flex-col gap-1 pb-3 last:pb-0 border-b border-slate-100 last:border-0">
-                                {mode === 'artwork' && (
-                                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider mb-0.5">
-                                    {group.displayName}
-                                  </span>
-                                )}
-                                <FolderFilesView 
-                                  files={currentVersion.files} 
-                                  mode={mode} 
-                                  isOpen={openFolderKey === stateKey}
-                                  onToggle={() => setOpenFolderKey(openFolderKey === stateKey ? null : stateKey)}
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 border-r border-gray-100 text-center font-bold text-slate-600">
-                        <div className="flex flex-col gap-4 py-1 justify-center">
-                          {groups.map((group) => {
-                            const groupKey = mode === 'artwork' ? `${group.category || 'Otros'}-${group.subcategory || 'Printing'}` : mode;
-                            const stateKey = `${record.id}-${groupKey}`;
-                            const sortedGroupVersions = [...group.versions].sort((a, b) => a.version - b.version);
-                            const latestApproved = sortedGroupVersions[sortedGroupVersions.length - 1];
-                            const currentVersionNum = selectedVersions[stateKey] || latestApproved.version;
-
-                            return (
-                              <div key={groupKey} className="flex flex-col items-center justify-end min-h-[38px] pb-3 last:pb-0 border-b border-transparent last:border-0">
-                                {mode === 'artwork' && <div className="h-3.5"></div>}
-                                {group.versions.length > 1 ? (
-                                  <div className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1 shadow-sm text-slate-700 font-semibold text-xs">
-                                    <select
-                                      value={currentVersionNum}
-                                      onChange={(e) => setSelectedVersions(prev => ({ ...prev, [stateKey]: parseInt(e.target.value) }))}
-                                      className="bg-transparent border-none outline-none text-center cursor-pointer hover:text-blue-600 transition-colors font-bold text-xs"
-                                    >
-                                      {[...sortedGroupVersions].reverse().map(v => (
-                                        <option key={v.version} value={v.version}>
-                                          V{v.version} {v.version === latestApproved.version ? '(Última)' : '(Anterior)'}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
+                          return (
+                            <div className="inline-block">
+                              <button
+                                onClick={() => setOpenFolderKey(openFolderKey === record.id ? null : record.id)}
+                                className={`relative p-2 rounded-xl border transition-all hover:scale-105 active:scale-95 shadow-sm flex items-center justify-center ${
+                                  openFolderKey === record.id
+                                    ? 'bg-[#e0e7ff] text-indigo-600 border-indigo-200'
+                                    : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200/60'
+                                }`}
+                                title="Ver Archivos Aprobados"
+                              >
+                                {openFolderKey === record.id ? (
+                                  <FolderOpen className="w-5 h-5 text-amber-500" />
                                 ) : (
-                                  <span className="inline-flex items-center bg-slate-50 border border-slate-200/40 rounded-xl px-3 py-1 text-slate-500 font-semibold text-xs">
-                                    V{latestApproved.version} (Última)
+                                  <FolderArchive className="w-5 h-5 text-amber-500" />
+                                )}
+                                
+                                {totalFilesCount > 0 && (
+                                  <span className="absolute -top-1.5 -right-1.5 bg-blue-600 text-white text-[9px] font-black rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center shadow-sm border border-white">
+                                    {totalFilesCount}
                                   </span>
                                 )}
-                              </div>
-                            );
-                          })}
-                        </div>
+                              </button>
+
+                              {openFolderKey === record.id && (
+                                <div className="absolute right-4 mt-2 p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-xl min-w-[280px] max-w-[320px] z-30 text-left animate-in fade-in slide-in-from-top-1 duration-200">
+                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 pb-1.5 mb-2">
+                                    Documentos Aprobados
+                                  </div>
+                                  <div className="max-h-[260px] overflow-y-auto pr-1 space-y-3.5 scrollbar-thin">
+                                    {groups.map((group) => {
+                                      const groupKey = mode === 'artwork' ? `${group.category || 'Otros'}-${group.subcategory || 'Printing'}` : mode;
+                                      const stateKey = `${record.id}-${groupKey}`;
+                                      const sortedGroupVersions = [...group.versions].sort((a, b) => a.version - b.version);
+                                      const latestApproved = sortedGroupVersions[sortedGroupVersions.length - 1];
+                                      const currentVersionNum = selectedVersions[stateKey] || latestApproved.version;
+                                      const currentVersion = group.versions.find(v => v.version === currentVersionNum) || latestApproved;
+
+                                      return (
+                                        <div key={groupKey} className="space-y-1.5">
+                                          <div className="flex items-center justify-between gap-2">
+                                            <span className="text-[10px] font-black text-slate-700 uppercase truncate max-w-[180px]" title={group.displayName}>
+                                              {group.displayName}
+                                            </span>
+                                            
+                                            {/* Version Selector */}
+                                            {group.versions.length > 1 ? (
+                                              <select
+                                                value={currentVersionNum}
+                                                onChange={(e) => setSelectedVersions(prev => ({ ...prev, [stateKey]: parseInt(e.target.value) }))}
+                                                className="bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-0.5 text-[9px] font-bold outline-none cursor-pointer text-slate-600 hover:text-blue-600 transition-colors"
+                                              >
+                                                {[...sortedGroupVersions].reverse().map(v => (
+                                                  <option key={v.version} value={v.version}>
+                                                    V{v.version} {v.version === latestApproved.version ? '(Últ.)' : ''}
+                                                  </option>
+                                                ))}
+                                              </select>
+                                            ) : (
+                                              <span className="text-[9px] font-bold text-slate-400 bg-slate-50 border border-slate-200/40 rounded px-1.5 py-0.5">
+                                                V{latestApproved.version}
+                                              </span>
+                                            )}
+                                          </div>
+                                          
+                                          {/* Files list */}
+                                          <div className="pl-2 border-l-2 border-slate-100 space-y-1">
+                                            {currentVersion.files.map((file, i) => (
+                                              <a
+                                                key={i}
+                                                href={file.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center justify-between gap-2 py-1 px-1.5 rounded hover:bg-slate-50 text-blue-600 hover:text-blue-800 transition-colors group/file text-left"
+                                              >
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                  <FileText className="w-3.5 h-3.5 text-red-500 shrink-0 group-hover/file:scale-105 transition-transform" />
+                                                  <span className="text-[9.5px] font-medium truncate" title={file.name}>
+                                                    {file.name}
+                                                  </span>
+                                                </div>
+                                                {mode === 'commercial_sheet' && file.commercialType && (
+                                                  <span className={`px-1 rounded text-[8px] font-black uppercase tracking-wider shrink-0 ${
+                                                    file.commercialType === 'provisional'
+                                                      ? 'bg-amber-50 text-amber-600 border border-amber-100'
+                                                      : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                                  }`}>
+                                                    {file.commercialType === 'provisional' ? 'Prov' : 'Final'}
+                                                  </span>
+                                                )}
+                                              </a>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       <td className="px-4 py-4 text-center">
