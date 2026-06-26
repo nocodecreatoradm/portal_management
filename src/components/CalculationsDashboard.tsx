@@ -108,7 +108,7 @@ const TOOLS: CalculationTool[] = [
       ],
       description: "El dimensionamiento correcto evita el agotamiento prematuro de agua caliente y optimiza el consumo de energía.",
       methods: [
-        { name: "Método de Hunter", description: "Se asignan unidades de gasto (UG) a cada punto de agua y se usa la curva de Hunter para hallar el caudal probable según la probabilidad estadística de uso." },
+        { name: "Método ASHRAE", description: "Se asignan unidades de gasto (UG) a cada punto de agua y se usa la curva de Hunter para hallar el caudal probable según la probabilidad estadística de uso." },
         { name: "Método de Simultaneidad Directa", description: "Aplicación de coeficientes fijos según el número de baños o tipo de usuario (hotel, vivienda, gimnasio)." },
         { name: "Cálculo de Acumulación", description: "Determinación del volumen del tanque basado en la demanda punta (peak hour) y la capacidad de recuperación del quemador." }
       ]

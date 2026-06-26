@@ -458,7 +458,7 @@ export default function WaterDemandCalculator({ initialData, onExportPPT }: Wate
               onClick={() => setActiveTab('hunter')}
               className={`px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-xs font-black transition-all ${activeTab === 'hunter' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
-              MÉTODO HUNTER
+              MÉTODO ASHRAE
             </button>
             <button 
               onClick={() => setActiveTab('aspe')}
@@ -882,7 +882,7 @@ export default function WaterDemandCalculator({ initialData, onExportPPT }: Wate
             <div className="p-4 bg-white/5 rounded-2xl flex items-start gap-3">
               <Info size={16} className="text-indigo-200 shrink-0 mt-0.5" />
               <p className="text-[10px] font-medium text-indigo-100 leading-relaxed">
-                Este cálculo utiliza el Método de Hunter para estimar la demanda máxima simultánea según la Norma Técnica I.S. 010.
+                Este cálculo utiliza el Método ASHRAE para estimar la demanda máxima simultánea según la Norma Técnica I.S. 010.
               </p>
             </div>
           </div>
