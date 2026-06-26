@@ -889,6 +889,25 @@ export default function WaterDemandCalculator({ initialData, onExportPPT }: Wate
               </p>
             </div>
           </div>
+
+          {/* Diagram Placeholder */}
+          <div className="bg-white rounded-[32px] shadow-sm border border-slate-200/60 p-8">
+            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2 mb-6">
+              <Camera size={18} className="text-slate-500" />
+              Esquema de Instalación (ASHRAE en Cascada)
+            </h3>
+            <div className="aspect-video bg-white rounded-2xl border border-slate-100 flex items-center justify-center overflow-hidden p-4">
+              <img 
+                src={imgInstCascade} 
+                alt="Esquema de Instalación" 
+                className="w-full h-full object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <p className="text-[10px] text-slate-400 mt-4 text-center italic">
+              Representación típica de batería de calentadores en cascada MSB para método ASHRAE.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -1177,21 +1196,18 @@ export default function WaterDemandCalculator({ initialData, onExportPPT }: Wate
             <div className="bg-white rounded-[32px] shadow-sm border border-slate-200/60 p-8">
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2 mb-6">
                 <Camera size={18} className="text-slate-500" />
-                {activeTab === 'aspe' ? 'Esquema de Instalación (ASPE con Tanques)' : 'Esquema de Instalación (ASHRAE en Cascada)'}
+                Esquema de Instalación (ASPE con Tanques)
               </h3>
               <div className="aspect-video bg-white rounded-2xl border border-slate-100 flex items-center justify-center overflow-hidden p-4">
                 <img 
-                  src={activeTab === 'aspe' ? imgInstMixed : imgInstCascade} 
+                  src={imgInstMixed} 
                   alt="Esquema de Instalación" 
                   className="w-full h-full object-contain"
                   referrerPolicy="no-referrer"
                 />
               </div>
               <p className="text-[10px] text-slate-400 mt-4 text-center italic">
-                {activeTab === 'aspe' 
-                  ? 'Representación típica de batería de calentadores con tanques de almacenamiento para método ASPE.'
-                  : 'Representación típica de batería de calentadores en cascada MSB para método ASHRAE.'
-                }
+                Representación típica de batería de calentadores con tanques de almacenamiento para método ASPE.
               </p>
             </div>
           </div>
