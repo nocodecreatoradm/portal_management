@@ -36,7 +36,7 @@ import { currentUser } from '../data/mockData';
 import { toast } from 'sonner';
 
 import imgInstMixed from '../assets/graphics/installation_mixed.png';
-import imgInstCascade from '../assets/graphics/installation_cascade_clean.png';
+import imgInstCascade from '../assets/graphics/installation_cascade_rinnai.png';
 
 interface UHConfig {
   id: string;

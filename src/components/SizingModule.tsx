@@ -880,9 +880,9 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
                     <div className="bg-indigo-50/20 border border-indigo-100 rounded-3xl p-5 flex flex-col justify-between hover:shadow-md transition-all">
                       <div className="space-y-4">
                         <div className="relative overflow-hidden rounded-2xl border border-indigo-100/50 bg-white aspect-[4/3] flex items-center justify-center p-2 group">
-                          <img src={imgInstCascadeClean} alt="Cascada" className="max-h-full object-contain" referrerPolicy="no-referrer" />
+                          <img src={imgInstCascadeRinnai} alt="Cascada" className="max-h-full object-contain" referrerPolicy="no-referrer" />
                           <button 
-                            onClick={() => handleOpenFullscreen(imgInstCascadeClean)}
+                            onClick={() => handleOpenFullscreen(imgInstCascadeRinnai)}
                             className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1"
                           >
                             <Eye size={16} /> Ver Pantalla Completa
