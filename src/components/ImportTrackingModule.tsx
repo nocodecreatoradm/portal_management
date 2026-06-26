@@ -534,12 +534,12 @@ export default function ImportTrackingModule() {
         }
 
         // Automatic background trigger for the missed email of shipment SMP-002
-        const emailSent = localStorage.getItem('sent_missed_email_smp_002');
+        const emailSent = localStorage.getItem('sent_missed_email_smp_002_v2');
         if (emailSent !== 'true') {
           fetch('/api/send-missed-horisun-email')
             .then(async res => {
               if (res.ok) {
-                localStorage.setItem('sent_missed_email_smp_002', 'true');
+                localStorage.setItem('sent_missed_email_smp_002_v2', 'true');
                 toast.success('Se envió de forma exitosa el correo pendiente de HORISUN (SMP-002) que no llegó anteriormente.');
               } else {
                 const errData = await res.json().catch(() => ({}));
@@ -1026,7 +1026,9 @@ MUESTRA ${index + 1}: ${x.commercialDescription}
 ================================================================================
 * Descripción Comercial: ${x.commercialDescription}
 * Descripción Completa: ${x.fullDescription}
-* Dimensiones: ${x.alto} (alto) x ${x.ancho} (ancho) x ${x.profundidad} (profundidad)
+* Alto: ${x.alto}
+* Ancho: ${x.ancho}
+* Profundidad: ${x.profundidad}
 * Peso: ${x.peso}
 * Unidad de Medida: ${x.unidadMedida}
 * Presentación: ${x.presentacion}
@@ -1090,7 +1092,9 @@ DETALLES DEL MATERIAL DE MUESTRA
 --------------------------------------------------------------------------------
 * Descripción Comercial: ${item.commercialDescription}
 * Descripción Completa: ${item.fullDescription}
-* Dimensiones: ${item.alto} (alto) x ${item.ancho} (ancho) x ${item.profundidad} (profundidad)
+* Alto: ${item.alto}
+* Ancho: ${item.ancho}
+* Profundidad: ${item.profundidad}
 * Peso: ${item.peso}
 * Unidad de Medida: ${item.unidadMedida}
 * Presentación: ${item.presentacion}

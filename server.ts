@@ -878,8 +878,16 @@ function buildMimeMessage(options: {
                 <td style="padding: 6px 0; color: #1e293b;">5-Burner Gas hob Brass&Aluminum base Horisun</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Dimensiones (Alto x Ancho x Prof.):</td>
-                <td style="padding: 6px 0; color: #1e293b;">30 cm (alto) x 90 cm (ancho) x 60 cm (profundidad)</td>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Alto:</td>
+                <td style="padding: 6px 0; color: #1e293b;">30 cm</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Ancho:</td>
+                <td style="padding: 6px 0; color: #1e293b;">90 cm</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Profundidad:</td>
+                <td style="padding: 6px 0; color: #1e293b;">60 cm</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; font-weight: bold; color: #475569;">Peso:</td>
@@ -932,8 +940,16 @@ function buildMimeMessage(options: {
                 <td style="padding: 6px 0; color: #1e293b;">5-Burner Gas hob Brass&Aluminum base Horisun</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Dimensiones (Alto x Ancho x Prof.):</td>
-                <td style="padding: 6px 0; color: #1e293b;">30 cm (alto) x 90 cm (ancho) x 60 cm (profundidad)</td>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Alto:</td>
+                <td style="padding: 6px 0; color: #1e293b;">30 cm</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Ancho:</td>
+                <td style="padding: 6px 0; color: #1e293b;">90 cm</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-weight: bold; color: #475569;">Profundidad:</td>
+                <td style="padding: 6px 0; color: #1e293b;">60 cm</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; font-weight: bold; color: #475569;">Peso:</td>

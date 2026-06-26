@@ -478,8 +478,16 @@ export const outlookService = {
               <td style="padding: 6px 0; color: #1e293b;">${x.fullDescription}</td>
             </tr>
             <tr>
-              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Dimensiones (Alto x Ancho x Prof.):</td>
-              <td style="padding: 6px 0; color: #1e293b;">${x.alto} (alto) x ${x.ancho} (ancho) x ${x.profundidad} (profundidad)</td>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Alto:</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.alto}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Ancho:</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.ancho}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Profundidad:</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.profundidad}</td>
             </tr>
             <tr>
               <td style="padding: 6px 0; font-weight: bold; color: #475569;">Peso:</td>
