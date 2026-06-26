@@ -534,23 +534,7 @@ export default function ImportTrackingModule() {
           localStorage.setItem('import_tracking_shipments', JSON.stringify(DEFAULT_IMPORT_SHIPMENTS));
         }
 
-        // Automatic background trigger for the missed email of shipment SMP-002
-        const emailSent = localStorage.getItem('sent_missed_email_smp_002_v2');
-        if (emailSent !== 'true') {
-          fetch('/api/send-missed-horisun-email')
-            .then(async res => {
-              if (res.ok) {
-                localStorage.setItem('sent_missed_email_smp_002_v2', 'true');
-                toast.success('Se envió de forma exitosa el correo pendiente de HORISUN (SMP-002) que no llegó anteriormente.');
-              } else {
-                const errData = await res.json().catch(() => ({}));
-                console.warn('Auto-send missed email api error:', errData?.error);
-              }
-            })
-            .catch(err => {
-              console.warn('Network error triggering missed email:', err);
-            });
-        }
+
       } catch (err) {
         console.error('Error loading import tracking data:', err);
         setShipments(DEFAULT_IMPORT_SHIPMENTS);
