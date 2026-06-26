@@ -449,6 +449,7 @@ export const outlookService = {
     } catch (e) {
       console.error('Error sending final datasheet approval email:', e);
       toast.error('Error al enviar la notificación de aprobación final');
+    }
   },
 
   /**
