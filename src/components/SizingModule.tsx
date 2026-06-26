@@ -4,10 +4,18 @@ import {
   Droplets, Target, Users, BarChart3, Clock, CheckCircle2, Shield, Info, 
   Activity, ChevronRight, ArrowLeft, RefreshCw, Zap, Book, ShieldAlert,
   Flame, HelpCircle, FileText, Settings, Hammer, Sliders, Play, Plus, ArrowRight,
-  Maximize2, LayoutGrid, Check, Server, Building2, HeartHandshake, Eye
+  Maximize2, LayoutGrid, Check, Server, Building2, HeartHandshake, Eye,
+  Search, Calendar, MapPin, Mail, Upload, X, Trash2, Edit
 } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
+import { Toaster, toast } from 'sonner';
+import { useAuth } from '../contexts/AuthContext';
+import { SupabaseService } from '../lib/SupabaseService';
+import { 
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, 
+  Tooltip, Legend, ReferenceLine 
+} from 'recharts';
 
 // Import newly uploaded cropped graphic assets
 import imgAppRes from '../assets/graphics/applications_res.png';
@@ -29,10 +37,338 @@ interface TopicItem {
 }
 
 export default function SizingModule({ onModuleChange }: { onModuleChange?: (module: string) => void }) {
-  const [activeTab, setActiveTab] = useState<'info' | 'methods'>('info');
+  const { profile } = useAuth();
+  const currentUserName = profile?.full_name || 'Ingeniero I+D';
+
+  const [activeTab, setActiveTab] = useState<'projects' | 'info' | 'methods' | 'performance'>('projects');
   const [activeTopic, setActiveTopic] = useState<string>('arquitectura');
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+
+  interface ProjectLog {
+    date: string;
+    note: string;
+    author: string;
+    type?: 'creacion' | 'avance' | 'hallazgo' | 'finalizacion';
+  }
+
+  interface SizingProject {
+    id: string;
+    name: string;
+    client: string;
+    address: string;
+    background: string;
+    specialRequirements: string;
+    emails: string;
+    status: 'en_progreso' | 'completado';
+    startDate: string;
+    endDate?: string;
+    attachments: { name: string; url: string; type: string }[];
+    logs: ProjectLog[];
+  }
+
+  const [projects, setProjects] = useState<SizingProject[]>(() => {
+    const saved = localStorage.getItem('sizing_projects');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { console.error(e); }
+    }
+    const seed: SizingProject[] = [
+      {
+        id: 'PRJ-DIM-001',
+        name: 'Dimensionamiento Edificio Miraflores',
+        client: 'Inmobiliaria Imagina',
+        address: 'Av. Larco 1250, Miraflores, Lima',
+        background: 'Cálculo de demanda de agua caliente para edificio de departamentos multifamiliar de 20 pisos.',
+        specialRequirements: 'Cálculo formal con método ASHRAE y diseño de recirculación.',
+        emails: 'carlos.hoyos@sole.com.pe, proyectos@imagina.pe',
+        status: 'completado',
+        startDate: '2026-04-10',
+        endDate: '2026-04-18',
+        attachments: [
+          { name: 'Informe_Final_Miraflores.pdf', url: 'https://pdfobject.com/pdf/sample.pdf', type: '📄 INFORME TÉCNICO' }
+        ],
+        logs: [
+          { date: '10/4/2026, 9:00:00 a. m.', note: 'Dimensionamiento iniciado tras reunión técnica.', author: 'Carlos Hoyos', type: 'creacion' },
+          { date: '12/4/2026, 11:30:00 a. m.', note: 'Cálculos iniciales completados en calculadora ASHRAE. Caudal estimado en 180 L/h.', author: 'Carlos Hoyos', type: 'avance' },
+          { date: '18/4/2026, 4:00:00 p. m.', note: 'Informes finales firmados y subidos como evidencia.', author: 'Carlos Hoyos', type: 'finalizacion' }
+        ]
+      },
+      {
+        id: 'PRJ-DIM-002',
+        name: 'ACS Hotel Savoy San Isidro',
+        client: 'Hoteles Savoy del Perú',
+        address: 'Calle Libertadores 320, San Isidro, Lima',
+        background: 'Reemplazo de calderas de vapor por sistema modular de cascada Rinnai para 120 habitaciones.',
+        specialRequirements: 'Interconexión con BMS y sistema de calentamiento rápido.',
+        emails: 'mantenimiento@savoy.pe, ingenieria@sole.com.pe',
+        status: 'completado',
+        startDate: '2026-05-02',
+        endDate: '2026-05-04',
+        attachments: [
+          { name: 'Esquema_Cascada_Savoy.pdf', url: 'https://pdfobject.com/pdf/sample.pdf', type: '📊 ESQUEMA HIDRÁULICO' }
+        ],
+        logs: [
+          { date: '2/5/2026, 10:00:00 a. m.', note: 'Visita técnica realizada. Dimensionamiento urgente.', author: 'Carlos Hoyos', type: 'creacion' },
+          { date: '3/5/2026, 2:00:00 p. m.', note: 'Esquema hidráulico en cascada finalizado.', author: 'Carlos Hoyos', type: 'avance' },
+          { date: '4/5/2026, 6:00:00 p. m.', note: 'Informes técnicos finales cargados a la orden del cliente.', author: 'Carlos Hoyos', type: 'finalizacion' }
+        ]
+      },
+      {
+        id: 'PRJ-DIM-003',
+        name: 'Planta Industrial SolGas Callao',
+        client: 'SolGas S.A.C.',
+        address: 'Av. Néstor Gambetta 1520, Callao',
+        background: 'Suministro de agua caliente para vestuarios del personal de planta en 3 turnos rotativos.',
+        specialRequirements: 'Cálculo de acumulación por picos según normativa ASPE.',
+        emails: 'seguridad@solgas.com, proyectosmt@sole.com.pe',
+        status: 'en_progreso',
+        startDate: '2026-06-25',
+        attachments: [],
+        logs: [
+          { date: '25/6/2026, 11:00:00 a. m.', note: 'Proyecto creado. Pendiente de envío de cantidad exacta de operarios.', author: 'Carlos Hoyos', type: 'creacion' }
+        ]
+      }
+    ];
+    localStorage.setItem('sizing_projects', JSON.stringify(seed));
+    return seed;
+  });
+
+  const saveProjects = (updatedProjects: SizingProject[]) => {
+    setProjects(updatedProjects);
+    localStorage.setItem('sizing_projects', JSON.stringify(updatedProjects));
+  };
+
+  const [sizingSearchTerm, setSizingSearchTerm] = useState('');
+  
+  // New Sizing Project Form state
+  const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
+  const [projectForm, setProjectForm] = useState({
+    name: '',
+    client: '',
+    address: '',
+    background: '',
+    specialRequirements: '',
+    emails: ''
+  });
+  
+  // Log / Finding Modal state
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [logForm, setLogForm] = useState({
+    note: '',
+    type: 'avance' as 'avance' | 'hallazgo'
+  });
+  
+  // Finalize Project Modal state
+  const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
+  
+  // File upload state
+  const [tempAttachments, setTempAttachments] = useState<{ name: string; url: string; type: string }[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Date filters for performance report
+  const [performanceFilter, setPerformanceFilter] = useState({
+    start: '2026-03-26',
+    end: '2026-06-26'
+  });
+
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const files = Array.from(e.target.files);
+    
+    for (const file of files) {
+      setIsUploading(true);
+      const toastId = toast.loading(`Subiendo archivo: ${file.name}...`);
+      try {
+        const fileInfo = await SupabaseService.uploadFile('rd-files', `sizing/${Date.now()}_${file.name}`, file);
+        const publicUrl = fileInfo.url;
+        toast.dismiss(toastId);
+        toast.success(`Archivo subido: ${file.name}`);
+        setTempAttachments(prev => [
+          ...prev, 
+          { name: file.name, url: publicUrl, type: file.type.includes('image') ? '📸 EVIDENCIA IMAGEN' : '📄 INFORME TÉCNICO' }
+        ]);
+      } catch (err) {
+        console.error(err);
+        toast.dismiss(toastId);
+        toast.error(`Error al subir ${file.name}`);
+      } finally {
+        setIsUploading(false);
+      }
+    }
+  };
+
+  const handleCreateProject = () => {
+    if (!projectForm.name.trim() || !projectForm.client.trim() || !projectForm.address.trim()) {
+      toast.error('Debe completar los campos obligatorios (*)');
+      return;
+    }
+    const newId = `PRJ-DIM-${String(projects.length + 1).padStart(3, '0')}`;
+    const newProj: SizingProject = {
+      id: newId,
+      name: projectForm.name.trim(),
+      client: projectForm.client.trim(),
+      address: projectForm.address.trim(),
+      background: projectForm.background.trim(),
+      specialRequirements: projectForm.specialRequirements.trim(),
+      emails: projectForm.emails.trim(),
+      status: 'en_progreso',
+      startDate: new Date().toISOString().split('T')[0],
+      attachments: [...tempAttachments],
+      logs: [
+        { 
+          date: new Date().toLocaleString(), 
+          note: 'Proyecto iniciado. Levantamiento de información.', 
+          author: currentUserName, 
+          type: 'creacion' 
+        }
+      ]
+    };
+
+    saveProjects([...projects, newProj]);
+    toast.success(`Proyecto ${newId} iniciado con éxito.`);
+    setIsNewProjectModalOpen(false);
+    setTempAttachments([]);
+  };
+
+  const handleAddLog = () => {
+    if (!logForm.note.trim() || !selectedProjectId) {
+      toast.error('Debe ingresar una nota de bitácora.');
+      return;
+    }
+
+    const updated = projects.map(p => {
+      if (p.id === selectedProjectId) {
+        return {
+          ...p,
+          logs: [
+            ...p.logs,
+            {
+              date: new Date().toLocaleString(),
+              note: logForm.note.trim(),
+              author: currentUserName,
+              type: logForm.type
+            }
+          ]
+        };
+      }
+      return p;
+    });
+
+    saveProjects(updated);
+    toast.success('Bitácora actualizada.');
+    setIsLogModalOpen(false);
+  };
+
+  const handleFinalizeProject = () => {
+    if (!selectedProjectId) return;
+    if (tempAttachments.length === 0) {
+      toast.error('Debe subir al menos un informe final para culminar el proyecto.');
+      return;
+    }
+
+    const updated = projects.map(p => {
+      if (p.id === selectedProjectId) {
+        return {
+          ...p,
+          status: 'completado' as const,
+          endDate: new Date().toISOString().split('T')[0],
+          attachments: [...p.attachments, ...tempAttachments],
+          logs: [
+            ...p.logs,
+            {
+              date: new Date().toLocaleString(),
+              note: 'Informes finales subidos y proyecto finalizado.',
+              author: currentUserName,
+              type: 'finalizacion'
+            }
+          ]
+        };
+      }
+      return p;
+    });
+
+    saveProjects(updated);
+    toast.success('Proyecto culminado y cerrado.');
+    setIsFinalizeModalOpen(false);
+    setTempAttachments([]);
+  };
+
+  const handleDeleteProject = (id: string) => {
+    if (window.confirm('¿Está seguro de que desea eliminar este proyecto?')) {
+      const updated = projects.filter(p => p.id !== id);
+      saveProjects(updated);
+      toast.success('Proyecto eliminado.');
+    }
+  };
+
+  const filteredProjects = useMemo(() => {
+    const term = sizingSearchTerm.trim().toLowerCase();
+    if (!term) return projects;
+    return projects.filter(p => 
+      p.name.toLowerCase().includes(term) ||
+      p.client.toLowerCase().includes(term) ||
+      p.address.toLowerCase().includes(term) ||
+      p.background.toLowerCase().includes(term) ||
+      p.id.toLowerCase().includes(term)
+    );
+  }, [projects, sizingSearchTerm]);
+
+  const performanceChartData = useMemo(() => {
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    // Group by key YYYY-MM
+    const grouped: Record<string, { totalDays: number; count: number; label: string }> = {};
+    
+    projects.forEach(p => {
+      if (p.status === 'completado' && p.endDate) {
+        const date = new Date(p.endDate);
+        const year = date.getFullYear();
+        const monthIdx = date.getMonth();
+        const key = `${year}-${String(monthIdx + 1).padStart(2, '0')}`;
+        const monthName = `${months[monthIdx]} ${year}`;
+        const days = Math.max(1, Math.round((date.getTime() - new Date(p.startDate).getTime()) / (1000 * 60 * 60 * 24)));
+        
+        if (!grouped[key]) {
+          grouped[key] = { totalDays: 0, count: 0, label: monthName };
+        }
+        grouped[key].totalDays += days;
+        grouped[key].count += 1;
+      }
+    });
+    
+    // Sort keys chronologically
+    return Object.keys(grouped)
+      .sort()
+      .map(key => ({
+        month: grouped[key].label,
+        avgDays: parseFloat((grouped[key].totalDays / grouped[key].count).toFixed(1))
+      }));
+  }, [projects]);
+
+  const performanceKPIs = useMemo(() => {
+    const completedInRange = projects.filter(p => {
+      if (p.status !== 'completado' || !p.endDate) return false;
+      return p.endDate >= performanceFilter.start && p.endDate <= performanceFilter.end;
+    });
+
+    const activeCount = projects.filter(p => p.status === 'en_progreso').length;
+
+    let totalDays = 0;
+    completedInRange.forEach(p => {
+      if (p.endDate) {
+        const days = Math.max(1, Math.round((new Date(p.endDate).getTime() - new Date(p.startDate).getTime()) / (1000 * 60 * 60 * 24)));
+        totalDays += days;
+      }
+    });
+
+    const avg = completedInRange.length > 0 ? (totalDays / completedInRange.length).toFixed(1) : '0';
+
+    return {
+      completedCount: completedInRange.length,
+      avgDays: avg,
+      activeCount
+    };
+  }, [projects, performanceFilter]);
 
   // Modulation Simulator State
   const [timelineIndex, setTimelineIndex] = useState<number>(0);
@@ -188,7 +524,19 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
         {/* Calculations Shortcut */}
         {onModuleChange && (
           <div 
-            onClick={() => onModuleChange('water_demand')}
+            onClick={() => {
+              setTempAttachments([]);
+              setProjectForm({
+                name: '',
+                client: '',
+                address: '',
+                background: '',
+                specialRequirements: '',
+                emails: ''
+              });
+              setActiveTab('projects');
+              setIsNewProjectModalOpen(true);
+            }}
             className="flex items-center justify-between bg-white border border-slate-200 hover:border-indigo-400 hover:shadow-lg transition-all rounded-3xl p-5 cursor-pointer max-w-sm w-full group relative overflow-hidden shrink-0"
           >
             <div className="flex items-start gap-4">
@@ -216,6 +564,17 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
       {/* Main Navigation Tabs */}
       <div className="flex border-b border-slate-200">
         <button
+          onClick={() => setActiveTab('projects')}
+          className={`px-6 py-3.5 font-bold text-sm border-b-2 transition-all flex items-center gap-2 ${
+            activeTab === 'projects' 
+              ? 'border-indigo-600 text-indigo-600' 
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <Building2 size={16} />
+          Proyectos de Dimensionamiento
+        </button>
+        <button
           onClick={() => setActiveTab('info')}
           className={`px-6 py-3.5 font-bold text-sm border-b-2 transition-all flex items-center gap-2 ${
             activeTab === 'info' 
@@ -237,10 +596,264 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
           <Sliders size={16} />
           Calculadoras de Dimensionamiento
         </button>
+        <button
+          onClick={() => setActiveTab('performance')}
+          className={`px-6 py-3.5 font-bold text-sm border-b-2 transition-all flex items-center gap-2 ${
+            activeTab === 'performance' 
+              ? 'border-indigo-600 text-indigo-600' 
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <BarChart3 size={16} />
+          Reporte de Performance
+        </button>
       </div>
 
+      {/* Tab 3: Projects List Dashboard */}
+      {activeTab === 'projects' && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Header Row */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div>
+              <h3 className="text-lg font-black text-slate-900 uppercase">Proyectos de Dimensionamiento</h3>
+              <p className="text-slate-500 text-xs font-medium mt-1">
+                Administración y seguimiento de dimensionamientos de sistemas centralizados de agua caliente.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setTempAttachments([]);
+                setProjectForm({
+                  name: '',
+                  client: '',
+                  address: '',
+                  background: '',
+                  specialRequirements: '',
+                  emails: ''
+                });
+                setIsNewProjectModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-750 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 shadow-md shadow-indigo-100"
+            >
+              <Plus size={14} className="stroke-[3]" />
+              Nuevo Proyecto
+            </button>
+          </div>
+
+          {/* Search bar */}
+          <div className="flex bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input
+                type="text"
+                placeholder="Buscar por nombre de proyecto, cliente, dirección o antecedentes..."
+                value={sizingSearchTerm}
+                onChange={(e) => setSizingSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          {/* Projects Grid */}
+          <div className="grid grid-cols-1 gap-6">
+            {filteredProjects.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-16 bg-white rounded-2xl border border-slate-200 text-slate-400">
+                <Building2 size={48} className="opacity-20 mb-3" />
+                <h4 className="text-lg font-bold">No se encontraron proyectos</h4>
+                <p className="text-sm font-medium mt-1">Intente con otro término o cree un nuevo proyecto.</p>
+              </div>
+            ) : (
+              filteredProjects.map((p) => {
+                const isCompleted = p.status === 'completado';
+                const durationDays = isCompleted && p.endDate
+                  ? Math.max(1, Math.round((new Date(p.endDate).getTime() - new Date(p.startDate).getTime()) / (1000 * 60 * 60 * 24)))
+                  : Math.max(1, Math.round((new Date().getTime() - new Date(p.startDate).getTime()) / (1000 * 60 * 60 * 24)));
+                
+                return (
+                  <div key={p.id} className="bg-white border border-slate-200/80 hover:border-indigo-200 hover:shadow-lg transition-all rounded-3xl p-6 space-y-6">
+                    {/* Project Card Header */}
+                    <div className="flex justify-between items-start gap-4 flex-wrap">
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{p.id}</span>
+                        <h4 className="text-base font-black text-slate-900 tracking-tight">{p.name}</h4>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                          isCompleted
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-250'
+                            : 'bg-amber-50 text-amber-700 border-amber-250'
+                        }`}>
+                          {isCompleted ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                          {isCompleted ? 'Completado' : 'En Progreso'}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteProject(p.id)}
+                          className="p-2 text-slate-450 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                          title="Eliminar proyecto"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Metadata Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-semibold text-slate-650 bg-slate-50/60 p-4 rounded-2xl border border-slate-100">
+                      <div>
+                        <span className="block text-[9px] text-slate-400 uppercase font-black tracking-widest">Cliente</span>
+                        <span className="text-slate-800 font-bold block mt-0.5">{p.client}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[9px] text-slate-400 uppercase font-black tracking-widest">Dirección</span>
+                        <span className="text-slate-800 font-bold block mt-0.5 truncate" title={p.address}>{p.address}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[9px] text-slate-400 uppercase font-black tracking-widest">Fecha Inicio</span>
+                        <span className="text-slate-800 font-bold block mt-0.5 flex items-center gap-1.5">
+                          <Calendar size={12} /> {p.startDate}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-[9px] text-slate-400 uppercase font-black tracking-widest">
+                          {isCompleted ? 'Fecha Fin' : 'Tiempo Transcurrido'}
+                        </span>
+                        <span className="text-slate-800 font-bold block mt-0.5 flex items-center gap-1.5">
+                          <Clock size={12} /> 
+                          {isCompleted ? `${p.endDate} (${durationDays} días)` : `${durationDays} días activo`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Background & Requirements */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs leading-relaxed">
+                      <div className="space-y-1">
+                        <span className="block text-[9px] text-slate-400 uppercase font-black tracking-widest">Antecedentes</span>
+                        <p className="text-slate-600 font-medium whitespace-pre-line">{p.background || 'Sin antecedentes registrados.'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="block text-[9px] text-slate-400 uppercase font-black tracking-widest">Requerimientos Especiales</span>
+                        <p className="text-slate-600 font-medium whitespace-pre-line">{p.specialRequirements || 'Sin requerimientos especiales.'}</p>
+                      </div>
+                    </div>
+
+                    {/* Emails list */}
+                    {p.emails && (
+                      <div className="text-xs">
+                        <span className="block text-[9px] text-slate-400 uppercase font-black tracking-widest mb-1">Correos del Proyecto</span>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {p.emails.split(',').map((email, idx) => (
+                            <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-655 rounded-lg text-[10px] font-bold border border-slate-200">
+                              <Mail size={10} /> {email.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Attachments Section */}
+                    <div className="space-y-2 border-t border-slate-100 pt-4">
+                      <span className="block text-[9px] text-slate-400 uppercase font-black tracking-widest">Documentos y Evidencias</span>
+                      {p.attachments.length === 0 ? (
+                        <p className="text-slate-400 text-xs font-semibold">No hay documentos adjuntos.</p>
+                      ) : (
+                        <div className="flex gap-2 flex-wrap">
+                          {p.attachments.map((file, idx) => (
+                            <a
+                              key={idx}
+                              href={file.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-all active:scale-95"
+                            >
+                              <FileText size={14} />
+                              <div className="text-left">
+                                <p className="leading-none text-[11px] font-bold truncate max-w-[150px]">{file.name}</p>
+                                <p className="text-[8px] text-indigo-400 uppercase font-black tracking-widest mt-0.5">{file.type}</p>
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Timeline Logs */}
+                    <div className="border-t border-slate-100 pt-4 space-y-3">
+                      <span className="block text-[9px] text-slate-400 uppercase font-black tracking-widest">Bitácora de Avances y Hallazgos</span>
+                      <div className="space-y-3 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                        {p.logs.map((log, idx) => (
+                          <div key={idx} className="flex gap-4 items-start pl-5 relative animate-in fade-in duration-300">
+                            {/* Dot indicator */}
+                            <span className={`absolute left-0 top-1.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center shadow-sm ${
+                              log.type === 'creacion' ? 'bg-indigo-500' :
+                              log.type === 'finalizacion' ? 'bg-emerald-500' :
+                              log.type === 'hallazgo' ? 'bg-amber-500' : 'bg-slate-400'
+                            }`} />
+                            <div className="space-y-0.5">
+                              <p className="text-xs text-slate-800 font-bold">{log.note}</p>
+                              <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold">
+                                <span>{log.author}</span>
+                                <span>•</span>
+                                <span>{log.date}</span>
+                                {log.type && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="uppercase text-[8px] font-black tracking-widest text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-mono">
+                                      {log.type}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Project footer buttons */}
+                    {!isCompleted && (
+                      <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+                        <button
+                          onClick={() => {
+                            setSelectedProjectId(p.id);
+                            setLogForm({ note: '', type: 'avance' });
+                            setIsLogModalOpen(true);
+                          }}
+                          className="px-4 py-2 border border-slate-250 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-black uppercase tracking-tight transition-all active:scale-95"
+                        >
+                          Registrar Avance
+                        </button>
+                        <button
+                          onClick={() => {
+                            setBuildingType('multifamily');
+                            setUnitsCount(50);
+                            setActiveTab('methods');
+                            toast.info(`Configurando calculadora para el proyecto: ${p.name}`);
+                          }}
+                          className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-xl text-xs font-black uppercase tracking-tight transition-all active:scale-95"
+                        >
+                          Realizar Cálculos
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedProjectId(p.id);
+                            setTempAttachments([]);
+                            setIsFinalizeModalOpen(true);
+                          }}
+                          className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-tight transition-all active:scale-95 shadow-md"
+                        >
+                          Subir Evidencia y Finalizar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Tab 1: Interactive Learning Dashboard */}
-      {activeTab === 'info' ? (
+      {activeTab === 'info' && (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
           {/* Topic list on left */}
@@ -621,8 +1234,10 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
 
           </div>
         </div>
-      ) : (
-        /* Tab 2: Sizing Calculators */
+      )}
+
+      {/* Tab 2: Sizing Calculators */}
+      {activeTab === 'methods' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-300">
           
           {/* Settings & Inputs */}
@@ -883,6 +1498,505 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
           </div>
         </div>
       )}
+
+      {/* Tab 4: Performance Report */}
+      {activeTab === 'performance' && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Filters & Title */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div>
+              <h3 className="text-lg font-black text-slate-900 uppercase">Indicadores de Desempeño (I+D)</h3>
+              <p className="text-slate-500 text-xs font-medium mt-1">
+                Monitoreo del tiempo promedio desde el inicio del dimensionamiento hasta la entrega del informe final.
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-2 flex-wrap text-xs font-bold text-slate-700">
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] uppercase tracking-wider text-slate-400 font-black">Desde</label>
+                <input 
+                  type="date"
+                  value={performanceFilter.start}
+                  onChange={(e) => setPerformanceFilter(prev => ({ ...prev, start: e.target.value }))}
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] uppercase tracking-wider text-slate-400 font-black">Hasta</label>
+                <input 
+                  type="date"
+                  value={performanceFilter.end}
+                  onChange={(e) => setPerformanceFilter(prev => ({ ...prev, end: e.target.value }))}
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* KPIs & Objective Card */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex items-center gap-5">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-150 flex items-center justify-center text-indigo-600 shrink-0">
+                <CheckCircle2 size={24} />
+              </div>
+              <div>
+                <span className="block text-[10px] text-slate-400 uppercase font-black tracking-widest">Total Entregados</span>
+                <span className="text-3xl font-black text-slate-900 block mt-0.5">{performanceKPIs.completedCount}</span>
+                <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">Proyectos cerrados en el rango</span>
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex items-center gap-5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-150 flex items-center justify-center text-emerald-650 shrink-0">
+                <Clock size={24} />
+              </div>
+              <div>
+                <span className="block text-[10px] text-slate-400 uppercase font-black tracking-widest">Tiempo Promedio</span>
+                <span className="text-3xl font-black text-slate-900 block mt-0.5">
+                  {performanceKPIs.avgDays} <span className="text-sm font-bold text-slate-500">días</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">Promedio de días para finalizar</span>
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex items-center gap-5">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-150 flex items-center justify-center text-amber-600 shrink-0">
+                <Activity size={24} />
+              </div>
+              <div>
+                <span className="block text-[10px] text-slate-400 uppercase font-black tracking-widest">Dimensionamientos Activos</span>
+                <span className="text-3xl font-black text-slate-900 block mt-0.5">{performanceKPIs.activeCount}</span>
+                <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">En proceso de diseño y levantamiento</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Chart Area */}
+            <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+              <div className="mb-4">
+                <h4 className="text-sm font-black text-white uppercase tracking-wider">Evolución del Tiempo Promedio de Entrega</h4>
+                <p className="text-slate-400 text-[11px] mt-0.5">Gráfico mensual con metas operativas (Meta: 5 días o menos).</p>
+              </div>
+
+              <div className="h-[280px] w-full text-xs font-mono font-bold">
+                {performanceChartData.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-slate-500">
+                    No hay suficientes datos históricos para graficar.
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={performanceChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#2a3347" />
+                      <XAxis dataKey="month" stroke="#94a3b8" />
+                      <YAxis stroke="#94a3b8" unit="d" />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
+                        labelStyle={{ color: '#fff', fontWeight: 'bold' }}
+                        itemStyle={{ color: '#818cf8' }}
+                      />
+                      <Legend wrapperStyle={{ color: '#94a3b8' }} />
+                      <ReferenceLine y={10} label={{ value: 'Máximo (10d)', fill: '#ef4444', position: 'top', fontSize: 10 }} stroke="#ef4444" strokeDasharray="3 3" />
+                      <ReferenceLine y={5} label={{ value: 'Meta (5d)', fill: '#10b981', position: 'top', fontSize: 10 }} stroke="#10b981" strokeDasharray="3 3" />
+                      <ReferenceLine y={2} label={{ value: 'Mínimo (2d)', fill: '#3b82f6', position: 'top', fontSize: 10 }} stroke="#3b82f6" strokeDasharray="3 3" />
+                      <Line 
+                        name="Días Promedio" 
+                        type="monotone" 
+                        dataKey="avgDays" 
+                        stroke="#6366f1" 
+                        strokeWidth={3} 
+                        dot={{ r: 6, stroke: '#818cf8', strokeWidth: 2, fill: '#0f172a' }}
+                        activeDot={{ r: 8 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* Objective Description Card */}
+            <div className="lg:col-span-4 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-indigo-600">
+                  <Target size={20} />
+                  <h4 className="text-xs font-black uppercase tracking-wider">Objetivo de Desempeño</h4>
+                </div>
+                
+                <div className="space-y-3 text-xs leading-relaxed text-slate-650">
+                  <p>
+                    <strong>Agilidad Comercial:</strong> R&D tiene como meta entregar dimensionamientos y esquemas hidráulicos en un plazo óptimo para no retrasar las propuestas del área comercial.
+                  </p>
+                  <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4 space-y-2">
+                    <div className="flex justify-between items-center text-[10px] uppercase font-black tracking-widest text-slate-500">
+                      <span>Métricas de Control</span>
+                      <span>Meta</span>
+                    </div>
+                    <div className="flex justify-between items-center font-bold text-slate-800">
+                      <span>Plazo de Entrega</span>
+                      <span className="text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded text-[10px]">
+                        ≤ 5 días
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center font-bold text-slate-800">
+                      <span>Carga en Azure</span>
+                      <span className="text-indigo-650 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded text-[10px]">
+                        Obligatorio
+                      </span>
+                    </div>
+                  </div>
+                  <p>
+                    La carga de evidencias (esquemas hidráulicos firmados o informes de pre-evaluación) es obligatoria antes de marcar un proyecto como finalizado.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 border-t border-slate-100 pt-4 text-[10px] text-slate-400 font-medium">
+                Última actualización: hace unos instantes. Los datos se calculan dinámicamente con base en los registros finalizados en el sistema.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Nuevo Proyecto */}
+      <AnimatePresence>
+        {isNewProjectModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto flex flex-col"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-150 flex justify-between items-center bg-slate-50 rounded-t-3xl">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase">Iniciar Nuevo Proyecto</h3>
+                  <p className="text-slate-500 text-xs font-semibold mt-0.5">Comienza un nuevo dimensionamiento registrando los datos base.</p>
+                </div>
+                <button 
+                  onClick={() => setIsNewProjectModalOpen(false)}
+                  className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 hover:text-slate-600 transition-all"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <div className="p-6 space-y-4 flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider block font-bold">Nombre del Proyecto *</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ej. Residencia Miraflores Rinnai"
+                      value={projectForm.name}
+                      onChange={(e) => setProjectForm(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-250 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider block font-bold">Cliente *</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ej. Inmobiliaria Imagina"
+                      value={projectForm.client}
+                      onChange={(e) => setProjectForm(prev => ({ ...prev, client: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-250 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider block font-bold">Dirección del Proyecto *</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ej. Av. Larco 1250, Miraflores"
+                      value={projectForm.address}
+                      onChange={(e) => setProjectForm(prev => ({ ...prev, address: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-250 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider block font-bold">Correos de Notificación</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ej. c.hoyos@sole.com.pe, proyectos@imagina.pe"
+                      value={projectForm.emails}
+                      onChange={(e) => setProjectForm(prev => ({ ...prev, emails: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-250 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider block font-bold">Antecedentes</label>
+                  <textarea 
+                    placeholder="Describe el contexto del proyecto, cantidad de departamentos, requerimiento de caudal, etc."
+                    value={projectForm.background}
+                    rows={3}
+                    onChange={(e) => setProjectForm(prev => ({ ...prev, background: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-250 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider block font-bold">Reerimientos Especiales</label>
+                  <textarea 
+                    placeholder="Ej. Sistema de recirculación forzada, BMS, espacio reducido, etc."
+                    value={projectForm.specialRequirements}
+                    rows={2}
+                    onChange={(e) => setProjectForm(prev => ({ ...prev, specialRequirements: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-250 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none"
+                  />
+                </div>
+
+                {/* Upload Section */}
+                <div className="space-y-2 border-t border-slate-100 pt-4">
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider block font-bold">Planos / Fotos de Referencia (Opcional)</label>
+                  <div className="flex gap-4 items-center">
+                    <label className={`flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-tight cursor-pointer border border-slate-250 transition-all ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <Upload size={14} />
+                      {isUploading ? 'Subiendo...' : 'Seleccionar Archivo'}
+                      <input 
+                        type="file" 
+                        multiple 
+                        onChange={handleUploadFile} 
+                        className="hidden" 
+                        disabled={isUploading}
+                      />
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-semibold">Carga documentos iniciales a Azure</span>
+                  </div>
+
+                  {/* Temp attachments list */}
+                  {tempAttachments.length > 0 && (
+                    <div className="flex gap-2 flex-wrap pt-2">
+                      {tempAttachments.map((file, idx) => (
+                        <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-150 rounded-xl text-xs font-bold text-indigo-750 relative group">
+                          <FileText size={14} />
+                          <div className="text-left max-w-[120px] truncate">
+                            <p className="leading-none text-[10px] font-bold truncate">{file.name}</p>
+                            <p className="text-[7px] text-indigo-400 uppercase font-black tracking-widest mt-0.5">{file.type}</p>
+                          </div>
+                          <button
+                            onClick={() => setTempAttachments(prev => prev.filter((_, i) => i !== idx))}
+                            className="p-1 text-slate-400 hover:text-rose-650 hover:bg-rose-50 rounded-lg"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-slate-150 flex justify-end gap-3 bg-slate-50 rounded-b-3xl">
+                <button 
+                  onClick={() => {
+                    setIsNewProjectModalOpen(false);
+                    setTempAttachments([]);
+                  }}
+                  className="px-4 py-2.5 border border-slate-250 hover:bg-slate-200 text-slate-650 rounded-xl text-xs font-black uppercase tracking-tight transition-all active:scale-95"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleCreateProject}
+                  className="px-5 py-2.5 bg-indigo-655 hover:bg-indigo-750 text-white rounded-xl text-xs font-black uppercase tracking-tight transition-all active:scale-95 shadow-md shadow-indigo-100"
+                >
+                  Iniciar Proyecto
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: Registrar Bitácora */}
+      <AnimatePresence>
+        {isLogModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full flex flex-col"
+            >
+              <div className="p-6 border-b border-slate-150 flex justify-between items-center bg-slate-50 rounded-t-3xl">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase">Registrar Nota en Bitácora</h3>
+                  <p className="text-slate-500 text-xs font-semibold mt-0.5">Agrega avances o hallazgos al historial del dimensionamiento.</p>
+                </div>
+                <button 
+                  onClick={() => setIsLogModalOpen(false)}
+                  className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 hover:text-slate-600 transition-all"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4 flex-1">
+                {/* Type Selection */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider block font-bold">Tipo de Nota</label>
+                  <div className="grid grid-cols-2 gap-3 bg-slate-50 p-1 rounded-2xl border border-slate-200 shadow-inner">
+                    <button
+                      type="button"
+                      onClick={() => setLogForm(prev => ({ ...prev, type: 'avance' }))}
+                      className={`py-2 rounded-xl text-[10px] font-black tracking-wide uppercase transition-all ${
+                        logForm.type === 'avance' 
+                          ? 'bg-white text-indigo-650 shadow-sm border border-slate-200/40' 
+                          : 'text-slate-450 hover:text-slate-600'
+                      }`}
+                    >
+                      Avance Regular
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLogForm(prev => ({ ...prev, type: 'hallazgo' }))}
+                      className={`py-2 rounded-xl text-[10px] font-black tracking-wide uppercase transition-all ${
+                        logForm.type === 'hallazgo' 
+                          ? 'bg-white text-indigo-650 shadow-sm border border-slate-200/40' 
+                          : 'text-slate-450 hover:text-slate-600'
+                      }`}
+                    >
+                      Hallazgo Técnico
+                    </button>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider block font-bold">Anotación *</label>
+                  <textarea 
+                    placeholder="Escribe el avance realizado o el hallazgo técnico encontrado..."
+                    value={logForm.note}
+                    rows={4}
+                    onChange={(e) => setLogForm(prev => ({ ...prev, note: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-250 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-slate-150 flex justify-end gap-3 bg-slate-50 rounded-b-3xl">
+                <button 
+                  onClick={() => setIsLogModalOpen(false)}
+                  className="px-4 py-2.5 border border-slate-250 hover:bg-slate-200 text-slate-650 rounded-xl text-xs font-black uppercase tracking-tight transition-all active:scale-95"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleAddLog}
+                  className="px-5 py-2.5 bg-indigo-650 hover:bg-indigo-750 text-white rounded-xl text-xs font-black uppercase tracking-tight transition-all active:scale-95 shadow-md shadow-indigo-100"
+                >
+                  Guardar Nota
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: Finalizar Proyecto */}
+      <AnimatePresence>
+        {isFinalizeModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full flex flex-col"
+            >
+              <div className="p-6 border-b border-slate-150 flex justify-between items-center bg-slate-50 rounded-t-3xl">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase">Culminar Proyecto</h3>
+                  <p className="text-slate-500 text-xs font-semibold mt-0.5">Sube el informe técnico final en PDF para finalizar el dimensionamiento.</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setIsFinalizeModalOpen(false);
+                    setTempAttachments([]);
+                  }}
+                  className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 hover:text-slate-600 transition-all"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4 flex-1">
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs leading-relaxed text-amber-700 flex gap-2.5 items-start">
+                  <ShieldAlert size={18} className="shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Requisito Obligatorio:</strong> Para cerrar un proyecto de dimensionamiento es obligatorio subir el informe de cálculo formal o esquema hidráulico para contar con evidencias de R&D.
+                  </span>
+                </div>
+
+                {/* Upload Inputs */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider block font-bold">Documento PDF del Informe *</label>
+                  <div className="flex gap-4 items-center">
+                    <label className={`flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-tight cursor-pointer border border-slate-250 transition-all ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <Upload size={14} />
+                      {isUploading ? 'Subiendo...' : 'Subir Informe final'}
+                      <input 
+                        type="file" 
+                        accept="application/pdf,image/*"
+                        onChange={handleUploadFile} 
+                        className="hidden" 
+                        disabled={isUploading}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Temp attachments list */}
+                  {tempAttachments.length > 0 && (
+                    <div className="flex gap-2 flex-wrap pt-2">
+                      {tempAttachments.map((file, idx) => (
+                        <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-150 rounded-xl text-xs font-bold text-indigo-700 relative group">
+                          <FileText size={14} />
+                          <div className="text-left max-w-[150px] truncate">
+                            <p className="leading-none text-[10px] font-bold truncate">{file.name}</p>
+                            <p className="text-[7px] text-indigo-400 uppercase font-black tracking-widest mt-0.5">{file.type}</p>
+                          </div>
+                          <button
+                            onClick={() => setTempAttachments(prev => prev.filter((_, i) => i !== idx))}
+                            className="p-1 text-slate-400 hover:text-rose-650 hover:bg-rose-50 rounded-lg"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-slate-150 flex justify-end gap-3 bg-slate-50 rounded-b-3xl">
+                <button 
+                  onClick={() => {
+                    setIsFinalizeModalOpen(false);
+                    setTempAttachments([]);
+                  }}
+                  className="px-4 py-2.5 border border-slate-250 hover:bg-slate-200 text-slate-655 rounded-xl text-xs font-black uppercase tracking-tight transition-all active:scale-95"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleFinalizeProject}
+                  disabled={tempAttachments.length === 0}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:pointer-events-none text-white rounded-xl text-xs font-black uppercase tracking-tight transition-all active:scale-95 shadow-md shadow-emerald-100 font-bold"
+                >
+                  Cerrar y Finalizar Proyecto
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Lightbox / Fullscreen Image Overlay */}
       <AnimatePresence>
