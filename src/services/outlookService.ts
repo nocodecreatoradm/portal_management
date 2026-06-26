@@ -51,7 +51,14 @@ export const outlookService = {
   /**
    * Generic send method
    */
-  send: async (to: string | string[], subject: string, htmlBody: string, sapCode?: string, isArtwork?: boolean) => {
+  send: async (
+    to: string | string[],
+    subject: string,
+    htmlBody: string,
+    sapCode?: string,
+    isArtwork?: boolean,
+    attachments?: { name: string; content: string }[]
+  ) => {
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const token = localStorage.getItem('auth_token');
@@ -62,7 +69,7 @@ export const outlookService = {
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ to, subject, body: htmlBody, sapCode, isArtwork }),
+        body: JSON.stringify({ to, subject, body: htmlBody, sapCode, isArtwork, attachments }),
       });
 
       if (response.status === 401) {
@@ -453,6 +460,37 @@ export const outlookService = {
   },
 
   /**
+   * Helper to convert a file URL (Blob URL, Azure URL, Data URL) to Base64 format.
+   */
+  urlToBase64: async (url: string): Promise<{ name: string; content: string } | null> => {
+    try {
+      if (!url || url === '#' || url.startsWith('javascript:')) return null;
+
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          // Extract base64 part
+          const content = base64data.split(',')[1];
+          // Determine fileName from URL if possible
+          const urlParts = url.split('/');
+          const filenameWithTime = urlParts[urlParts.length - 1].split('?')[0];
+          // Strip timestamp prefix if any (e.g. 1729381928_filename.pdf)
+          const cleanName = filenameWithTime.replace(/^\d+_/, '');
+          resolve({ name: cleanName, content });
+        };
+        reader.onerror = () => reject(new Error('FileReader error'));
+        reader.readAsDataURL(blob);
+      });
+    } catch (err) {
+      console.error('Failed to convert URL to Base64:', url, err);
+      return null;
+    }
+  },
+
+  /**
    * Sends the bulk email request to Planning and Admins for SAP Code creation.
    */
   sendSamplePlanningRequestEmail: async (shipment: any, pendingItems: any[]) => {
@@ -478,24 +516,16 @@ export const outlookService = {
               <td style="padding: 6px 0; color: #1e293b;">${x.fullDescription}</td>
             </tr>
             <tr>
-              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Alto:</td>
-              <td style="padding: 6px 0; color: #1e293b;">${x.alto}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Ancho:</td>
-              <td style="padding: 6px 0; color: #1e293b;">${x.ancho}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Profundidad:</td>
-              <td style="padding: 6px 0; color: #1e293b;">${x.profundidad}</td>
+              <td style="padding: 6px 0; font-weight: bold; color: #475569;">Dimensiones (Alto x Ancho x Prof.):</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.alto || '30 cm'} (alto) x ${x.ancho || '20 cm'} (ancho) x ${x.profundidad || '15 cm'} (profundidad)</td>
             </tr>
             <tr>
               <td style="padding: 6px 0; font-weight: bold; color: #475569;">Peso:</td>
-              <td style="padding: 6px 0; color: #1e293b;">${x.peso}</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.peso || '1 kg'}</td>
             </tr>
             <tr>
               <td style="padding: 6px 0; font-weight: bold; color: #475569;">Unidad de Medida / Presentación:</td>
-              <td style="padding: 6px 0; color: #1e293b;">${x.unidadMedida} / ${x.presentacion}</td>
+              <td style="padding: 6px 0; color: #1e293b;">${x.unidadMedida || 'UN'} / ${x.presentacion || 'Muestra'}</td>
             </tr>
             <tr>
               <td style="padding: 6px 0; font-weight: bold; color: #475569;">Costo Unitario:</td>
@@ -576,6 +606,45 @@ export const outlookService = {
       <p style="margin: 0;">Grupo Sole</p>
     `;
 
+    // Process attachments to be sent physically via Graph API
+    const attachmentPromises: Promise<{ name: string; content: string } | null>[] = [];
+    if (shipment.quoteUrl && shipment.quoteUrl !== '#') {
+      attachmentPromises.push(
+        outlookService.urlToBase64(shipment.quoteUrl).then(att => {
+          if (att && shipment.quoteName) {
+            att.name = shipment.quoteName;
+          }
+          return att;
+        })
+      );
+    }
+    if (shipment.documents && shipment.documents.length > 0) {
+      shipment.documents.forEach((doc: any) => {
+        if (doc.url && doc.url !== '#') {
+          attachmentPromises.push(
+            outlookService.urlToBase64(doc.url).then(att => {
+              if (att) {
+                let displayName = doc.name;
+                if (displayName.includes(':')) {
+                  displayName = displayName.split(':').slice(1).join(':').trim();
+                }
+                att.name = displayName;
+              }
+              return att;
+            })
+          );
+        }
+      });
+    }
+
+    let attachments: { name: string; content: string }[] = [];
+    try {
+      const results = await Promise.all(attachmentPromises);
+      attachments = results.filter((x): x is { name: string; content: string } => !!x);
+    } catch (attErr) {
+      console.error('Error fetching/converting email attachments:', attErr);
+    }
+
     try {
       const adminEmails = await outlookService.getAdminEmails();
       const planningRolesEmails = await outlookService.getPlanningEmails();
@@ -591,7 +660,7 @@ export const outlookService = {
       const actionUrl = outlookService.getModuleUrl('import_tracking');
       const htmlBody = outlookService.wrapInTemplate(title, content, actionUrl);
       
-      await outlookService.send(recipients, subject, htmlBody);
+      await outlookService.send(recipients, subject, htmlBody, undefined, false, attachments);
       return true;
     } catch (e) {
       console.error('Error sending sample planning request email:', e);

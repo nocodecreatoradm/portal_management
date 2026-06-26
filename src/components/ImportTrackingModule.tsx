@@ -483,6 +483,7 @@ export default function ImportTrackingModule() {
   // Set SAP Code Modal
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [customSapCode, setCustomSapCode] = useState('');
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
 
   // Expandable cards
   const [expandedShipments, setExpandedShipments] = useState<Record<string, boolean>>({});
@@ -828,23 +829,45 @@ export default function ImportTrackingModule() {
     ? docCustomType.trim().toUpperCase()
     : docType.split(' ').slice(1).join(' ').trim();
 
-  const handleAddDoc = () => {
+  const handleAddDoc = async () => {
     if (!docFile) {
       toast.error('Seleccione un archivo para adjuntar');
       return;
     }
-    const fileUrl = URL.createObjectURL(docFile);
-    const doc: AttachedDoc = {
-      name: `${effectiveDocType}: ${docFile.name}`,
-      url: fileUrl,
-      type: docFile.type || 'application/pdf'
-    };
-    setNewShipment(prev => ({
-      ...prev,
-      documents: [...prev.documents, doc]
-    }));
-    setDocFile(null);
-    toast.success(`Documento "${docFile.name}" adjuntado`);
+
+    setIsUploadingDoc(true);
+    const loadingToast = toast.loading('Subiendo documento a Azure...');
+    try {
+      const uniquePath = `import-tracking/shipments/${Date.now()}_${docFile.name}`;
+      const uploadedFile = await SupabaseService.uploadFile('rd-files', uniquePath, docFile);
+      const fileUrl = uploadedFile.url;
+
+      if (effectiveDocType === 'COTIZACIÓN') {
+        setNewShipment(prev => ({
+          ...prev,
+          quoteName: docFile.name,
+          quoteUrl: fileUrl
+        }));
+        toast.success(`Cotización "${docFile.name}" subida y adjuntada`, { id: loadingToast });
+      } else {
+        const doc: AttachedDoc = {
+          name: `${effectiveDocType}: ${docFile.name}`,
+          url: fileUrl,
+          type: docFile.type || 'application/pdf'
+        };
+        setNewShipment(prev => ({
+          ...prev,
+          documents: [...prev.documents, doc]
+        }));
+        toast.success(`Documento "${docFile.name}" subido y adjuntado`, { id: loadingToast });
+      }
+      setDocFile(null);
+    } catch (err: any) {
+      console.error('Error uploading file:', err);
+      toast.error(`Error al subir archivo: ${err.message || err}`, { id: loadingToast });
+    } finally {
+      setIsUploadingDoc(false);
+    }
   };
 
   const handleEditClick = (shipment: ImportShipment) => {
@@ -1517,17 +1540,53 @@ Equipos de Investigación y Desarrollo`;
                       </span>
                       <div className="flex flex-wrap gap-2">
                         {s.quoteName && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold border border-blue-100">
+                          <a
+                            href={s.quoteUrl && s.quoteUrl !== '#' ? s.quoteUrl : undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              if (!s.quoteUrl || s.quoteUrl === '#') {
+                                e.preventDefault();
+                                toast.error('Archivo de cotización simulado (sin URL física)');
+                              }
+                            }}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${
+                              s.quoteUrl && s.quoteUrl !== '#'
+                                ? 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100 cursor-pointer'
+                                : 'bg-blue-50/50 text-blue-400 border-blue-50 cursor-not-allowed'
+                            }`}
+                            title={s.quoteName}
+                          >
                             <FileText size={12} />
-                            Cotización
-                          </span>
+                            Cotización: {s.quoteName}
+                          </a>
                         )}
-                        {s.documents.map((doc, idx) => (
-                          <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold border border-slate-200">
-                            <FileText size={12} />
-                            {doc.name.split(':')[0]}
-                          </span>
-                        ))}
+                        {s.documents && s.documents.map((doc, idx) => {
+                          const hasUrl = doc.url && doc.url !== '#';
+                          return (
+                            <a
+                              key={idx}
+                              href={hasUrl ? doc.url : undefined}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => {
+                                if (!hasUrl) {
+                                  e.preventDefault();
+                                  toast.error('Documento simulado (sin URL física)');
+                                }
+                              }}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${
+                                hasUrl
+                                  ? 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 cursor-pointer'
+                                  : 'bg-slate-50/50 text-slate-400 border-slate-100 cursor-not-allowed'
+                              }`}
+                              title={doc.name}
+                            >
+                              <FileText size={12} />
+                              {doc.name.split(':')[0]}
+                            </a>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -1956,11 +2015,12 @@ Equipos de Investigación y Desarrollo`;
                           />
                         </label>
                         <button
+                          type="button"
                           onClick={handleAddDoc}
-                          disabled={!docFile}
+                          disabled={!docFile || isUploadingDoc}
                           className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-blue-700 transition-all active:scale-95 shadow-sm shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                          Adjuntar
+                          {isUploadingDoc ? 'Subiendo...' : 'Adjuntar'}
                         </button>
                       </div>
                       {docFile && (
@@ -1973,31 +2033,80 @@ Equipos de Investigación y Desarrollo`;
 
                   {/* List of attachments */}
                   <div className="space-y-1.5">
-                    {newShipment.documents.length === 0 ? (
+                    {newShipment.quoteName && (
+                      <div className="flex justify-between items-center bg-blue-50/50 p-2.5 rounded-xl border border-blue-200/50">
+                        <a
+                          href={newShipment.quoteUrl && newShipment.quoteUrl !== '#' ? newShipment.quoteUrl : undefined}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => {
+                            if (!newShipment.quoteUrl || newShipment.quoteUrl === '#') {
+                              e.preventDefault();
+                              toast.error('Archivo de cotización simulado (sin URL física)');
+                            }
+                          }}
+                          className="text-xs font-semibold text-blue-700 hover:text-blue-900 hover:underline flex items-center gap-1.5"
+                          title={newShipment.quoteName}
+                        >
+                          <FileText size={12} className="text-blue-400" />
+                          Cotización Principal: {newShipment.quoteName}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewShipment(prev => ({
+                              ...prev,
+                              quoteName: '',
+                              quoteUrl: ''
+                            }));
+                          }}
+                          className="text-slate-350 hover:text-red-500 p-1"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    )}
+                    {newShipment.documents.length === 0 && !newShipment.quoteName ? (
                       <div className="text-center py-6 text-slate-400 text-xs">
                         <Upload className="mx-auto opacity-25 mb-1.5" size={24} />
                         <p className="font-semibold">Sin documentos adjuntos todavía</p>
                       </div>
                     ) : (
-                      newShipment.documents.map((doc, idx) => (
-                        <div key={idx} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-slate-200/50">
-                          <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                            <FileText size={12} className="text-slate-400" />
-                            {doc.name}
-                          </span>
-                          <button
-                            onClick={() => {
-                              setNewShipment(prev => ({
-                                ...prev,
-                                documents: prev.documents.filter((_, i) => i !== idx)
-                              }));
-                            }}
-                            className="text-slate-350 hover:text-red-500 p-1"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ))
+                      newShipment.documents.map((doc, idx) => {
+                        const hasUrl = doc.url && doc.url !== '#';
+                        return (
+                          <div key={idx} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-slate-200/50">
+                            <a
+                              href={hasUrl ? doc.url : undefined}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => {
+                                if (!hasUrl) {
+                                  e.preventDefault();
+                                  toast.error('Documento simulado (sin URL física)');
+                                }
+                              }}
+                              className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5"
+                              title={doc.name}
+                            >
+                              <FileText size={12} className="text-slate-400" />
+                              {doc.name}
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setNewShipment(prev => ({
+                                  ...prev,
+                                  documents: prev.documents.filter((_, i) => i !== idx)
+                                }));
+                              }}
+                              className="text-slate-350 hover:text-red-500 p-1"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>
