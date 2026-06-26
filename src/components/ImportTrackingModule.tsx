@@ -1526,19 +1526,18 @@ Equipos de Investigación y Desarrollo`;
                       <div className="flex flex-wrap gap-2">
                         {s.quoteName && (
                           <a
-                            href={s.quoteUrl && s.quoteUrl !== '#' ? s.quoteUrl : undefined}
+                            href={s.quoteUrl && s.quoteUrl !== '#' ? s.quoteUrl : 'https://pdfobject.com/pdf/sample.pdf'}
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={(e) => {
+                            onClick={() => {
                               if (!s.quoteUrl || s.quoteUrl === '#') {
-                                e.preventDefault();
-                                toast.error('Archivo de cotización simulado (sin URL física)');
+                                toast.info('Abriendo archivo de demostración (cotización simulada)');
                               }
                             }}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
                               s.quoteUrl && s.quoteUrl !== '#'
-                                ? 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100 cursor-pointer'
-                                : 'bg-blue-50/50 text-blue-400 border-blue-50 cursor-not-allowed'
+                                ? 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100'
+                                : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-700'
                             }`}
                             title={s.quoteName}
                           >
@@ -1551,20 +1550,15 @@ Equipos de Investigación y Desarrollo`;
                           return (
                             <a
                               key={idx}
-                              href={hasUrl ? doc.url : undefined}
+                              href={hasUrl ? doc.url : 'https://pdfobject.com/pdf/sample.pdf'}
                               target="_blank"
                               rel="noopener noreferrer"
-                              onClick={(e) => {
+                              onClick={() => {
                                 if (!hasUrl) {
-                                  e.preventDefault();
-                                  toast.error('Documento simulado (sin URL física)');
+                                  toast.info('Abriendo archivo de demostración (documento simulado)');
                                 }
                               }}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${
-                                hasUrl
-                                  ? 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 cursor-pointer'
-                                  : 'bg-slate-50/50 text-slate-400 border-slate-100 cursor-not-allowed'
-                              }`}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 text-slate-650 rounded-lg text-xs font-bold border border-slate-200 hover:bg-slate-100 hover:text-slate-800 transition-all cursor-pointer"
                               title={doc.name}
                             >
                               <FileText size={12} />
@@ -2021,16 +2015,15 @@ Equipos de Investigación y Desarrollo`;
                     {newShipment.quoteName && (
                       <div className="flex justify-between items-center bg-blue-50/50 p-2.5 rounded-xl border border-blue-200/50">
                         <a
-                          href={newShipment.quoteUrl && newShipment.quoteUrl !== '#' ? newShipment.quoteUrl : undefined}
+                          href={newShipment.quoteUrl && newShipment.quoteUrl !== '#' ? newShipment.quoteUrl : 'https://pdfobject.com/pdf/sample.pdf'}
                           target="_blank"
                           rel="noopener noreferrer"
-                          onClick={(e) => {
+                          onClick={() => {
                             if (!newShipment.quoteUrl || newShipment.quoteUrl === '#') {
-                              e.preventDefault();
-                              toast.error('Archivo de cotización simulado (sin URL física)');
+                              toast.info('Abriendo archivo de demostración (cotización simulada)');
                             }
                           }}
-                          className="text-xs font-semibold text-blue-700 hover:text-blue-900 hover:underline flex items-center gap-1.5"
+                          className="text-xs font-semibold text-blue-700 hover:text-blue-900 hover:underline flex items-center gap-1.5 cursor-pointer"
                           title={newShipment.quoteName}
                         >
                           <FileText size={12} className="text-blue-400" />
@@ -2062,16 +2055,15 @@ Equipos de Investigación y Desarrollo`;
                         return (
                           <div key={idx} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-slate-200/50">
                             <a
-                              href={hasUrl ? doc.url : undefined}
+                              href={hasUrl ? doc.url : 'https://pdfobject.com/pdf/sample.pdf'}
                               target="_blank"
                               rel="noopener noreferrer"
-                              onClick={(e) => {
+                              onClick={() => {
                                 if (!hasUrl) {
-                                  e.preventDefault();
-                                  toast.error('Documento simulado (sin URL física)');
+                                  toast.info('Abriendo archivo de demostración (documento simulado)');
                                 }
                               }}
-                              className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5"
+                              className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5 cursor-pointer"
                               title={doc.name}
                             >
                               <FileText size={12} className="text-slate-400" />
