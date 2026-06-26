@@ -35,6 +35,9 @@ import { saveCalculationRecord, generateModuleCorrelative } from '../lib/api';
 import { currentUser } from '../data/mockData';
 import { toast } from 'sonner';
 
+import imgInstMixed from '../assets/graphics/installation_mixed.png';
+import imgInstCascade from '../assets/graphics/installation_cascade_rinnai.png';
+
 interface UHConfig {
   id: string;
   name: string;
@@ -1178,18 +1181,9 @@ export default function WaterDemandCalculator({ initialData, onExportPPT }: Wate
               </h3>
               <div className="aspect-video bg-white rounded-2xl border border-slate-100 flex items-center justify-center overflow-hidden p-4">
                 <img 
-                  src={activeTab === 'aspe' 
-                    ? "https://www.rinnai.us/sites/default/files/2020-05/commercial-rack-system-with-storage.png"
-                    : "https://www.rinnai.us/sites/default/files/2020-05/msb-cascade-system.png"
-                  } 
+                  src={activeTab === 'aspe' ? imgInstMixed : imgInstCascade} 
                   alt="Esquema de Instalación" 
                   className="w-full h-full object-contain"
-                  onError={(e) => {
-                    // Fallback to a more relevant technical drawing if the Rinnai image fails
-                    (e.target as HTMLImageElement).src = activeTab === 'aspe'
-                      ? "https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=800"
-                      : "https://images.unsplash.com/photo-1581094288338-2314dddb7edd?auto=format&fit=crop&q=80&w=800";
-                  }}
                   referrerPolicy="no-referrer"
                 />
               </div>
