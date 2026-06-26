@@ -31,6 +31,7 @@ import { Toaster, toast } from 'sonner';
 import { SupabaseService } from '../lib/SupabaseService';
 import { Supplier, Brand, ProductLine, Category } from '../types';
 import { outlookService } from '../services/outlookService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SampleItem {
   id: string;
@@ -453,6 +454,9 @@ function SearchCombo({ placeholder, value, options, onSelect, onClear, allowCust
 }
 
 export default function ImportTrackingModule() {
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'Administrador' || profile?.role?.toLowerCase() === 'administrador';
+
   const [shipments, setShipments] = useState<ImportShipment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -1270,7 +1274,7 @@ Equipos de Investigación y Desarrollo`;
   // Simulating Admin/Planning inserting the code
   const handleOpenAssignCode = (shipmentId: string, item: SampleItem) => {
     setSelectedSampleItem({ shipmentId, item });
-    setCustomSapCode('');
+    setCustomSapCode(item.code || '');
     setIsCodeModalOpen(true);
   };
 
@@ -1812,9 +1816,21 @@ Equipos de Investigación y Desarrollo`;
                               </td>
                               <td className="px-4 py-3.5 text-right">
                                 {item.code ? (
-                                  <span className="text-green-500 font-bold text-[10px] uppercase tracking-wider flex items-center justify-end gap-1">
-                                    <CheckCircle2 size={12} /> Listo
-                                  </span>
+                                  <div className="flex flex-col items-end gap-1">
+                                    <span className="text-green-500 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1">
+                                      <CheckCircle2 size={12} /> Listo
+                                    </span>
+                                    {isAdmin && (
+                                      <button
+                                        onClick={() => handleOpenAssignCode(s.id, item)}
+                                        className="flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold uppercase tracking-tight transition-all active:scale-95 shadow-sm"
+                                        title="Modificar código SAP"
+                                      >
+                                        <Edit size={10} />
+                                        Modificar
+                                      </button>
+                                    )}
+                                  </div>
                                 ) : (
                                   <div className="flex justify-end gap-1.5">
                                     <button
@@ -1882,9 +1898,20 @@ Equipos de Investigación y Desarrollo`;
                   {filteredHistory.map((item, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-black border border-green-150 font-mono tracking-wider">
-                          {item.sample.code}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-black border border-green-150 font-mono tracking-wider">
+                            {item.sample.code}
+                          </span>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleOpenAssignCode(item.shipmentId, item.sample)}
+                              className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg border border-blue-200 transition-colors shadow-sm active:scale-95 flex items-center justify-center"
+                              title="Modificar código SAP"
+                            >
+                              <Edit size={12} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-4">
                         <div className="text-xs font-bold text-slate-900 leading-tight">
@@ -2865,9 +2892,13 @@ Equipos de Investigación y Desarrollo`;
               <div className="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
                 <FileCode size={24} />
               </div>
-              <h3 className="text-xl font-black text-slate-950 tracking-tight">Asignación de Código SAP</h3>
+              <h3 className="text-xl font-black text-slate-950 tracking-tight">
+                {selectedSampleItem.item.code ? 'Modificación de Código SAP' : 'Asignación de Código SAP'}
+              </h3>
               <p className="text-slate-500 text-xs mt-1">
-                Ingrese el código de material SAP creado por Planeamiento para esta muestra.
+                {selectedSampleItem.item.code 
+                  ? 'Modifique el código de material SAP creado por Planeamiento para esta muestra.'
+                  : 'Ingrese el código de material SAP creado por Planeamiento para esta muestra.'}
               </p>
             </div>
 
@@ -2879,7 +2910,7 @@ Equipos de Investigación y Desarrollo`;
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nuevo Código SAP *</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Código SAP *</label>
                 <input
                   type="text"
                   placeholder="Ej: 3120MUES085"
