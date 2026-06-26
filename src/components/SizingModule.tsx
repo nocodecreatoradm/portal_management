@@ -520,45 +520,6 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
             Herramienta pedagógica interactiva para ingenieros y técnicos. Explica conceptos clave con diagramas reales aislados y calcula demandas.
           </p>
         </div>
-
-        {/* Calculations Shortcut */}
-        {onModuleChange && (
-          <div 
-            onClick={() => {
-              setTempAttachments([]);
-              setProjectForm({
-                name: '',
-                client: '',
-                address: '',
-                background: '',
-                specialRequirements: '',
-                emails: ''
-              });
-              setActiveTab('projects');
-              setIsNewProjectModalOpen(true);
-            }}
-            className="flex items-center justify-between bg-white border border-slate-200 hover:border-indigo-400 hover:shadow-lg transition-all rounded-3xl p-5 cursor-pointer max-w-sm w-full group relative overflow-hidden shrink-0"
-          >
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
-                <Droplets size={20} />
-              </div>
-              <div className="space-y-0.5">
-                <h4 className="text-sm font-black text-slate-900">Dimensionamiento de Agua Caliente</h4>
-                <p className="text-[11px] text-slate-500 font-medium leading-tight">
-                  Cálculo de demanda simultánea y capacidad de almacenamiento requerida.
-                </p>
-                <div className="flex items-center gap-1 text-[11px] font-black text-indigo-600 uppercase tracking-widest pt-2">
-                  <span>INICIAR NUEVO</span>
-                  <Plus size={12} className="stroke-[3]" />
-                </div>
-              </div>
-            </div>
-            <div className="w-9 h-9 rounded-full bg-slate-50 group-hover:bg-indigo-600 group-hover:text-white transition-all flex items-center justify-center text-slate-400 shrink-0 shadow-inner">
-              <ArrowRight size={16} />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Main Navigation Tabs */}
@@ -1806,7 +1767,7 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
                 </button>
                 <button 
                   onClick={handleCreateProject}
-                  className="px-5 py-2.5 bg-indigo-655 hover:bg-indigo-750 text-white rounded-xl text-xs font-black uppercase tracking-tight transition-all active:scale-95 shadow-md shadow-indigo-100"
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-tight transition-all active:scale-95 shadow-md shadow-indigo-100"
                 >
                   Iniciar Proyecto
                 </button>
@@ -1891,7 +1852,7 @@ export default function SizingModule({ onModuleChange }: { onModuleChange?: (mod
                 </button>
                 <button 
                   onClick={handleAddLog}
-                  className="px-5 py-2.5 bg-indigo-650 hover:bg-indigo-750 text-white rounded-xl text-xs font-black uppercase tracking-tight transition-all active:scale-95 shadow-md shadow-indigo-100"
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-tight transition-all active:scale-95 shadow-md shadow-indigo-100"
                 >
                   Guardar Nota
                 </button>
