@@ -1799,9 +1799,18 @@ Equipos de Investigación y Desarrollo`;
                               </td>
                               <td className="px-4 py-3.5 text-center">
                                 {item.code ? (
-                                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg font-mono font-bold border border-green-200">
-                                    {item.code}
-                                  </span>
+                                  <div className="flex items-center justify-center gap-2">
+                                    <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-lg font-mono font-bold border border-green-200">
+                                      {item.code}
+                                    </span>
+                                    <button
+                                      onClick={() => handleOpenAssignCode(s.id, item)}
+                                      className="p-1 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded transition-colors"
+                                      title="Modificar código SAP"
+                                    >
+                                      <Edit size={12} />
+                                    </button>
+                                  </div>
                                 ) : item.status === 'solicitado' ? (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-yellow-50 text-yellow-700 rounded-lg text-[10px] font-bold border border-yellow-200">
                                     <Clock size={12} />
@@ -1820,16 +1829,14 @@ Equipos de Investigación y Desarrollo`;
                                     <span className="text-green-500 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1">
                                       <CheckCircle2 size={12} /> Listo
                                     </span>
-                                    {isAdmin && (
-                                      <button
-                                        onClick={() => handleOpenAssignCode(s.id, item)}
-                                        className="flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold uppercase tracking-tight transition-all active:scale-95 shadow-sm"
-                                        title="Modificar código SAP"
-                                      >
-                                        <Edit size={10} />
-                                        Modificar
-                                      </button>
-                                    )}
+                                    <button
+                                      onClick={() => handleOpenAssignCode(s.id, item)}
+                                      className="flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-[9px] font-bold uppercase tracking-tight transition-all active:scale-95 shadow-sm"
+                                      title="Modificar código SAP"
+                                    >
+                                      <Edit size={10} />
+                                      Modificar
+                                    </button>
                                   </div>
                                 ) : (
                                   <div className="flex justify-end gap-1.5">
@@ -1902,15 +1909,13 @@ Equipos de Investigación y Desarrollo`;
                           <span className="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-black border border-green-150 font-mono tracking-wider">
                             {item.sample.code}
                           </span>
-                          {isAdmin && (
-                            <button
-                              onClick={() => handleOpenAssignCode(item.shipmentId, item.sample)}
-                              className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg border border-blue-200 transition-colors shadow-sm active:scale-95 flex items-center justify-center"
-                              title="Modificar código SAP"
-                            >
-                              <Edit size={12} />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleOpenAssignCode(item.shipmentId, item.sample)}
+                            className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg border border-blue-200 transition-colors shadow-sm active:scale-95 flex items-center justify-center"
+                            title="Modificar código SAP"
+                          >
+                            <Edit size={12} />
+                          </button>
                         </div>
                       </td>
                       <td className="px-5 py-4">
