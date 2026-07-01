@@ -98,6 +98,17 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
     updateField(stepField, currentList.filter(f => f.name !== name));
   };
 
+  const handleUpdateStepAttachmentLabel = (
+    stepField: 'flashAttachments' | 'visitAttachments' | 'qualityAttachments' | 'rootCauseAttachments',
+    fileName: string,
+    newLabel: string
+  ) => {
+    if (!editingReport) return;
+    const currentList = editingReport[stepField] || [];
+    const updatedList = currentList.map(f => f.name === fileName ? { ...f, label: newLabel } : f);
+    updateField(stepField, updatedList);
+  };
+
   const renderAttachmentsSection = (
     stepField: 'flashAttachments' | 'visitAttachments' | 'qualityAttachments' | 'rootCauseAttachments',
     label = "Archivos de Evidencia / Fotos"
@@ -148,7 +159,14 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                     <span className="text-[10px] font-bold text-slate-700 truncate w-full" title={file.name}>
                       {file.name}
                     </span>
-                    <a href={file.url} target="_blank" rel="noreferrer" className="text-[9px] font-bold text-blue-600 hover:underline mt-0.5">
+                    <input
+                      type="text"
+                      value={file.label || ''}
+                      onChange={(e) => handleUpdateStepAttachmentLabel(stepField, file.name, e.target.value)}
+                      placeholder="Etiqueta (ej. Falla perilla)..."
+                      className="px-2 py-1 border border-slate-200 rounded-lg outline-none text-[9px] font-bold text-slate-700 w-full mt-1.5 focus:border-blue-500"
+                    />
+                    <a href={file.url} target="_blank" rel="noreferrer" className="text-[9px] font-bold text-blue-600 hover:underline mt-1">
                       Descargar
                     </a>
                   </div>
@@ -1888,11 +1906,21 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
 
             {/* Printable Content */}
             <div className="flex-1 overflow-y-auto p-10 custom-scrollbar" id="printable-area">
-              <div className="header flex justify-between items-center border-b border-slate-200 pb-5 mb-6">
+              {/* Header Letterhead Template */}
+              <div className="print-header flex justify-between items-end border-b-2 border-slate-900 pb-3 mb-6" style={{ width: '100%' }}>
+                <div className="flex flex-col" style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '24px', fontWeight: '900', color: '#0a3161', fontFamily: 'sans-serif', letterSpacing: '-0.025em' }}>Grupo Sole</span>
+                  <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '2px' }}>Rinnai Corporation</span>
+                </div>
+                <div style={{ flex: 1, borderBottom: '1px solid #cbd5e1', marginBottom: '4px', marginLeft: '20px' }}></div>
+              </div>
+
+              {/* Title of the report */}
+              <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">GRUPO SOLE - INFORME HIYARI HATTO</h2>
-                  <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">
-                    Control de Accidentes, Causa Raíz e Ishikawa
+                  <h2 className="text-xl font-black text-slate-950">INFORME DE INCIDENCIA DE PRODUCTO</h2>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                    Control de Incidentes Críticos, Causa Raíz e Ishikawa
                   </p>
                 </div>
                 <div>
@@ -2103,7 +2131,7 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                                       <span className="text-[9px] font-mono uppercase truncate w-full">{file.name.split('.').pop()}</span>
                                     </div>
                                   )}
-                                  <span className="text-[9px] font-bold text-slate-600 truncate w-full mt-1.5" title={file.name}>{file.name}</span>
+                                  <span className="text-[9px] font-bold text-slate-650 truncate w-full mt-1.5" title={file.label || file.name}>{file.label || file.name}</span>
                                 </div>
                               );
                             })}
@@ -2114,6 +2142,18 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                   </div>
                 </div>
               )}
+
+              {/* Footer Letterhead Template */}
+              <div className="print-footer mt-10 pt-6 border-t border-slate-200 flex justify-between items-center" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '15px', marginTop: '30px' }}>
+                <div style={{ backgroundColor: '#f1f5f9', borderTopRightRadius: '15px', borderBottomRightRadius: '15px', padding: '10px 15px', fontSize: '9px', lineHeight: '1.4', fontWeight: '800', color: '#475569', fontFamily: 'sans-serif' }}>
+                  Av. Argentina 2317 - Callao<br/>
+                  Av. Camino Real 1281 - San Isidro<br/>
+                  www.gruposole.com.pe/corporativo
+                </div>
+                <div style={{ fontFamily: 'sans-serif', fontSize: '10px', fontWeight: '800', color: '#94a3b8', letterSpacing: '0.05em' }}>
+                  sole &nbsp;&bull;&nbsp; S&middot;Collection &nbsp;&bull;&nbsp; Rinnai &nbsp;&bull;&nbsp; METUSA &nbsp;&bull;&nbsp; BRIKKEL
+                </div>
+              </div>
             </div>
           </div>
         </div>

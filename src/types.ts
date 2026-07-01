@@ -18,6 +18,7 @@ export interface FileInfo {
   commercialType?: 'provisional' | 'final';
   size?: number;
   uploadedAt?: string;
+  label?: string;
 }
 
 export interface PDFComment {
