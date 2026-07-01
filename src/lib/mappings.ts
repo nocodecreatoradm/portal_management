@@ -918,8 +918,10 @@ export const mapHiyariHattoReportToDB = (report: Partial<HiyariHattoReport>) => 
   if (report.incidentDate !== undefined) dbRow.incident_date = report.incidentDate || null;
   if (report.reportDate !== undefined) dbRow.report_date = report.reportDate || null;
   if (report.customerName !== undefined) dbRow.customer_name = report.customerName;
+  if (report.customerDni !== undefined) dbRow.customer_dni = report.customerDni;
   if (report.customerAddress !== undefined) dbRow.customer_address = report.customerAddress;
   if (report.affectedPerson !== undefined) dbRow.affected_person = report.affectedPerson;
+  if (report.affectedPeople !== undefined) dbRow.affected_people = JSON.stringify(report.affectedPeople);
   if (report.incidentDescription !== undefined) dbRow.incident_description = report.incidentDescription;
   if (report.hasProductDamage !== undefined) dbRow.has_product_damage = report.hasProductDamage ? 1 : 0;
   if (report.hasHomeDamage !== undefined) dbRow.has_home_damage = report.hasHomeDamage ? 1 : 0;
@@ -960,8 +962,10 @@ export const mapDBToHiyariHattoReport = (dbRow: any): HiyariHattoReport => ({
   incidentDate: dbRow.incident_date,
   reportDate: dbRow.report_date,
   customerName: dbRow.customer_name,
+  customerDni: dbRow.customer_dni,
   customerAddress: dbRow.customer_address,
   affectedPerson: dbRow.affected_person,
+  affectedPeople: typeof dbRow.affected_people === 'string' ? JSON.parse(dbRow.affected_people) : dbRow.affected_people || [],
   incidentDescription: dbRow.incident_description,
   hasProductDamage: dbRow.has_product_damage === 1 || dbRow.has_product_damage === true || dbRow.has_product_damage === '1',
   hasHomeDamage: dbRow.has_home_damage === 1 || dbRow.has_home_damage === true || dbRow.has_home_damage === '1',

@@ -1279,8 +1279,8 @@ export default function HiyariHattoModule({ products, brands = [] }: HiyariHatto
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="flex flex-col">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="flex flex-col md:col-span-2">
                       <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Nombre del Cliente</label>
                       <input
                         type="text"
@@ -1290,7 +1290,17 @@ export default function HiyariHattoModule({ products, brands = [] }: HiyariHatto
                         className="px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-800 text-sm"
                       />
                     </div>
-                    <div className="flex flex-col md:col-span-2">
+                    <div className="flex flex-col">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">DNI del Cliente</label>
+                      <input
+                        type="text"
+                        value={editingReport.customerDni || ''}
+                        onChange={(e) => updateField('customerDni', e.target.value)}
+                        placeholder="DNI (8 dígitos)"
+                        className="px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-800 text-sm"
+                      />
+                    </div>
+                    <div className="flex flex-col">
                       <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Dirección del Cliente</label>
                       <input
                         type="text"
@@ -1302,15 +1312,70 @@ export default function HiyariHattoModule({ products, brands = [] }: HiyariHatto
                     </div>
                   </div>
 
-                  <div className="flex flex-col">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Personas Involucradas / Afectadas</label>
-                    <input
-                      type="text"
-                      value={editingReport.affectedPerson || ''}
-                      onChange={(e) => updateField('affectedPerson', e.target.value)}
-                      placeholder="Ej. Cliente sufrió quemaduras leves en el rostro..."
-                      className="px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-800 text-sm"
-                    />
+                  <div className="space-y-4 border-2 border-dashed border-slate-200 p-6 rounded-3xl bg-slate-50/30">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                        Personas Involucradas / Afectadas (Con DNI)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const list = editingReport.affectedPeople || [];
+                          updateField('affectedPeople', [...list, { name: '', dni: '' }]);
+                        }}
+                        className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                      >
+                        <Plus size={14} />
+                        Agregar Persona
+                      </button>
+                    </div>
+
+                    {(!editingReport.affectedPeople || editingReport.affectedPeople.length === 0) ? (
+                      <div className="text-xs text-slate-400 font-semibold italic text-center py-4 bg-white border border-slate-200 rounded-2xl">
+                        Ninguna persona registrada como afectada o involucrada. Haz clic en "Agregar Persona" para añadir.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {editingReport.affectedPeople.map((person, idx) => (
+                          <div key={idx} className="flex gap-4 items-center bg-white p-3 border border-slate-200 rounded-2xl animate-in fade-in duration-200">
+                            <div className="flex-1 flex flex-col md:flex-row gap-4">
+                              <input
+                                type="text"
+                                value={person.name}
+                                onChange={(e) => {
+                                  const list = [...(editingReport.affectedPeople || [])];
+                                  list[idx].name = e.target.value;
+                                  updateField('affectedPeople', list);
+                                }}
+                                placeholder="Nombre completo"
+                                className="flex-1 px-3 py-2 border border-slate-250 rounded-xl outline-none text-xs font-bold text-slate-800 focus:border-blue-500"
+                              />
+                              <input
+                                type="text"
+                                value={person.dni}
+                                onChange={(e) => {
+                                  const list = [...(editingReport.affectedPeople || [])];
+                                  list[idx].dni = e.target.value;
+                                  updateField('affectedPeople', list);
+                                }}
+                                placeholder="DNI"
+                                className="w-40 px-3 py-2 border border-slate-250 rounded-xl outline-none text-xs font-bold text-slate-800 focus:border-blue-500"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const list = [...(editingReport.affectedPeople || [])];
+                                updateField('affectedPeople', list.filter((_, i) => i !== idx));
+                              }}
+                              className="p-2 text-slate-450 hover:text-red-650 hover:bg-red-50 rounded-lg transition-all"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col">
@@ -1946,8 +2011,10 @@ export default function HiyariHattoModule({ products, brands = [] }: HiyariHatto
                     <div className="font-bold mt-0.5 text-slate-800">{printingReport.serialNumber || '-'}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase">Nombre del Cliente / Dirección</div>
-                    <div className="font-bold mt-0.5 text-slate-800">{printingReport.customerName} - {printingReport.customerAddress}</div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase">Nombre del Cliente / DNI / Dirección</div>
+                    <div className="font-bold mt-0.5 text-slate-800">
+                      {printingReport.customerName} {printingReport.customerDni ? `(DNI: ${printingReport.customerDni})` : ''} - {printingReport.customerAddress}
+                    </div>
                   </div>
                   <div>
                     <div className="text-[10px] text-slate-400 font-bold uppercase">Fecha Incidente / ATC Reporte</div>
@@ -1957,12 +2024,28 @@ export default function HiyariHattoModule({ products, brands = [] }: HiyariHatto
                   </div>
                 </div>
 
-                <div className="mt-4">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">Daños Reportados</div>
-                  <div className="flex gap-2 mt-1">
-                    {printingReport.hasProductDamage && <span className="bg-slate-100 px-2 py-0.5 text-xs font-bold rounded">Daño de Producto</span>}
-                    {printingReport.hasHomeDamage && <span className="bg-slate-100 px-2 py-0.5 text-xs font-bold rounded">Daño Domicilio</span>}
-                    {printingReport.hasClientDamage && <span className="bg-slate-100 px-2 py-0.5 text-xs font-bold rounded">Daño al Cliente</span>}
+                <div className="grid grid-cols-2 gap-4 text-sm mt-4">
+                  <div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase">Daños Reportados</div>
+                    <div className="flex gap-2 mt-1">
+                      {printingReport.hasProductDamage && <span className="bg-slate-100 px-2 py-0.5 text-xs font-bold rounded">Daño de Producto</span>}
+                      {printingReport.hasHomeDamage && <span className="bg-slate-100 px-2 py-0.5 text-xs font-bold rounded">Daño Domicilio</span>}
+                      {printingReport.hasClientDamage && <span className="bg-slate-100 px-2 py-0.5 text-xs font-bold rounded">Daño al Cliente</span>}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase">Personas Involucradas / Afectadas</div>
+                    <div className="font-semibold mt-1 text-slate-700 leading-relaxed">
+                      {(!printingReport.affectedPeople || printingReport.affectedPeople.length === 0) ? (
+                        <span>Ninguna persona reportada</span>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          {printingReport.affectedPeople.map((p, idx) => (
+                            <div key={idx} className="font-bold">• {p.name} {p.dni ? `(DNI: ${p.dni})` : ''}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 

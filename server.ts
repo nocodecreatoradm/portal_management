@@ -2264,6 +2264,8 @@ function buildMimeMessage(options: {
                 visit_attachments nvarchar(max) NULL,
                 quality_attachments nvarchar(max) NULL,
                 root_cause_attachments nvarchar(max) NULL,
+                customer_dni nvarchar(50) NULL,
+                affected_people nvarchar(max) NULL,
                 created_at datetime2 DEFAULT GETDATE(),
                 updated_at datetime2 DEFAULT GETDATE()
             );
@@ -2278,6 +2280,10 @@ function buildMimeMessage(options: {
                 ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD quality_attachments nvarchar(max) NULL;
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'root_cause_attachments')
                 ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD root_cause_attachments nvarchar(max) NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'customer_dni')
+                ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD customer_dni nvarchar(50) NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'affected_people')
+                ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD affected_people nvarchar(max) NULL;
         END
       `);
 

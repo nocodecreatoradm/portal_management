@@ -827,6 +827,11 @@ export interface ActionPlanItem {
   completedDate?: string;
 }
 
+export interface InvolvedPerson {
+  name: string;
+  dni: string;
+}
+
 export interface HiyariHattoReport {
   id?: string;
   ticketNumber: string;
@@ -837,8 +842,10 @@ export interface HiyariHattoReport {
   incidentDate?: string;
   reportDate?: string;
   customerName?: string;
+  customerDni?: string;
   customerAddress?: string;
   affectedPerson?: string;
+  affectedPeople?: InvolvedPerson[];
   incidentDescription?: string;
   hasProductDamage: boolean;
   hasHomeDamage: boolean;
