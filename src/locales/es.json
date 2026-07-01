@@ -43,7 +43,8 @@
     "absorption_calculation": "Absorción de Campana",
     "temperature_loss": "Pérdida de Temperatura",
     "cr_ni_coating_analysis": "Análisis de Recubrimiento",
-    "oven_experimental": "Análisis Térmico de Hornos"
+    "oven_experimental": "Análisis Térmico de Hornos",
+    "hiyari_hatto": "Análisis de Empresa"
   },
   "roles": {
     "admin": "Administrador",

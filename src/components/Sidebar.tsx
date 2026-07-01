@@ -55,6 +55,7 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
   
   // State for collapsible groups
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    'analisis_empresa': true,
     'manual_marca': true,
     'seguimiento': false,
     'aprobados': false,
@@ -72,6 +73,14 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
   };
 
   const navGroups: NavGroup[] = [
+    {
+      title: 'Análisis de Empresa',
+      id: 'analisis_empresa',
+      icon: <TrendingUp size={18} />,
+      modules: [
+        { id: 'hiyari_hatto', label: t('menu.hiyari_hatto'), icon: <AlertCircle size={18} />, permission: 'hiyari_hatto:view' },
+      ]
+    },
     {
       title: 'Manual de Marca',
       id: 'manual_marca',

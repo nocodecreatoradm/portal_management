@@ -23,7 +23,8 @@ import {
   QualityClaim,
   PriceGMROITemplate,
   CategoryGMROIThreshold,
-  SolyReminder
+  SolyReminder,
+  HiyariHattoReport
 } from '../types';
 import {
   mapInventoryToDB,
@@ -71,7 +72,9 @@ import {
   mapThresholdToDB,
   mapDBToThreshold,
   mapReminderToDB,
-  mapDBToReminder
+  mapDBToReminder,
+  mapHiyariHattoReportToDB,
+  mapDBToHiyariHattoReport
 } from './mappings';
 
 
@@ -1779,6 +1782,50 @@ export const SupabaseService = {
       .single();
     if (error) throw error;
     return mapDBToReminder(data);
+  },
+
+  // HIYARI HATTO REPORTS
+  async getHiyariHattoReports() {
+    const { data, error } = await supabase
+      .from('hiyari_hatto_reports')
+      .select()
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(mapDBToHiyariHattoReport);
+  },
+
+  async createHiyariHattoReport(report: Partial<HiyariHattoReport>) {
+    const dbRow = mapHiyariHattoReportToDB(report);
+    const { data, error } = await supabase
+      .from('hiyari_hatto_reports')
+      .insert(dbRow)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToHiyariHattoReport(data);
+  },
+
+  async updateHiyariHattoReport(id: string, updates: Partial<HiyariHattoReport>) {
+    if (!isUUID(id)) return null;
+    const dbUpdates = mapHiyariHattoReportToDB(updates);
+    const { data, error } = await supabase
+      .from('hiyari_hatto_reports')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapDBToHiyariHattoReport(data);
+  },
+
+  async deleteHiyariHattoReport(id: string) {
+    if (!isUUID(id)) return true;
+    const { error } = await supabase
+      .from('hiyari_hatto_reports')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return true;
   }
 };
 

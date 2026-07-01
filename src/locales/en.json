@@ -43,7 +43,8 @@
     "absorption_calculation": "Hood Absorption",
     "temperature_loss": "Temperature Loss",
     "cr_ni_coating_analysis": "Coating Analysis",
-    "oven_experimental": "Oven Thermal Analysis"
+    "oven_experimental": "Oven Thermal Analysis",
+    "hiyari_hatto": "Company Analysis"
   },
   "roles": {
     "admin": "Administrator",

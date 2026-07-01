@@ -2226,6 +2226,44 @@ function buildMimeMessage(options: {
                 updated_at datetime2 DEFAULT GETDATE()
             );
         END
+
+        IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND type in (N'U'))
+        BEGIN
+            CREATE TABLE ID_PORTAL.hiyari_hatto_reports (
+                id uniqueidentifier PRIMARY KEY DEFAULT newid(),
+                ticket_number nvarchar(100) NOT NULL,
+                product_id uniqueidentifier REFERENCES ID_PORTAL.products(id) ON DELETE SET NULL,
+                sap_code nvarchar(100),
+                product_name nvarchar(255),
+                serial_number nvarchar(100),
+                incident_date datetime2,
+                report_date datetime2,
+                customer_name nvarchar(255),
+                customer_address nvarchar(max),
+                affected_person nvarchar(255),
+                incident_description nvarchar(max),
+                has_product_damage bit DEFAULT 0,
+                has_home_damage bit DEFAULT 0,
+                has_client_damage bit DEFAULT 0,
+                status nvarchar(100) DEFAULT 'flash_report',
+                flash_report_by nvarchar(255),
+                flash_report_date datetime2 DEFAULT GETDATE(),
+                visit_technical_report nvarchar(max),
+                visit_date datetime2,
+                received_date datetime2,
+                quality_report_antecedents nvarchar(max),
+                quality_report_tests nvarchar(max),
+                quality_report_conclusion nvarchar(100),
+                conclusion_details nvarchar(max),
+                five_whys nvarchar(max),
+                ishikawa nvarchar(max),
+                hiyari_q3 nvarchar(max),
+                hiyari_q4 nvarchar(max),
+                action_plan nvarchar(max),
+                created_at datetime2 DEFAULT GETDATE(),
+                updated_at datetime2 DEFAULT GETDATE()
+            );
+        END
       `);
 
       // ─── LINEAL DE PRODUCTOS COLUMN MIGRATION ─────────────────────────────────
@@ -2297,6 +2335,8 @@ function buildMimeMessage(options: {
           { name: 'technical_sheets:edit',    description: 'Editar Fichas Técnicas y Comerciales', module: 'Gestión Operativa', adminOnly: false },
           { name: 'quality_claims:view',      description: 'Ver Reclamos de Calidad',        module: 'Gestión Operativa',      adminOnly: false },
           { name: 'quality_claims:edit',      description: 'Registrar / Resolver Reclamos',  module: 'Gestión Operativa',      adminOnly: false },
+          { name: 'hiyari_hatto:view',        description: 'Ver Análisis Hiyari Hatto',      module: 'Gestión Operativa',      adminOnly: false },
+          { name: 'hiyari_hatto:edit',        description: 'Editar/Crear Hiyari Hatto',      module: 'Gestión Operativa',      adminOnly: false },
           // Archivo Histórico
           { name: 'approved_artworks:view',   description: 'Ver Artes Aprobadas',            module: 'Archivo Histórico',      adminOnly: false },
           { name: 'approved_technical:view',  description: 'Ver Fichas Técnicas Aprobadas',  module: 'Archivo Histórico',      adminOnly: false },

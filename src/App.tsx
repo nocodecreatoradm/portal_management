@@ -19,6 +19,7 @@ import ProductDetailModal from './components/ProductDetailModal';
 import NewRequestModal from './components/NewRequestModal';
 import QualityClaimModal from './components/QualityClaimModal';
 import QualityClaimsModule from './components/QualityClaimsModule';
+import HiyariHattoModule from './components/HiyariHattoModule';
 
 import AssignmentModal from './components/AssignmentModal';
 import DateEditModal from './components/DateEditModal';
@@ -1255,7 +1256,8 @@ export default function App() {
       quality_claims: t('menu.quality_claims'),
       price_gmroi_simulator: t('menu.price_gmroi_simulator'),
       sizing_module: t('menu.sizing_module'),
-      import_tracking: 'Seguimiento Importaciones'
+      import_tracking: 'Seguimiento Importaciones',
+      hiyari_hatto: t('menu.hiyari_hatto')
     };
 
     if (activeModule === 'user_management') {
@@ -1268,6 +1270,14 @@ export default function App() {
 
     if (activeModule === 'innovation_proposals') {
       return <InnovationProposals />;
+    }
+
+    if (activeModule === 'hiyari_hatto') {
+      return (
+        <HiyariHattoModule 
+          products={data}
+        />
+      );
     }
 
     if (activeModule === 'quality_claims') {

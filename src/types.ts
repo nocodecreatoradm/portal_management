@@ -330,7 +330,7 @@ export interface CantonFairSupplier {
   createdAt: string;
 }
 
-export type ModuleId = 'rd_inventory' | 'ntp_regulations' | 'work_plan' | 'samples' | 'technical_datasheet' | 'commercial_datasheet' | 'artwork_followup' | 'commercial_artworks' | 'approved_technical_sheets' | 'approved_commercial_sheets' | 'applications' | 'supplier_master' | 'water_demand' | 'gas_heater_experimental' | 'records' | 'absorption_calculation' | 'temperature_loss' | 'brandbook' | 'energy_efficiency' | 'product_management' | 'calendar' | 'rd_projects' | 'calculations_dashboard' | 'innovation_proposals' | 'cr_ni_coating_analysis' | 'canton_fair' | 'oven_experimental' | 'user_management' | 'master_data' | 'quality_claims' | 'price_gmroi_simulator' | 'sizing_module' | 'import_tracking';
+export type ModuleId = 'rd_inventory' | 'ntp_regulations' | 'work_plan' | 'samples' | 'technical_datasheet' | 'commercial_datasheet' | 'artwork_followup' | 'commercial_artworks' | 'approved_technical_sheets' | 'approved_commercial_sheets' | 'applications' | 'supplier_master' | 'water_demand' | 'gas_heater_experimental' | 'records' | 'absorption_calculation' | 'temperature_loss' | 'brandbook' | 'energy_efficiency' | 'product_management' | 'calendar' | 'rd_projects' | 'calculations_dashboard' | 'innovation_proposals' | 'cr_ni_coating_analysis' | 'canton_fair' | 'oven_experimental' | 'user_management' | 'master_data' | 'quality_claims' | 'price_gmroi_simulator' | 'sizing_module' | 'import_tracking' | 'hiyari_hatto';
 
 export interface OvenInspectionPoint {
   id: string;
@@ -799,4 +799,66 @@ export interface SolyReminder {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface FiveWhys {
+  why1: string;
+  why2: string;
+  why3: string;
+  why4: string;
+  why5: string;
+}
+
+export interface IshikawaData {
+  metodo: string[];
+  mano_obra: string[];
+  maquina_producto: string[];
+  materiales: string[];
+  medicion: string[];
+  medio_ambiente: string[];
+}
+
+export interface ActionPlanItem {
+  area: 'producto' | 'marketing' | 'capacitacion' | 'atc';
+  responsible: string;
+  action: string;
+  maxDate: string;
+  status: 'no_aplica' | 'pendiente' | 'completado';
+  completedDate?: string;
+}
+
+export interface HiyariHattoReport {
+  id?: string;
+  ticketNumber: string;
+  productId?: string;
+  sapCode?: string;
+  productName?: string;
+  serialNumber?: string;
+  incidentDate?: string;
+  reportDate?: string;
+  customerName?: string;
+  customerAddress?: string;
+  affectedPerson?: string;
+  incidentDescription?: string;
+  hasProductDamage: boolean;
+  hasHomeDamage: boolean;
+  hasClientDamage: boolean;
+  status: 'flash_report' | 'under_analysis' | 'quality_report' | 'completed';
+  flashReportBy?: string;
+  flashReportDate?: string;
+  visitTechnicalReport?: string;
+  visitDate?: string;
+  receivedDate?: string;
+  qualityReportAntecedents?: string;
+  qualityReportTests?: string;
+  qualityReportConclusion?: 'producto' | 'instalacion' | 'cliente';
+  conclusionDetails?: string;
+  fiveWhys?: FiveWhys;
+  ishikawa?: IshikawaData;
+  hiyariQ3?: string;
+  hiyariQ4?: string;
+  actionPlan?: ActionPlanItem[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 

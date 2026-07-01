@@ -906,3 +906,77 @@ export const mapDBToReminder = (dbRem: any): SolyReminder => ({
   createdAt: dbRem.created_at,
   updatedAt: dbRem.updated_at
 });
+
+export const mapHiyariHattoReportToDB = (report: Partial<HiyariHattoReport>) => {
+  const dbRow: any = {};
+  if (report.id !== undefined) dbRow.id = report.id;
+  if (report.ticketNumber !== undefined) dbRow.ticket_number = report.ticketNumber;
+  if (report.productId !== undefined) dbRow.product_id = report.productId;
+  if (report.sapCode !== undefined) dbRow.sap_code = report.sapCode;
+  if (report.productName !== undefined) dbRow.product_name = report.productName;
+  if (report.serialNumber !== undefined) dbRow.serial_number = report.serialNumber;
+  if (report.incidentDate !== undefined) dbRow.incident_date = report.incidentDate || null;
+  if (report.reportDate !== undefined) dbRow.report_date = report.reportDate || null;
+  if (report.customerName !== undefined) dbRow.customer_name = report.customerName;
+  if (report.customerAddress !== undefined) dbRow.customer_address = report.customerAddress;
+  if (report.affectedPerson !== undefined) dbRow.affected_person = report.affectedPerson;
+  if (report.incidentDescription !== undefined) dbRow.incident_description = report.incidentDescription;
+  if (report.hasProductDamage !== undefined) dbRow.has_product_damage = report.hasProductDamage ? 1 : 0;
+  if (report.hasHomeDamage !== undefined) dbRow.has_home_damage = report.hasHomeDamage ? 1 : 0;
+  if (report.hasClientDamage !== undefined) dbRow.has_client_damage = report.hasClientDamage ? 1 : 0;
+  if (report.status !== undefined) dbRow.status = report.status;
+  if (report.flashReportBy !== undefined) dbRow.flash_report_by = report.flashReportBy;
+  if (report.flashReportDate !== undefined) dbRow.flash_report_date = report.flashReportDate || null;
+  if (report.visitTechnicalReport !== undefined) dbRow.visit_technical_report = report.visitTechnicalReport;
+  if (report.visitDate !== undefined) dbRow.visit_date = report.visitDate || null;
+  if (report.receivedDate !== undefined) dbRow.received_date = report.receivedDate || null;
+  if (report.qualityReportAntecedents !== undefined) dbRow.quality_report_antecedents = report.qualityReportAntecedents;
+  if (report.qualityReportTests !== undefined) dbRow.quality_report_tests = report.qualityReportTests;
+  if (report.qualityReportConclusion !== undefined) dbRow.quality_report_conclusion = report.qualityReportConclusion;
+  if (report.conclusionDetails !== undefined) dbRow.conclusion_details = report.conclusionDetails;
+  
+  if (report.fiveWhys !== undefined) dbRow.five_whys = JSON.stringify(report.fiveWhys);
+  if (report.ishikawa !== undefined) dbRow.ishikawa = JSON.stringify(report.ishikawa);
+  if (report.hiyariQ3 !== undefined) dbRow.hiyari_q3 = report.hiyariQ3;
+  if (report.hiyariQ4 !== undefined) dbRow.hiyari_q4 = report.hiyariQ4;
+  if (report.actionPlan !== undefined) dbRow.action_plan = JSON.stringify(report.actionPlan);
+  
+  if (report.createdAt !== undefined) dbRow.created_at = report.createdAt;
+  if (report.updatedAt !== undefined) dbRow.updated_at = report.updatedAt;
+  return dbRow;
+};
+
+export const mapDBToHiyariHattoReport = (dbRow: any): HiyariHattoReport => ({
+  id: dbRow.id,
+  ticketNumber: dbRow.ticket_number,
+  productId: dbRow.product_id,
+  sapCode: dbRow.sap_code,
+  productName: dbRow.product_name,
+  serialNumber: dbRow.serial_number,
+  incidentDate: dbRow.incident_date,
+  reportDate: dbRow.report_date,
+  customerName: dbRow.customer_name,
+  customerAddress: dbRow.customer_address,
+  affectedPerson: dbRow.affected_person,
+  incidentDescription: dbRow.incident_description,
+  hasProductDamage: dbRow.has_product_damage === 1 || dbRow.has_product_damage === true || dbRow.has_product_damage === '1',
+  hasHomeDamage: dbRow.has_home_damage === 1 || dbRow.has_home_damage === true || dbRow.has_home_damage === '1',
+  hasClientDamage: dbRow.has_client_damage === 1 || dbRow.has_client_damage === true || dbRow.has_client_damage === '1',
+  status: dbRow.status,
+  flashReportBy: dbRow.flash_report_by,
+  flashReportDate: dbRow.flash_report_date,
+  visitTechnicalReport: dbRow.visit_technical_report,
+  visitDate: dbRow.visit_date,
+  receivedDate: dbRow.received_date,
+  qualityReportAntecedents: dbRow.quality_report_antecedents,
+  qualityReportTests: dbRow.quality_report_tests,
+  qualityReportConclusion: dbRow.quality_report_conclusion,
+  conclusionDetails: dbRow.conclusion_details,
+  fiveWhys: typeof dbRow.five_whys === 'string' ? JSON.parse(dbRow.five_whys) : dbRow.five_whys,
+  ishikawa: typeof dbRow.ishikawa === 'string' ? JSON.parse(dbRow.ishikawa) : dbRow.ishikawa,
+  hiyariQ3: dbRow.hiyari_q3,
+  hiyariQ4: dbRow.hiyari_q4,
+  actionPlan: typeof dbRow.action_plan === 'string' ? JSON.parse(dbRow.action_plan) : dbRow.action_plan || [],
+  createdAt: dbRow.created_at,
+  updatedAt: dbRow.updated_at
+});
