@@ -1680,7 +1680,9 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                             <head>
                               <title>Reporte Hiyari Hatto - ${printingReport.ticketNumber}</title>
                               <style>
+                                * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                                 body { font-family: sans-serif; padding: 30px; color: #1e293b; }
+                                svg { max-width: 100%; height: auto; display: block; margin: 15px auto; }
                                 .header { display: flex; justify-content: space-between; border-bottom: 2px solid #cbd5e1; padding-bottom: 15px; margin-bottom: 25px; }
                                 .title { font-size: 20px; font-weight: bold; }
                                 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
@@ -1694,6 +1696,10 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                                 th, td { border: 1px solid #e2e8f0; padding: 8px; font-size: 12px; }
                                 th { background: #f8fafc; font-weight: bold; text-align: left; }
                                 .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; text-transform: uppercase; background: #e2e8f0; }
+                                .border { border: 1px solid #e2e8f0; }
+                                .rounded-3xl { border-radius: 1.5rem; }
+                                .p-2 { padding: 0.5rem; }
+                                .bg-slate-50 { background-color: #f8fafc; }
                               </style>
                             </head>
                             <body>
@@ -1841,6 +1847,14 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                       <span className="text-slate-700">{val || 'No definido'}</span>
                     </div>
                   ))}
+                </div>
+
+                {/* Diagrama de Ishikawa en la Ficha de Impresión */}
+                <div className="mt-4">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Diagrama de Ishikawa Causa-Efecto</div>
+                  <div className="border border-slate-200 rounded-3xl p-2 bg-slate-50">
+                    {renderIshikawaSVG(printingReport.ishikawa, true)}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-sm mt-4">
