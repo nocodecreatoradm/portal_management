@@ -857,6 +857,10 @@ export interface HiyariHattoReport {
   hiyariQ3?: string;
   hiyariQ4?: string;
   actionPlan?: ActionPlanItem[];
+  flashAttachments?: FileInfo[];
+  visitAttachments?: FileInfo[];
+  qualityAttachments?: FileInfo[];
+  rootCauseAttachments?: FileInfo[];
   createdAt?: string;
   updatedAt?: string;
 }

@@ -940,6 +940,10 @@ export const mapHiyariHattoReportToDB = (report: Partial<HiyariHattoReport>) => 
   if (report.hiyariQ3 !== undefined) dbRow.hiyari_q3 = report.hiyariQ3;
   if (report.hiyariQ4 !== undefined) dbRow.hiyari_q4 = report.hiyariQ4;
   if (report.actionPlan !== undefined) dbRow.action_plan = JSON.stringify(report.actionPlan);
+  if (report.flashAttachments !== undefined) dbRow.flash_attachments = JSON.stringify(report.flashAttachments);
+  if (report.visitAttachments !== undefined) dbRow.visit_attachments = JSON.stringify(report.visitAttachments);
+  if (report.qualityAttachments !== undefined) dbRow.quality_attachments = JSON.stringify(report.qualityAttachments);
+  if (report.rootCauseAttachments !== undefined) dbRow.root_cause_attachments = JSON.stringify(report.rootCauseAttachments);
   
   if (report.createdAt !== undefined) dbRow.created_at = report.createdAt;
   if (report.updatedAt !== undefined) dbRow.updated_at = report.updatedAt;
@@ -977,6 +981,10 @@ export const mapDBToHiyariHattoReport = (dbRow: any): HiyariHattoReport => ({
   hiyariQ3: dbRow.hiyari_q3,
   hiyariQ4: dbRow.hiyari_q4,
   actionPlan: typeof dbRow.action_plan === 'string' ? JSON.parse(dbRow.action_plan) : dbRow.action_plan || [],
+  flashAttachments: typeof dbRow.flash_attachments === 'string' ? JSON.parse(dbRow.flash_attachments) : dbRow.flash_attachments || [],
+  visitAttachments: typeof dbRow.visit_attachments === 'string' ? JSON.parse(dbRow.visit_attachments) : dbRow.visit_attachments || [],
+  qualityAttachments: typeof dbRow.quality_attachments === 'string' ? JSON.parse(dbRow.quality_attachments) : dbRow.quality_attachments || [],
+  rootCauseAttachments: typeof dbRow.root_cause_attachments === 'string' ? JSON.parse(dbRow.root_cause_attachments) : dbRow.root_cause_attachments || [],
   createdAt: dbRow.created_at,
   updatedAt: dbRow.updated_at
 });

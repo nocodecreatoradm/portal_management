@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   TrendingUp, AlertCircle, FileText, Download, CheckCircle2, Clock, HelpCircle,
-  Plus, Search, ChevronRight, Info, Trash2, ArrowRight, RefreshCw, Printer, AlertTriangle, ShieldCheck,
+  Plus, Search, ChevronRight, Info, Trash2, ArrowRight, RefreshCw, Printer, AlertTriangle, ShieldCheck, Upload,
   Calendar, User, Home, Wrench, Edit, X, Save
 } from 'lucide-react';
 import { HiyariHattoReport, ProductRecord, ActionPlanItem, FiveWhys, IshikawaData } from '../types';
@@ -48,6 +48,126 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
   const [reports, setReports] = useState<HiyariHattoReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'records'>('dashboard');
+  const [uploading, setUploading] = useState(false);
+
+  // Handle file uploads for various steps
+  const handleStepFileUpload = async (
+    stepField: 'flashAttachments' | 'visitAttachments' | 'qualityAttachments' | 'rootCauseAttachments',
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !editingReport) return;
+
+    setUploading(true);
+    toast.loading('Subiendo evidencias...');
+
+    try {
+      const currentList = editingReport[stepField] || [];
+      const newAttachments: any[] = [...currentList];
+      
+      const folderName = editingReport.ticketNumber || 'temp';
+      for (const file of Array.from(files)) {
+        const path = `hiyari_hatto/${folderName}/${Date.now()}_${file.name}`;
+        const fileRes = await SupabaseService.uploadFile('rd-files', path, file) as any;
+        newAttachments.push({
+          name: file.name,
+          url: fileRes.url,
+          type: file.type,
+          size: file.size,
+          uploadedAt: new Date().toISOString()
+        });
+      }
+      
+      updateField(stepField, newAttachments);
+      toast.dismiss();
+      toast.success('Archivos cargados correctamente');
+    } catch (err: any) {
+      toast.dismiss();
+      toast.error('Error al subir archivos: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveStepAttachment = (
+    stepField: 'flashAttachments' | 'visitAttachments' | 'qualityAttachments' | 'rootCauseAttachments',
+    name: string
+  ) => {
+    if (!editingReport) return;
+    const currentList = editingReport[stepField] || [];
+    updateField(stepField, currentList.filter(f => f.name !== name));
+  };
+
+  const renderAttachmentsSection = (
+    stepField: 'flashAttachments' | 'visitAttachments' | 'qualityAttachments' | 'rootCauseAttachments',
+    label = "Archivos de Evidencia / Fotos"
+  ) => {
+    if (!editingReport) return null;
+    const attachments = editingReport[stepField] || [];
+
+    return (
+      <div className="space-y-3 mt-6 border-t border-slate-100 pt-6">
+        <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">{label}</label>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 border-2 border-slate-200 hover:border-slate-300 text-slate-600 px-4 py-2.5 rounded-xl cursor-pointer text-xs font-black uppercase tracking-wider transition-all select-none">
+            <Upload size={16} />
+            Subir Archivos
+            <input
+              type="file"
+              multiple
+              onChange={(e) => handleStepFileUpload(stepField, e)}
+              className="hidden"
+              disabled={uploading}
+            />
+          </label>
+          {uploading && <span className="text-xs text-slate-400 font-medium animate-pulse">Subiendo...</span>}
+        </div>
+
+        {attachments.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4 p-4 bg-slate-50/50 rounded-3xl border border-slate-100">
+            {attachments.map((file, idx) => {
+              const isImage = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+              return (
+                <div key={idx} className="relative group bg-white border border-slate-200 rounded-2xl overflow-hidden p-2 flex flex-col items-center justify-between text-center min-h-[140px] shadow-sm">
+                  {isImage ? (
+                    <div className="w-full h-20 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center relative">
+                      <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
+                      <a href={file.url} target="_blank" rel="noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">
+                        Ver Imagen
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="w-full h-20 rounded-lg bg-slate-50 flex flex-col items-center justify-center p-2">
+                      <FileText size={32} className="text-blue-500 mb-1" />
+                      <span className="text-[10px] font-mono text-slate-500 truncate w-full">{file.name.split('.').pop()?.toUpperCase()}</span>
+                    </div>
+                  )}
+
+                  <div className="w-full mt-2 px-1 flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-700 truncate w-full" title={file.name}>
+                      {file.name}
+                    </span>
+                    <a href={file.url} target="_blank" rel="noreferrer" className="text-[9px] font-bold text-blue-600 hover:underline mt-0.5">
+                      Descargar
+                    </a>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveStepAttachment(stepField, file.name)}
+                    className="absolute top-1 right-1 p-1 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
   
   // Dashboard state
   const [monthlyVolume, setMonthlyVolume] = useState<number>(20000);
@@ -1245,6 +1365,7 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                       />
                     </div>
                   </div>
+                  {renderAttachmentsSection('flashAttachments', 'Archivos de Evidencia / Fotos (Flash Report)')}
                 </div>
               )}
 
@@ -1294,6 +1415,7 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                       className="p-4 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-semibold text-slate-800 text-sm"
                     />
                   </div>
+                  {renderAttachmentsSection('visitAttachments', 'Evidencias del Protocolo de Visita / Recepción')}
                 </div>
               )}
 
@@ -1348,6 +1470,7 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                       />
                     </div>
                   </div>
+                  {renderAttachmentsSection('qualityAttachments', 'Evidencias del Informe de Calidad / Pruebas')}
                 </div>
               )}
 
@@ -1508,6 +1631,7 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                       />
                     </div>
                   </div>
+                  {renderAttachmentsSection('rootCauseAttachments', 'Evidencias del Análisis Causa Raíz / Ishikawa')}
                 </div>
               )}
 
@@ -1945,6 +2069,51 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                   </tbody>
                 </table>
               </div>
+
+              {/* Anexo de Evidencias en PDF */}
+              {((printingReport.flashAttachments && printingReport.flashAttachments.length > 0) ||
+                (printingReport.visitAttachments && printingReport.visitAttachments.length > 0) ||
+                (printingReport.qualityAttachments && printingReport.qualityAttachments.length > 0) ||
+                (printingReport.rootCauseAttachments && printingReport.rootCauseAttachments.length > 0)) && (
+                <div className="section mb-6">
+                  <div className="section-title bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg border-l-4 border-blue-500 mb-4">
+                    6. Anexo de Evidencias Fotográficas y Documentos
+                  </div>
+                  <div className="grid gap-4">
+                    {[
+                      { title: 'Evidencias de Flash Report', files: printingReport.flashAttachments },
+                      { title: 'Evidencias de Protocolo de Visita / Recepción', files: printingReport.visitAttachments },
+                      { title: 'Evidencias de Informe de Calidad', files: printingReport.qualityAttachments },
+                      { title: 'Evidencias de Causa Raíz / Ishikawa', files: printingReport.rootCauseAttachments }
+                    ].map(group => {
+                      if (!group.files || group.files.length === 0) return null;
+                      return (
+                        <div key={group.title} className="border border-slate-200 rounded-3xl p-4 bg-slate-50">
+                          <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">{group.title}</div>
+                          <div className="flex flex-wrap gap-3">
+                            {group.files.map((file, idx) => {
+                              const isImage = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                              return (
+                                <div key={idx} className="flex flex-col items-center bg-white border border-slate-200 rounded-2xl p-2 w-32 text-center animate-in fade-in duration-200">
+                                  {isImage ? (
+                                    <img src={file.url} alt={file.name} className="w-28 h-20 object-cover rounded-lg" />
+                                  ) : (
+                                    <div className="w-28 h-20 bg-slate-100 rounded-lg flex flex-col items-center justify-center text-blue-500 p-2">
+                                      <FileText size={24} className="mb-1" />
+                                      <span className="text-[9px] font-mono uppercase truncate w-full">{file.name.split('.').pop()}</span>
+                                    </div>
+                                  )}
+                                  <span className="text-[9px] font-bold text-slate-600 truncate w-full mt-1.5" title={file.name}>{file.name}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
