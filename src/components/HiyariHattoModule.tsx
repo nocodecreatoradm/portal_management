@@ -1186,7 +1186,7 @@ export default function HiyariHattoModule({ products, brands = [] }: HiyariHatto
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex flex-col">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Número de Ticket / Vuelo *</label>
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Número de Ticket *</label>
                       <input
                         type="text"
                         value={editingReport.ticketNumber || ''}
