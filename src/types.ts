@@ -869,6 +869,9 @@ export interface HiyariHattoReport {
   ishikawa?: IshikawaData;
   hiyariQ3?: string;
   hiyariQ4?: string;
+  supplierCommunication?: boolean;  // ¿Aplica comunicación con el proveedor?
+  supplierName?: string;             // Nombre del proveedor detectado o ingresado
+  supplierId?: string;               // ID del proveedor (si se encontró en maestro)
   actionPlan?: ActionPlanItem[];
   flashAttachments?: FileInfo[];
   visitAttachments?: FileInfo[];

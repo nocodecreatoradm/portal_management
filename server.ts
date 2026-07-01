@@ -1020,7 +1020,7 @@ function buildMimeMessage(options: {
       const htmlBody = `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
           <div style="background-color: #0f172a; padding: 24px; text-align: center;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 20px; letter-spacing: 1px;">PORTAL DE GESTIÓN I+D</h1>
+            <h1 style="color: #ffffff; margin: 0; font-size: 20px; letter-spacing: 1px;">PORTAL DE GESTIÓN DE INNOVACIÓN & CALIDAD</h1>
           </div>
           <div style="padding: 32px;">
             <h2 style="color: #1e293b; margin-top: 0; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px;">${title}</h2>
@@ -2293,6 +2293,12 @@ function buildMimeMessage(options: {
                 ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD line_name nvarchar(100) NULL;
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'category_name')
                 ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD category_name nvarchar(100) NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'supplier_communication')
+                ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD supplier_communication bit NULL DEFAULT 0;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'supplier_name')
+                ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD supplier_name nvarchar(255) NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'supplier_id_hh')
+                ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD supplier_id_hh nvarchar(100) NULL;
             
             -- Categorías Checklist Templates
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.categories') AND name = 'hiyari_visit_checklist')

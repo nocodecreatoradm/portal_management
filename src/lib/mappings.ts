@@ -956,6 +956,9 @@ export const mapHiyariHattoReportToDB = (report: Partial<HiyariHattoReport>) => 
   if (report.visitAttachments !== undefined) dbRow.visit_attachments = JSON.stringify(report.visitAttachments);
   if (report.qualityAttachments !== undefined) dbRow.quality_attachments = JSON.stringify(report.qualityAttachments);
   if (report.rootCauseAttachments !== undefined) dbRow.root_cause_attachments = JSON.stringify(report.rootCauseAttachments);
+  if (report.supplierCommunication !== undefined) dbRow.supplier_communication = report.supplierCommunication ? 1 : 0;
+  if (report.supplierName !== undefined) dbRow.supplier_name = report.supplierName;
+  if (report.supplierId !== undefined) dbRow.supplier_id_hh = report.supplierId;
   
   if (report.createdAt !== undefined) dbRow.created_at = report.createdAt;
   if (report.updatedAt !== undefined) dbRow.updated_at = report.updatedAt;
@@ -1002,6 +1005,9 @@ export const mapDBToHiyariHattoReport = (dbRow: any): HiyariHattoReport => ({
   visitAttachments: typeof dbRow.visit_attachments === 'string' ? JSON.parse(dbRow.visit_attachments) : dbRow.visit_attachments || [],
   qualityAttachments: typeof dbRow.quality_attachments === 'string' ? JSON.parse(dbRow.quality_attachments) : dbRow.quality_attachments || [],
   rootCauseAttachments: typeof dbRow.root_cause_attachments === 'string' ? JSON.parse(dbRow.root_cause_attachments) : dbRow.root_cause_attachments || [],
+  supplierCommunication: dbRow.supplier_communication === 1 || dbRow.supplier_communication === true || dbRow.supplier_communication === '1',
+  supplierName: dbRow.supplier_name || '',
+  supplierId: dbRow.supplier_id_hh || '',
   createdAt: dbRow.created_at,
   updatedAt: dbRow.updated_at
 });

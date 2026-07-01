@@ -4,7 +4,7 @@ import {
   Plus, Search, ChevronRight, Info, Trash2, ArrowRight, RefreshCw, Printer, AlertTriangle, ShieldCheck, Upload,
   Calendar, User, Home, Wrench, Edit, X, Save, Paperclip
 } from 'lucide-react';
-import { HiyariHattoReport, ProductRecord, ActionPlanItem, FiveWhys, IshikawaData } from '../types';
+import { HiyariHattoReport, ProductRecord, ActionPlanItem, FiveWhys, IshikawaData, Supplier } from '../types';
 import { format, parseISO } from 'date-fns';
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -18,6 +18,7 @@ interface HiyariHattoModuleProps {
   brands?: any[];
   productLines?: any[];
   categories?: any[];
+  suppliers?: Supplier[];
 }
 
 interface ChecklistItem {
@@ -196,7 +197,8 @@ export default function HiyariHattoModule({
   products, 
   brands = [], 
   productLines = [], 
-  categories = [] 
+  categories = [],
+  suppliers = []
 }: HiyariHattoModuleProps) {
   const [reports, setReports] = useState<HiyariHattoReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -362,6 +364,46 @@ export default function HiyariHattoModule({
 
   // Print Preview state
   const [printingReport, setPrintingReport] = useState<HiyariHattoReport | null>(null);
+
+  // Supplier autocomplete state (for quality report section)
+  const [supplierSearch, setSupplierSearch] = useState('');
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
+
+  // Auto-detect supplier from SAP code matching products / pm records
+  const detectedSupplier = useMemo(() => {
+    const sap = editingReport?.sapCode?.trim();
+    if (!sap || !products?.length) return null;
+    const match = products.find(p => p.codigoSAP === sap);
+    if (!match) return null;
+    // Try to resolve supplier from the suppliers prop using supplierId
+    const suppId = (match as any).supplierId;
+    if (suppId && suppliers.length) {
+      const sup = suppliers.find(s => s.id === suppId);
+      if (sup) return sup;
+    }
+    // Fallback: match by name
+    const supName = match.proveedor;
+    if (supName && suppliers.length) {
+      const sup = suppliers.find(s =>
+        s.legalName?.toLowerCase() === supName.toLowerCase() ||
+        s.commercialAlias?.toLowerCase() === supName.toLowerCase()
+      );
+      if (sup) return sup;
+    }
+    // Return a pseudo-supplier with just the name
+    return supName ? { id: '', legalName: supName, commercialAlias: supName } as any : null;
+  }, [editingReport?.sapCode, products, suppliers]);
+
+  // Filtered suppliers for combobox
+  const filteredSuppliers = useMemo(() => {
+    const q = supplierSearch.toLowerCase();
+    if (!q) return suppliers.slice(0, 20);
+    return suppliers.filter(s =>
+      s.legalName?.toLowerCase().includes(q) ||
+      s.commercialAlias?.toLowerCase().includes(q) ||
+      s.erpCode?.toLowerCase().includes(q)
+    ).slice(0, 20);
+  }, [suppliers, supplierSearch]);
 
   // Fetch reports on mount
   const fetchReports = async () => {
@@ -1937,6 +1979,98 @@ export default function HiyariHattoModule({
                       />
                     </div>
                   </div>
+                  {/* ── COMUNICACIÓN CON EL PROVEEDOR ────────────────── */}
+                  <div className="pt-5 border-t border-slate-100">
+                    <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 space-y-4">
+                      <div className="flex items-center justify-between flex-wrap gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
+                            <AlertTriangle size={16} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-slate-800 uppercase tracking-wider">¿Aplica Comunicación con el Proveedor?</p>
+                            <p className="text-[10px] text-slate-500 font-medium mt-0.5">Marcar si se debe notificar al fabricante / proveedor del producto</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateField('supplierCommunication', !editingReport.supplierCommunication)}
+                          className={`relative w-14 h-7 rounded-full transition-colors duration-200 focus:outline-none ${editingReport.supplierCommunication ? 'bg-amber-500' : 'bg-slate-300'}`}
+                        >
+                          <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform duration-200 ${editingReport.supplierCommunication ? 'translate-x-7' : 'translate-x-0'}`} />
+                        </button>
+                      </div>
+
+                      {editingReport.supplierCommunication && (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Proveedor</label>
+
+                          {detectedSupplier && !editingReport.supplierName ? (
+                            <div className="flex items-center gap-3 bg-white border border-amber-300 rounded-2xl px-4 py-3">
+                              <CheckCircle2 size={16} className="text-green-500 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-black text-slate-900 truncate">{detectedSupplier.commercialAlias || detectedSupplier.legalName}</p>
+                                {detectedSupplier.commercialAlias && detectedSupplier.legalName !== detectedSupplier.commercialAlias && (
+                                  <p className="text-[10px] text-slate-500 truncate">{detectedSupplier.legalName}</p>
+                                )}
+                              </div>
+                              <span className="text-[9px] font-black bg-green-100 text-green-700 px-2 py-0.5 rounded-lg uppercase tracking-wider whitespace-nowrap">Detectado por SAP</span>
+                              <button type="button" title="Cambiar proveedor" onClick={() => { setSupplierSearch(''); setShowSupplierDropdown(true); updateField('supplierName', ' '); }} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all">
+                                <Edit size={13} />
+                              </button>
+                            </div>
+                          ) : editingReport.supplierName && editingReport.supplierName.trim() ? (
+                            <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3">
+                              <User size={16} className="text-slate-400 flex-shrink-0" />
+                              <span className="flex-1 text-sm font-bold text-slate-800">{editingReport.supplierName.trim()}</span>
+                              <button type="button" onClick={() => { updateField('supplierName', ''); updateField('supplierId', ''); setSupplierSearch(''); }} className="p-1 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-all"><X size={13} /></button>
+                            </div>
+                          ) : (
+                            <div className="relative">
+                              <div className="flex items-center gap-2 bg-white border border-slate-200 focus-within:border-amber-400 rounded-2xl px-4 py-3 transition-colors">
+                                <Search size={14} className="text-slate-400 flex-shrink-0" />
+                                <input
+                                  type="text"
+                                  value={supplierSearch}
+                                  onChange={(e) => { setSupplierSearch(e.target.value); setShowSupplierDropdown(true); }}
+                                  onFocus={() => setShowSupplierDropdown(true)}
+                                  onBlur={() => setTimeout(() => setShowSupplierDropdown(false), 200)}
+                                  placeholder="Buscar proveedor por nombre o código..."
+                                  className="flex-1 outline-none text-sm font-semibold text-slate-800 placeholder:text-slate-400 bg-transparent"
+                                />
+                                {supplierSearch && <button type="button" onClick={() => { setSupplierSearch(''); setShowSupplierDropdown(false); }} className="text-slate-400 hover:text-slate-600"><X size={13} /></button>}
+                              </div>
+                              {showSupplierDropdown && (
+                                <div className="absolute z-30 w-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+                                  {filteredSuppliers.length === 0 ? (
+                                    <div className="px-4 py-3 text-xs text-slate-500 text-center">No se encontraron proveedores.</div>
+                                  ) : (
+                                    filteredSuppliers.map(sup => (
+                                      <button key={sup.id} type="button" onMouseDown={(e) => e.preventDefault()}
+                                        onClick={() => { updateField('supplierName', sup.commercialAlias || sup.legalName); updateField('supplierId', sup.id); setSupplierSearch(''); setShowSupplierDropdown(false); }}
+                                        className="w-full text-left px-4 py-3 hover:bg-amber-50 transition-colors border-b border-slate-50 last:border-0">
+                                        <p className="text-sm font-bold text-slate-900">{sup.commercialAlias || sup.legalName}</p>
+                                        {sup.commercialAlias && sup.legalName !== sup.commercialAlias && <p className="text-[10px] text-slate-500">{sup.legalName}</p>}
+                                      </button>
+                                    ))
+                                  )}
+                                  {supplierSearch && !filteredSuppliers.some(s => (s.commercialAlias || s.legalName)?.toLowerCase() === supplierSearch.toLowerCase()) && (
+                                    <button type="button" onMouseDown={(e) => e.preventDefault()}
+                                      onClick={() => { updateField('supplierName', supplierSearch); updateField('supplierId', ''); setSupplierSearch(''); setShowSupplierDropdown(false); }}
+                                      className="w-full text-left px-4 py-3 bg-amber-50 hover:bg-amber-100 transition-colors">
+                                      <p className="text-xs font-black text-amber-700 uppercase tracking-wider">Usar: "{supplierSearch}"</p>
+                                      <p className="text-[10px] text-slate-500">No encontrado en maestro – se guardará como texto libre</p>
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {renderAttachmentsSection('qualityAttachments', 'Evidencias del Informe de Calidad / Pruebas')}
                 </div>
               )}

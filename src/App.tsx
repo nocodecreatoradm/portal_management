@@ -1279,6 +1279,7 @@ export default function App() {
           brands={brands}
           productLines={productLines}
           categories={categories}
+          suppliers={suppliers}
         />
       );
     }
