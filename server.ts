@@ -2391,39 +2391,37 @@ function buildMimeMessage(options: {
           { name: 'master_data:view',         description: 'Ver Maestro de Datos',           module: 'Configuración',           adminOnly: true  },
         ];
 
-        // 2. Upsert permissions (insert if not exists)
-        for (const perm of allPermissions) {
-          await dbPool2.request()
-            .input('pname', sql.NVarChar, perm.name)
-            .input('pdesc', sql.NVarChar, perm.description)
-            .input('pmod',  sql.NVarChar, perm.module)
-            .query(
-              'IF NOT EXISTS (SELECT 1 FROM ID_PORTAL.permissions WHERE name = @pname) ' +
-              'INSERT INTO ID_PORTAL.permissions (name, description, module) VALUES (@pname, @pdesc, @pmod);'
-            );
-        }
-
-        // 3. Get all roles and all permissions
+        // 2. Get all roles first
         const rolesRes = await dbPool2.request().query('SELECT id, name, display_name, [level] FROM ID_PORTAL.roles');
-        const permsRes = await dbPool2.request().query('SELECT id, name FROM ID_PORTAL.permissions');
         const roles: any[] = rolesRes.recordset;
-        const permsMap: Record<string, number> = {};
-        for (const p of permsRes.recordset) permsMap[p.name] = p.id;
 
-        // 4. For each role, ensure all applicable permissions are assigned
-        for (const role of roles) {
-          const isAdmin = role.name === 'admin' || role.display_name === 'Administrador' || (role.level || 0) >= 90;
-          for (const perm of allPermissions) {
-            if (perm.adminOnly && !isAdmin) continue; // skip admin-only for non-admins
-            const permId = permsMap[perm.name];
-            if (!permId) continue;
-            await dbPool2.request()
-              .input('rid', sql.UniqueIdentifier, role.id)
-              .input('pid', sql.Int, permId)
-              .query(
-                'IF NOT EXISTS (SELECT 1 FROM ID_PORTAL.role_permissions WHERE role_id = @rid AND permission_id = @pid) ' +
-                'INSERT INTO ID_PORTAL.role_permissions (role_id, permission_id) VALUES (@rid, @pid);'
-              );
+        // 3. Upsert permissions (insert if not exists).
+        // Si el permiso es nuevo (no existe en la tabla de permisos), lo insertamos y
+        // lo asignamos por defecto a los roles correspondientes. Si ya existe, respetamos
+        // la configuración actual y no modificamos la tabla role_permissions.
+        for (const perm of allPermissions) {
+          const checkRes = await dbPool2.request()
+            .input('pname', sql.NVarChar, perm.name)
+            .query('SELECT id FROM ID_PORTAL.permissions WHERE name = @pname');
+          
+          if (checkRes.recordset.length === 0) {
+            const insertRes = await dbPool2.request()
+              .input('pname', sql.NVarChar, perm.name)
+              .input('pdesc', sql.NVarChar, perm.description)
+              .input('pmod',  sql.NVarChar, perm.module)
+              .query('INSERT INTO ID_PORTAL.permissions (name, description, module) OUTPUT INSERTED.id VALUES (@pname, @pdesc, @pmod);');
+            
+            const newPermId = insertRes.recordset[0].id;
+            
+            for (const role of roles) {
+              const isAdmin = role.name === 'admin' || role.display_name === 'Administrador' || (role.level || 0) >= 90;
+              if (perm.adminOnly && !isAdmin) continue;
+              
+              await dbPool2.request()
+                .input('rid', sql.UniqueIdentifier, role.id)
+                .input('pid', sql.Int, newPermId)
+                .query('INSERT INTO ID_PORTAL.role_permissions (role_id, permission_id) VALUES (@rid, @pid);');
+            }
           }
         }
         console.log("Permissions seed migration completed successfully");
