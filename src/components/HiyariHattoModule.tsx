@@ -279,6 +279,19 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
     }
   };
 
+  // Delete report
+  const handleDeleteReport = async (id: string) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este reporte de incidente de forma permanente?')) return;
+    try {
+      await SupabaseService.deleteHiyariHattoReport(id);
+      setReports(prev => prev.filter(r => r.id !== id));
+      toast.success('Reporte eliminado correctamente');
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al eliminar el reporte');
+    }
+  };
+
   // Update a single field in editing report
   const updateField = (key: keyof HiyariHattoReport, value: any) => {
     setEditingReport(prev => {
@@ -958,6 +971,13 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                               title="Ver Ficha de Impresión"
                             >
                               <Printer size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteReport(report.id!)}
+                              className="p-2 bg-slate-100 hover:bg-red-50 text-slate-650 hover:text-red-600 rounded-xl transition-all"
+                              title="Eliminar Reporte"
+                            >
+                              <Trash2 size={16} />
                             </button>
                           </div>
                         </td>
