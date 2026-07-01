@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 
 interface HiyariHattoModuleProps {
   products: ProductRecord[];
+  brands?: any[];
 }
 
 const DEFAULT_FIVE_WHYS: FiveWhys = {
@@ -44,7 +45,7 @@ const createDefaultActionPlan = (): ActionPlanItem[] => [
 
 const COLORS = ['#ef4444', '#3b82f6', '#f59e0b', '#10b981', '#6366f1', '#ec4899'];
 
-export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) {
+export default function HiyariHattoModule({ products, brands = [] }: HiyariHattoModuleProps) {
   const [reports, setReports] = useState<HiyariHattoReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'records'>('dashboard');
@@ -686,9 +687,9 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                   className="px-4 py-2.5 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-700 text-sm"
                 >
                   <option value="all">Todas las marcas</option>
-                  <option value="Sole">Sole</option>
-                  <option value="Rinnai">Rinnai</option>
-                  <option value="Mitusia">Mitusia</option>
+                  {(brands || []).map(b => (
+                    <option key={b.id || b.name} value={b.name}>{b.name}</option>
+                  ))}
                 </select>
               </div>
             </div>

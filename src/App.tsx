@@ -1276,6 +1276,7 @@ export default function App() {
       return (
         <HiyariHattoModule 
           products={data}
+          brands={brands}
         />
       );
     }
