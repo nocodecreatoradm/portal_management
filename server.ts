@@ -2293,6 +2293,12 @@ function buildMimeMessage(options: {
                 ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD line_name nvarchar(100) NULL;
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'category_name')
                 ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD category_name nvarchar(100) NULL;
+            
+            -- Categorías Checklist Templates
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.categories') AND name = 'hiyari_visit_checklist')
+                ALTER TABLE ID_PORTAL.categories ADD hiyari_visit_checklist nvarchar(max) NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.categories') AND name = 'hiyari_lab_checklist')
+                ALTER TABLE ID_PORTAL.categories ADD hiyari_lab_checklist nvarchar(max) NULL;
         END
       `);
 

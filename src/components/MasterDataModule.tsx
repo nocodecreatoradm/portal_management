@@ -5,11 +5,12 @@ import {
   ChevronRight, GripVertical, Type, AlignLeft, 
   CheckSquare, CircleDot, Camera, PenTool,
   PlusCircle, MinusCircle, ArrowRight, FileText, Upload,
-  ChevronUp, ChevronDown, Search
+  ChevronUp, ChevronDown, Search, TrendingUp
 } from 'lucide-react';
 import { Brand, ProductLine, Category, InspectionTemplate, InspectionFormField, WorkflowStage, FileInfo } from '../types';
 import { SupabaseService } from '../lib/SupabaseService';
 import { toast } from 'sonner';
+import { getDefaultChecklist } from './HiyariHattoModule';
 
 type ActiveTab = 'brands' | 'lines' | 'categories' | 'templates';
 
@@ -58,7 +59,7 @@ export default function MasterDataModule() {
 
   // Modal states
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<ActiveTab | 'builder'>('brands');
+  const [modalType, setModalType] = useState<ActiveTab | 'builder' | 'hiyari_builder'>('brands');
   const [editingItem, setEditingItem] = useState<any>(null);
 
   useEffect(() => {
@@ -104,7 +105,7 @@ export default function MasterDataModule() {
     }
   };
 
-  const handleOpenModal = (type: ActiveTab | 'builder', item: any = null) => {
+  const handleOpenModal = (type: ActiveTab | 'builder' | 'hiyari_builder', item: any = null) => {
     setModalType(type);
     setEditingItem(item);
     setShowModal(true);
@@ -214,6 +215,7 @@ export default function MasterDataModule() {
 
         {activeTab === 'categories' && filteredCategories.map(cat => {
           const hasTemplate = templates.find(t => t.categoryId === cat.id);
+          const hasHiyariTemplate = !!cat.hiyariVisitChecklist || !!cat.hiyariLabChecklist;
           return (
             <MasterCard 
               key={cat.id}
@@ -223,6 +225,8 @@ export default function MasterDataModule() {
               onDelete={() => handleDelete('categories', cat.id)}
               hasTemplate={!!hasTemplate}
               onManageTemplate={() => handleOpenModal('builder', hasTemplate || { categoryId: cat.id, name: `PLANTILLA ${cat.name}` })}
+              hasHiyariTemplate={hasHiyariTemplate}
+              onManageHiyariTemplate={() => handleOpenModal('hiyari_builder', cat)}
             />
           );
         })}
@@ -250,7 +254,17 @@ export default function MasterDataModule() {
         )}
       </div>
 
-      {showModal && (
+      {showModal && modalType === 'hiyari_builder' && (
+        <HiyariTemplateBuilder 
+          category={editingItem} 
+          onClose={() => setShowModal(false)}
+          onSuccess={() => {
+            setShowModal(false);
+            loadAllData();
+          }}
+        />
+      )}
+      {showModal && modalType !== 'hiyari_builder' && (
         <Modal 
           type={modalType} 
           item={editingItem} 
@@ -268,14 +282,23 @@ export default function MasterDataModule() {
   );
 }
 
-function MasterCard({ title, subtitle, image, icon, onEdit, onDelete, hasTemplate, onManageTemplate }: any) {
+function MasterCard({ title, subtitle, image, icon, onEdit, onDelete, hasTemplate, onManageTemplate, hasHiyariTemplate, onManageHiyariTemplate }: any) {
   return (
     <div className="group bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 relative">
       {hasTemplate !== undefined && (
-        <div className={`absolute top-3 left-6 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest z-20 ${
-          hasTemplate ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-slate-100 text-slate-400'
-        }`}>
-          {hasTemplate ? 'Con Plantilla' : 'Sin Plantilla'}
+        <div style={{ display: 'flex', gap: '4px', position: 'absolute', top: '12px', left: '24px', zIndex: 20 }}>
+          <div className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+            hasTemplate ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-slate-100 text-slate-450'
+          }`}>
+            {hasTemplate ? 'Con Plantilla I+D' : 'Sin Plantilla I+D'}
+          </div>
+          {hasHiyariTemplate !== undefined && (
+            <div className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+              hasHiyariTemplate ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-100 text-slate-450'
+            }`}>
+              {hasHiyariTemplate ? 'Con Plantilla AE' : 'Sin Plantilla AE'}
+            </div>
+          )}
         </div>
       )}
       <div className="flex items-start justify-between mb-4">
@@ -293,9 +316,18 @@ function MasterCard({ title, subtitle, image, icon, onEdit, onDelete, hasTemplat
             <button 
               onClick={onManageTemplate}
               className={`p-2 rounded-xl transition-all ${hasTemplate ? 'text-indigo-600 hover:bg-indigo-50' : 'text-slate-300 hover:text-indigo-600 hover:bg-indigo-50'}`}
-              title="Gestionar Plantilla de Inspección"
+              title="Gestionar Plantilla de Inspección I+D"
             >
               <ClipboardList size={16} />
+            </button>
+          )}
+          {onManageHiyariTemplate && (
+            <button 
+              onClick={onManageHiyariTemplate}
+              className={`p-2 rounded-xl transition-all ${hasHiyariTemplate ? 'text-blue-600 hover:bg-blue-50' : 'text-slate-300 hover:text-blue-650 hover:bg-blue-50'}`}
+              title="Gestionar Plantilla de Hiyari Hatto / Análisis de Empresa"
+            >
+              <TrendingUp size={16} />
             </button>
           )}
           <button onClick={onEdit} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
@@ -1190,6 +1222,183 @@ function TemplateBuilder({ template, categories, onClose, onSuccess }: any) {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function HiyariTemplateBuilder({ category, onClose, onSuccess }: any) {
+  const [activeTab, setActiveTab] = useState<'visit' | 'lab'>('visit');
+  const [visitList, setVisitList] = useState<any[]>(() => {
+    if (category.hiyariVisitChecklist) {
+      try {
+        const parsed = JSON.parse(category.hiyariVisitChecklist);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return getDefaultChecklist(category.name, 'visit');
+  });
+
+  const [labList, setLabList] = useState<any[]>(() => {
+    if (category.hiyariLabChecklist) {
+      try {
+        const parsed = JSON.parse(category.hiyariLabChecklist);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return getDefaultChecklist(category.name, 'lab');
+  });
+
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const mappedVisit = visitList.map((item, idx) => ({
+        id: item.id || `v_${Date.now()}_${idx}`,
+        point: item.point,
+        checked: false,
+        comment: '',
+        attachments: []
+      }));
+      const mappedLab = labList.map((item, idx) => ({
+        id: item.id || `l_${Date.now()}_${idx}`,
+        point: item.point,
+        checked: false,
+        comment: '',
+        attachments: []
+      }));
+
+      await SupabaseService.updateCategory(category.id, {
+        hiyariVisitChecklist: JSON.stringify(mappedVisit),
+        hiyariLabChecklist: JSON.stringify(mappedLab)
+      });
+
+      toast.success('Plantilla de Análisis de Empresa guardada');
+      onSuccess();
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al guardar la plantilla');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddPoint = () => {
+    if (activeTab === 'visit') {
+      setVisitList(prev => [...prev, { id: `v_${Date.now()}`, point: '', checked: false, comment: '', attachments: [] }]);
+    } else {
+      setLabList(prev => [...prev, { id: `l_${Date.now()}`, point: '', checked: false, comment: '', attachments: [] }]);
+    }
+  };
+
+  const handleUpdatePoint = (idx: number, text: string) => {
+    if (activeTab === 'visit') {
+      const list = [...visitList];
+      list[idx].point = text;
+      setVisitList(list);
+    } else {
+      const list = [...labList];
+      list[idx].point = text;
+      setLabList(list);
+    }
+  };
+
+  const handleRemovePoint = (idx: number) => {
+    if (activeTab === 'visit') {
+      setVisitList(visitList.filter((_, i) => i !== idx));
+    } else {
+      setLabList(labList.filter((_, i) => i !== idx));
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-[40px] w-full max-w-2xl shadow-2xl h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-350">
+        <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div>
+            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Plantilla: {category.name}</h3>
+            <p className="text-xs text-slate-500 font-medium mt-1">Modificar formato para Protocolo de Visita e Informe de Calidad</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="flex border-b border-slate-100 px-8 py-2 bg-slate-50/20">
+          <button
+            onClick={() => setActiveTab('visit')}
+            className={`px-6 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition-all ${
+              activeTab === 'visit' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-450 hover:text-slate-700'
+            }`}
+          >
+            1. Protocolo Visita
+          </button>
+          <button
+            onClick={() => setActiveTab('lab')}
+            className={`px-6 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition-all ${
+              activeTab === 'lab' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-450 hover:text-slate-700'
+            }`}
+          >
+            2. Informe Calidad
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-8 space-y-4 custom-scrollbar bg-slate-50/30">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Puntos de Inspección</span>
+            <button
+              onClick={handleAddPoint}
+              className="flex items-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+            >
+              <Plus size={14} />
+              Añadir Punto
+            </button>
+          </div>
+
+          {(activeTab === 'visit' ? visitList : labList).length === 0 ? (
+            <div className="text-center py-12 bg-white border border-slate-100 rounded-3xl text-slate-400 font-semibold text-xs italic">
+              No hay puntos registrados. Haz clic en "Añadir Punto" para empezar.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(activeTab === 'visit' ? visitList : labList).map((item, idx) => (
+                <div key={item.id || idx} className="flex gap-3 items-center bg-white p-3 border border-slate-100 rounded-2xl shadow-sm">
+                  <span className="text-xs font-black text-slate-400 w-6 text-center">{idx + 1}.</span>
+                  <input
+                    type="text"
+                    value={item.point}
+                    onChange={(e) => handleUpdatePoint(idx, e.target.value)}
+                    placeholder="Descripción del punto o verificación..."
+                    className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl outline-none text-xs font-bold text-slate-800 focus:border-blue-500"
+                  />
+                  <button
+                    onClick={() => handleRemovePoint(idx)}
+                    className="p-2 text-slate-400 hover:text-red-650 hover:bg-red-50 rounded-xl transition-all"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-6 py-3 rounded-2xl border-2 border-slate-200 hover:bg-slate-50 font-black text-xs uppercase tracking-wider transition-all text-slate-500"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50"
+          >
+            {saving ? 'Guardando...' : 'Guardar Plantilla'}
+          </button>
+        </div>
       </div>
     </div>
   );

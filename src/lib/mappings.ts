@@ -748,15 +748,22 @@ export const mapDBToProductLine = (dbLine: any): ProductLine => ({
   name: dbLine.name
 });
 
-export const mapCategoryToDB = (cat: Partial<Category>) => ({
-  name: cat.name ? cat.name.toUpperCase() : cat.name,
-  line_id: cat.productLineId
-});
+export const mapCategoryToDB = (cat: Partial<Category>) => {
+  const dbRow: any = {
+    name: cat.name ? cat.name.toUpperCase() : cat.name,
+    line_id: cat.productLineId
+  };
+  if (cat.hiyariVisitChecklist !== undefined) dbRow.hiyari_visit_checklist = cat.hiyariVisitChecklist;
+  if (cat.hiyariLabChecklist !== undefined) dbRow.hiyari_lab_checklist = cat.hiyariLabChecklist;
+  return dbRow;
+};
 
 export const mapDBToCategory = (dbCat: any): Category => ({
   id: dbCat.id,
   name: (dbCat.name || '').toUpperCase(),
-  productLineId: dbCat.line_id
+  productLineId: dbCat.line_id,
+  hiyariVisitChecklist: dbCat.hiyari_visit_checklist,
+  hiyariLabChecklist: dbCat.hiyari_lab_checklist
 });
 
 export const mapInspectionTemplateToDB = (template: Partial<InspectionTemplate>) => ({

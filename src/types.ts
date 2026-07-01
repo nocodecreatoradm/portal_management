@@ -78,6 +78,8 @@ export interface Category {
   id: string;
   name: string;
   productLineId: string;
+  hiyariVisitChecklist?: string;
+  hiyariLabChecklist?: string;
 }
 
 export interface BrandDocument {

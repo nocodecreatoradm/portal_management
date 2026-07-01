@@ -28,7 +28,7 @@ interface ChecklistItem {
   attachments: FileInfo[];
 }
 
-const getDefaultChecklist = (categoryName: string, type: 'visit' | 'lab'): ChecklistItem[] => {
+export const getDefaultChecklist = (categoryName: string, type: 'visit' | 'lab'): ChecklistItem[] => {
   const isTermas = (categoryName || '').toLowerCase().includes('terma') || 
                    (categoryName || '').toLowerCase().includes('calentador') || 
                    (categoryName || '').toLowerCase().includes('rapid');
@@ -88,25 +88,81 @@ const getDefaultChecklist = (categoryName: string, type: 'visit' | 'lab'): Check
   }
 };
 
-const getChecklist = (fieldValue: string | undefined, type: 'visit' | 'lab', categoryName: string): ChecklistItem[] => {
+const getChecklist = (
+  fieldValue: any, 
+  type: 'visit' | 'lab', 
+  categoryName: string,
+  categoriesList: any[] = []
+): ChecklistItem[] => {
   if (!fieldValue) {
+    const categoryObj = (categoriesList || []).find(c => c.name.toUpperCase() === categoryName.toUpperCase());
+    if (categoryObj && type === 'visit' && categoryObj.hiyariVisitChecklist) {
+      try {
+        const parsed = typeof categoryObj.hiyariVisitChecklist === 'string'
+          ? JSON.parse(categoryObj.hiyariVisitChecklist)
+          : categoryObj.hiyariVisitChecklist;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    if (categoryObj && type === 'lab' && categoryObj.hiyariLabChecklist) {
+      try {
+        const parsed = typeof categoryObj.hiyariLabChecklist === 'string'
+          ? JSON.parse(categoryObj.hiyariLabChecklist)
+          : categoryObj.hiyariLabChecklist;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
     return getDefaultChecklist(categoryName, type);
   }
-  try {
-    const parsed = JSON.parse(fieldValue);
-    if (Array.isArray(parsed) && parsed.length > 0 && 'point' in parsed[0]) {
-      return parsed;
+
+  // Handle case where fieldValue is already parsed (Array of ChecklistItems)
+  if (Array.isArray(fieldValue)) {
+    if (fieldValue.length > 0 && typeof fieldValue[0] === 'object' && fieldValue[0] !== null && 'point' in fieldValue[0]) {
+      return fieldValue as ChecklistItem[];
     }
-  } catch (e) {
+    // If it's an array but not checklist items, convert it to a comment string to avoid React Error #31
     return [{
       id: 'legacy',
       point: type === 'visit' ? 'Informe Técnico General' : 'Pruebas Generales',
       checked: true,
-      comment: fieldValue,
+      comment: JSON.stringify(fieldValue),
       attachments: []
     }];
   }
-  return getDefaultChecklist(categoryName, type);
+
+  // Handle case where fieldValue is a string
+  if (typeof fieldValue === 'string') {
+    try {
+      const parsed = JSON.parse(fieldValue);
+      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object' && parsed[0] !== null && 'point' in parsed[0]) {
+        return parsed;
+      }
+      return [{
+        id: 'legacy',
+        point: type === 'visit' ? 'Informe Técnico General' : 'Pruebas Generales',
+        checked: true,
+        comment: fieldValue,
+        attachments: []
+      }];
+    } catch (e) {
+      return [{
+        id: 'legacy',
+        point: type === 'visit' ? 'Informe Técnico General' : 'Pruebas Generales',
+        checked: true,
+        comment: fieldValue,
+        attachments: []
+      }];
+    }
+  }
+
+  // Handle other object types (e.g. legacy non-array objects)
+  return [{
+    id: 'legacy',
+    point: type === 'visit' ? 'Informe Técnico General' : 'Pruebas Generales',
+    checked: true,
+    comment: typeof fieldValue === 'object' ? JSON.stringify(fieldValue) : String(fieldValue),
+    attachments: []
+  }];
 };
 
 const DEFAULT_FIVE_WHYS: FiveWhys = {
@@ -1646,14 +1702,14 @@ export default function HiyariHattoModule({
                       </span>
                     </label>
                     <div className="space-y-4">
-                      {getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '').map((item, idx) => (
+                      {getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories).map((item, idx) => (
                         <div key={item.id || idx} className="p-5 border-2 border-slate-100 rounded-3xl bg-white shadow-sm space-y-3 animate-in fade-in duration-200">
                           <div className="flex items-start gap-3">
                             <input
                               type="checkbox"
                               checked={item.checked}
                               onChange={(e) => {
-                                const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '');
+                                const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
                                 list[idx].checked = e.target.checked;
                                 updateField('visitTechnicalReport', JSON.stringify(list));
                               }}
@@ -1662,12 +1718,12 @@ export default function HiyariHattoModule({
                             <span className="text-sm font-bold text-slate-800 flex-1">{item.point}</span>
                           </div>
 
-                          <div className="flex flex-col md:flex-row gap-4 pl-8">
+                          <div className="flex flex-col md:flex-row gap-4 pl-8 items-center">
                             <input
                               type="text"
                               value={item.comment || ''}
                               onChange={(e) => {
-                                const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '');
+                                const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
                                 list[idx].comment = e.target.value;
                                 updateField('visitTechnicalReport', JSON.stringify(list));
                               }}
@@ -1675,27 +1731,33 @@ export default function HiyariHattoModule({
                               className="flex-1 px-4 py-2.5 border border-slate-200 rounded-2xl outline-none text-xs font-bold text-slate-800 focus:border-blue-500"
                             />
                             
-                            <div className="flex items-center gap-3">
-                              {item.attachments && item.attachments.map((file, fIdx) => (
-                                <div key={fIdx} className="relative group w-10 h-10 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center">
-                                  {file.url ? (
-                                    <img src={file.url} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <FileText size={16} className="text-slate-400" />
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '');
-                                      list[idx].attachments = list[idx].attachments.filter((_, i) => i !== fIdx);
-                                      updateField('visitTechnicalReport', JSON.stringify(list));
-                                    }}
-                                    className="absolute inset-0 bg-red-650/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                </div>
-                              ))}
+                            <div className="flex items-center gap-2">
+                              {item.attachments && item.attachments.map((file, fIdx) => {
+                                const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                                return (
+                                  <div key={fIdx} className="relative group w-14 h-14 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center shadow-sm">
+                                    {file.url && isImg ? (
+                                      <img src={file.url} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="flex flex-col items-center p-1 text-center">
+                                        <FileText size={16} className="text-slate-400" />
+                                        <span className="text-[7px] truncate w-10 font-bold uppercase">{file.name.split('.').pop()}</span>
+                                      </div>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
+                                        list[idx].attachments = list[idx].attachments.filter((_, i) => i !== fIdx);
+                                        updateField('visitTechnicalReport', JSON.stringify(list));
+                                      }}
+                                      className="absolute inset-0 bg-red-600/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                );
+                              })}
 
                               <button
                                 type="button"
@@ -1711,8 +1773,8 @@ export default function HiyariHattoModule({
                                       const uploaded = await SupabaseService.uploadFile('rd-files', `hiyari_hatto_checklists/${Date.now()}_${file.name}`, file);
                                       toast.success('Evidencia subida', { id: 'upload-check-visit' });
                                       
-                                      const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '');
-                                      list[idx].attachments = [...(list[idx].attachments || []), { name: file.name, url: uploaded.publicUrl }];
+                                      const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
+                                      list[idx].attachments = [...(list[idx].attachments || []), { name: file.name, url: uploaded.publicUrl, type: file.type }];
                                       updateField('visitTechnicalReport', JSON.stringify(list));
                                     } catch (err) {
                                       toast.error('Error al subir archivo', { id: 'upload-check-visit' });
@@ -1720,9 +1782,9 @@ export default function HiyariHattoModule({
                                   };
                                   input.click();
                                 }}
-                                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all"
                               >
-                                <Paperclip size={12} />
+                                <Paperclip size={14} />
                                 Evidencia
                               </button>
                             </div>
@@ -1757,14 +1819,14 @@ export default function HiyariHattoModule({
                       </span>
                     </label>
                     <div className="space-y-4">
-                      {getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '').map((item, idx) => (
+                      {getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '', categories).map((item, idx) => (
                         <div key={item.id || idx} className="p-5 border-2 border-slate-100 rounded-3xl bg-white shadow-sm space-y-3 animate-in fade-in duration-200">
                           <div className="flex items-start gap-3">
                             <input
                               type="checkbox"
                               checked={item.checked}
                               onChange={(e) => {
-                                const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '');
+                                const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '', categories);
                                 list[idx].checked = e.target.checked;
                                 updateField('qualityReportTests', JSON.stringify(list));
                               }}
@@ -1773,12 +1835,12 @@ export default function HiyariHattoModule({
                             <span className="text-sm font-bold text-slate-800 flex-1">{item.point}</span>
                           </div>
 
-                          <div className="flex flex-col md:flex-row gap-4 pl-8">
+                          <div className="flex flex-col md:flex-row gap-4 pl-8 items-center">
                             <input
                               type="text"
                               value={item.comment || ''}
                               onChange={(e) => {
-                                const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '');
+                                const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '', categories);
                                 list[idx].comment = e.target.value;
                                 updateField('qualityReportTests', JSON.stringify(list));
                               }}
@@ -1786,27 +1848,33 @@ export default function HiyariHattoModule({
                               className="flex-1 px-4 py-2.5 border border-slate-200 rounded-2xl outline-none text-xs font-bold text-slate-800 focus:border-blue-500"
                             />
                             
-                            <div className="flex items-center gap-3">
-                              {item.attachments && item.attachments.map((file, fIdx) => (
-                                <div key={fIdx} className="relative group w-10 h-10 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center">
-                                  {file.url ? (
-                                    <img src={file.url} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <FileText size={16} className="text-slate-400" />
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '');
-                                      list[idx].attachments = list[idx].attachments.filter((_, i) => i !== fIdx);
-                                      updateField('qualityReportTests', JSON.stringify(list));
-                                    }}
-                                    className="absolute inset-0 bg-red-650/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                </div>
-                              ))}
+                            <div className="flex items-center gap-2">
+                              {item.attachments && item.attachments.map((file, fIdx) => {
+                                const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                                return (
+                                  <div key={fIdx} className="relative group w-14 h-14 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center shadow-sm">
+                                    {file.url && isImg ? (
+                                      <img src={file.url} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="flex flex-col items-center p-1 text-center">
+                                        <FileText size={16} className="text-slate-400" />
+                                        <span className="text-[7px] truncate w-10 font-bold uppercase">{file.name.split('.').pop()}</span>
+                                      </div>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '', categories);
+                                        list[idx].attachments = list[idx].attachments.filter((_, i) => i !== fIdx);
+                                        updateField('qualityReportTests', JSON.stringify(list));
+                                      }}
+                                      className="absolute inset-0 bg-red-650/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                );
+                              })}
 
                               <button
                                 type="button"
@@ -1822,8 +1890,8 @@ export default function HiyariHattoModule({
                                       const uploaded = await SupabaseService.uploadFile('rd-files', `hiyari_hatto_checklists/${Date.now()}_${file.name}`, file);
                                       toast.success('Evidencia subida', { id: 'upload-check-lab' });
                                       
-                                      const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '');
-                                      list[idx].attachments = [...(list[idx].attachments || []), { name: file.name, url: uploaded.publicUrl }];
+                                      const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '', categories);
+                                      list[idx].attachments = [...(list[idx].attachments || []), { name: file.name, url: uploaded.publicUrl, type: file.type }];
                                       updateField('qualityReportTests', JSON.stringify(list));
                                     } catch (err) {
                                       toast.error('Error al subir archivo', { id: 'upload-check-lab' });
@@ -1831,9 +1899,9 @@ export default function HiyariHattoModule({
                                   };
                                   input.click();
                                 }}
-                                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all"
                               >
-                                <Paperclip size={12} />
+                                <Paperclip size={14} />
                                 Evidencia
                               </button>
                             </div>
@@ -2398,7 +2466,7 @@ export default function HiyariHattoModule({
                 <div className="mt-4">
                   <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Informe Técnico de la Visita</div>
                   {(() => {
-                    const check = getChecklist(printingReport.visitTechnicalReport, 'visit', printingReport.categoryName || '');
+                    const check = getChecklist(printingReport.visitTechnicalReport, 'visit', printingReport.categoryName || '', categories);
                     if (check.length === 1 && check[0].id === 'legacy') {
                       return <div className="text-sm font-semibold text-slate-700 leading-relaxed">{check[0].comment || '-'}</div>;
                     }
@@ -2412,21 +2480,31 @@ export default function HiyariHattoModule({
                               </span>
                               <span style={{ color: '#1e293b' }}>{item.point}</span>
                             </div>
-                            {item.comment && (
-                              <div style={{ fontSize: '11px', fontWeight: '600', color: '#475569', marginTop: '6px', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1' }}>
-                                <strong>Comentario:</strong> {item.comment}
-                              </div>
-                            )}
-                            {item.attachments && item.attachments.length > 0 && (
-                              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '8px', paddingLeft: '12px' }}>
-                                {item.attachments.map((file, fIdx) => (
-                                  <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#2563eb', fontWeight: 'bold' }}>
-                                    <Paperclip size={10} />
-                                    <span>{file.name}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                            <div style={{ display: 'flex', gap: '15px', marginTop: '6px', alignItems: 'flex-start' }}>
+                              {item.comment && (
+                                <div style={{ flex: 1, fontSize: '11px', fontWeight: '600', color: '#475569', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1' }}>
+                                  <strong>Comentario:</strong> {item.comment}
+                                </div>
+                              )}
+                              {item.attachments && item.attachments.length > 0 && (
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginLeft: 'auto' }}>
+                                  {item.attachments.map((file, fIdx) => {
+                                    const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                                    if (isImg) {
+                                      return (
+                                        <img key={fIdx} src={file.url} alt={file.name} style={{ width: '90px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                      );
+                                    }
+                                    return (
+                                      <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#2563eb', fontWeight: 'bold', background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px' }}>
+                                        <Paperclip size={10} />
+                                        <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -2457,7 +2535,7 @@ export default function HiyariHattoModule({
                 <div className="mt-4">
                   <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Pruebas en Laboratorio</div>
                   {(() => {
-                    const check = getChecklist(printingReport.qualityReportTests, 'lab', printingReport.categoryName || '');
+                    const check = getChecklist(printingReport.qualityReportTests, 'lab', printingReport.categoryName || '', categories);
                     if (check.length === 1 && check[0].id === 'legacy') {
                       return <div className="text-sm font-semibold text-slate-700 leading-relaxed">{check[0].comment || '-'}</div>;
                     }
@@ -2471,21 +2549,31 @@ export default function HiyariHattoModule({
                               </span>
                               <span style={{ color: '#1e293b' }}>{item.point}</span>
                             </div>
-                            {item.comment && (
-                              <div style={{ fontSize: '11px', fontWeight: '600', color: '#475569', marginTop: '6px', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1' }}>
-                                <strong>Comentario:</strong> {item.comment}
-                              </div>
-                            )}
-                            {item.attachments && item.attachments.length > 0 && (
-                              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '8px', paddingLeft: '12px' }}>
-                                {item.attachments.map((file, fIdx) => (
-                                  <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#2563eb', fontWeight: 'bold' }}>
-                                    <Paperclip size={10} />
-                                    <span>{file.name}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                            <div style={{ display: 'flex', gap: '15px', marginTop: '6px', alignItems: 'flex-start' }}>
+                              {item.comment && (
+                                <div style={{ flex: 1, fontSize: '11px', fontWeight: '600', color: '#475569', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1' }}>
+                                  <strong>Comentario:</strong> {item.comment}
+                                </div>
+                              )}
+                              {item.attachments && item.attachments.length > 0 && (
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginLeft: 'auto' }}>
+                                  {item.attachments.map((file, fIdx) => {
+                                    const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                                    if (isImg) {
+                                      return (
+                                        <img key={fIdx} src={file.url} alt={file.name} style={{ width: '90px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                      );
+                                    }
+                                    return (
+                                      <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#2563eb', fontWeight: 'bold', background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px' }}>
+                                        <Paperclip size={10} />
+                                        <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
