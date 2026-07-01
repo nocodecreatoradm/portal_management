@@ -15,7 +15,7 @@ export const outlookService = {
     return `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
         <div style="background-color: #0f172a; padding: 24px; text-align: center;">
-          <h1 style="color: #ffffff; margin: 0; font-size: 20px; letter-spacing: 1px;">PORTAL DE GESTIÓN I+D</h1>
+          <h1 style="color: #ffffff; margin: 0; font-size: 20px; letter-spacing: 1px;">PORTAL DE GESTIÓN DE INNOVACIÓN & CALIDAD</h1>
         </div>
         <div style="padding: 32px;">
           <h2 style="color: #1e293b; margin-top: 0; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px;">${title}</h2>
@@ -381,7 +381,7 @@ export const outlookService = {
       <p>In case of any observation, discrepancy or pending information, please report it through the portal.</p>
       <br/>
       <p style="margin: 0;">Best regards,</p>
-      <p style="margin: 0;"><strong>R&D Management Portal</strong></p>
+      <p style="margin: 0;"><strong>Innovation & Quality Portal Management</strong></p>
       <p style="margin: 0;">Grupo Sole</p>
     `;
 
@@ -936,7 +936,7 @@ export const outlookService = {
       <p>Gracias por tu apoyo.</p>
       <br/>
       <p style="margin: 0;">Saludos,</p>
-      <p style="margin: 0;"><strong>Portal de Gestión I+D</strong></p>
+      <p style="margin: 0;"><strong>Portal de Gestión de Innovación & Calidad</strong></p>
       <p style="margin: 0;">Grupo Sole</p>
     `;
 

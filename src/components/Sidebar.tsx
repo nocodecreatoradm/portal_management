@@ -214,7 +214,7 @@ export default function Sidebar({ activeModule, onModuleChange, isOpen, onClose 
         {/* Header */}
         <div className="p-6 flex items-center justify-between border-b border-slate-800/50">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-lg shadow-blue-500/20">R</div>
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-lg shadow-blue-500/20">I</div>
             <span className="text-lg font-bold text-white tracking-tight">{t('common.title')}</span>
           </div>
           <button 

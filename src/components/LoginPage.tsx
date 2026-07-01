@@ -82,8 +82,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
               <span>{t('login.back')}</span>
             </motion.button>
             <h1 className="text-4xl font-bold mb-6 leading-tight">
-              I+D Portal <br />
-              <span className="text-white/70 font-light">Management</span>
+              Innovation & Quality <br />
+              <span className="text-white/70 font-light">Portal Management</span>
             </h1>
             <p className="text-white/80 text-lg leading-relaxed max-w-sm">
               {t('login.subtitle')}

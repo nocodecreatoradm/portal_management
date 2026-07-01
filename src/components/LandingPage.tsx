@@ -34,7 +34,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
           <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
             <Beaker className="w-6 h-6" />
           </div>
-          <span className="text-xl font-bold tracking-tight">I+D Portal <span className="text-blue-500 font-light">Management</span></span>
+          <span className="text-xl font-bold tracking-tight">Innovation & Quality Portal <span className="text-blue-500 font-light">Management</span></span>
         </div>
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/60">
           <a href="#features" className="hover:text-white transition-colors">Funcionalidades</a>
@@ -252,7 +252,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Beaker className="w-5 h-5" />
             </div>
-            <span className="text-lg font-bold">I+D Portal <span className="font-light text-white/50">v4.0.0</span></span>
+            <span className="text-lg font-bold">Innovation & Quality Portal <span className="font-light text-white/50">v4.0.0</span></span>
           </div>
           <div className="text-white/40 text-sm">
             © 2026 Grupo Sole. Todos los derechos reservados.
