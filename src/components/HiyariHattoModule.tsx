@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   TrendingUp, AlertCircle, FileText, Download, CheckCircle2, Clock, HelpCircle,
   Plus, Search, ChevronRight, Info, Trash2, ArrowRight, RefreshCw, Printer, AlertTriangle, ShieldCheck, Upload,
-  Calendar, User, Home, Wrench, Edit, X, Save
+  Calendar, User, Home, Wrench, Edit, X, Save, Paperclip
 } from 'lucide-react';
 import { HiyariHattoReport, ProductRecord, ActionPlanItem, FiveWhys, IshikawaData } from '../types';
 import { format, parseISO } from 'date-fns';
