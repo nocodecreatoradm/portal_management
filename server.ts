@@ -2264,6 +2264,9 @@ function buildMimeMessage(options: {
                 visit_attachments nvarchar(max) NULL,
                 quality_attachments nvarchar(max) NULL,
                 root_cause_attachments nvarchar(max) NULL,
+                brand_name nvarchar(100) NULL,
+                line_name nvarchar(100) NULL,
+                category_name nvarchar(100) NULL,
                 customer_dni nvarchar(50) NULL,
                 affected_people nvarchar(max) NULL,
                 created_at datetime2 DEFAULT GETDATE(),
@@ -2284,6 +2287,12 @@ function buildMimeMessage(options: {
                 ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD customer_dni nvarchar(50) NULL;
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'affected_people')
                 ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD affected_people nvarchar(max) NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'brand_name')
+                ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD brand_name nvarchar(100) NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'line_name')
+                ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD line_name nvarchar(100) NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'category_name')
+                ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD category_name nvarchar(100) NULL;
         END
       `);
 

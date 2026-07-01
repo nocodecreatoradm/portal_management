@@ -1277,6 +1277,8 @@ export default function App() {
         <HiyariHattoModule 
           products={data}
           brands={brands}
+          productLines={productLines}
+          categories={categories}
         />
       );
     }

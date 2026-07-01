@@ -838,6 +838,9 @@ export interface HiyariHattoReport {
   productId?: string;
   sapCode?: string;
   productName?: string;
+  brandName?: string;
+  lineName?: string;
+  categoryName?: string;
   serialNumber?: string;
   incidentDate?: string;
   reportDate?: string;

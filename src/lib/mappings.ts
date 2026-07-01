@@ -914,6 +914,9 @@ export const mapHiyariHattoReportToDB = (report: Partial<HiyariHattoReport>) => 
   if (report.productId !== undefined) dbRow.product_id = report.productId;
   if (report.sapCode !== undefined) dbRow.sap_code = report.sapCode;
   if (report.productName !== undefined) dbRow.product_name = report.productName;
+  if (report.brandName !== undefined) dbRow.brand_name = report.brandName;
+  if (report.lineName !== undefined) dbRow.line_name = report.lineName;
+  if (report.categoryName !== undefined) dbRow.category_name = report.categoryName;
   if (report.serialNumber !== undefined) dbRow.serial_number = report.serialNumber;
   if (report.incidentDate !== undefined) dbRow.incident_date = report.incidentDate || null;
   if (report.reportDate !== undefined) dbRow.report_date = report.reportDate || null;
@@ -958,6 +961,9 @@ export const mapDBToHiyariHattoReport = (dbRow: any): HiyariHattoReport => ({
   productId: dbRow.product_id,
   sapCode: dbRow.sap_code,
   productName: dbRow.product_name,
+  brandName: dbRow.brand_name,
+  lineName: dbRow.line_name,
+  categoryName: dbRow.category_name,
   serialNumber: dbRow.serial_number,
   incidentDate: dbRow.incident_date,
   reportDate: dbRow.report_date,

@@ -16,7 +16,98 @@ import { toast } from 'sonner';
 interface HiyariHattoModuleProps {
   products: ProductRecord[];
   brands?: any[];
+  productLines?: any[];
+  categories?: any[];
 }
+
+interface ChecklistItem {
+  id: string;
+  point: string;
+  checked: boolean;
+  comment: string;
+  attachments: FileInfo[];
+}
+
+const getDefaultChecklist = (categoryName: string, type: 'visit' | 'lab'): ChecklistItem[] => {
+  const isTermas = (categoryName || '').toLowerCase().includes('terma') || 
+                   (categoryName || '').toLowerCase().includes('calentador') || 
+                   (categoryName || '').toLowerCase().includes('rapid');
+  const isCocinas = (categoryName || '').toLowerCase().includes('cocina') || 
+                    (categoryName || '').toLowerCase().includes('horn') || 
+                    (categoryName || '').toLowerCase().includes('campana') ||
+                    (categoryName || '').toLowerCase().includes('extractor');
+
+  if (type === 'visit') {
+    if (isTermas) {
+      return [
+        { id: 'v1', point: 'Verificación de presión de agua en red domiciliaria', checked: false, comment: '', attachments: [] },
+        { id: 'v2', point: 'Verificación de ventilación y ducto de evacuación de gases', checked: false, comment: '', attachments: [] },
+        { id: 'v3', point: 'Inspección de conexiones de agua (fría/caliente) y llaves de paso', checked: false, comment: '', attachments: [] },
+        { id: 'v4', point: 'Inspección de conexión de gas (flexible, regulador y fugas con detector)', checked: false, comment: '', attachments: [] },
+        { id: 'v5', point: 'Verificación de voltaje en toma y conexión eléctrica a tierra', checked: false, comment: '', attachments: [] },
+      ];
+    }
+    if (isCocinas) {
+      return [
+        { id: 'v1', point: 'Inspección de distancias de seguridad a muebles/paredes inflamables', checked: false, comment: '', attachments: [] },
+        { id: 'v2', point: 'Inspección de manguera de gas, abrazaderas y fecha de vencimiento', checked: false, comment: '', attachments: [] },
+        { id: 'v3', point: 'Verificación de estabilidad, nivelación y anclaje de la cocina', checked: false, comment: '', attachments: [] },
+        { id: 'v4', point: 'Inspección visual del estado de perillas, quemadores, chisperos y tapas', checked: false, comment: '', attachments: [] },
+        { id: 'v5', point: 'Verificación de encendido eléctrico y chispeo en cada quemador', checked: false, comment: '', attachments: [] },
+      ];
+    }
+    return [
+      { id: 'v1', point: 'Inspección visual general del entorno donde se instaló el producto', checked: false, comment: '', attachments: [] },
+      { id: 'v2', point: 'Verificación de las condiciones indicadas en el manual y garantía', checked: false, comment: '', attachments: [] },
+      { id: 'v3', point: 'Entrevista al cliente sobre las fallas y síntomas reportados', checked: false, comment: '', attachments: [] },
+    ];
+  } else {
+    if (isTermas) {
+      return [
+        { id: 'l1', point: 'Prueba de hermeticidad del tanque/serpentín (fugas de agua a alta presión)', checked: false, comment: '', attachments: [] },
+        { id: 'l2', point: 'Medición de voltaje/resistencia del termostato y resistencia eléctrica', checked: false, comment: '', attachments: [] },
+        { id: 'l3', point: 'Verificación de la válvula de seguridad de sobrepresión', checked: false, comment: '', attachments: [] },
+        { id: 'l4', point: 'Análisis de gases de combustión (Monóxido de carbono O2/CO)', checked: false, comment: '', attachments: [] },
+        { id: 'l5', point: 'Prueba de funcionamiento del sensor de ionización y termocupla', checked: false, comment: '', attachments: [] },
+      ];
+    }
+    if (isCocinas) {
+      return [
+        { id: 'l1', point: 'Prueba de estanqueidad de la rampa de gas (fugas internas)', checked: false, comment: '', attachments: [] },
+        { id: 'l2', point: 'Verificación de inyectores calibrados según el tipo de gas (GLP/GN)', checked: false, comment: '', attachments: [] },
+        { id: 'l3', point: 'Prueba del dispositivo de seguridad cortagas (termocupla y válvula)', checked: false, comment: '', attachments: [] },
+        { id: 'l4', point: 'Inspección del encendido electrónico y generador de chispa integrado', checked: false, comment: '', attachments: [] },
+        { id: 'l5', point: 'Verificación del aislamiento térmico en paredes y empaques del horno', checked: false, comment: '', attachments: [] },
+      ];
+    }
+    return [
+      { id: 'l1', point: 'Inspección visual externa de componentes estructurales y golpes', checked: false, comment: '', attachments: [] },
+      { id: 'l2', point: 'Prueba de encendido inicial y ciclo de trabajo estándar en banco de pruebas', checked: false, comment: '', attachments: [] },
+      { id: 'l3', point: 'Desensamble e inspección de partes internas críticas', checked: false, comment: '', attachments: [] },
+    ];
+  }
+};
+
+const getChecklist = (fieldValue: string | undefined, type: 'visit' | 'lab', categoryName: string): ChecklistItem[] => {
+  if (!fieldValue) {
+    return getDefaultChecklist(categoryName, type);
+  }
+  try {
+    const parsed = JSON.parse(fieldValue);
+    if (Array.isArray(parsed) && parsed.length > 0 && 'point' in parsed[0]) {
+      return parsed;
+    }
+  } catch (e) {
+    return [{
+      id: 'legacy',
+      point: type === 'visit' ? 'Informe Técnico General' : 'Pruebas Generales',
+      checked: true,
+      comment: fieldValue,
+      attachments: []
+    }];
+  }
+  return getDefaultChecklist(categoryName, type);
+};
 
 const DEFAULT_FIVE_WHYS: FiveWhys = {
   why1: '',
@@ -45,7 +136,12 @@ const createDefaultActionPlan = (): ActionPlanItem[] => [
 
 const COLORS = ['#ef4444', '#3b82f6', '#f59e0b', '#10b981', '#6366f1', '#ec4899'];
 
-export default function HiyariHattoModule({ products, brands = [] }: HiyariHattoModuleProps) {
+export default function HiyariHattoModule({ 
+  products, 
+  brands = [], 
+  productLines = [], 
+  categories = [] 
+}: HiyariHattoModuleProps) {
   const [reports, setReports] = useState<HiyariHattoReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'records'>('dashboard');
@@ -446,7 +542,10 @@ export default function HiyariHattoModule({ products, brands = [] }: HiyariHatto
       return {
         ...prev,
         sapCode: prod.codigoSAP,
-        productName: prod.descripcionSAP
+        productName: prod.descripcionSAP,
+        brandName: prod.marca || '',
+        lineName: prod.linea || '',
+        categoryName: prod.categoria || ''
       };
     });
     setProductSearch('');
@@ -1250,6 +1349,56 @@ export default function HiyariHattoModule({ products, brands = [] }: HiyariHatto
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="flex flex-col">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Marca *</label>
+                      <select
+                        value={editingReport.brandName || ''}
+                        onChange={(e) => updateField('brandName', e.target.value)}
+                        className="px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-800 text-sm"
+                      >
+                        <option value="">Selecciona marca...</option>
+                        {brands.map(b => (
+                          <option key={b.id || b.name} value={b.name}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Línea *</label>
+                      <select
+                        value={editingReport.lineName || ''}
+                        onChange={(e) => updateField('lineName', e.target.value)}
+                        className="px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-800 text-sm"
+                      >
+                        <option value="">Selecciona línea...</option>
+                        {productLines.map(l => (
+                          <option key={l.id || l.name} value={l.name}>{l.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Categoría *</label>
+                      <select
+                        value={editingReport.categoryName || ''}
+                        onChange={(e) => updateField('categoryName', e.target.value)}
+                        className="px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-800 text-sm"
+                      >
+                        <option value="">Selecciona categoría...</option>
+                        {categories
+                          .filter(c => {
+                            if (!editingReport.lineName) return true;
+                            const selectedLine = productLines.find(l => l.name === editingReport.lineName);
+                            return !selectedLine || c.productLineId === selectedLine.id;
+                          })
+                          .map(c => (
+                            <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="flex flex-col">
                       <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Número de Serie (S/N)</label>
                       <input
                         type="text"
@@ -1489,15 +1638,98 @@ export default function HiyariHattoModule({ products, brands = [] }: HiyariHatto
                     </div>
                   </div>
 
-                  <div className="flex flex-col">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Informe Técnico Inicial (Visita Domiciliaria)</label>
-                    <textarea
-                      rows={5}
-                      value={editingReport.visitTechnicalReport || ''}
-                      onChange={(e) => updateField('visitTechnicalReport', e.target.value)}
-                      placeholder="Registrar detalles y observaciones del técnico durante la inspección física in-situ..."
-                      className="p-4 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-semibold text-slate-800 text-sm"
-                    />
+                  <div className="space-y-4">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-between">
+                      <span>Protocolo de Inspección Técnica (Checklist por Categoría)</span>
+                      <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-lg">
+                        Formato: {editingReport.categoryName || 'General'}
+                      </span>
+                    </label>
+                    <div className="space-y-4">
+                      {getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '').map((item, idx) => (
+                        <div key={item.id || idx} className="p-5 border-2 border-slate-100 rounded-3xl bg-white shadow-sm space-y-3 animate-in fade-in duration-200">
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={item.checked}
+                              onChange={(e) => {
+                                const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '');
+                                list[idx].checked = e.target.checked;
+                                updateField('visitTechnicalReport', JSON.stringify(list));
+                              }}
+                              className="mt-1 w-5 h-5 rounded-md border-2 border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            />
+                            <span className="text-sm font-bold text-slate-800 flex-1">{item.point}</span>
+                          </div>
+
+                          <div className="flex flex-col md:flex-row gap-4 pl-8">
+                            <input
+                              type="text"
+                              value={item.comment || ''}
+                              onChange={(e) => {
+                                const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '');
+                                list[idx].comment = e.target.value;
+                                updateField('visitTechnicalReport', JSON.stringify(list));
+                              }}
+                              placeholder="Observaciones o comentarios sobre este punto..."
+                              className="flex-1 px-4 py-2.5 border border-slate-200 rounded-2xl outline-none text-xs font-bold text-slate-800 focus:border-blue-500"
+                            />
+                            
+                            <div className="flex items-center gap-3">
+                              {item.attachments && item.attachments.map((file, fIdx) => (
+                                <div key={fIdx} className="relative group w-10 h-10 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center">
+                                  {file.url ? (
+                                    <img src={file.url} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <FileText size={16} className="text-slate-400" />
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '');
+                                      list[idx].attachments = list[idx].attachments.filter((_, i) => i !== fIdx);
+                                      updateField('visitTechnicalReport', JSON.stringify(list));
+                                    }}
+                                    className="absolute inset-0 bg-red-650/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              ))}
+
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const input = document.createElement('input');
+                                  input.type = 'file';
+                                  input.accept = 'image/*,application/pdf';
+                                  input.onchange = async (e: any) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    try {
+                                      toast.loading('Subiendo evidencia...', { id: 'upload-check-visit' });
+                                      const uploaded = await SupabaseService.uploadFile('rd-files', `hiyari_hatto_checklists/${Date.now()}_${file.name}`, file);
+                                      toast.success('Evidencia subida', { id: 'upload-check-visit' });
+                                      
+                                      const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '');
+                                      list[idx].attachments = [...(list[idx].attachments || []), { name: file.name, url: uploaded.publicUrl }];
+                                      updateField('visitTechnicalReport', JSON.stringify(list));
+                                    } catch (err) {
+                                      toast.error('Error al subir archivo', { id: 'upload-check-visit' });
+                                    }
+                                  };
+                                  input.click();
+                                }}
+                                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                              >
+                                <Paperclip size={12} />
+                                Evidencia
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   {renderAttachmentsSection('visitAttachments', 'Evidencias del Protocolo de Visita / Recepción')}
                 </div>
@@ -1517,15 +1749,98 @@ export default function HiyariHattoModule({ products, brands = [] }: HiyariHatto
                     />
                   </div>
 
-                  <div className="flex flex-col">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Pruebas Realizadas en el Laboratorio</label>
-                    <textarea
-                      rows={4}
-                      value={editingReport.qualityReportTests || ''}
-                      onChange={(e) => updateField('qualityReportTests', e.target.value)}
-                      placeholder="Detalle de hermeticidad, verificación de componentes eléctricos, pruebas de encendido, análisis químico, etc..."
-                      className="p-4 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-semibold text-slate-800 text-sm"
-                    />
+                  <div className="space-y-4">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-between">
+                      <span>Pruebas Realizadas en el Laboratorio (Checklist por Categoría)</span>
+                      <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-lg">
+                        Formato: {editingReport.categoryName || 'General'}
+                      </span>
+                    </label>
+                    <div className="space-y-4">
+                      {getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '').map((item, idx) => (
+                        <div key={item.id || idx} className="p-5 border-2 border-slate-100 rounded-3xl bg-white shadow-sm space-y-3 animate-in fade-in duration-200">
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={item.checked}
+                              onChange={(e) => {
+                                const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '');
+                                list[idx].checked = e.target.checked;
+                                updateField('qualityReportTests', JSON.stringify(list));
+                              }}
+                              className="mt-1 w-5 h-5 rounded-md border-2 border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            />
+                            <span className="text-sm font-bold text-slate-800 flex-1">{item.point}</span>
+                          </div>
+
+                          <div className="flex flex-col md:flex-row gap-4 pl-8">
+                            <input
+                              type="text"
+                              value={item.comment || ''}
+                              onChange={(e) => {
+                                const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '');
+                                list[idx].comment = e.target.value;
+                                updateField('qualityReportTests', JSON.stringify(list));
+                              }}
+                              placeholder="Observaciones o comentarios sobre este punto..."
+                              className="flex-1 px-4 py-2.5 border border-slate-200 rounded-2xl outline-none text-xs font-bold text-slate-800 focus:border-blue-500"
+                            />
+                            
+                            <div className="flex items-center gap-3">
+                              {item.attachments && item.attachments.map((file, fIdx) => (
+                                <div key={fIdx} className="relative group w-10 h-10 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center">
+                                  {file.url ? (
+                                    <img src={file.url} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <FileText size={16} className="text-slate-400" />
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '');
+                                      list[idx].attachments = list[idx].attachments.filter((_, i) => i !== fIdx);
+                                      updateField('qualityReportTests', JSON.stringify(list));
+                                    }}
+                                    className="absolute inset-0 bg-red-650/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              ))}
+
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const input = document.createElement('input');
+                                  input.type = 'file';
+                                  input.accept = 'image/*,application/pdf';
+                                  input.onchange = async (e: any) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    try {
+                                      toast.loading('Subiendo evidencia...', { id: 'upload-check-lab' });
+                                      const uploaded = await SupabaseService.uploadFile('rd-files', `hiyari_hatto_checklists/${Date.now()}_${file.name}`, file);
+                                      toast.success('Evidencia subida', { id: 'upload-check-lab' });
+                                      
+                                      const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '');
+                                      list[idx].attachments = [...(list[idx].attachments || []), { name: file.name, url: uploaded.publicUrl }];
+                                      updateField('qualityReportTests', JSON.stringify(list));
+                                    } catch (err) {
+                                      toast.error('Error al subir archivo', { id: 'upload-check-lab' });
+                                    }
+                                  };
+                                  input.click();
+                                }}
+                                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                              >
+                                <Paperclip size={12} />
+                                Evidencia
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-100">
@@ -1944,6 +2259,12 @@ export default function HiyariHattoModule({ products, brands = [] }: HiyariHatto
                                 .rounded-3xl { border-radius: 1.5rem; }
                                 .p-2 { padding: 0.5rem; }
                                 .bg-slate-50 { background-color: #f8fafc; }
+                                
+                                /* Custom Checklist and Evidence Annex Print Layout Styles */
+                                .evidence-card { display: inline-flex !important; flex-direction: column !important; align-items: center !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; border-radius: 12px !important; padding: 8px !important; width: 196px !important; text-align: center !important; margin: 5px !important; }
+                                .evidence-card img { width: 180px !important; height: 120px !important; object-fit: cover !important; border-radius: 8px !important; }
+                                .evidence-doc { width: 180px !important; height: 120px !important; background: #f1f5f9 !important; border-radius: 8px !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; color: #3b82f6 !important; }
+                                .evidence-label { font-size: 10px !important; font-weight: bold !important; color: #475569 !important; margin-top: 6px !important; width: 180px !important; display: block !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
                               </style>
                             </head>
                             <body>
@@ -2075,8 +2396,42 @@ export default function HiyariHattoModule({ products, brands = [] }: HiyariHatto
                   </div>
                 </div>
                 <div className="mt-4">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">Informe Técnico de la Visita</div>
-                  <div className="text-sm font-semibold text-slate-700 mt-1 leading-relaxed">{printingReport.visitTechnicalReport || '-'}</div>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Informe Técnico de la Visita</div>
+                  {(() => {
+                    const check = getChecklist(printingReport.visitTechnicalReport, 'visit', printingReport.categoryName || '');
+                    if (check.length === 1 && check[0].id === 'legacy') {
+                      return <div className="text-sm font-semibold text-slate-700 leading-relaxed">{check[0].comment || '-'}</div>;
+                    }
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {check.map((item) => (
+                          <div key={item.id} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold' }}>
+                              <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', color: item.checked ? '#065f46' : '#991b1b', backgroundColor: item.checked ? '#d1fae5' : '#fee2e2' }}>
+                                {item.checked ? 'OK' : 'NO REALIZADO'}
+                              </span>
+                              <span style={{ color: '#1e293b' }}>{item.point}</span>
+                            </div>
+                            {item.comment && (
+                              <div style={{ fontSize: '11px', fontWeight: '600', color: '#475569', marginTop: '6px', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1' }}>
+                                <strong>Comentario:</strong> {item.comment}
+                              </div>
+                            )}
+                            {item.attachments && item.attachments.length > 0 && (
+                              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '8px', paddingLeft: '12px' }}>
+                                {item.attachments.map((file, fIdx) => (
+                                  <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#2563eb', fontWeight: 'bold' }}>
+                                    <Paperclip size={10} />
+                                    <span>{file.name}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -2100,8 +2455,42 @@ export default function HiyariHattoModule({ products, brands = [] }: HiyariHatto
                   </div>
                 </div>
                 <div className="mt-4">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">Pruebas en Laboratorio</div>
-                  <div className="text-sm font-semibold text-slate-700 mt-1 leading-relaxed">{printingReport.qualityReportTests || '-'}</div>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Pruebas en Laboratorio</div>
+                  {(() => {
+                    const check = getChecklist(printingReport.qualityReportTests, 'lab', printingReport.categoryName || '');
+                    if (check.length === 1 && check[0].id === 'legacy') {
+                      return <div className="text-sm font-semibold text-slate-700 leading-relaxed">{check[0].comment || '-'}</div>;
+                    }
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {check.map((item) => (
+                          <div key={item.id} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold' }}>
+                              <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', color: item.checked ? '#065f46' : '#991b1b', backgroundColor: item.checked ? '#d1fae5' : '#fee2e2' }}>
+                                {item.checked ? 'OK' : 'NO REALIZADO'}
+                              </span>
+                              <span style={{ color: '#1e293b' }}>{item.point}</span>
+                            </div>
+                            {item.comment && (
+                              <div style={{ fontSize: '11px', fontWeight: '600', color: '#475569', marginTop: '6px', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1' }}>
+                                <strong>Comentario:</strong> {item.comment}
+                              </div>
+                            )}
+                            {item.attachments && item.attachments.length > 0 && (
+                              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '8px', paddingLeft: '12px' }}>
+                                {item.attachments.map((file, fIdx) => (
+                                  <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#2563eb', fontWeight: 'bold' }}>
+                                    <Paperclip size={10} />
+                                    <span>{file.name}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -2206,16 +2595,16 @@ export default function HiyariHattoModule({ products, brands = [] }: HiyariHatto
                             {group.files.map((file, idx) => {
                               const isImage = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
                               return (
-                                <div key={idx} className="flex flex-col items-center bg-white border border-slate-200 rounded-2xl p-2 w-32 text-center animate-in fade-in duration-200">
+                                <div key={idx} className="evidence-card" style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '8px', width: '196px', textAlign: 'center', margin: '5px' }}>
                                   {isImage ? (
-                                    <img src={file.url} alt={file.name} className="w-28 h-20 object-cover rounded-lg" />
+                                    <img src={file.url} alt={file.name} style={{ width: '180px', height: '120px', objectFit: 'cover', borderRadius: '8px' }} />
                                   ) : (
-                                    <div className="w-28 h-20 bg-slate-100 rounded-lg flex flex-col items-center justify-center text-blue-500 p-2">
-                                      <FileText size={24} className="mb-1" />
-                                      <span className="text-[9px] font-mono uppercase truncate w-full">{file.name.split('.').pop()}</span>
+                                    <div className="evidence-doc" style={{ width: '180px', height: '120px', backgroundColor: '#f1f5f9', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
+                                      <FileText size={24} style={{ marginBottom: '4px' }} />
+                                      <span style={{ fontSize: '9px', fontFamily: 'monospace', textTransform: 'uppercase', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name.split('.').pop()}</span>
                                     </div>
                                   )}
-                                  <span className="text-[9px] font-bold text-slate-650 truncate w-full mt-1.5" title={file.label || file.name}>{file.label || file.name}</span>
+                                  <span className="evidence-label" style={{ fontSize: '10px', fontWeight: 'bold', color: '#475569', marginTop: '6px', width: '180px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={file.label || file.name}>{file.label || file.name}</span>
                                 </div>
                               );
                             })}
