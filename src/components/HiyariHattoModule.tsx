@@ -2665,6 +2665,24 @@ export default function HiyariHattoModule({
                     <div className="text-[10px] text-slate-400 font-bold uppercase">Justificación Conclusión</div>
                     <div className="font-bold mt-0.5 text-slate-800">{printingReport.conclusionDetails || '-'}</div>
                   </div>
+                  <div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase">Comunicación con Proveedor</div>
+                    <div className="font-bold mt-0.5 text-slate-800">
+                      {printingReport.supplierCommunication ? (
+                        <span className="text-amber-600 font-bold">APLICA NOTIFICACIÓN</span>
+                      ) : (
+                        <span className="text-slate-500 font-medium">No aplica</span>
+                      )}
+                    </div>
+                  </div>
+                  {printingReport.supplierCommunication && (
+                    <div>
+                      <div className="text-[10px] text-slate-400 font-bold uppercase">Proveedor / Fabricante</div>
+                      <div className="font-bold mt-0.5 text-slate-800">
+                        {printingReport.supplierName || 'No especificado'} {printingReport.supplierId ? `(ID: ${printingReport.supplierId})` : ''}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-4">
                   <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Pruebas en Laboratorio</div>
