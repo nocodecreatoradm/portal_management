@@ -36,10 +36,10 @@ const DEFAULT_ISHIKAWA: IshikawaData = {
 
 // Default action plan templates
 const createDefaultActionPlan = (): ActionPlanItem[] => [
-  { area: 'producto', responsible: 'Carlos Hoyos / Jonny Pacheco', action: '', maxDate: '', status: 'pendiente' },
-  { area: 'marketing', responsible: 'Jessica Alba', action: '', maxDate: '', status: 'pendiente' },
-  { area: 'capacitacion', responsible: 'Patti Terzano', action: '', maxDate: '', status: 'pendiente' },
-  { area: 'atc', responsible: 'Sergio González', action: '', maxDate: '', status: 'pendiente' }
+  { area: 'producto', responsible: 'Cristhian Sevillano / Carlos Hoyos / Patricia Terzano', action: '', maxDate: '', status: 'pendiente' },
+  { area: 'marketing', responsible: 'Jessica Alva', action: '', maxDate: '', status: 'pendiente' },
+  { area: 'capacitacion', responsible: 'Cristhian Sevillano / Teresa Haro', action: '', maxDate: '', status: 'pendiente' },
+  { area: 'atc', responsible: 'Sergio Gonzales', action: '', maxDate: '', status: 'pendiente' }
 ];
 
 const COLORS = ['#ef4444', '#3b82f6', '#f59e0b', '#10b981', '#6366f1', '#ec4899'];
@@ -819,7 +819,12 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                           <tr key={`${r.id}-${idx}`} className="hover:bg-slate-50/30 transition-colors group">
                             <td className="px-6 py-4.5 font-mono text-xs font-bold text-slate-900">{r.ticketNumber}</td>
                             <td className="px-6 py-4.5">
-                              <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{action.area}</span>
+                              <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                                {action.area === 'producto' ? 'G. Innovación y Calidad' :
+                                 action.area === 'marketing' ? 'Gerencia Marketing' :
+                                 action.area === 'capacitacion' ? 'Capacitaciones' :
+                                 'G. Atención al Cliente'}
+                              </span>
                             </td>
                             <td className="px-6 py-4.5 font-semibold text-slate-700 text-sm">{action.responsible}</td>
                             <td className="px-6 py-4.5 text-slate-600 text-sm max-w-xs truncate" title={action.action}>
@@ -1532,12 +1537,23 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                             : 'bg-white border-slate-200 shadow-sm'
                         }`}>
                           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3 flex-wrap">
                               <span className="text-xs font-black text-blue-600 uppercase tracking-widest">
-                                ÁREA {action.area.toUpperCase()}
+                                {action.area === 'producto' ? 'Gerencia Innovación y Calidad' :
+                                 action.area === 'marketing' ? 'Gerencia Marketing' :
+                                 action.area === 'capacitacion' ? 'Área de Capacitaciones' :
+                                 'Gerencia de Atención al Cliente'}
                               </span>
                               <span className="text-slate-400 font-bold text-xs">|</span>
-                              <span className="text-sm font-black text-slate-800">{action.responsible}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Responsable:</span>
+                                <input
+                                  type="text"
+                                  value={action.responsible}
+                                  onChange={(e) => updateActionPlanItem(index, 'responsible', e.target.value)}
+                                  className="px-3 py-1 rounded-xl border border-slate-200 outline-none text-xs font-bold text-slate-800 bg-slate-50 focus:bg-white focus:border-blue-500 w-64"
+                                />
+                              </div>
                             </div>
 
                             <div className="flex items-center gap-3">
@@ -1908,7 +1924,12 @@ export default function HiyariHattoModule({ products }: HiyariHattoModuleProps) 
                   <tbody>
                     {(printingReport.actionPlan || []).map((action, idx) => (
                       <tr key={idx}>
-                        <td className="font-bold text-xs uppercase">{action.area}</td>
+                        <td className="font-bold text-xs uppercase">
+                          {action.area === 'producto' ? 'G. Innovación y Calidad' :
+                           action.area === 'marketing' ? 'Gerencia Marketing' :
+                           action.area === 'capacitacion' ? 'Área de Capacitaciones' :
+                           'G. Atención al Cliente'}
+                        </td>
                         <td className="font-bold text-xs">{action.responsible}</td>
                         <td>{action.action || <span className="text-slate-400 italic">No requerida/No aplica</span>}</td>
                         <td className="font-mono text-xs">
