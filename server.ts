@@ -2379,6 +2379,37 @@ function buildMimeMessage(options: {
       }
       // ─── END SAMPLES GALLERY COLUMNS MIGRATION ────────────────────────────────
 
+      // ─── FIX DUPLICATE SAMPLE CORRELATIVE IDs MIGRATION ───────────────────────
+      try {
+        // Detect if there are duplicate correlative_ids
+        const dupCheck = await migPool.request().query(`
+          SELECT COUNT(*) as total, COUNT(DISTINCT correlative_id) as unique_count
+          FROM ID_PORTAL.samples
+          WHERE correlative_id IS NOT NULL AND correlative_id != ''
+        `);
+        const { total, unique_count } = dupCheck.recordset[0];
+        if (total > 0 && total !== unique_count) {
+          console.log(`⚠️  Found ${total - unique_count} duplicate correlative_id(s) in samples — fixing...`);
+          // Reassign all correlative_ids sequentially ordered by created_at
+          await migPool.request().query(`
+            WITH ranked AS (
+              SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC) AS rn
+              FROM ID_PORTAL.samples
+            )
+            UPDATE s
+            SET s.correlative_id = 'M-' + RIGHT('000' + CAST(r.rn AS VARCHAR), 3)
+            FROM ID_PORTAL.samples s
+            INNER JOIN ranked r ON s.id = r.id
+          `);
+          console.log('✅ Sample correlative IDs fixed: renumbered M-001, M-002, ... sequentially.');
+        } else {
+          console.log('✅ Sample correlative IDs are unique — no fix needed.');
+        }
+      } catch (sampleIdFixErr) {
+        console.error('❌ Error fixing sample correlative IDs:', sampleIdFixErr);
+      }
+      // ─── END FIX DUPLICATE SAMPLE CORRELATIVE IDs MIGRATION ───────────────────
+
       // ─── PERMISSIONS SEED MIGRATION ───────────────────────────────────────────
 
       // Inserts all system permissions if they don't exist, then assigns them
