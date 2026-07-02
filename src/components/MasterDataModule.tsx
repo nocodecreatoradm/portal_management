@@ -1232,9 +1232,13 @@ function HiyariTemplateBuilder({ category, onClose, onSuccess }: any) {
   const [visitList, setVisitList] = useState<any[]>(() => {
     if (category.hiyariVisitChecklist) {
       try {
-        const parsed = JSON.parse(category.hiyariVisitChecklist);
+        const parsed = typeof category.hiyariVisitChecklist === 'string'
+          ? JSON.parse(category.hiyariVisitChecklist)
+          : category.hiyariVisitChecklist;
         if (Array.isArray(parsed)) return parsed;
-      } catch (e) {}
+      } catch (e) {
+        console.error('Error parsing hiyariVisitChecklist:', e);
+      }
     }
     return getDefaultChecklist(category.name, 'visit');
   });
@@ -1242,9 +1246,13 @@ function HiyariTemplateBuilder({ category, onClose, onSuccess }: any) {
   const [labList, setLabList] = useState<any[]>(() => {
     if (category.hiyariLabChecklist) {
       try {
-        const parsed = JSON.parse(category.hiyariLabChecklist);
+        const parsed = typeof category.hiyariLabChecklist === 'string'
+          ? JSON.parse(category.hiyariLabChecklist)
+          : category.hiyariLabChecklist;
         if (Array.isArray(parsed)) return parsed;
-      } catch (e) {}
+      } catch (e) {
+        console.error('Error parsing hiyariLabChecklist:', e);
+      }
     }
     return getDefaultChecklist(category.name, 'lab');
   });
