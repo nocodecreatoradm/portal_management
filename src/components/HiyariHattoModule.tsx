@@ -30,6 +30,17 @@ interface ChecklistItem {
   attachments: FileInfo[];
 }
 
+// Timezone-agnostic local date formatter (expects YYYY-MM-DD or ISO string)
+export const formatLocalDate = (dateStr?: string): string => {
+  if (!dateStr) return '-';
+  const cleanDate = dateStr.split('T')[0];
+  const parts = cleanDate.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
+};
+
 export const getDefaultChecklist = (categoryName: string, type: 'visit' | 'lab'): ChecklistItem[] => {
   const isTermas = (categoryName || '').toLowerCase().includes('terma') || 
                    (categoryName || '').toLowerCase().includes('calentador') || 
@@ -1226,7 +1237,7 @@ export default function HiyariHattoModule({
                                 {action.action || <span className="text-slate-400 italic">No definida</span>}
                               </td>
                               <td className="px-6 py-4.5 font-mono text-xs font-bold text-slate-700">
-                                {action.maxDate ? format(parseISO(action.maxDate), 'dd/MM/yyyy') : '-'}
+                                {formatLocalDate(action.maxDate)}
                               </td>
                               <td className="px-6 py-4.5 text-center">
                                 <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
@@ -1336,7 +1347,7 @@ export default function HiyariHattoModule({
                         <td className="px-6 py-5 text-sm font-semibold text-slate-600">{report.categoryName || '-'}</td>
                         <td className="px-6 py-5 text-sm font-semibold text-slate-600">{report.supplierName || '-'}</td>
                         <td className="px-6 py-5 font-mono text-xs font-bold text-slate-600">
-                          {report.incidentDate ? format(parseISO(report.incidentDate), 'dd/MM/yyyy') : '-'}
+                          {formatLocalDate(report.incidentDate)}
                         </td>
                         <td className="px-6 py-5 text-sm font-semibold text-slate-700">{report.customerName || '-'}</td>
                         <td className="px-6 py-5">
@@ -2625,7 +2636,7 @@ export default function HiyariHattoModule({
                   <div>
                     <div className="text-[10px] text-slate-400 font-bold uppercase">Fecha Incidente / ATC Reporte</div>
                     <div className="font-bold mt-0.5 text-slate-800">
-                      {printingReport.incidentDate ? format(parseISO(printingReport.incidentDate), 'dd/MM/yyyy') : '-'} / {printingReport.reportDate ? format(parseISO(printingReport.reportDate), 'dd/MM/yyyy') : '-'}
+                      {formatLocalDate(printingReport.incidentDate)} / {formatLocalDate(printingReport.reportDate)}
                     </div>
                   </div>
                 </div>
@@ -2670,13 +2681,13 @@ export default function HiyariHattoModule({
                   <div>
                     <div className="text-[10px] text-slate-400 font-bold uppercase">Fecha de Visita al Domicilio</div>
                     <div className="font-bold mt-0.5 text-slate-800">
-                      {printingReport.visitDate ? format(parseISO(printingReport.visitDate), 'dd/MM/yyyy') : '-'}
+                      {formatLocalDate(printingReport.visitDate)}
                     </div>
                   </div>
                   <div>
                     <div className="text-[10px] text-slate-400 font-bold uppercase">Fecha Recepción en MTI (Falla)</div>
                     <div className="font-bold mt-0.5 text-slate-800">
-                      {printingReport.receivedDate ? format(parseISO(printingReport.receivedDate), 'dd/MM/yyyy') : '-'}
+                      {formatLocalDate(printingReport.receivedDate)}
                     </div>
                   </div>
                 </div>
@@ -2881,7 +2892,7 @@ export default function HiyariHattoModule({
                         <td className="font-bold text-xs">{action.responsible}</td>
                         <td>{action.action || <span className="text-slate-400 italic">No requerida/No aplica</span>}</td>
                         <td className="font-mono text-xs">
-                          {action.maxDate ? format(parseISO(action.maxDate), 'dd/MM/yyyy') : '-'}
+                          {formatLocalDate(action.maxDate)}
                         </td>
                         <td>
                           <span className="badge">
