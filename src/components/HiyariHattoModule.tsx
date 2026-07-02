@@ -951,21 +951,6 @@ export default function HiyariHattoModule({
         elements.push(
           <line key={`why1-line-${idx}`} x1={connX} y1={lineY} x2={endX} y2={endY} stroke={color} strokeWidth="1" strokeDasharray="1 1" />
         );
-        const why1Lines = wrapText(f.why1, 18);
-        const why1Spacing = 8;
-        let why1Y = endY;
-        if (isUpper) {
-          why1Y = endY - 2 - (why1Lines.length - 1) * why1Spacing;
-        } else {
-          why1Y = endY + 8;
-        }
-        elements.push(
-          <text key={`why1-txt-${idx}`} x={endX - 3} y={why1Y} fill="#fcd34d" fontSize="6.5" fontWeight="semibold" textAnchor="end">
-            {why1Lines.map((line, li) => (
-              <tspan key={li} x={endX - 3} dy={li === 0 ? 0 : why1Spacing}>{line}</tspan>
-            ))}
-          </text>
-        );
       }
 
       // 3. why2 (2do Por qué)
@@ -975,21 +960,6 @@ export default function HiyariHattoModule({
         const endY = isUpper ? lineY - 12 : lineY + 12;
         elements.push(
           <line key={`why2-line-${idx}`} x1={connX} y1={lineY} x2={endX} y2={endY} stroke={color} strokeWidth="1" strokeDasharray="1 1" />
-        );
-        const why2Lines = wrapText(f.why2, 18);
-        const why2Spacing = 8;
-        let why2Y = endY;
-        if (isUpper) {
-          why2Y = endY - 2 - (why2Lines.length - 1) * why2Spacing;
-        } else {
-          why2Y = endY + 8;
-        }
-        elements.push(
-          <text key={`why2-txt-${idx}`} x={endX - 3} y={why2Y} fill="#fef08a" fontSize="6.5" fontWeight="normal" textAnchor="end">
-            {why2Lines.map((line, li) => (
-              <tspan key={li} x={endX - 3} dy={li === 0 ? 0 : why2Spacing}>{line}</tspan>
-            ))}
-          </text>
         );
       }
 
