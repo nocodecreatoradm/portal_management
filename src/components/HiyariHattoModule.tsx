@@ -55,6 +55,7 @@ interface ChecklistItem {
   id: string;
   point: string;
   checked: boolean;
+  result?: 'aprobado' | 'desaprobado' | 'no_realizado';
   comment: string;
   attachments: FileInfo[];
 }
@@ -2363,16 +2364,27 @@ export default function HiyariHattoModule({
                         {getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories).map((item, idx) => (
                           <div key={item.id || idx} className="p-5 border-2 border-slate-100 rounded-3xl bg-white shadow-sm space-y-3 animate-in fade-in duration-200">
                             <div className="flex items-start gap-3">
-                              <input
-                                type="checkbox"
-                                checked={item.checked}
+                              <select
+                                value={item.result || (item.checked ? 'aprobado' : 'desaprobado')}
                                 onChange={(e) => {
+                                  const val = e.target.value as any;
                                   const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
-                                  list[idx].checked = e.target.checked;
+                                  list[idx].result = val;
+                                  list[idx].checked = val === 'aprobado';
                                   updateField('visitTechnicalReport', JSON.stringify(list));
                                 }}
-                                className="mt-1 w-5 h-5 rounded-md border-2 border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                              />
+                                className={`px-2 py-1.5 rounded-xl border outline-none text-[10px] font-black uppercase tracking-wider cursor-pointer ${
+                                  (item.result || (item.checked ? 'aprobado' : 'desaprobado')) === 'aprobado'
+                                    ? 'bg-green-50 border-green-200 text-green-700'
+                                    : (item.result || (item.checked ? 'aprobado' : 'desaprobado')) === 'desaprobado'
+                                    ? 'bg-red-50 border-red-200 text-red-700'
+                                    : 'bg-slate-50 border-slate-200 text-slate-700'
+                                }`}
+                              >
+                                <option value="aprobado">Aprobó</option>
+                                <option value="desaprobado">Desaprobó</option>
+                                <option value="no_realizado">No Realizado</option>
+                              </select>
                               {/* Editable point name */}
                               <input
                                 type="text"
@@ -2516,16 +2528,27 @@ export default function HiyariHattoModule({
                       {getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '', categories).map((item, idx) => (
                         <div key={item.id || idx} className="p-5 border-2 border-slate-100 rounded-3xl bg-white shadow-sm space-y-3 animate-in fade-in duration-200">
                           <div className="flex items-start gap-3">
-                            <input
-                              type="checkbox"
-                              checked={item.checked}
+                            <select
+                              value={item.result || (item.checked ? 'aprobado' : 'desaprobado')}
                               onChange={(e) => {
+                                const val = e.target.value as any;
                                 const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '', categories);
-                                list[idx].checked = e.target.checked;
+                                list[idx].result = val;
+                                list[idx].checked = val === 'aprobado';
                                 updateField('qualityReportTests', JSON.stringify(list));
                               }}
-                              className="mt-1 w-5 h-5 rounded-md border-2 border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                            />
+                              className={`px-2 py-1.5 rounded-xl border outline-none text-[10px] font-black uppercase tracking-wider cursor-pointer ${
+                                (item.result || (item.checked ? 'aprobado' : 'desaprobado')) === 'aprobado'
+                                  ? 'bg-green-50 border-green-200 text-green-700'
+                                  : (item.result || (item.checked ? 'aprobado' : 'desaprobado')) === 'desaprobado'
+                                  ? 'bg-red-50 border-red-200 text-red-700'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700'
+                              }`}
+                            >
+                              <option value="aprobado">Aprobó</option>
+                              <option value="desaprobado">Desaprobó</option>
+                              <option value="no_realizado">No Realizado</option>
+                            </select>
                             {/* Editable point name */}
                             <input
                               type="text"
@@ -3368,15 +3391,21 @@ export default function HiyariHattoModule({
                   <div>
                     <div className="text-[10px] text-slate-400 font-bold uppercase">Personas Involucradas / Afectadas</div>
                     <div className="font-semibold mt-1 text-slate-700 leading-relaxed">
-                      {(!printingReport.affectedPeople || printingReport.affectedPeople.length === 0) ? (
-                        <span>Ninguna persona reportada</span>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          {printingReport.affectedPeople.map((p, idx) => (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        {printingReport.customerName && (
+                          <div className="font-bold">
+                            • {printingReport.customerName} {printingReport.customerDni ? `(Cliente - DNI: ${printingReport.customerDni})` : '(Cliente)'}
+                          </div>
+                        )}
+                        {printingReport.affectedPeople && printingReport.affectedPeople.map((p, idx) => (
+                          p.name && (
                             <div key={idx} className="font-bold">• {p.name} {p.dni ? `(DNI: ${p.dni})` : ''}</div>
-                          ))}
-                        </div>
-                      )}
+                          )
+                        ))}
+                        {(!printingReport.customerName && (!printingReport.affectedPeople || printingReport.affectedPeople.length === 0)) && (
+                          <span>Ninguna persona reportada</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3426,9 +3455,17 @@ export default function HiyariHattoModule({
                             <div key={item.id} style={{ display: 'flex', gap: '15px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc', pageBreakInside: 'avoid', alignItems: 'stretch' }}>
                               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold' }}>
-                                  <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', color: item.checked ? '#065f46' : '#991b1b', backgroundColor: item.checked ? '#d1fae5' : '#fee2e2' }}>
-                                    {item.checked ? 'APROBADO' : 'DESAPROBADO'}
-                                  </span>
+                                  {(() => {
+                                    const res = item.result || (item.checked ? 'aprobado' : 'desaprobado');
+                                    const text = res === 'aprobado' ? 'APROBADO' : res === 'desaprobado' ? 'DESAPROBADO' : 'NO REALIZADO';
+                                    const color = res === 'aprobado' ? '#065f46' : res === 'desaprobado' ? '#991b1b' : '#475569';
+                                    const bg = res === 'aprobado' ? '#d1fae5' : res === 'desaprobado' ? '#fee2e2' : '#f1f5f9';
+                                    return (
+                                      <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', color, backgroundColor: bg }}>
+                                        {text}
+                                      </span>
+                                    );
+                                  })()}
                                   <span style={{ color: '#1e293b' }}>{item.point}</span>
                                 </div>
                                 {item.comment && (
@@ -3484,9 +3521,17 @@ export default function HiyariHattoModule({
                           <div key={item.id} style={{ display: 'flex', gap: '15px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc', pageBreakInside: 'avoid', alignItems: 'stretch' }}>
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold' }}>
-                                <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', color: item.checked ? '#065f46' : '#991b1b', backgroundColor: item.checked ? '#d1fae5' : '#fee2e2' }}>
-                                  {item.checked ? 'APROBADO' : 'DESAPROBADO'}
-                                </span>
+                                {(() => {
+                                  const res = item.result || (item.checked ? 'aprobado' : 'desaprobado');
+                                  const text = res === 'aprobado' ? 'APROBADO' : res === 'desaprobado' ? 'DESAPROBADO' : 'NO REALIZADO';
+                                  const color = res === 'aprobado' ? '#065f46' : res === 'desaprobado' ? '#991b1b' : '#475569';
+                                  const bg = res === 'aprobado' ? '#d1fae5' : res === 'desaprobado' ? '#fee2e2' : '#f1f5f9';
+                                  return (
+                                    <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', color, backgroundColor: bg }}>
+                                      {text}
+                                    </span>
+                                  );
+                                })()}
                                 <span style={{ color: '#1e293b' }}>{item.point}</span>
                               </div>
                               {item.comment && (
@@ -3551,7 +3596,7 @@ export default function HiyariHattoModule({
                   </div>
                 </div>
 
-                <div className="five-whys-chain mt-4 space-y-3">
+                <div className="five-whys-chain mt-4 space-y-3" style={{ pageBreakBefore: 'always' }}>
                   <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Cadena de Causalidad (5 Por qués)</div>
                   {printingReport.fiveWhys && Object.entries(printingReport.fiveWhys).map(([key, val], idx) => {
                     const entry = normWhy(val as any);
