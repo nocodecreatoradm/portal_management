@@ -1705,6 +1705,9 @@ export const SupabaseService = {
   async updatePriceGMROITemplate(id: string, updates: Partial<PriceGMROITemplate>) {
     if (!isUUID(id)) return null;
     const dbUpdates = mapGMROITemplateToDB(updates);
+    delete dbUpdates.id;
+    delete dbUpdates.created_at;
+    delete dbUpdates.updated_at;
     const { data, error } = await supabase
       .from('price_gmroi_templates')
       .update(dbUpdates)
@@ -1774,6 +1777,9 @@ export const SupabaseService = {
   async updateReminder(id: string, updates: Partial<SolyReminder>) {
     if (!isUUID(id)) return null;
     const dbUpdates = mapReminderToDB(updates);
+    delete dbUpdates.id;
+    delete dbUpdates.created_at;
+    delete dbUpdates.updated_at;
     const { data, error } = await supabase
       .from('soly_reminders')
       .update(dbUpdates)
@@ -1808,6 +1814,9 @@ export const SupabaseService = {
   async updateHiyariHattoReport(id: string, updates: Partial<HiyariHattoReport>) {
     if (!isUUID(id)) return null;
     const dbUpdates = mapHiyariHattoReportToDB(updates);
+    delete dbUpdates.id;
+    delete dbUpdates.created_at;
+    delete dbUpdates.updated_at;
     const { data, error } = await supabase
       .from('hiyari_hatto_reports')
       .update(dbUpdates)
