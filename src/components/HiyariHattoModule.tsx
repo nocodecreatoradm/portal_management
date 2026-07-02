@@ -1881,8 +1881,8 @@ export default function HiyariHattoModule({
               {[
                 { step: 1, name: '1. Flash Report' },
                 { step: 2, name: '2. Protocolo Visita de Calidad' },
-                { step: 3, name: '3. Informe Calidad' },
-                { step: 4, name: '4. Ishikawa & 5 Whys' },
+                { step: 3, name: '3. Ishikawa & 5 Whys' },
+                { step: 4, name: '4. Informe Calidad' },
                 { step: 5, name: '5. Action Plan (Q5)' }
               ].map(item => (
                 <button
@@ -2504,7 +2504,7 @@ export default function HiyariHattoModule({
               )}
 
               {/* STEP 3: INFORME DE CALIDAD */}
-              {editorStep === 3 && (
+              {editorStep === 4 && (
                 <div className="space-y-6">
                   <div className="flex flex-col">
                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Antecedentes Generales del Producto / Historial</label>
@@ -2784,7 +2784,7 @@ export default function HiyariHattoModule({
               )}
 
               {/* STEP 4: ISHIKAWA & 5 WHYS */}
-              {editorStep === 4 && (
+              {editorStep === 3 && (
                 <div className="space-y-8">
                   
                   {/* Part A: Ishikawa Fishbone Diagram Builder */}
@@ -3502,10 +3502,62 @@ export default function HiyariHattoModule({
                 {renderPrintEvidence(printingReport.visitAttachments, 'Evidencias de Protocolo Visita de Calidad / Recepción')}
               </div>
 
-              {/* Step 3 data */}
+              {/* Step 4 data (Now Step 3) */}
               <div className="section mb-6">
                 <div className="section-title bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg border-l-4 border-blue-500 mb-4">
-                  3. Análisis Técnico del producto
+                  3. Análisis Causa Raíz (Ishikawa & 5 Por Qués)
+                </div>
+                
+                {/* Diagrama de Ishikawa en la Ficha de Impresión */}
+                <div className="mb-4">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Diagrama de Ishikawa Causa-Efecto</div>
+                  <div className="border border-slate-200 rounded-3xl p-2 bg-slate-50">
+                    {renderIshikawaSVG(printingReport.ishikawa)}
+                  </div>
+                </div>
+
+                <div className="five-whys-chain mt-4 space-y-3" style={{ pageBreakBefore: 'always' }}>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Cadena de Causalidad (5 Por qués)</div>
+                  {printingReport.fiveWhys && Object.entries(printingReport.fiveWhys).map(([key, val], idx) => {
+                    const entry = normWhy(val as any);
+                    const hasContent = entry.question || entry.answer;
+                    return (
+                      <div key={key} className="flex gap-3 bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                        <div className="flex-shrink-0">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-white ${
+                            idx === 4 ? 'bg-red-500' : 'bg-blue-600'
+                          }`}>{idx + 1}</div>
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          {entry.question ? (
+                            <p className="text-[10px] font-black text-blue-700 uppercase tracking-wide">{entry.question}</p>
+                          ) : (
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Por qué {idx + 1}</p>
+                          )}
+                          <p className="text-xs font-semibold text-slate-700">{entry.answer || (hasContent ? '-' : 'No definido')}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm mt-4">
+                  <div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase">Impacto si el usuario hubiese estado utilizando el producto</div>
+                    <div className="font-semibold mt-1 text-slate-700 leading-relaxed">{printingReport.hiyariQ3 || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase">Riesgo de recurrencia en otras instalaciones</div>
+                    <div className="font-semibold mt-1 text-slate-700 leading-relaxed">{printingReport.hiyariQ4 || '-'}</div>
+                  </div>
+                </div>
+                {renderPrintEvidence(printingReport.rootCauseAttachments, 'Evidencias de Causa Raíz / Ishikawa')}
+              </div>
+
+              {/* Step 3 data (Now Step 4) */}
+              <div className="section mb-6">
+                <div className="section-title bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg border-l-4 border-blue-500 mb-4">
+                  4. Análisis Técnico del producto
                 </div>
 
                 <div className="mb-4">
@@ -3520,7 +3572,7 @@ export default function HiyariHattoModule({
                         {check.map((item) => (
                           <div key={item.id} style={{ display: 'flex', gap: '15px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc', pageBreakInside: 'avoid', alignItems: 'stretch' }}>
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontBold: 'true' }}>
                                 {(() => {
                                   const res = item.result || (item.checked ? 'aprobado' : 'desaprobado');
                                   const text = res === 'aprobado' ? 'APROBADO' : res === 'desaprobado' ? 'DESAPROBADO' : 'NO REALIZADO';
@@ -3580,58 +3632,6 @@ export default function HiyariHattoModule({
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Step 4 data */}
-              <div className="section mb-6">
-                <div className="section-title bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg border-l-4 border-blue-500 mb-4">
-                  4. Análisis Causa Raíz (Ishikawa & 5 Por Qués)
-                </div>
-                
-                {/* Diagrama de Ishikawa en la Ficha de Impresión */}
-                <div className="mb-4">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Diagrama de Ishikawa Causa-Efecto</div>
-                  <div className="border border-slate-200 rounded-3xl p-2 bg-slate-50">
-                    {renderIshikawaSVG(printingReport.ishikawa)}
-                  </div>
-                </div>
-
-                <div className="five-whys-chain mt-4 space-y-3" style={{ pageBreakBefore: 'always' }}>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Cadena de Causalidad (5 Por qués)</div>
-                  {printingReport.fiveWhys && Object.entries(printingReport.fiveWhys).map(([key, val], idx) => {
-                    const entry = normWhy(val as any);
-                    const hasContent = entry.question || entry.answer;
-                    return (
-                      <div key={key} className="flex gap-3 bg-slate-50 border border-slate-200 p-3 rounded-xl">
-                        <div className="flex-shrink-0">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-white ${
-                            idx === 4 ? 'bg-red-500' : 'bg-blue-600'
-                          }`}>{idx + 1}</div>
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          {entry.question ? (
-                            <p className="text-[10px] font-black text-blue-700 uppercase tracking-wide">{entry.question}</p>
-                          ) : (
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Por qué {idx + 1}</p>
-                          )}
-                          <p className="text-xs font-semibold text-slate-700">{entry.answer || (hasContent ? '-' : 'No definido')}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm mt-4">
-                  <div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase">Impacto si el usuario hubiese estado utilizando el producto</div>
-                    <div className="font-semibold mt-1 text-slate-700 leading-relaxed">{printingReport.hiyariQ3 || '-'}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase">Riesgo de recurrencia en otras instalaciones</div>
-                    <div className="font-semibold mt-1 text-slate-700 leading-relaxed">{printingReport.hiyariQ4 || '-'}</div>
-                  </div>
-                </div>
-                {renderPrintEvidence(printingReport.rootCauseAttachments, 'Evidencias de Causa Raíz / Ishikawa')}
               </div>
 
               {/* Step 5 data */}
