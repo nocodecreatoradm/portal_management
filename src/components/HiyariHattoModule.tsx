@@ -891,7 +891,7 @@ export default function HiyariHattoModule({
     const ishikawa = data || DEFAULT_ISHIKAWA;
 
     // Helper: wrap text into lines of maxLen chars
-    const wrapText = (text: string, maxLen = 22): string[] => {
+    const wrapText = (text: string, maxLen = 22, maxLines = 4): string[] => {
       if (!text) return [];
       const words = text.split(' ');
       const lines: string[] = [];
@@ -911,7 +911,7 @@ export default function HiyariHattoModule({
         }
       }
       if (current) lines.push(current);
-      return lines.slice(0, 4); // max 4 lines per factor in SVG
+      return maxLines ? lines.slice(0, maxLines) : lines;
     };
 
     const renderFactor = (fRaw: IshikawaFactor | string, idx: number, y: number, x_rib: number, isUpper: boolean, color: string) => {
@@ -998,7 +998,7 @@ export default function HiyariHattoModule({
     };
 
     const effectText = ishikawa.effect || 'EFECTO / Causa Raíz';
-    const effectLines = wrapText(effectText, 14);
+    const effectLines = wrapText(effectText, 18, 8);
     const boxMiddleY = 225;
     const effectSpacing = 10;
     const startEffectY = boxMiddleY - ((effectLines.length - 1) * effectSpacing) / 2 + 3;
@@ -1006,15 +1006,15 @@ export default function HiyariHattoModule({
     return (
       <svg viewBox="0 0 800 450" className="w-full h-auto bg-slate-900 border border-slate-800 rounded-3xl p-4 text-white shadow-inner font-sans" style={{ fontFamily: 'sans-serif' }}>
         {/* Main Spine */}
-        <line x1="50" y1="225" x2="680" y2="225" stroke="#3b82f6" strokeWidth="6" strokeLinecap="round" />
+        <line x1="50" y1="225" x2="665" y2="225" stroke="#3b82f6" strokeWidth="6" strokeLinecap="round" />
         {/* Spine Arrow Head */}
-        <polygon points="680,215 710,225 680,235" fill="#3b82f6" />
+        <polygon points="665,215 695,225 665,235" fill="#3b82f6" />
         
         {/* Head Label box */}
-        <rect x="710" y="185" width="85" height="80" rx="8" fill="#ef4444" opacity="0.9" />
-        <text x="752.5" y={startEffectY} fill="white" fontSize="9" fontWeight="bold" textAnchor="middle">
+        <rect x="695" y="175" width="100" height="100" rx="8" fill="#ef4444" opacity="0.9" />
+        <text x="745" y={startEffectY} fill="white" fontSize="9" fontWeight="bold" textAnchor="middle">
           {effectLines.map((line, li) => (
-            <tspan key={li} x="752.5" dy={li === 0 ? 0 : effectSpacing}>{line}</tspan>
+            <tspan key={li} x="745" dy={li === 0 ? 0 : effectSpacing}>{line}</tspan>
           ))}
         </text>
 
