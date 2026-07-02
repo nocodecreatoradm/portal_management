@@ -350,14 +350,25 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
     });
   };
 
+  const getNextSampleCorrelativeId = () => {
+    const numbers = samples
+      .map(s => {
+        if (!s.correlativeId) return 0;
+        const match = s.correlativeId.match(/\d+/);
+        return match ? parseInt(match[0], 10) : 0;
+      })
+      .filter(n => !isNaN(n));
+    const maxNumber = numbers.length > 0 ? Math.max(...numbers) : 0;
+    return `M-${(maxNumber + 1).toString().padStart(3, '0')}`;
+  };
+
   const handleNewSample = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
     toast.loading('Registrando muestra...');
     try {
       const formData = new FormData(form);
-      const nextNumber = samples.length + 1;
-      const correlativeId = `M-${nextNumber.toString().padStart(3, '0')}`;
+      const correlativeId = getNextSampleCorrelativeId();
       const selectedSupplierName = formData.get('proveedor') as string;
       const selectedSupplier = suppliers.find(s => 
         s.legalName?.toUpperCase() === selectedSupplierName?.toUpperCase() || 
@@ -545,8 +556,7 @@ export default function Samples({ suppliers, onExportPPT, onLoadRecord, brands, 
 
   const handleNewInspectionCycle = (sample: SampleRecord) => {
     const newVersion = (sample.version || 1) + 1;
-    const nextNumber = samples.length + 1;
-    const correlativeId = `M-${nextNumber.toString().padStart(3, '0')}`;
+    const correlativeId = getNextSampleCorrelativeId();
     const newSample: SampleRecord = {
       ...sample,
       id: `UID-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
