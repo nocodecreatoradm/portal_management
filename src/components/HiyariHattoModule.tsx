@@ -3614,7 +3614,7 @@ export default function HiyariHattoModule({
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Comunicación con Proveedor</div>
                   <div className="font-bold mt-1 text-xs text-slate-800">
                     {printingReport.supplierCommunication ? (
-                      <span className="text-amber-600 font-bold">APLICA NOTIFICACIÓN — Proveedor: {printingReport.supplierName || 'No especificado'} {printingReport.supplierId ? `(ID: ${printingReport.supplierId})` : ''}</span>
+                      <span className="text-amber-605 font-bold uppercase">Aplica comunicación con el proveedor</span>
                     ) : (
                       <span className="text-slate-500 font-medium">No aplica</span>
                     )}
