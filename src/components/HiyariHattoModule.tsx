@@ -1305,7 +1305,7 @@ export default function HiyariHattoModule({
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/50 border-b border-slate-100">
-                    <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">TICKET / VUELO</th>
+                    <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">TICKET</th>
                     <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">PRODUCTO</th>
                     <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">CÓDIGO SAP</th>
                     <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">CATEGORÍA</th>
