@@ -1592,6 +1592,30 @@ function buildMimeMessage(options: {
         const orderString = orderColumnName ? `ORDER BY ${filterPrefix}[${orderColumnName}] ${orderAscending ? 'ASC' : 'DESC'}` : '';
 
         if (table === 'samples') {
+          try {
+            const dupCheck = await dbPool.request().query(`
+              SELECT COUNT(*) as total, COUNT(DISTINCT correlative_id) as unique_count
+              FROM ID_PORTAL.samples
+              WHERE correlative_id IS NOT NULL AND correlative_id != ''
+            `);
+            const { total, unique_count } = dupCheck.recordset[0];
+            if (total > 0 && total !== unique_count) {
+              await dbPool.request().query(`
+                WITH ranked AS (
+                  SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC) AS rn
+                  FROM ID_PORTAL.samples
+                )
+                UPDATE s
+                SET s.correlative_id = 'M-' + RIGHT('000' + CAST(r.rn AS VARCHAR), 3)
+                FROM ID_PORTAL.samples s
+                INNER JOIN ranked r ON s.id = r.id
+              `);
+              console.log('✅ Duplicates fixed on the fly.');
+            }
+          } catch (err) {
+            console.error('Error fixing duplicates on the fly:', err);
+          }
+
           query = `
             SELECT ${topString} s.*, 
                    b.name as brand_name, 
