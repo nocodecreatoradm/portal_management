@@ -916,7 +916,7 @@ export default function HiyariHattoModule({
 
     const renderFactor = (fRaw: IshikawaFactor | string, idx: number, y: number, x_rib: number, isUpper: boolean, color: string) => {
       const f = normFactor(fRaw);
-      const lineLen = 130;
+      const lineLen = 160;
       const x2 = x_rib;
       const x1 = x_rib - lineLen;
       const lineY = y;
@@ -936,24 +936,22 @@ export default function HiyariHattoModule({
         causeY = lineY + 10;
       }
       elements.push(
-        <text key={`cause-txt-${idx}`} x={x2 - 42} y={causeY} fill="#e2e8f0" fontSize="7" fontWeight="bold" textAnchor="start">
+        <text key={`cause-txt-${idx}`} x={x2 - 50} y={causeY} fill="#e2e8f0" fontSize="7" fontWeight="bold" textAnchor="start">
           {causeLines.map((line, li) => (
-            <tspan key={li} x={x2 - 42} dy={li === 0 ? 0 : causeSpacing}>{line}</tspan>
+            <tspan key={li} x={x2 - 50} dy={li === 0 ? 0 : causeSpacing}>{line}</tspan>
           ))}
         </text>
       );
 
       // 2. why1 (1er Por qué)
       if (f.why1) {
-        const connX = x2 - 50;
-        const endX = x2 - 62;
-        const endY = isUpper ? lineY - 12 : lineY + 12;
+        const connX = x2 - 60;
+        const endX = x2 - 75;
+        const endY = isUpper ? lineY - 14 : lineY + 14;
         elements.push(
           <line key={`why1-line-${idx}`} x1={connX} y1={lineY} x2={endX} y2={endY} stroke={color} strokeWidth="1" strokeDasharray="1 1" />
         );
-        const rawTextVal = f.why1;
-        const truncatedText = rawTextVal.length > 15 ? rawTextVal.slice(0, 14) + '…' : rawTextVal;
-        const why1Lines = wrapText(truncatedText, 15, 2);
+        const why1Lines = wrapText(f.why1, 16, 3);
         const why1Spacing = 6;
         let why1Y = endY;
         if (isUpper) {
@@ -972,15 +970,13 @@ export default function HiyariHattoModule({
 
       // 3. why2 (2do Por qué)
       if (f.why2) {
-        const connX = x2 - 90;
-        const endX = x2 - 102;
-        const endY = isUpper ? lineY - 12 : lineY + 12;
+        const connX = x2 - 115;
+        const endX = x2 - 130;
+        const endY = isUpper ? lineY - 14 : lineY + 14;
         elements.push(
           <line key={`why2-line-${idx}`} x1={connX} y1={lineY} x2={endX} y2={endY} stroke={color} strokeWidth="1" strokeDasharray="1 1" />
         );
-        const rawTextVal = f.why2;
-        const truncatedText = rawTextVal.length > 15 ? rawTextVal.slice(0, 14) + '…' : rawTextVal;
-        const why2Lines = wrapText(truncatedText, 15, 2);
+        const why2Lines = wrapText(f.why2, 16, 3);
         const why2Spacing = 6;
         let why2Y = endY;
         if (isUpper) {
