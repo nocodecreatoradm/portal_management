@@ -3,7 +3,7 @@ import SearchableSelect from './SearchableSelect';
 import { 
   TrendingUp, AlertCircle, FileText, Download, CheckCircle2, Clock, HelpCircle,
   Plus, Search, ChevronRight, Info, Trash2, ArrowRight, RefreshCw, Printer, AlertTriangle, ShieldCheck, Upload,
-  Calendar, User, Home, Wrench, Edit, X, Save, Paperclip, MapPin, Globe, Compass
+  Calendar, User, Home, Wrench, Edit, X, Save, Paperclip, MapPin, Globe
 } from 'lucide-react';
 import { HiyariHattoReport, ProductRecord, ActionPlanItem, FiveWhys, IshikawaData, Supplier, InvolvedPerson, FileInfo } from '../types';
 import { format, parseISO } from 'date-fns';
@@ -13,86 +13,9 @@ import {
 } from 'recharts';
 import { SupabaseService } from '../lib/SupabaseService';
 import { toast } from 'sonner';
+import { REGIONS, PERU_DISTRICTS, PERU_SVG_PATHS, getNormalizeKey } from '../data/peruGeo';
 
-export const REGIONS = [
-  'AMAZONAS', 'ANCASH', 'APURIMAC', 'AREQUIPA', 'AYACUCHO', 
-  'CAJAMARCA', 'CALLAO', 'CUSCO', 'HUANCAVELICA', 'HUANUCO', 
-  'ICA', 'JUNIN', 'LA LIBERTAD', 'LAMBAYEQUE', 'LIMA', 
-  'LORETO', 'MADRE DE DIOS', 'MOQUEGUA', 'PASCO', 'PIURA', 
-  'PUNO', 'SAN MARTIN', 'TACNA', 'TUMBES', 'UCAYALI'
-];
 
-export const PERU_COORDINATES: Record<string, { x: number; y: number; label: string }> = {
-  LIMA: { x: 180, y: 310, label: 'Lima' },
-  CALLAO: { x: 162, y: 305, label: 'Callao' },
-  AREQUIPA: { x: 285, y: 410, label: 'Arequipa' },
-  LA_LIBERTAD: { x: 110, y: 190, label: 'La Libertad' },
-  LAMBAYEQUE: { x: 75, y: 160, label: 'Lambayeque' },
-  PIURA: { x: 50, y: 120, label: 'Piura' },
-  ANCASH: { x: 140, y: 240, label: 'Ancash' },
-  CUSCO: { x: 285, y: 340, label: 'Cusco' },
-  ICA: { x: 205, y: 360, label: 'Ica' },
-  JUNIN: { x: 200, y: 280, label: 'Junín' },
-  CAJAMARCA: { x: 100, y: 140, label: 'Cajamarca' },
-  SAN_MARTIN: { x: 160, y: 150, label: 'San Martín' },
-  LORETO: { x: 220, y: 90, label: 'Loreto' },
-  PUNO: { x: 345, y: 380, label: 'Puno' },
-  HUANUCO: { x: 170, y: 220, label: 'Huánuco' },
-  UCAYALI: { x: 230, y: 210, label: 'Ucayali' },
-  TACNA: { x: 340, y: 450, label: 'Tacna' },
-  PASCO: { x: 190, y: 250, label: 'Pasco' },
-  AYACUCHO: { x: 240, y: 340, label: 'Ayacucho' },
-  AMAZONAS: { x: 120, y: 100, label: 'Amazonas' },
-  MADRE_DE_DIOS: { x: 335, y: 280, label: 'Madre de Dios' },
-  MOQUEGUA: { x: 315, y: 430, label: 'Moquegua' },
-  APURIMAC: { x: 260, y: 360, label: 'Apurímac' },
-  HUANCAVELICA: { x: 205, y: 320, label: 'Huancavelica' },
-  TUMBES: { x: 30, y: 70, label: 'Tumbes' }
-};
-
-export const MESH_CONNECTIONS = [
-  ['TUMBES', 'PIURA'],
-  ['PIURA', 'LAMBAYEQUE'],
-  ['LAMBAYEQUE', 'CAJAMARCA'],
-  ['LAMBAYEQUE', 'LA_LIBERTAD'],
-  ['LA_LIBERTAD', 'ANCASH'],
-  ['LA_LIBERTAD', 'SAN_MARTIN'],
-  ['SAN_MARTIN', 'AMAZONAS'],
-  ['AMAZONAS', 'LORETO'],
-  ['LORETO', 'UCAYALI'],
-  ['UCAYALI', 'HUANUCO'],
-  ['HUANUCO', 'PASCO'],
-  ['ANCASH', 'PASCO'],
-  ['PASCO', 'JUNIN'],
-  ['ANCASH', 'LIMA'],
-  ['LIMA', 'CALLAO'],
-  ['LIMA', 'HUANCAVELICA'],
-  ['LIMA', 'ICA'],
-  ['ICA', 'AYACUCHO'],
-  ['HUANCAVELICA', 'AYACUCHO'],
-  ['JUNIN', 'AYACUCHO'],
-  ['JUNIN', 'CUSCO'],
-  ['UCAYALI', 'CUSCO'],
-  ['CUSCO', 'MADRE_DE_DIOS'],
-  ['MADRE_DE_DIOS', 'PUNO'],
-  ['AYACUCHO', 'APURIMAC'],
-  ['APURIMAC', 'CUSCO'],
-  ['APURIMAC', 'AREQUIPA'],
-  ['ICA', 'AREQUIPA'],
-  ['AREQUIPA', 'MOQUEGUA'],
-  ['AREQUIPA', 'PUNO'],
-  ['MOQUEGUA', 'TACNA'],
-  ['PUNO', 'TACNA']
-];
-
-export const getNormalizeKey = (str: string): string => {
-  return (str || '')
-    .toUpperCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, '_')
-    .trim();
-};
 
 interface HiyariHattoModuleProps {
   products: ProductRecord[];
@@ -324,6 +247,7 @@ export default function HiyariHattoModule({
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'records'>('dashboard');
   const [expandedRegion, setExpandedRegion] = useState<string | null>(null);
+  const [selectedMapRegion, setSelectedMapRegion] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
   // Handle file uploads for various steps
@@ -1362,10 +1286,28 @@ export default function HiyariHattoModule({
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                 {/* Left side: Region List */}
-                <div className="lg:col-span-2 space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                  {geoStats.regions.map((reg) => {
+                <div className="lg:col-span-2 space-y-3 max-h-[520px] overflow-y-auto pr-2">
+                  {/* Info hint when map region selected */}
+                  {selectedMapRegion && (
+                    <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-2xl px-4 py-2.5 mb-1">
+                      <span className="text-xs font-black text-blue-700 uppercase tracking-wider">
+                        Filtrando: {PERU_SVG_PATHS.find(p => p.key === selectedMapRegion)?.name || selectedMapRegion}
+                      </span>
+                      <button
+                        onClick={() => setSelectedMapRegion(null)}
+                        className="text-blue-400 hover:text-blue-700 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  {(selectedMapRegion
+                    ? geoStats.regions.filter(r => getNormalizeKey(r.region) === selectedMapRegion)
+                    : geoStats.regions
+                  ).map((reg) => {
                     const normKey = getNormalizeKey(reg.region);
-                    const isExpanded = expandedRegion === reg.region;
+                    const isExpanded = expandedRegion === reg.region || selectedMapRegion === normKey;
                     
                     return (
                       <div 
@@ -1440,116 +1382,145 @@ export default function HiyariHattoModule({
                   })}
                 </div>
 
-                {/* Right side: Stylized interactive constellation network geo-heatmap */}
-                <div className="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-3xl p-4 flex flex-col items-center justify-center min-h-[480px] relative overflow-hidden shadow-inner">
-                  {/* Decorative Elements to make it feel premium */}
-                  <div className="absolute top-4 left-4 flex items-center gap-1.5 text-slate-500 text-[10px] font-black uppercase tracking-widest select-none">
-                    <Compass size={12} className="animate-spin-slow text-blue-500" style={{ animationDuration: '10s' }} />
-                    Sistema Satelital de Calor sole
+                {/* Right side: Real Peru SVG Map */}
+                <div className="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-3xl p-4 flex flex-col items-center justify-between min-h-[520px] relative overflow-hidden shadow-inner">
+                  {/* Header */}
+                  <div className="w-full flex items-center justify-between mb-2 z-10">
+                    <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                      <Globe size={12} className="text-blue-400" />
+                      Mapa Nacional — Haz clic en una región
+                    </div>
+                    {selectedMapRegion && (
+                      <button
+                        onClick={() => setSelectedMapRegion(null)}
+                        className="text-slate-500 hover:text-slate-200 transition-colors text-[10px] font-black uppercase tracking-widest flex items-center gap-1"
+                      >
+                        <X size={11} /> Limpiar filtro
+                      </button>
+                    )}
                   </div>
-                  <div className="absolute top-4 right-4 text-slate-600 text-[9px] font-mono tracking-widest uppercase">
-                    Status: Tracking Online
-                  </div>
 
-                  {/* SVG Constellation Network Mesh Map */}
-                  <svg className="w-full max-w-[400px] h-[400px] relative z-10 select-none" viewBox="0 0 400 480">
-                    {/* Render Mesh Connections */}
-                    {MESH_CONNECTIONS.map(([fromKey, toKey], idx) => {
-                      const fromNode = PERU_COORDINATES[fromKey];
-                      const toNode = PERU_COORDINATES[toKey];
-                      if (!fromNode || !toNode) return null;
-                      return (
-                        <line 
-                          key={idx} 
-                          x1={fromNode.x} 
-                          y1={fromNode.y} 
-                          x2={toNode.x} 
-                          y2={toNode.y} 
-                          stroke="#1e293b" 
-                          strokeWidth="1" 
-                          strokeDasharray="4 4" 
-                        />
-                      );
-                    })}
+                  {/* Real Peru SVG Map */}
+                  <svg
+                    className="w-full flex-1 select-none"
+                    viewBox="0 0 480 540"
+                    style={{ maxHeight: 440 }}
+                  >
+                    <defs>
+                      {/* Glow filter for selected region */}
+                      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                        <feMerge>
+                          <feMergeNode in="coloredBlur" />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                    </defs>
 
-                    {/* Render Base Constellation Department Nodes */}
-                    {Object.entries(PERU_COORDINATES).map(([key, node]) => (
-                      <circle 
-                        key={key} 
-                        cx={node.x} 
-                        cy={node.y} 
-                        r="3.5" 
-                        fill="#334155" 
-                      />
-                    ))}
+                    {PERU_SVG_PATHS.map(dept => {
+                      const incidentData = geoStats.regions.find(r => getNormalizeKey(r.region) === dept.key);
+                      const isSelected = selectedMapRegion === dept.key;
+                      const count = incidentData?.count || 0;
 
-                    {/* Render Pulsing Heat Indicator Circles for active departments */}
-                    {geoStats.regions.map(reg => {
-                      const normKey = getNormalizeKey(reg.region);
-                      const coords = PERU_COORDINATES[normKey];
-                      if (!coords) return null;
+                      // Color logic: dark navy base, colored by incidents
+                      const fill = isSelected
+                        ? (count >= 5 ? '#dc2626' : count >= 2 ? '#d97706' : count > 0 ? '#2563eb' : '#3b82f6')
+                        : count >= 5 ? '#991b1b'
+                        : count >= 2 ? '#92400e'
+                        : count > 0  ? '#1e3a8a'
+                        : '#1e3a5f';
 
-                      // Color config
-                      const colorClass = reg.count >= 5 ? '#ef4444' : reg.count >= 2 ? '#f59e0b' : '#3b82f6';
-                      const glowClass = reg.count >= 5 ? 'rgba(239, 68, 68, 0.4)' : reg.count >= 2 ? 'rgba(245, 158, 11, 0.4)' : 'rgba(59, 130, 246, 0.4)';
-                      const pulseRadius = reg.count >= 5 ? 18 : reg.count >= 2 ? 13 : 9;
+                      const stroke = isSelected ? '#f8fafc' : '#0f172a';
+                      const strokeWidth = isSelected ? 2 : 0.8;
 
                       return (
-                        <g key={`pulse-${reg.region}`}>
-                          {/* Pulsing ring */}
-                          <circle 
-                            cx={coords.x} 
-                            cy={coords.y} 
-                            r={pulseRadius} 
-                            fill="none" 
-                            stroke={colorClass} 
-                            strokeWidth="2" 
-                            className="animate-ping" 
-                            style={{ transformOrigin: `${coords.x}px ${coords.y}px`, animationDuration: '1.8s' }} 
+                        <g
+                          key={dept.key}
+                          onClick={() => setSelectedMapRegion(prev => prev === dept.key ? null : dept.key)}
+                          style={{ cursor: 'pointer' }}
+                          className="group"
+                        >
+                          <title>{dept.name}{count > 0 ? ` — ${count} incidente${count !== 1 ? 's' : ''}` : ' — Sin incidentes'}</title>
+                          <path
+                            d={dept.path}
+                            fill={fill}
+                            stroke={stroke}
+                            strokeWidth={strokeWidth}
+                            strokeLinejoin="round"
+                            filter={isSelected ? 'url(#glow)' : undefined}
+                            style={{ transition: 'fill 0.2s ease' }}
                           />
-                          {/* Inner glowing circle */}
-                          <circle 
-                            cx={coords.x} 
-                            cy={coords.y} 
-                            r={pulseRadius * 0.7} 
-                            fill={glowClass} 
-                          />
-                          {/* Core dot */}
-                          <circle 
-                            cx={coords.x} 
-                            cy={coords.y} 
-                            r="5" 
-                            fill={colorClass} 
-                          />
-                          {/* Text Label */}
-                          <text 
-                            x={coords.x + 8} 
-                            y={coords.y + 4} 
-                            fill="#94a3b8" 
-                            fontSize="8" 
-                            fontWeight="bold" 
-                            className="pointer-events-none uppercase font-sans"
-                          >
-                            {coords.label}
-                          </text>
+                          {/* Incident count badge */}
+                          {count > 0 && (
+                            <>
+                              {/* Pulsing ring for high-incident regions */}
+                              {count >= 2 && (
+                                <circle
+                                  cx={dept.labelX}
+                                  cy={dept.labelY}
+                                  r={count >= 5 ? 10 : 7}
+                                  fill="none"
+                                  stroke={count >= 5 ? '#ef4444' : '#f59e0b'}
+                                  strokeWidth="1.5"
+                                  className="animate-ping"
+                                  style={{ transformOrigin: `${dept.labelX}px ${dept.labelY}px`, animationDuration: '2s' }}
+                                />
+                              )}
+                              <circle
+                                cx={dept.labelX}
+                                cy={dept.labelY}
+                                r={count >= 5 ? 9 : count >= 2 ? 7 : 5.5}
+                                fill={count >= 5 ? '#ef4444' : count >= 2 ? '#f59e0b' : '#60a5fa'}
+                              />
+                              <text
+                                x={dept.labelX}
+                                y={dept.labelY + 3}
+                                textAnchor="middle"
+                                fill="white"
+                                fontSize={count >= 10 ? 6 : 7}
+                                fontWeight="bold"
+                                className="pointer-events-none"
+                              >
+                                {count}
+                              </text>
+                            </>
+                          )}
+                          {/* Dept name label — only shown for selected */}
+                          {isSelected && (
+                            <text
+                              x={dept.labelX}
+                              y={dept.labelY - 14}
+                              textAnchor="middle"
+                              fill="#f1f5f9"
+                              fontSize="7"
+                              fontWeight="bold"
+                              className="pointer-events-none uppercase"
+                            >
+                              {dept.name}
+                            </text>
+                          )}
                         </g>
                       );
                     })}
                   </svg>
 
-                  {/* Heatmap Legend */}
-                  <div className="mt-2 flex gap-6 text-[10px] font-black uppercase tracking-widest text-slate-500 z-10">
+                  {/* Legend */}
+                  <div className="flex flex-wrap gap-4 text-[10px] font-black uppercase tracking-widest text-slate-500 mt-3 z-10">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 block shadow shadow-red-500/50" />
-                      <span>Alto Riesgo (&gt;=5)</span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-600 block" />
+                      <span>Alto (&ge;5)</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 block shadow shadow-amber-500/50" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-600 block" />
                       <span>Moderado (2-4)</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 block shadow shadow-blue-500/50" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 block" />
                       <span>Bajo (1)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-slate-700 block" />
+                      <span>Sin incidentes</span>
                     </div>
                   </div>
                 </div>
@@ -2015,11 +1986,15 @@ export default function HiyariHattoModule({
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Región */}
                     <div className="flex flex-col">
                       <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Región del Evento</label>
                       <select
                         value={editingReport.region || ''}
-                        onChange={(e) => updateField('region', e.target.value)}
+                        onChange={(e) => {
+                          updateField('region', e.target.value);
+                          updateField('district', '');
+                        }}
                         className="px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-800 text-sm bg-white"
                       >
                         <option value="">Seleccione región...</option>
@@ -2028,15 +2003,31 @@ export default function HiyariHattoModule({
                         ))}
                       </select>
                     </div>
+
+                    {/* Distrito — se filtra según la región seleccionada */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Distrito / Localidad</label>
-                      <input
-                        type="text"
-                        value={editingReport.district || ''}
-                        onChange={(e) => updateField('district', e.target.value)}
-                        placeholder="Ej. Miraflores, Trujillo, Chiclayo..."
-                        className="px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-800 text-sm"
-                      />
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                        Distrito / Localidad
+                        {editingReport.region && (
+                          <span className="ml-2 normal-case text-blue-400 font-semibold">— {editingReport.region}</span>
+                        )}
+                      </label>
+                      {editingReport.region ? (
+                        <select
+                          value={editingReport.district || ''}
+                          onChange={(e) => updateField('district', e.target.value)}
+                          className="px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-800 text-sm bg-white"
+                        >
+                          <option value="">Seleccione distrito...</option>
+                          {(PERU_DISTRICTS[getNormalizeKey(editingReport.region)] || []).map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="px-4 py-3 rounded-2xl border-2 border-slate-100 bg-slate-50 text-slate-400 text-sm font-medium italic">
+                          Primero seleccione una región
+                        </div>
+                      )}
                     </div>
                   </div>
 

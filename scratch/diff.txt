@@ -1,0 +1,245 @@
+diff --git a/src/components/ImportTrackingModule.tsx b/src/components/ImportTrackingModule.tsx
+index fb5e98e..630ea89 100644
+--- a/src/components/ImportTrackingModule.tsx
++++ b/src/components/ImportTrackingModule.tsx
+@@ -24,7 +24,8 @@ import {
+   FileCode,
+   Package,
+   Layers,
+-  ArrowRight
++  ArrowRight,
++  History
+ } from 'lucide-react';
+ import { Toaster, toast } from 'sonner';
+ import { SupabaseService } from '../lib/SupabaseService';
+@@ -484,6 +485,8 @@ export default function ImportTrackingModule() {
+   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
+   const [customSapCode, setCustomSapCode] = useState('');
+   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
++  const [activeViewTab, setActiveViewTab] = useState<'tracking' | 'history'>('tracking');
++  const [historySearchTerm, setHistorySearchTerm] = useState('');
+ 
+   // Expandable cards
+   const [expandedShipments, setExpandedShipments] = useState<Record<string, boolean>>({});
+@@ -661,6 +664,41 @@ export default function ImportTrackingModule() {
+     return { total, inTransit, delivered, pendingCodes };
+   }, [shipments]);
+ 
++  // Flat list of all created SAP codes from all shipments
++  const allCreatedCodes = useMemo(() => {
++    const list: {
++      shipmentId: string;
++      supplierName: string;
++      sample: SampleItem;
++    }[] = [];
++    shipments.forEach(s => {
++      s.samples.forEach(samp => {
++        if (samp.code && samp.code.trim()) {
++          list.push({
++            shipmentId: s.id,
++            supplierName: s.supplierName,
++            sample: samp
++          });
++        }
++      });
++    });
++    return list;
++  }, [shipments]);
++
++  // Filtered history list
++  const filteredHistory = useMemo(() => {
++    const term = historySearchTerm.trim().toLowerCase();
++    if (!term) return allCreatedCodes;
++    return allCreatedCodes.filter(item => 
++      item.sample.code.toLowerCase().includes(term) ||
++      item.sample.commercialDescription.toLowerCase().includes(term) ||
++      item.sample.fullDescription.toLowerCase().includes(term) ||
++      item.supplierName.toLowerCase().includes(term) ||
++      item.shipmentId.toLowerCase().includes(term) ||
++      item.sample.codigoModelo.toLowerCase().includes(term)
++    );
++  }, [allCreatedCodes, historySearchTerm]);
++
+   // Form for new Shipment (Solicitud)
+   const [newShipment, setNewShipment] = useState<{
+     supplierId: string;
+@@ -1300,6 +1338,41 @@ Equipos de Investigación y Desarrollo`;
+         </div>
+       </div>
+ 
++      {/* Tabs View Selector */}
++      <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm w-fit">
++        <button
++          type="button"
++          onClick={() => setActiveViewTab('tracking')}
++          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs transition-all ${
++            activeViewTab === 'tracking'
++              ? 'bg-slate-900 text-white shadow-sm'
++              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
++          }`}
++        >
++          <Truck size={14} />
++          Seguimiento en Vivo
++        </button>
++        <button
++          type="button"
++          onClick={() => setActiveViewTab('history')}
++          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs transition-all ${
++            activeViewTab === 'history'
++              ? 'bg-slate-900 text-white shadow-sm'
++              : 'text-slate-650 hover:text-slate-900 hover:bg-slate-50'
++          }`}
++        >
++          <History size={14} />
++          Historial de Códigos SAP
++          {allCreatedCodes.length > 0 && (
++            <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black transition-colors ${
++              activeViewTab === 'history' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600'
++            }`}>
++              {allCreatedCodes.length}
++            </span>
++          )}
++        </button>
++      </div>
++
+       {/* Stats Summary Widgets */}
+       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+@@ -1349,22 +1422,24 @@ Equipos de Investigación y Desarrollo`;
+         </div>
+       </div>
+ 
+-      {/* Search Bar */}
+-      <div className="flex bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+-        <div className="relative flex-1">
+-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+-          <input
+-            type="text"
+-            placeholder="Buscar por código de muestra, proveedor, descripción, tracking number..."
+-            value={searchTerm}
+-            onChange={(e) => setSearchTerm(e.target.value)}
+-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+-          />
+-        </div>
+-      </div>
++      {activeViewTab === 'tracking' ? (
++        <>
++          {/* Search Bar */}
++          <div className="flex bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
++            <div className="relative flex-1">
++              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
++              <input
++                type="text"
++                placeholder="Buscar por código de muestra, proveedor, descripción, tracking number..."
++                value={searchTerm}
++                onChange={(e) => setSearchTerm(e.target.value)}
++                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
++              />
++            </div>
++          </div>
+ 
+-      {/* Main List of Shipments */}
+-      <div className="space-y-6">
++          {/* Main List of Shipments */}
++          <div className="space-y-6">
+         {isLoading ? (
+           <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-slate-200">
+             <RefreshCw className="animate-spin text-blue-600 mb-4" size={36} />
+@@ -1765,6 +1840,97 @@ Equipos de Investigación y Desarrollo`;
+           })
+         )}
+       </div>
++        </>
++      ) : (
++        <div className="space-y-6">
++          {/* Search Bar for History */}
++          <div className="flex bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
++            <div className="relative flex-1">
++              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
++              <input
++                type="text"
++                placeholder="Buscar por código SAP, descripción, proveedor, modelo o envío..."
++                value={historySearchTerm}
++                onChange={(e) => setHistorySearchTerm(e.target.value)}
++                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
++              />
++            </div>
++          </div>
++
++          {/* History List Container */}
++          {filteredHistory.length === 0 ? (
++            <div className="flex flex-col items-center justify-center p-16 bg-white rounded-2xl border border-slate-200 text-slate-400">
++              <History size={48} className="opacity-20 mb-3" />
++              <h4 className="text-lg font-bold">No hay códigos en el historial</h4>
++              <p className="text-sm font-medium mt-1">
++                {historySearchTerm ? 'Ningún código coincide con la búsqueda.' : 'Los códigos SAP creados aparecerán aquí.'}
++              </p>
++            </div>
++          ) : (
++            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
++              <table className="w-full text-left border-collapse">
++                <thead>
++                  <tr className="bg-slate-50 border-b border-slate-200">
++                    <th className="px-5 py-4 text-[10px] font-black text-slate-450 uppercase tracking-wider">Código SAP</th>
++                    <th className="px-5 py-4 text-[10px] font-black text-slate-450 uppercase tracking-wider">Muestra / Descripción</th>
++                    <th className="px-5 py-4 text-[10px] font-black text-slate-450 uppercase tracking-wider">Origen / Envío</th>
++                    <th className="px-5 py-4 text-[10px] font-black text-slate-450 uppercase tracking-wider">Datos Técnicos</th>
++                    <th className="px-5 py-4 text-[10px] font-black text-slate-450 uppercase tracking-wider">Destino / Finalidad</th>
++                  </tr>
++                </thead>
++                <tbody className="divide-y divide-slate-100">
++                  {filteredHistory.map((item, idx) => (
++                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
++                      <td className="px-5 py-4 whitespace-nowrap">
++                        <span className="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-black border border-green-150 font-mono tracking-wider">
++                          {item.sample.code}
++                        </span>
++                      </td>
++                      <td className="px-5 py-4">
++                        <div className="text-xs font-bold text-slate-900 leading-tight">
++                          {item.sample.commercialDescription}
++                        </div>
++                        <div className="text-[10px] text-slate-400 mt-1 max-w-sm line-clamp-1" title={item.sample.fullDescription}>
++                          {item.sample.fullDescription}
++                        </div>
++                      </td>
++                      <td className="px-5 py-4 whitespace-nowrap">
++                        <div className="text-xs font-bold text-slate-700">{item.supplierName}</div>
++                        <div className="text-[10px] text-slate-400 font-bold mt-0.5 flex items-center gap-1">
++                          <span className="bg-slate-100 text-slate-650 px-1.5 py-0.5 rounded text-[9px] font-black">
++                            {item.shipmentId}
++                          </span>
++                        </div>
++                      </td>
++                      <td className="px-5 py-4 text-xs text-slate-606 space-y-0.5">
++                        <div>
++                          <span className="font-bold text-slate-400">Dim:</span> {item.sample.alto || '30 cm'} x {item.sample.ancho || '20 cm'} x {item.sample.profundidad || '15 cm'}
++                        </div>
++                        <div>
++                          <span className="font-bold text-slate-400">Peso:</span> {item.sample.peso || '1 kg'} | <span className="font-bold text-slate-400">Costo:</span> USD {typeof item.sample.costoUnitario === 'number' ? item.sample.costoUnitario.toFixed(2) : parseFloat(item.sample.costoUnitario || 0).toFixed(2)}
++                        </div>
++                        {item.sample.codigoModelo && item.sample.codigoModelo !== '-' && (
++                          <div>
++                            <span className="font-bold text-slate-400">Mod. Fábrica:</span> <span className="font-mono text-[10px] font-bold bg-slate-50 border border-slate-100 px-1 rounded">{item.sample.codigoModelo}</span>
++                          </div>
++                        )}
++                      </td>
++                      <td className="px-5 py-4 text-xs text-slate-606 space-y-0.5 whitespace-nowrap">
++                        <div>
++                          <span className="font-bold text-slate-400">Almacén:</span> <span className="font-bold text-slate-700">{item.sample.almacen || '138'}</span>
++                        </div>
++                        <div className="text-[9px] font-black tracking-tight text-slate-400 uppercase">
++                          {item.sample.modoCompra || 'IMPORTADO'} / {item.sample.finalidad || 'MUESTRAS'}
++                        </div>
++                      </td>
++                    </tr>
++                  ))}
++                </tbody>
++              </table>
++            </div>
++          )}
++        </div>
++      )}
+ 
+       {/* MODAL: REGISTRAR MUESTRA (Nueva Solicitud) */}
+       {isNewModalOpen && (
