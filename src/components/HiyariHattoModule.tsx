@@ -2938,17 +2938,15 @@ export default function HiyariHattoModule({
                           {formatLocalDate(action.maxDate)}
                         </td>
                         <td>
-                    {/* Removed annex to place evidences inline under each stage */}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                          <span className="badge">
+                            {action.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
               {/* Footer Letterhead Template */}
               <div className="print-footer mt-10 pt-6 border-t border-slate-200 flex justify-between items-center" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '15px', marginTop: '30px' }}>
