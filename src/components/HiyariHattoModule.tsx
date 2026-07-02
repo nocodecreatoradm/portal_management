@@ -546,18 +546,22 @@ export default function HiyariHattoModule({
     const completed = total - open;
     const resolutionRate = total > 0 ? Math.round((completed / total) * 100) : 100;
     
-    // Classify reports for metrics
+    // Classify reports for metrics using the lineName field stored in the report
+    // Water Heaters  → line "AGUA CALIENTE"
+    // Kitchen Appliance → line "LÍNEA BLANCA"
+    // Others → all remaining lines (CLIMATIZACIÓN, PURIFICACIÓN, REFRIGERACIÓN, etc.)
     let waterHeatersCount = 0;
     let kitchenApplianceCount = 0;
     let othersCount = 0;
 
     filteredReportsForDashboard.forEach(r => {
+      // Prefer the lineName stored directly in the report; fall back to the product catalogue
       const prod = products.find(p => p.codigoSAP === r.sapCode);
-      const lineName = (prod?.line_name || prod?.line?.name || '').toLowerCase();
-      
-      if (lineName.includes('terma') || lineName.includes('calentador') || lineName.includes('rápida') || lineName.includes('instantáneo') || lineName.includes('water heater')) {
+      const rawLine = (r.lineName || prod?.linea || prod?.line?.name || '').toUpperCase().trim();
+
+      if (rawLine === 'AGUA CALIENTE') {
         waterHeatersCount++;
-      } else if (lineName.includes('cocina') || lineName.includes('horn') || lineName.includes('campana') || lineName.includes('encimera') || lineName.includes('kitchen') || lineName.includes('appliance')) {
+      } else if (rawLine === 'LÍNEA BLANCA' || rawLine === 'LINEA BLANCA') {
         kitchenApplianceCount++;
       } else {
         othersCount++;
