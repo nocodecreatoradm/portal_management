@@ -3281,15 +3281,33 @@ export default function HiyariHattoModule({
                                 
                                 @page {
                                   margin-top: 1.2cm;
-                                  margin-bottom: 0cm;
+                                  margin-bottom: 1.2cm;
                                   margin-left: 1.2cm;
                                   margin-right: 1.2cm;
+                                }
+
+                                .print-footer {
+                                  display: none;
                                 }
 
                                 @media print {
                                   body { padding: 0 !important; margin: 0 !important; }
                                   #printable-area { padding: 0 !important; }
                                   .section { page-break-inside: avoid; }
+                                  
+                                  .print-footer {
+                                    display: block !important;
+                                    position: fixed !important;
+                                    bottom: -20px !important;
+                                    right: 0 !important;
+                                    font-size: 10px !important;
+                                    font-weight: bold !important;
+                                    color: #94a3b8 !important;
+                                    font-family: sans-serif !important;
+                                  }
+                                  .print-footer::after {
+                                    content: "Página " counter(page);
+                                  }
                                 }
                               </style>
                             </head>
@@ -3328,6 +3346,7 @@ export default function HiyariHattoModule({
 
             {/* Printable Content */}
             <div className="flex-1 overflow-y-auto p-10 custom-scrollbar" id="printable-area">
+              <div className="print-footer"></div>
               {/* Header Letterhead Template */}
               <div className="print-header flex justify-between items-end border-b-2 border-slate-900 pb-3 mb-6" style={{ width: '100%' }}>
                 <div className="flex flex-col" style={{ display: 'flex', flexDirection: 'column' }}>
