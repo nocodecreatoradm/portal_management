@@ -887,7 +887,7 @@ export default function HiyariHattoModule({
   };
 
   // Render Ishikawa SVG dynamically
-  const renderIshikawaSVG = (data?: IshikawaData) => {
+  const renderIshikawaSVG = (data?: IshikawaData, isPrint = false) => {
     const ishikawa = data || DEFAULT_ISHIKAWA;
 
     // Helper: wrap text into lines of maxLen chars
@@ -923,7 +923,7 @@ export default function HiyariHattoModule({
 
       const elements: React.ReactNode[] = [];
       elements.push(
-        <line key={`line-${idx}`} x1={x1} y1={lineY} x2={x2} y2={lineY} stroke="#475569" strokeWidth="1.5" />
+        <line key={`line-${idx}`} x1={x1} y1={lineY} x2={x2} y2={lineY} stroke={isPrint ? "#94a3b8" : "#475569"} strokeWidth="1.5" />
       );
 
       // 1. Primary Cause Text
@@ -936,7 +936,7 @@ export default function HiyariHattoModule({
         causeY = lineY + 10;
       }
       elements.push(
-        <text key={`cause-txt-${idx}`} x={x2 - 50} y={causeY} fill="#e2e8f0" fontSize="7" fontWeight="bold" textAnchor="start">
+        <text key={`cause-txt-${idx}`} x={x2 - 50} y={causeY} fill={isPrint ? "#1e293b" : "#e2e8f0"} fontSize="7" fontWeight="bold" textAnchor="start">
           {causeLines.map((line, li) => (
             <tspan key={li} x={x2 - 50} dy={li === 0 ? 0 : causeSpacing}>{line}</tspan>
           ))}
@@ -960,7 +960,7 @@ export default function HiyariHattoModule({
           why1Y = endY + 7;
         }
         elements.push(
-          <text key={`why1-txt-${idx}`} x={endX - 3} y={why1Y} fill="#fcd34d" fontSize="5.5" fontWeight="semibold" textAnchor="end">
+          <text key={`why1-txt-${idx}`} x={endX - 3} y={why1Y} fill={isPrint ? color : "#fcd34d"} fontSize="5.5" fontWeight="semibold" textAnchor="end">
             {why1Lines.map((line, li) => (
               <tspan key={li} x={endX - 3} dy={li === 0 ? 0 : why1Spacing}>{line}</tspan>
             ))}
@@ -985,7 +985,7 @@ export default function HiyariHattoModule({
           why2Y = endY + 7;
         }
         elements.push(
-          <text key={`why2-txt-${idx}`} x={endX - 3} y={why2Y} fill="#fef08a" fontSize="5.5" fontWeight="normal" textAnchor="end">
+          <text key={`why2-txt-${idx}`} x={endX - 3} y={why2Y} fill={isPrint ? "#64748b" : "#fef08a"} fontSize="5.5" fontWeight="normal" textAnchor="end">
             {why2Lines.map((line, li) => (
               <tspan key={li} x={endX - 3} dy={li === 0 ? 0 : why2Spacing}>{line}</tspan>
             ))}
@@ -1034,14 +1034,14 @@ export default function HiyariHattoModule({
     const startEffectY = boxMiddleY - ((effectLines.length - 1) * effectSpacing) / 2 + 3;
     
     return (
-      <svg viewBox="0 0 800 450" className="w-full h-auto bg-slate-900 border border-slate-800 rounded-3xl p-4 text-white shadow-inner font-sans" style={{ fontFamily: 'sans-serif' }}>
+      <svg viewBox="0 0 800 450" className={isPrint ? "w-full h-auto bg-white border border-slate-200 rounded-3xl p-4 text-slate-800 font-sans" : "w-full h-auto bg-slate-900 border border-slate-800 rounded-3xl p-4 text-white shadow-inner font-sans"} style={{ fontFamily: 'sans-serif' }}>
         {/* Main Spine */}
         <line x1="50" y1="225" x2="665" y2="225" stroke="#3b82f6" strokeWidth="6" strokeLinecap="round" />
         {/* Spine Arrow Head */}
         <polygon points="665,215 695,225 665,235" fill="#3b82f6" />
         
         {/* Head Label box */}
-        <rect x="695" y="175" width="100" height="100" rx="8" fill="#ef4444" opacity="0.9" />
+        <rect x="695" y="175" width="100" height="100" rx="8" fill="#ef4444" opacity={isPrint ? "1" : "0.9"} />
         <text x="745" y={startEffectY} fill="white" fontSize="9" fontWeight="bold" textAnchor="middle">
           {effectLines.map((line, li) => (
             <tspan key={li} x="745" dy={li === 0 ? 0 : effectSpacing}>{line}</tspan>
@@ -1049,14 +1049,14 @@ export default function HiyariHattoModule({
         </text>
 
         {/* Ribs (Upper half) */}
-        {renderRib(ishikawa.metodo, true, 200, 50, 300, 225, '#ef4444', 'INSTALACIÓN')}
-        {renderRib(ishikawa.mano_obra, true, 380, 50, 480, 225, '#f59e0b', 'USUARIO')}
-        {renderRib(ishikawa.maquina_producto, true, 560, 50, 660, 225, '#3b82f6', 'PRODUCTO')}
+        {renderRib(ishikawa.metodo, true, 200, 50, 300, 225, isPrint ? '#dc2626' : '#ef4444', 'INSTALACIÓN')}
+        {renderRib(ishikawa.mano_obra, true, 380, 50, 480, 225, isPrint ? '#d97706' : '#f59e0b', 'USUARIO')}
+        {renderRib(ishikawa.maquina_producto, true, 560, 50, 660, 225, isPrint ? '#2563eb' : '#3b82f6', 'PRODUCTO')}
 
         {/* Ribs (Lower half) */}
-        {renderRib(ishikawa.materiales, false, 150, 400, 250, 225, '#10b981', 'MATERIALES')}
-        {renderRib(ishikawa.medicion, false, 330, 400, 430, 225, '#6366f1', 'MEDICIÓN')}
-        {renderRib(ishikawa.medio_ambiente, false, 510, 400, 610, 225, '#ec4899', 'MEDIO AMBIENTE')}
+        {renderRib(ishikawa.materiales, false, 150, 400, 250, 225, isPrint ? '#059669' : '#10b981', 'MATERIALES')}
+        {renderRib(ishikawa.medicion, false, 330, 400, 430, 225, isPrint ? '#4f46e5' : '#6366f1', 'MEDICIÓN')}
+        {renderRib(ishikawa.medio_ambiente, false, 510, 400, 610, 225, isPrint ? '#db2777' : '#ec4899', 'MEDIO AMBIENTE')}
       </svg>
     );
   };
@@ -3602,7 +3602,7 @@ export default function HiyariHattoModule({
                 <div className="mb-4">
                   <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Diagrama de Ishikawa Causa-Efecto</div>
                   <div className="border border-slate-200 rounded-3xl p-2 bg-slate-50">
-                    {renderIshikawaSVG(printingReport.ishikawa)}
+                    {renderIshikawaSVG(printingReport.ishikawa, true)}
                   </div>
                 </div>
 
