@@ -3309,6 +3309,7 @@ export default function HiyariHattoModule({
                               </style>
                             </head>
                             <body>
+                              <div class="print-footer"></div>
                               <div id="printable-area">
                                 ${printable.innerHTML}
                               </div>
@@ -3343,7 +3344,6 @@ export default function HiyariHattoModule({
 
             {/* Printable Content */}
             <div className="flex-1 overflow-y-auto p-10 custom-scrollbar" id="printable-area">
-              <div className="print-footer"></div>
               {/* Header Letterhead Template */}
               <div className="print-header flex justify-between items-end border-b-2 border-slate-900 pb-3 mb-6" style={{ width: '100%' }}>
                 <div className="flex flex-col" style={{ display: 'flex', flexDirection: 'column' }}>
