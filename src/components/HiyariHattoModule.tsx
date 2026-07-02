@@ -3280,44 +3280,32 @@ export default function HiyariHattoModule({
                                 .evidence-label { font-size: 10px !important; font-weight: bold !important; color: #475569 !important; margin-top: 6px !important; width: 180px !important; display: block !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
                                 
                                 @page {
-                                  margin: 15mm 15mm;
-                                }
-
-                                .page-footer-container {
-                                  display: none;
+                                  margin: 0;
                                 }
 
                                 @media print {
                                   body { padding: 0 !important; margin: 0 !important; }
                                   #printable-area { padding: 0 !important; }
                                   .section { page-break-inside: avoid; }
-                                  
-                                  .page-footer-container {
-                                    display: flex !important;
-                                    justify-content: space-between !important;
-                                    position: fixed !important;
-                                    bottom: -10mm !important;
-                                    left: 0 !important;
-                                    right: 0 !important;
-                                    font-size: 10px !important;
-                                    font-weight: bold !important;
-                                    color: #94a3b8 !important;
-                                    font-family: sans-serif !important;
-                                  }
-                                  .page-number::after {
-                                    content: "Página " counter(page);
-                                  }
                                 }
                               </style>
                             </head>
                             <body>
-                              <div class="page-footer-container">
-                                <span>Impreso el: ${new Date().toLocaleString('es-PE')}</span>
-                                <span class="page-number"></span>
-                              </div>
-                              <div id="printable-area">
-                                ${printable.innerHTML}
-                              </div>
+                              <table style="width: 100%; border: none; margin: 0; padding: 0; border-spacing: 0;">
+                                <thead style="display: table-header-group;">
+                                  <tr><td style="border: none; padding: 0; height: 15mm;"></td></tr>
+                                </thead>
+                                <tfoot style="display: table-footer-group;">
+                                  <tr><td style="border: none; padding: 0; height: 15mm;"></td></tr>
+                                </tfoot>
+                                <tbody style="border: none;">
+                                  <tr><td style="border: none; padding: 0 15mm;">
+                                    <div id="printable-area">
+                                      ${printable.innerHTML}
+                                    </div>
+                                  </td></tr>
+                                </tbody>
+                              </table>
                               <script>
                                 window.onload = function() {
                                   setTimeout(function() {
