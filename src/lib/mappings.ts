@@ -1016,8 +1016,12 @@ export const mapDBToHiyariHattoReport = (dbRow: any): HiyariHattoReport => ({
   supplierCommunication: dbRow.supplier_communication === 1 || dbRow.supplier_communication === true || dbRow.supplier_communication === '1',
   supplierName: dbRow.supplier_name || '',
   supplierId: dbRow.supplier_id_hh || '',
-  visitNotPerformed: dbRow.visit_not_performed === 1 || dbRow.visit_not_performed === true || dbRow.visit_not_performed === '1',
-  visitNotPerformedReason: dbRow.visit_not_performed_reason || '',
+  visitNotPerformed: dbRow.visit_not_performed !== undefined && dbRow.visit_not_performed !== null
+    ? (dbRow.visit_not_performed === 1 || dbRow.visit_not_performed === true || dbRow.visit_not_performed === '1')
+    : undefined,
+  visitNotPerformedReason: dbRow.visit_not_performed_reason !== undefined && dbRow.visit_not_performed_reason !== null
+    ? dbRow.visit_not_performed_reason
+    : undefined,
   region: dbRow.region || '',
   district: dbRow.district || '',
   createdAt: dbRow.created_at,
