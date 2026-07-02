@@ -3210,7 +3210,7 @@ export default function HiyariHattoModule({
                         printWindow.document.write(`
                           <html>
                             <head>
-                              <title>Reporte Hiyari Hatto - ${printingReport.ticketNumber}</title>
+                              <title>Reporte - ${printingReport.ticketNumber}</title>
                         `);
                         
                         // Copy all styles from the main page to the print window
@@ -3235,6 +3235,13 @@ export default function HiyariHattoModule({
                                 .evidence-doc { width: 180px !important; height: 120px !important; background: #f1f5f9 !important; border-radius: 8px !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; color: #3b82f6 !important; }
                                 .evidence-label { font-size: 10px !important; font-weight: bold !important; color: #475569 !important; margin-top: 6px !important; width: 180px !important; display: block !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
                                 
+                                @page {
+                                  margin-top: 1.2cm;
+                                  margin-bottom: 0cm;
+                                  margin-left: 1.2cm;
+                                  margin-right: 1.2cm;
+                                }
+
                                 @media print {
                                   body { padding: 0 !important; margin: 0 !important; }
                                   #printable-area { padding: 0 !important; }
@@ -3374,7 +3381,7 @@ export default function HiyariHattoModule({
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase">Fecha Recepción en MTI (Falla)</div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase">Fecha Recepción del producto en análisis</div>
                     <div className="font-bold mt-0.5 text-slate-800">
                       {formatLocalDate(printingReport.receivedDate)}
                     </div>
@@ -3396,38 +3403,38 @@ export default function HiyariHattoModule({
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {check.map((item) => (
-                            <div key={item.id} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold' }}>
-                                <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', color: item.checked ? '#065f46' : '#991b1b', backgroundColor: item.checked ? '#d1fae5' : '#fee2e2' }}>
-                                  {item.checked ? 'OK' : 'NO REALIZADO'}
-                                </span>
-                                <span style={{ color: '#1e293b' }}>{item.point}</span>
-                              </div>
-                              <div style={{ display: 'flex', gap: '15px', marginTop: '6px', alignItems: 'flex-start' }}>
+                            <div key={item.id} style={{ display: 'flex', gap: '15px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc', pageBreakInside: 'avoid', alignItems: 'stretch' }}>
+                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold' }}>
+                                  <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', color: item.checked ? '#065f46' : '#991b1b', backgroundColor: item.checked ? '#d1fae5' : '#fee2e2' }}>
+                                    {item.checked ? 'APROBADO' : 'DESAPROBADO'}
+                                  </span>
+                                  <span style={{ color: '#1e293b' }}>{item.point}</span>
+                                </div>
                                 {item.comment && (
-                                  <div style={{ flex: 1, fontSize: '11px', fontWeight: '600', color: '#475569', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1' }}>
+                                  <div style={{ fontSize: '11px', fontWeight: '600', color: '#475569', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1', marginTop: '4px' }}>
                                     <strong>Comentario:</strong> {item.comment}
                                   </div>
                                 )}
-                                {item.attachments && item.attachments.length > 0 && (
-                                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginLeft: 'auto' }}>
-                                    {item.attachments.map((file, fIdx) => {
-                                      const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
-                                      if (isImg) {
-                                        return (
-                                          <img key={fIdx} src={file.url} alt={file.name} style={{ width: '90px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-                                        );
-                                      }
-                                      return (
-                                        <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#2563eb', fontWeight: 'bold', background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px' }}>
-                                          <Paperclip size={10} />
-                                          <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
                               </div>
+                              {item.attachments && item.attachments.length > 0 && (
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', width: '220px', flexShrink: 0 }}>
+                                  {item.attachments.map((file, fIdx) => {
+                                    const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                                    if (isImg) {
+                                      return (
+                                        <img key={fIdx} src={file.url} alt={file.name} style={{ width: '100px', height: '70px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                      );
+                                    }
+                                    return (
+                                      <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: '#2563eb', fontWeight: 'bold', background: '#f1f5f9', padding: '4px 6px', borderRadius: '6px' }}>
+                                        <Paperclip size={8} />
+                                        <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -3441,41 +3448,10 @@ export default function HiyariHattoModule({
               {/* Step 3 data */}
               <div className="section mb-6">
                 <div className="section-title bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg border-l-4 border-blue-500 mb-4">
-                  3. Informe de Incidencia & Conclusión de Calidad
+                  3. Análisis Técnico del producto
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase">Origen de Falla Determinado</div>
-                    <div className="font-bold mt-0.5 text-red-600 uppercase">
-                      {printingReport.qualityReportConclusion === 'producto' ? 'Falla de Producto (Diseño/Fabricación)' : 
-                       printingReport.qualityReportConclusion === 'instalacion' ? 'Mala Instalación externa' : 
-                       printingReport.qualityReportConclusion === 'cliente' ? 'Manipulación Incorrecta del Cliente' : 'Bajo análisis'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase">Justificación Conclusión</div>
-                    <div className="font-bold mt-0.5 text-slate-800">{printingReport.conclusionDetails || '-'}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase">Comunicación con Proveedor</div>
-                    <div className="font-bold mt-0.5 text-slate-800">
-                      {printingReport.supplierCommunication ? (
-                        <span className="text-amber-600 font-bold">APLICA NOTIFICACIÓN</span>
-                      ) : (
-                        <span className="text-slate-500 font-medium">No aplica</span>
-                      )}
-                    </div>
-                  </div>
-                  {printingReport.supplierCommunication && (
-                    <div>
-                      <div className="text-[10px] text-slate-400 font-bold uppercase">Proveedor / Fabricante</div>
-                      <div className="font-bold mt-0.5 text-slate-800">
-                        {printingReport.supplierName || 'No especificado'} {printingReport.supplierId ? `(ID: ${printingReport.supplierId})` : ''}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-4">
+
+                <div className="mb-4">
                   <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Pruebas en Laboratorio</div>
                   {(() => {
                     const check = getChecklist(printingReport.qualityReportTests, 'lab', printingReport.categoryName || '', categories);
@@ -3485,38 +3461,38 @@ export default function HiyariHattoModule({
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {check.map((item) => (
-                          <div key={item.id} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold' }}>
-                              <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', color: item.checked ? '#065f46' : '#991b1b', backgroundColor: item.checked ? '#d1fae5' : '#fee2e2' }}>
-                                {item.checked ? 'OK' : 'NO REALIZADO'}
-                              </span>
-                              <span style={{ color: '#1e293b' }}>{item.point}</span>
-                            </div>
-                            <div style={{ display: 'flex', gap: '15px', marginTop: '6px', alignItems: 'flex-start' }}>
+                          <div key={item.id} style={{ display: 'flex', gap: '15px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc', pageBreakInside: 'avoid', alignItems: 'stretch' }}>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold' }}>
+                                <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', color: item.checked ? '#065f46' : '#991b1b', backgroundColor: item.checked ? '#d1fae5' : '#fee2e2' }}>
+                                  {item.checked ? 'APROBADO' : 'DESAPROBADO'}
+                                </span>
+                                <span style={{ color: '#1e293b' }}>{item.point}</span>
+                              </div>
                               {item.comment && (
-                                <div style={{ flex: 1, fontSize: '11px', fontWeight: '600', color: '#475569', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '600', color: '#475569', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1', marginTop: '4px' }}>
                                   <strong>Comentario:</strong> {item.comment}
                                 </div>
                               )}
-                              {item.attachments && item.attachments.length > 0 && (
-                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginLeft: 'auto' }}>
-                                  {item.attachments.map((file, fIdx) => {
-                                    const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
-                                    if (isImg) {
-                                      return (
-                                        <img key={fIdx} src={file.url} alt={file.name} style={{ width: '90px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-                                      );
-                                    }
-                                    return (
-                                      <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#2563eb', fontWeight: 'bold', background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px' }}>
-                                        <Paperclip size={10} />
-                                        <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
                             </div>
+                            {item.attachments && item.attachments.length > 0 && (
+                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', width: '220px', flexShrink: 0 }}>
+                                {item.attachments.map((file, fIdx) => {
+                                  const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                                  if (isImg) {
+                                    return (
+                                      <img key={fIdx} src={file.url} alt={file.name} style={{ width: '100px', height: '70px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                    );
+                                  }
+                                  return (
+                                    <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: '#2563eb', fontWeight: 'bold', background: '#f1f5f9', padding: '4px 6px', borderRadius: '6px' }}>
+                                      <Paperclip size={8} />
+                                      <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -3524,15 +3500,38 @@ export default function HiyariHattoModule({
                   })()}
                 </div>
                 {renderPrintEvidence(printingReport.qualityAttachments, 'Evidencias de Informe de Calidad')}
+
+                <div className="grid grid-cols-2 gap-4 text-sm mt-4">
+                  <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc' }}>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase">Justificación Conclusión</div>
+                    <div className="font-semibold text-xs mt-1 text-slate-800 leading-relaxed">{printingReport.conclusionDetails || '-'}</div>
+                  </div>
+                  <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc' }}>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase">Origen de Falla Determinado</div>
+                    <div className="font-bold mt-1 text-sm text-red-650 uppercase">
+                      {printingReport.qualityReportConclusion === 'producto' ? 'Falla de Producto (Diseño/Fabricación)' : 
+                       printingReport.qualityReportConclusion === 'instalacion' ? 'Mala Instalación externa' : 
+                       printingReport.qualityReportConclusion === 'cliente' ? 'Manipulación Incorrecta del Cliente' : 'Bajo análisis'}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Step 4 data */}
               <div className="section mb-6">
                 <div className="section-title bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg border-l-4 border-blue-500 mb-4">
-                  4. Análisis Causa Raíz (Hiyari Hatto & 5 Por Qués)
+                  4. Análisis Causa Raíz (Ishikawa & 5 Por Qués)
                 </div>
                 
-                <div className="five-whys-chain mt-2 space-y-3">
+                {/* Diagrama de Ishikawa en la Ficha de Impresión */}
+                <div className="mb-4">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Diagrama de Ishikawa Causa-Efecto</div>
+                  <div className="border border-slate-200 rounded-3xl p-2 bg-slate-50">
+                    {renderIshikawaSVG(printingReport.ishikawa)}
+                  </div>
+                </div>
+
+                <div className="five-whys-chain mt-4 space-y-3">
                   <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Cadena de Causalidad (5 Por qués)</div>
                   {printingReport.fiveWhys && Object.entries(printingReport.fiveWhys).map(([key, val], idx) => {
                     const entry = normWhy(val as any);
@@ -3555,14 +3554,6 @@ export default function HiyariHattoModule({
                       </div>
                     );
                   })}
-                </div>
-
-                {/* Diagrama de Ishikawa en la Ficha de Impresión */}
-                <div className="mt-4">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Diagrama de Ishikawa Causa-Efecto</div>
-                  <div className="border border-slate-200 rounded-3xl p-2 bg-slate-50">
-                    {renderIshikawaSVG(printingReport.ishikawa, true)}
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-sm mt-4">
@@ -3617,6 +3608,18 @@ export default function HiyariHattoModule({
                     ))}
                   </tbody>
                 </table>
+
+                {/* Comunicación con proveedor en la sección 5 */}
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc', marginTop: '15px', pageBreakInside: 'avoid' }}>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">Comunicación con Proveedor</div>
+                  <div className="font-bold mt-1 text-xs text-slate-800">
+                    {printingReport.supplierCommunication ? (
+                      <span className="text-amber-600 font-bold">APLICA NOTIFICACIÓN — Proveedor: {printingReport.supplierName || 'No especificado'} {printingReport.supplierId ? `(ID: ${printingReport.supplierId})` : ''}</span>
+                    ) : (
+                      <span className="text-slate-500 font-medium">No aplica</span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Footer Letterhead Template */}
