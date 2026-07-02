@@ -3283,7 +3283,7 @@ export default function HiyariHattoModule({
                                   margin: 0;
                                 }
 
-                                .print-footer {
+                                .page-number {
                                   display: none;
                                 }
 
@@ -3292,7 +3292,7 @@ export default function HiyariHattoModule({
                                   #printable-area { padding: 0 !important; }
                                   .section { page-break-inside: avoid; }
                                   
-                                  .print-footer {
+                                  .page-number {
                                     display: block !important;
                                     position: fixed !important;
                                     bottom: 0.4cm !important;
@@ -3302,14 +3302,14 @@ export default function HiyariHattoModule({
                                     color: #94a3b8 !important;
                                     font-family: sans-serif !important;
                                   }
-                                  .print-footer::after {
+                                  .page-number::after {
                                     content: "Página " counter(page);
                                   }
                                 }
                               </style>
                             </head>
                             <body>
-                              <div class="print-footer"></div>
+                              <div class="page-number"></div>
                               <div id="printable-area">
                                 ${printable.innerHTML}
                               </div>
@@ -3519,10 +3519,90 @@ export default function HiyariHattoModule({
                 {renderPrintEvidence(printingReport.visitAttachments, 'Evidencias de Protocolo Visita de Calidad / Recepción')}
               </div>
 
-              {/* Step 4 data (Now Step 3) */}
+              {/* Step 3 data (Now Step 3) */}
               <div className="section mb-6">
                 <div className="section-title bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg border-l-4 border-blue-500 mb-4">
-                  3. Análisis Causa Raíz (Ishikawa & 5 Por Qués)
+                  3. Análisis Técnico del producto
+                </div>
+
+                <div className="mb-4">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Pruebas en Laboratorio</div>
+                  {(() => {
+                    const check = getChecklist(printingReport.qualityReportTests, 'lab', printingReport.categoryName || '', categories);
+                    if (check.length === 1 && check[0].id === 'legacy') {
+                      return <div className="text-sm font-semibold text-slate-700 leading-relaxed">{check[0].comment || '-'}</div>;
+                    }
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {check.map((item) => (
+                          <div key={item.id} style={{ display: 'flex', gap: '15px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc', pageBreakInside: 'avoid', alignItems: 'stretch' }}>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontBold: 'true' }}>
+                                {(() => {
+                                  const res = item.result || (item.checked ? 'aprobado' : 'desaprobado');
+                                  const text = res === 'aprobado' ? 'APROBADO' : res === 'desaprobado' ? 'DESAPROBADO' : 'NO REALIZADO';
+                                  const color = res === 'aprobado' ? '#065f46' : res === 'desaprobado' ? '#991b1b' : '#475569';
+                                  const bg = res === 'aprobado' ? '#d1fae5' : res === 'desaprobado' ? '#fee2e2' : '#f1f5f9';
+                                  return (
+                                    <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', color, backgroundColor: bg }}>
+                                      {text}
+                                    </span>
+                                  );
+                                })()}
+                                <span style={{ color: '#1e293b' }}>{item.point}</span>
+                              </div>
+                              {item.comment && (
+                                <div style={{ fontSize: '11px', fontWeight: '600', color: '#475569', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1', marginTop: '4px' }}>
+                                  <strong>Comentario:</strong> {item.comment}
+                                </div>
+                              )}
+                            </div>
+                            {item.attachments && item.attachments.length > 0 && (
+                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', width: '220px', flexShrink: 0 }}>
+                                {item.attachments.map((file, fIdx) => {
+                                  const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                                  if (isImg) {
+                                    return (
+                                      <img key={fIdx} src={file.url} alt={file.name} style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                    );
+                                  }
+                                  return (
+                                    <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: '#2563eb', fontWeight: 'bold', background: '#f1f5f9', padding: '4px 6px', borderRadius: '6px' }}>
+                                      <Paperclip size={8} />
+                                      <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+                {renderPrintEvidence(printingReport.qualityAttachments, 'Evidencias de Informe de Calidad')}
+
+                <div className="grid grid-cols-2 gap-4 text-sm mt-4">
+                  <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc' }}>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase">Justificación Conclusión</div>
+                    <div className="font-semibold text-xs mt-1 text-slate-800 leading-relaxed">{printingReport.conclusionDetails || '-'}</div>
+                  </div>
+                  <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc' }}>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase">Origen de Falla Determinado</div>
+                    <div className="font-bold mt-1 text-sm text-red-650 uppercase">
+                      {printingReport.qualityReportConclusion === 'producto' ? 'Falla de Producto (Diseño/Fabricación)' : 
+                       printingReport.qualityReportConclusion === 'instalacion' ? 'Mala Instalación externa' : 
+                       printingReport.qualityReportConclusion === 'cliente' ? 'Manipulación Incorrecta del Cliente' : 'Bajo análisis'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 4 data (Now Step 4) */}
+              <div className="section mb-6">
+                <div className="section-title bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg border-l-4 border-blue-500 mb-4">
+                  4. Análisis Causa Raíz (Ishikawa & 5 Por Qués)
                 </div>
                 
                 {/* Diagrama de Ishikawa en la Ficha de Impresión */}
@@ -3625,86 +3705,6 @@ export default function HiyariHattoModule({
                 {renderPrintEvidence(printingReport.rootCauseAttachments, 'Evidencias de Causa Raíz / Ishikawa')}
               </div>
 
-              {/* Step 3 data (Now Step 4) */}
-              <div className="section mb-6">
-                <div className="section-title bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg border-l-4 border-blue-500 mb-4">
-                  4. Análisis Técnico del producto
-                </div>
-
-                <div className="mb-4">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Pruebas en Laboratorio</div>
-                  {(() => {
-                    const check = getChecklist(printingReport.qualityReportTests, 'lab', printingReport.categoryName || '', categories);
-                    if (check.length === 1 && check[0].id === 'legacy') {
-                      return <div className="text-sm font-semibold text-slate-700 leading-relaxed">{check[0].comment || '-'}</div>;
-                    }
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {check.map((item) => (
-                          <div key={item.id} style={{ display: 'flex', gap: '15px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc', pageBreakInside: 'avoid', alignItems: 'stretch' }}>
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontBold: 'true' }}>
-                                {(() => {
-                                  const res = item.result || (item.checked ? 'aprobado' : 'desaprobado');
-                                  const text = res === 'aprobado' ? 'APROBADO' : res === 'desaprobado' ? 'DESAPROBADO' : 'NO REALIZADO';
-                                  const color = res === 'aprobado' ? '#065f46' : res === 'desaprobado' ? '#991b1b' : '#475569';
-                                  const bg = res === 'aprobado' ? '#d1fae5' : res === 'desaprobado' ? '#fee2e2' : '#f1f5f9';
-                                  return (
-                                    <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', color, backgroundColor: bg }}>
-                                      {text}
-                                    </span>
-                                  );
-                                })()}
-                                <span style={{ color: '#1e293b' }}>{item.point}</span>
-                              </div>
-                              {item.comment && (
-                                <div style={{ fontSize: '11px', fontWeight: '600', color: '#475569', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1', marginTop: '4px' }}>
-                                  <strong>Comentario:</strong> {item.comment}
-                                </div>
-                              )}
-                            </div>
-                            {item.attachments && item.attachments.length > 0 && (
-                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', width: '220px', flexShrink: 0 }}>
-                                {item.attachments.map((file, fIdx) => {
-                                  const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
-                                  if (isImg) {
-                                    return (
-                                      <img key={fIdx} src={file.url} alt={file.name} style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-                                    );
-                                  }
-                                  return (
-                                    <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: '#2563eb', fontWeight: 'bold', background: '#f1f5f9', padding: '4px 6px', borderRadius: '6px' }}>
-                                      <Paperclip size={8} />
-                                      <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
-                </div>
-                {renderPrintEvidence(printingReport.qualityAttachments, 'Evidencias de Informe de Calidad')}
-
-                <div className="grid grid-cols-2 gap-4 text-sm mt-4">
-                  <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc' }}>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase">Justificación Conclusión</div>
-                    <div className="font-semibold text-xs mt-1 text-slate-800 leading-relaxed">{printingReport.conclusionDetails || '-'}</div>
-                  </div>
-                  <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc' }}>
-                    <div className="text-[10px] text-slate-400 font-bold uppercase">Origen de Falla Determinado</div>
-                    <div className="font-bold mt-1 text-sm text-red-650 uppercase">
-                      {printingReport.qualityReportConclusion === 'producto' ? 'Falla de Producto (Diseño/Fabricación)' : 
-                       printingReport.qualityReportConclusion === 'instalacion' ? 'Mala Instalación externa' : 
-                       printingReport.qualityReportConclusion === 'cliente' ? 'Manipulación Incorrecta del Cliente' : 'Bajo análisis'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {/* Step 5 data */}
               <div className="section mb-6">
                 <div className="section-title bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg border-l-4 border-blue-500 mb-4">
@@ -3759,7 +3759,7 @@ export default function HiyariHattoModule({
               </div>
 
               {/* Footer Letterhead Template */}
-              <div className="print-footer mt-10 pt-6 border-t border-slate-200 flex justify-between items-center" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '15px', marginTop: '30px' }}>
+              <div className="mt-10 pt-6 border-t border-slate-200 flex justify-between items-center" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderTop: '1px solid #e2e8f0', paddingTop: '15px', marginTop: '30px' }}>
                 <div style={{ backgroundColor: '#f1f5f9', borderTopRightRadius: '15px', borderBottomRightRadius: '15px', padding: '10px 15px', fontSize: '9px', lineHeight: '1.4', fontWeight: '800', color: '#475569', fontFamily: 'sans-serif' }}>
                   Av. Argentina 2317 - Callao<br/>
                   Av. Camino Real 1281 - San Isidro<br/>
