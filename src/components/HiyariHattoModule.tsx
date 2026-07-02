@@ -5,7 +5,7 @@ import {
   Plus, Search, ChevronRight, Info, Trash2, ArrowRight, RefreshCw, Printer, AlertTriangle, ShieldCheck, Upload,
   Calendar, User, Home, Wrench, Edit, X, Save, Paperclip, MapPin, Globe
 } from 'lucide-react';
-import { HiyariHattoReport, ProductRecord, ActionPlanItem, FiveWhys, IshikawaData, Supplier, InvolvedPerson, FileInfo } from '../types';
+import { HiyariHattoReport, ProductRecord, ActionPlanItem, FiveWhys, FiveWhyEntry, IshikawaData, Supplier, InvolvedPerson, FileInfo } from '../types';
 import { format, parseISO } from 'date-fns';
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -236,11 +236,18 @@ const getChecklist = (
 };
 
 const DEFAULT_FIVE_WHYS: FiveWhys = {
-  why1: '',
-  why2: '',
-  why3: '',
-  why4: '',
-  why5: ''
+  why1: { question: '', answer: '' },
+  why2: { question: '', answer: '' },
+  why3: { question: '', answer: '' },
+  why4: { question: '', answer: '' },
+  why5: { question: '', answer: '' }
+};
+
+// Normalize a FiveWhys entry that may be a legacy string or a new {question, answer} object
+const normWhy = (val: FiveWhyEntry | string | undefined): FiveWhyEntry => {
+  if (!val) return { question: '', answer: '' };
+  if (typeof val === 'string') return { question: '', answer: val };
+  return val;
 };
 
 const DEFAULT_ISHIKAWA: IshikawaData = {
@@ -2586,36 +2593,73 @@ export default function HiyariHattoModule({
                       <h4 className="text-base font-black text-slate-900 uppercase tracking-wider">Causa Raíz - Método de los 5 Por Qués</h4>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div className="flex flex-col gap-4">
                       {[
                         { num: 1, key: 'why1', label: '1er Por qué' },
                         { num: 2, key: 'why2', label: '2do Por qué' },
                         { num: 3, key: 'why3', label: '3er Por qué' },
                         { num: 4, key: 'why4', label: '4to Por qué' },
                         { num: 5, key: 'why5', label: '5to Por qué (Causa Raíz)' }
-                      ].map((item, idx) => (
-                        <div key={item.key} className="flex flex-col bg-slate-50 p-4 rounded-2xl border border-slate-200 relative">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{item.label}</label>
-                          <textarea
-                            rows={3}
-                            value={editingReport.fiveWhys?.[item.key as keyof FiveWhys] || ''}
-                            onChange={(e) => {
-                              const updatedFiveWhys = {
-                                ...editingReport.fiveWhys || DEFAULT_FIVE_WHYS,
-                                [item.key]: e.target.value
-                              };
-                              updateField('fiveWhys', updatedFiveWhys);
-                            }}
-                            placeholder="Escribe la respuesta causal..."
-                            className="w-full bg-white p-2 border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-xs font-semibold"
-                          />
-                          {idx < 4 && (
-                            <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white border border-slate-200 items-center justify-center text-slate-400">
-                              <ArrowRight size={12} />
+                      ].map((item, idx) => {
+                        const entry = normWhy(editingReport.fiveWhys?.[item.key as keyof FiveWhys] as any);
+                        const updateEntry = (field: 'question' | 'answer', value: string) => {
+                          const updatedFiveWhys = {
+                            ...editingReport.fiveWhys || DEFAULT_FIVE_WHYS,
+                            [item.key]: { ...entry, [field]: value }
+                          };
+                          updateField('fiveWhys', updatedFiveWhys);
+                        };
+                        return (
+                          <div key={item.key} className="flex gap-4 items-stretch">
+                            {/* Step number badge */}
+                            <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm text-white shadow ${
+                                idx === 4 ? 'bg-red-500' : 'bg-blue-600'
+                              }`}>{item.num}</div>
+                              {idx < 4 && (
+                                <div className="w-0.5 flex-1 bg-slate-200 my-1" />
+                              )}
                             </div>
-                          )}
-                        </div>
-                      ))}
+
+                            {/* Card */}
+                            <div className={`flex-1 rounded-2xl border p-4 space-y-3 ${
+                              idx === 4
+                                ? 'bg-red-50 border-red-200'
+                                : 'bg-slate-50 border-slate-200'
+                            }`}>
+                              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.label}</div>
+
+                              {/* Question */}
+                              <div>
+                                <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1 block">¿Por qué? (pregunta)</label>
+                                <input
+                                  type="text"
+                                  value={entry.question}
+                                  onChange={(e) => updateEntry('question', e.target.value)}
+                                  placeholder={`¿Por qué ocurrió ${idx === 0 ? 'el incidente' : 'lo anterior'}?`}
+                                  className="w-full bg-white px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-blue-400 text-xs font-semibold text-slate-800 placeholder:text-slate-400"
+                                />
+                              </div>
+
+                              {/* Answer */}
+                              <div>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">Respuesta causal</label>
+                                <textarea
+                                  rows={2}
+                                  value={entry.answer}
+                                  onChange={(e) => updateEntry('answer', e.target.value)}
+                                  placeholder="Escribe la respuesta causal..."
+                                  className={`w-full bg-white px-3 py-2 border rounded-xl outline-none text-xs font-semibold resize-none ${
+                                    idx === 4
+                                      ? 'border-red-200 focus:border-red-400'
+                                      : 'border-slate-200 focus:border-blue-400'
+                                  }`}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -3255,14 +3299,29 @@ export default function HiyariHattoModule({
                   4. Análisis Causa Raíz (Hiyari Hatto & 5 Por Qués)
                 </div>
                 
-                <div className="five-whys-chain mt-2 space-y-2">
+                <div className="five-whys-chain mt-2 space-y-3">
                   <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Cadena de Causalidad (5 Por qués)</div>
-                  {printingReport.fiveWhys && Object.entries(printingReport.fiveWhys).map(([key, val], idx) => (
-                    <div key={key} className="flex gap-3 bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-semibold">
-                      <span className="text-blue-600 font-black">Por qué {idx + 1}:</span>
-                      <span className="text-slate-700">{val || 'No definido'}</span>
-                    </div>
-                  ))}
+                  {printingReport.fiveWhys && Object.entries(printingReport.fiveWhys).map(([key, val], idx) => {
+                    const entry = normWhy(val as any);
+                    const hasContent = entry.question || entry.answer;
+                    return (
+                      <div key={key} className="flex gap-3 bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                        <div className="flex-shrink-0">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-white ${
+                            idx === 4 ? 'bg-red-500' : 'bg-blue-600'
+                          }`}>{idx + 1}</div>
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          {entry.question ? (
+                            <p className="text-[10px] font-black text-blue-700 uppercase tracking-wide">{entry.question}</p>
+                          ) : (
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Por qué {idx + 1}</p>
+                          )}
+                          <p className="text-xs font-semibold text-slate-700">{entry.answer || (hasContent ? '-' : 'No definido')}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Diagrama de Ishikawa en la Ficha de Impresión */}

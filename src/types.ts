@@ -803,12 +803,17 @@ export interface SolyReminder {
   updatedAt?: string;
 }
 
+export interface FiveWhyEntry {
+  question: string;
+  answer: string;
+}
+
 export interface FiveWhys {
-  why1: string;
-  why2: string;
-  why3: string;
-  why4: string;
-  why5: string;
+  why1: FiveWhyEntry | string;  // string kept for backward compat with old saved data
+  why2: FiveWhyEntry | string;
+  why3: FiveWhyEntry | string;
+  why4: FiveWhyEntry | string;
+  why5: FiveWhyEntry | string;
 }
 
 export interface IshikawaData {
