@@ -1034,7 +1034,7 @@ export default function HiyariHattoModule({
     const startEffectY = boxMiddleY - ((effectLines.length - 1) * effectSpacing) / 2 + 3;
     
     return (
-      <svg viewBox="0 0 800 450" className="w-full h-auto bg-slate-900 border border-slate-800 rounded-3xl p-4 text-white shadow-inner font-sans">
+      <svg viewBox="0 0 800 450" className="w-full h-auto bg-slate-900 border border-slate-800 rounded-3xl p-4 text-white shadow-inner font-sans" style={{ fontFamily: 'sans-serif' }}>
         {/* Main Spine */}
         <line x1="50" y1="225" x2="680" y2="225" stroke="#3b82f6" strokeWidth="6" strokeLinecap="round" />
         {/* Spine Arrow Head */}
@@ -3267,6 +3267,7 @@ export default function HiyariHattoModule({
                                 * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                                 body { font-family: sans-serif; padding: 30px; color: #1e293b; background: #ffffff !important; }
                                 svg { max-width: 100%; height: auto; display: block; margin: 15px auto; }
+                                svg text { font-family: sans-serif !important; }
                                 table { width: 100%; border-collapse: collapse; margin-top: 10px; }
                                 th, td { border: 1px solid #e2e8f0; padding: 8px; font-size: 12px; }
                                 th { background: #f8fafc; font-weight: bold; text-align: left; }
