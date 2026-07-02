@@ -2365,6 +2365,20 @@ function buildMimeMessage(options: {
       }
       // ─── END LINEAL DE PRODUCTOS MIGRATION ───────────────────────────────────
 
+      // ─── SAMPLES GALLERY COLUMNS MIGRATION ────────────────────────────────────
+      try {
+        await migPool.request().query(`
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.samples') AND name = 'gallery')
+            ALTER TABLE ID_PORTAL.samples ADD gallery nvarchar(max) NULL;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.samples') AND name = 'calculation_ids')
+            ALTER TABLE ID_PORTAL.samples ADD calculation_ids nvarchar(max) NULL;
+        `);
+        console.log('✅ Samples gallery/calculation_ids column migration completed successfully');
+      } catch (samplesGalErr) {
+        console.error('❌ Error in samples gallery column migration:', samplesGalErr);
+      }
+      // ─── END SAMPLES GALLERY COLUMNS MIGRATION ────────────────────────────────
+
       // ─── PERMISSIONS SEED MIGRATION ───────────────────────────────────────────
 
       // Inserts all system permissions if they don't exist, then assigns them

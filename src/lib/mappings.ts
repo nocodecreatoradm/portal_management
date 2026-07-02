@@ -598,6 +598,8 @@ export const mapSampleToDB = (sample: Partial<SampleRecord>) => {
   if (sample.version !== undefined) dbSample.version = sample.version;
   if (sample.plannedStartDate !== undefined) dbSample.planned_start_date = sample.plannedStartDate;
   if (sample.inspectionCompletedDate !== undefined) dbSample.inspection_completed_date = sample.inspectionCompletedDate;
+  if (sample.gallery !== undefined) dbSample.gallery = sample.gallery;
+  if (sample.calculationIds !== undefined) dbSample.calculation_ids = sample.calculationIds;
   return dbSample;
 };
 
@@ -633,6 +635,8 @@ export const mapDBToSample = (dbSample: any): SampleRecord => ({
   warehouseEntryDate: dbSample.warehouse_entry_date,
   plannedStartDate: dbSample.planned_start_date,
   inspectionCompletedDate: dbSample.inspection_completed_date,
+  gallery: Array.isArray(dbSample.gallery) ? dbSample.gallery : (dbSample.gallery ? JSON.parse(dbSample.gallery) : []),
+  calculationIds: Array.isArray(dbSample.calculation_ids) ? dbSample.calculation_ids : (dbSample.calculation_ids ? JSON.parse(dbSample.calculation_ids) : []),
   history: dbSample.history ? dbSample.history.map((h: any) => ({
     date: h.created_at,
     status: h.status,
