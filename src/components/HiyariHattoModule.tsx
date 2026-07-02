@@ -3265,7 +3265,7 @@ export default function HiyariHattoModule({
                         printWindow.document.write(`
                               <style>
                                 * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                                body { font-family: sans-serif; padding: 1.2cm !important; color: #1e293b; background: #ffffff !important; box-sizing: border-box; }
+                                body { font-family: sans-serif; padding: 0 !important; margin: 0 !important; color: #1e293b; background: #ffffff !important; box-sizing: border-box; }
                                 svg { max-width: 100%; height: auto; display: block; margin: 15px auto; }
                                 svg text { font-family: sans-serif !important; }
                                 table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -3280,23 +3280,25 @@ export default function HiyariHattoModule({
                                 .evidence-label { font-size: 10px !important; font-weight: bold !important; color: #475569 !important; margin-top: 6px !important; width: 180px !important; display: block !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
                                 
                                 @page {
-                                  margin: 0;
+                                  margin: 15mm 15mm;
                                 }
 
-                                .page-number {
+                                .page-footer-container {
                                   display: none;
                                 }
 
                                 @media print {
-                                  body { padding: 1.2cm !important; margin: 0 !important; }
+                                  body { padding: 0 !important; margin: 0 !important; }
                                   #printable-area { padding: 0 !important; }
                                   .section { page-break-inside: avoid; }
                                   
-                                  .page-number {
-                                    display: block !important;
+                                  .page-footer-container {
+                                    display: flex !important;
+                                    justify-content: space-between !important;
                                     position: fixed !important;
-                                    bottom: 0.4cm !important;
-                                    right: 1.2cm !important;
+                                    bottom: -10mm !important;
+                                    left: 0 !important;
+                                    right: 0 !important;
                                     font-size: 10px !important;
                                     font-weight: bold !important;
                                     color: #94a3b8 !important;
@@ -3309,7 +3311,10 @@ export default function HiyariHattoModule({
                               </style>
                             </head>
                             <body>
-                              <div class="page-number"></div>
+                              <div class="page-footer-container">
+                                <span>Impreso el: ${new Date().toLocaleString('es-PE')}</span>
+                                <span class="page-number"></span>
+                              </div>
                               <div id="printable-area">
                                 ${printable.innerHTML}
                               </div>
