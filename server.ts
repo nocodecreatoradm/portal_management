@@ -2403,6 +2403,20 @@ function buildMimeMessage(options: {
       }
       // ─── END SAMPLES GALLERY COLUMNS MIGRATION ────────────────────────────────
 
+      // ─── HIYARI HATTO VISIT NOT PERFORMED MIGRATION ────────────────────────────
+      try {
+        await migPool.request().query(`
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'visit_not_performed')
+            ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD visit_not_performed bit NULL DEFAULT 0;
+          IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'visit_not_performed_reason')
+            ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD visit_not_performed_reason nvarchar(max) NULL;
+        `);
+        console.log('✅ Hiyari Hatto visit_not_performed migration completed successfully');
+      } catch (visitMigErr) {
+        console.error('❌ Error in Hiyari Hatto visit_not_performed migration:', visitMigErr);
+      }
+      // ─── END HIYARI HATTO VISIT NOT PERFORMED MIGRATION ───────────────────────
+
       // ─── FIX DUPLICATE SAMPLE CORRELATIVE IDs MIGRATION ───────────────────────
       try {
         // Detect if there are duplicate correlative_ids

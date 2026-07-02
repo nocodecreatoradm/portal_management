@@ -2251,98 +2251,156 @@ export default function HiyariHattoModule({
                         Formato: {editingReport.categoryName || 'General'}
                       </span>
                     </label>
-                    <div className="space-y-4">
-                      {getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories).map((item, idx) => (
-                        <div key={item.id || idx} className="p-5 border-2 border-slate-100 rounded-3xl bg-white shadow-sm space-y-3 animate-in fade-in duration-200">
-                          <div className="flex items-start gap-3">
-                            <input
-                              type="checkbox"
-                              checked={item.checked}
-                              onChange={(e) => {
-                                const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
-                                list[idx].checked = e.target.checked;
-                                updateField('visitTechnicalReport', JSON.stringify(list));
-                              }}
-                              className="mt-1 w-5 h-5 rounded-md border-2 border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                            />
-                            <span className="text-sm font-bold text-slate-800 flex-1">{item.point}</span>
-                          </div>
 
-                          <div className="flex flex-col md:flex-row gap-4 pl-8 items-center">
-                            <input
-                              type="text"
-                              value={item.comment || ''}
-                              onChange={(e) => {
-                                const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
-                                list[idx].comment = e.target.value;
-                                updateField('visitTechnicalReport', JSON.stringify(list));
-                              }}
-                              placeholder="Observaciones o comentarios sobre este punto..."
-                              className="flex-1 px-4 py-2.5 border border-slate-200 rounded-2xl outline-none text-xs font-bold text-slate-800 focus:border-blue-500"
-                            />
-                            
-                            <div className="flex items-center gap-2">
-                              {item.attachments && item.attachments.map((file, fIdx) => {
-                                const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
-                                return (
-                                  <div key={fIdx} className="relative group w-14 h-14 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center shadow-sm">
-                                    {file.url && isImg ? (
-                                      <img src={file.url} className="w-full h-full object-cover" />
-                                    ) : (
-                                      <div className="flex flex-col items-center p-1 text-center">
-                                        <FileText size={16} className="text-slate-400" />
-                                        <span className="text-[7px] truncate w-10 font-bold uppercase">{file.name.split('.').pop()}</span>
-                                      </div>
-                                    )}
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
-                                        list[idx].attachments = list[idx].attachments.filter((_, i) => i !== fIdx);
-                                        updateField('visitTechnicalReport', JSON.stringify(list));
-                                      }}
-                                      className="absolute inset-0 bg-red-600/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  </div>
-                                );
-                              })}
+                    {/* Toggle: No se realizó el protocolo */}
+                    <div className="bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-black text-slate-800 uppercase tracking-wider">No se realizó el protocolo de visita</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">Marcar si la visita técnica no fue posible o no aplica</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => updateField('visitNotPerformed', !editingReport.visitNotPerformed)}
+                        className={`relative w-14 h-7 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${
+                          editingReport.visitNotPerformed ? 'bg-orange-500' : 'bg-slate-300'
+                        }`}
+                      >
+                        <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform duration-200 ${
+                          editingReport.visitNotPerformed ? 'translate-x-7' : 'translate-x-0'
+                        }`} />
+                      </button>
+                    </div>
 
+                    {editingReport.visitNotPerformed ? (
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Motivo por el que no se realizó</label>
+                        <textarea
+                          rows={3}
+                          value={editingReport.visitNotPerformedReason || ''}
+                          onChange={(e) => updateField('visitNotPerformedReason', e.target.value)}
+                          placeholder="Explica la razón por la que no se pudo realizar el protocolo de visita técnica..."
+                          className="w-full px-4 py-3 border-2 border-orange-200 focus:border-orange-400 rounded-2xl outline-none text-sm font-semibold text-slate-800 resize-none"
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories).map((item, idx) => (
+                          <div key={item.id || idx} className="p-5 border-2 border-slate-100 rounded-3xl bg-white shadow-sm space-y-3 animate-in fade-in duration-200">
+                            <div className="flex items-start gap-3">
+                              <input
+                                type="checkbox"
+                                checked={item.checked}
+                                onChange={(e) => {
+                                  const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
+                                  list[idx].checked = e.target.checked;
+                                  updateField('visitTechnicalReport', JSON.stringify(list));
+                                }}
+                                className="mt-1 w-5 h-5 rounded-md border-2 border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                              />
+                              {/* Editable point name */}
+                              <input
+                                type="text"
+                                value={item.point}
+                                onChange={(e) => {
+                                  const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
+                                  list[idx].point = e.target.value;
+                                  updateField('visitTechnicalReport', JSON.stringify(list));
+                                }}
+                                className="flex-1 text-sm font-bold text-slate-800 bg-transparent border-b border-dashed border-slate-300 focus:border-blue-400 outline-none pb-0.5"
+                              />
+                              {/* Delete button */}
                               <button
                                 type="button"
-                                onClick={async () => {
-                                  const input = document.createElement('input');
-                                  input.type = 'file';
-                                  input.accept = 'image/*,application/pdf';
-                                  input.onchange = async (e: any) => {
-                                    const file = e.target.files?.[0];
-                                    if (!file) return;
-                                    try {
-                                      toast.loading('Subiendo evidencia...', { id: 'upload-check-visit' });
-                                      const uploaded = await SupabaseService.uploadFile('rd-files', `hiyari_hatto_checklists/${Date.now()}_${file.name}`, file);
-                                      toast.success('Evidencia subida', { id: 'upload-check-visit' });
-                                      
-                                      const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
-                                      list[idx].attachments = [...(list[idx].attachments || []), { name: file.name, url: uploaded.publicUrl, type: file.type }];
-                                      updateField('visitTechnicalReport', JSON.stringify(list));
-                                    } catch (err) {
-                                      toast.error('Error al subir archivo', { id: 'upload-check-visit' });
-                                    }
-                                  };
-                                  input.click();
+                                title="Eliminar punto del checklist"
+                                onClick={() => {
+                                  const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
+                                  list.splice(idx, 1);
+                                  updateField('visitTechnicalReport', JSON.stringify(list));
                                 }}
-                                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all"
+                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all flex-shrink-0"
                               >
-                                <Paperclip size={14} />
-                                Evidencia
+                                <Trash2 size={14} />
                               </button>
                             </div>
+
+                            <div className="flex flex-col md:flex-row gap-4 pl-8 items-center">
+                              <input
+                                type="text"
+                                value={item.comment || ''}
+                                onChange={(e) => {
+                                  const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
+                                  list[idx].comment = e.target.value;
+                                  updateField('visitTechnicalReport', JSON.stringify(list));
+                                }}
+                                placeholder="Observaciones o comentarios sobre este punto..."
+                                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-2xl outline-none text-xs font-bold text-slate-800 focus:border-blue-500"
+                              />
+                              
+                              <div className="flex items-center gap-2">
+                                {item.attachments && item.attachments.map((file, fIdx) => {
+                                  const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                                  return (
+                                    <div key={fIdx} className="relative group w-14 h-14 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center shadow-sm">
+                                      {file.url && isImg ? (
+                                        <img src={file.url} className="w-full h-full object-cover" />
+                                      ) : (
+                                        <div className="flex flex-col items-center p-1 text-center">
+                                          <FileText size={16} className="text-slate-400" />
+                                          <span className="text-[7px] truncate w-10 font-bold uppercase">{file.name.split('.').pop()}</span>
+                                        </div>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
+                                          list[idx].attachments = list[idx].attachments.filter((_, i) => i !== fIdx);
+                                          updateField('visitTechnicalReport', JSON.stringify(list));
+                                        }}
+                                        className="absolute inset-0 bg-red-600/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    const input = document.createElement('input');
+                                    input.type = 'file';
+                                    input.accept = 'image/*,application/pdf';
+                                    input.onchange = async (e: any) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      try {
+                                        toast.loading('Subiendo evidencia...', { id: 'upload-check-visit' });
+                                        const uploaded = await SupabaseService.uploadFile('rd-files', `hiyari_hatto_checklists/${Date.now()}_${file.name}`, file);
+                                        toast.success('Evidencia subida', { id: 'upload-check-visit' });
+                                        
+                                        const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
+                                        list[idx].attachments = [...(list[idx].attachments || []), { name: file.name, url: uploaded.publicUrl, type: file.type }];
+                                        updateField('visitTechnicalReport', JSON.stringify(list));
+                                      } catch (err) {
+                                        toast.error('Error al subir archivo', { id: 'upload-check-visit' });
+                                      }
+                                    };
+                                    input.click();
+                                  }}
+                                  className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all"
+                                >
+                                  <Paperclip size={14} />
+                                  Evidencia
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
+
+
                   {renderAttachmentsSection('visitAttachments', 'Evidencias del Protocolo de Visita de Calidad / Recepción')}
                 </div>
               )}
@@ -2382,7 +2440,30 @@ export default function HiyariHattoModule({
                               }}
                               className="mt-1 w-5 h-5 rounded-md border-2 border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                             />
-                            <span className="text-sm font-bold text-slate-800 flex-1">{item.point}</span>
+                            {/* Editable point name */}
+                            <input
+                              type="text"
+                              value={item.point}
+                              onChange={(e) => {
+                                const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '', categories);
+                                list[idx].point = e.target.value;
+                                updateField('qualityReportTests', JSON.stringify(list));
+                              }}
+                              className="flex-1 text-sm font-bold text-slate-800 bg-transparent border-b border-dashed border-slate-300 focus:border-blue-400 outline-none pb-0.5"
+                            />
+                            {/* Delete button */}
+                            <button
+                              type="button"
+                              title="Eliminar punto del checklist"
+                              onClick={() => {
+                                const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '', categories);
+                                list.splice(idx, 1);
+                                updateField('qualityReportTests', JSON.stringify(list));
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all flex-shrink-0"
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           </div>
 
                           <div className="flex flex-col md:flex-row gap-4 pl-8 items-center">
@@ -3156,51 +3237,58 @@ export default function HiyariHattoModule({
                 </div>
                 <div className="mt-4">
                   <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Informe Técnico de la Visita</div>
-                  {(() => {
-                    const check = getChecklist(printingReport.visitTechnicalReport, 'visit', printingReport.categoryName || '', categories);
-                    if (check.length === 1 && check[0].id === 'legacy') {
-                      return <div className="text-sm font-semibold text-slate-700 leading-relaxed">{check[0].comment || '-'}</div>;
-                    }
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {check.map((item) => (
-                          <div key={item.id} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold' }}>
-                              <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', color: item.checked ? '#065f46' : '#991b1b', backgroundColor: item.checked ? '#d1fae5' : '#fee2e2' }}>
-                                {item.checked ? 'OK' : 'NO REALIZADO'}
-                              </span>
-                              <span style={{ color: '#1e293b' }}>{item.point}</span>
-                            </div>
-                            <div style={{ display: 'flex', gap: '15px', marginTop: '6px', alignItems: 'flex-start' }}>
-                              {item.comment && (
-                                <div style={{ flex: 1, fontSize: '11px', fontWeight: '600', color: '#475569', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1' }}>
-                                  <strong>Comentario:</strong> {item.comment}
-                                </div>
-                              )}
-                              {item.attachments && item.attachments.length > 0 && (
-                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginLeft: 'auto' }}>
-                                  {item.attachments.map((file, fIdx) => {
-                                    const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
-                                    if (isImg) {
+                  {printingReport.visitNotPerformed ? (
+                    <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '10px', padding: '12px' }}>
+                      <p style={{ fontSize: '10px', fontWeight: '900', color: '#c2410c', textTransform: 'uppercase', marginBottom: '4px' }}>Protocolo de Visita No Realizado</p>
+                      <p style={{ fontSize: '12px', fontWeight: '600', color: '#7c3aed' }}>{printingReport.visitNotPerformedReason || 'Sin motivo especificado'}</p>
+                    </div>
+                  ) : (
+                    (() => {
+                      const check = getChecklist(printingReport.visitTechnicalReport, 'visit', printingReport.categoryName || '', categories);
+                      if (check.length === 1 && check[0].id === 'legacy') {
+                        return <div className="text-sm font-semibold text-slate-700 leading-relaxed">{check[0].comment || '-'}</div>;
+                      }
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {check.map((item) => (
+                            <div key={item.id} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', backgroundColor: '#f8fafc' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold' }}>
+                                <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', color: item.checked ? '#065f46' : '#991b1b', backgroundColor: item.checked ? '#d1fae5' : '#fee2e2' }}>
+                                  {item.checked ? 'OK' : 'NO REALIZADO'}
+                                </span>
+                                <span style={{ color: '#1e293b' }}>{item.point}</span>
+                              </div>
+                              <div style={{ display: 'flex', gap: '15px', marginTop: '6px', alignItems: 'flex-start' }}>
+                                {item.comment && (
+                                  <div style={{ flex: 1, fontSize: '11px', fontWeight: '600', color: '#475569', paddingLeft: '12px', borderLeft: '2px solid #cbd5e1' }}>
+                                    <strong>Comentario:</strong> {item.comment}
+                                  </div>
+                                )}
+                                {item.attachments && item.attachments.length > 0 && (
+                                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginLeft: 'auto' }}>
+                                    {item.attachments.map((file, fIdx) => {
+                                      const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                                      if (isImg) {
+                                        return (
+                                          <img key={fIdx} src={file.url} alt={file.name} style={{ width: '90px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                        );
+                                      }
                                       return (
-                                        <img key={fIdx} src={file.url} alt={file.name} style={{ width: '90px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                        <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#2563eb', fontWeight: 'bold', background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px' }}>
+                                          <Paperclip size={10} />
+                                          <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+                                        </div>
                                       );
-                                    }
-                                    return (
-                                      <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#2563eb', fontWeight: 'bold', background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px' }}>
-                                        <Paperclip size={10} />
-                                        <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
+                                    })}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
+                          ))}
+                        </div>
+                      );
+                    })()
+                  )}
                 </div>
                 {renderPrintEvidence(printingReport.visitAttachments, 'Evidencias de Protocolo Visita de Calidad / Recepción')}
               </div>
