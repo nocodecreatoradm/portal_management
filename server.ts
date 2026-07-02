@@ -2343,7 +2343,6 @@ function buildMimeMessage(options: {
       // ─── LINEAL DE PRODUCTOS COLUMN MIGRATION ─────────────────────────────────
       // Idempotently adds new columns needed for the Lineal de Productos feature
       try {
-        const migPool = await getDBPool();
         const linealMigrationSQL = `
           IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'segment')
             ALTER TABLE ID_PORTAL.product_management ADD segment nvarchar(50) NULL;
@@ -2382,7 +2381,7 @@ function buildMimeMessage(options: {
           IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.product_management') AND name = 'kit_supplier_id')
             ALTER TABLE ID_PORTAL.product_management ADD kit_supplier_id uniqueidentifier NULL;
         `;
-        await migPool.request().query(linealMigrationSQL);
+        await dbPool.request().query(linealMigrationSQL);
         console.log('✅ Lineal de Productos column migration completed successfully');
       } catch (linealMigErr) {
         console.error('❌ Error in Lineal de Productos column migration:', linealMigErr);
@@ -2391,7 +2390,7 @@ function buildMimeMessage(options: {
 
       // ─── SAMPLES GALLERY COLUMNS MIGRATION ────────────────────────────────────
       try {
-        await migPool.request().query(`
+        await dbPool.request().query(`
           IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.samples') AND name = 'gallery')
             ALTER TABLE ID_PORTAL.samples ADD gallery nvarchar(max) NULL;
           IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.samples') AND name = 'calculation_ids')
@@ -2405,7 +2404,7 @@ function buildMimeMessage(options: {
 
       // ─── HIYARI HATTO VISIT NOT PERFORMED MIGRATION ────────────────────────────
       try {
-        await migPool.request().query(`
+        await dbPool.request().query(`
           IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'visit_not_performed')
             ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD visit_not_performed bit NULL DEFAULT 0;
           IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'visit_not_performed_reason')
@@ -2420,7 +2419,7 @@ function buildMimeMessage(options: {
       // ─── FIX DUPLICATE SAMPLE CORRELATIVE IDs MIGRATION ───────────────────────
       try {
         // Detect if there are duplicate correlative_ids
-        const dupCheck = await migPool.request().query(`
+        const dupCheck = await dbPool.request().query(`
           SELECT COUNT(*) as total, COUNT(DISTINCT correlative_id) as unique_count
           FROM ID_PORTAL.samples
           WHERE correlative_id IS NOT NULL AND correlative_id != ''
@@ -2429,7 +2428,7 @@ function buildMimeMessage(options: {
         if (total > 0 && total !== unique_count) {
           console.log(`⚠️  Found ${total - unique_count} duplicate correlative_id(s) in samples — fixing...`);
           // Reassign all correlative_ids sequentially ordered by created_at
-          await migPool.request().query(`
+          await dbPool.request().query(`
             WITH ranked AS (
               SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC) AS rn
               FROM ID_PORTAL.samples
