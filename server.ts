@@ -1694,6 +1694,8 @@ function buildMimeMessage(options: {
                    id, 
                    name, 
                    product_line_id AS line_id, 
+                   hiyari_visit_checklist,
+                   hiyari_lab_checklist,
                    created_at, 
                    updated_at
             FROM ID_PORTAL.categories
