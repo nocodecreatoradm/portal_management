@@ -1204,50 +1204,56 @@ export default function HiyariHattoModule({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredReportsForDashboard.flatMap(r => 
-                    (r.actionPlan || [])
-                      .filter(action => action.status !== 'no_aplica')
-                      .map((action, idx) => {
-                        const overdue = isOverdue(action.maxDate, action.status);
-                        return (
-                          <tr key={`${r.id}-${idx}`} className="hover:bg-slate-50/30 transition-colors group">
-                            <td className="px-6 py-4.5 font-mono text-xs font-bold text-slate-900">{r.ticketNumber}</td>
-                            <td className="px-6 py-4.5">
-                              <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
-                                {action.area === 'producto' ? 'G. Innovación y Calidad' :
-                                 action.area === 'marketing' ? 'Gerencia Marketing' :
-                                 action.area === 'capacitacion' ? 'Capacitaciones' :
-                                 'G. Atención al Cliente'}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4.5 font-semibold text-slate-700 text-sm">{action.responsible}</td>
-                            <td className="px-6 py-4.5 text-slate-600 text-sm max-w-xs truncate" title={action.action}>
-                              {action.action || <span className="text-slate-400 italic">No definida</span>}
-                            </td>
-                            <td className="px-6 py-4.5 font-mono text-xs font-bold text-slate-700">
-                              {action.maxDate ? format(parseISO(action.maxDate), 'dd/MM/yyyy') : '-'}
-                            </td>
-                            <td className="px-6 py-4.5 text-center">
-                              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                                action.status === 'completado' 
-                                  ? 'bg-emerald-100 text-emerald-700' 
-                                  : overdue 
-                                    ? 'bg-red-100 text-red-700 animate-pulse'
-                                    : 'bg-amber-100 text-amber-700'
-                              }`}>
-                                {action.status === 'completado' ? 'Completado' : overdue ? 'RETRASADO' : 'Pendiente'}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })
-                  ).length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-10 text-center text-slate-400 font-bold uppercase tracking-wider text-xs">
-                        Sin planes de acción registrados en este periodo
-                      </td>
-                    </tr>
-                  )}
+                  {(() => {
+                    const rows = filteredReportsForDashboard.flatMap(r => 
+                      (r.actionPlan || [])
+                        .filter(action => action.status !== 'no_aplica')
+                        .map((action, idx) => {
+                          const overdue = isOverdue(action.maxDate, action.status);
+                          return (
+                            <tr key={`${r.id}-${idx}`} className="hover:bg-slate-50/30 transition-colors group">
+                              <td className="px-6 py-4.5 font-mono text-xs font-bold text-slate-900">{r.ticketNumber}</td>
+                              <td className="px-6 py-4.5">
+                                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                                  {action.area === 'producto' ? 'G. Innovación y Calidad' :
+                                   action.area === 'marketing' ? 'Gerencia Marketing' :
+                                   action.area === 'capacitacion' ? 'Capacitaciones' :
+                                   'G. Atención al Cliente'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4.5 font-semibold text-slate-700 text-sm">{action.responsible}</td>
+                              <td className="px-6 py-4.5 text-slate-600 text-sm max-w-xs truncate" title={action.action}>
+                                {action.action || <span className="text-slate-400 italic">No definida</span>}
+                              </td>
+                              <td className="px-6 py-4.5 font-mono text-xs font-bold text-slate-700">
+                                {action.maxDate ? format(parseISO(action.maxDate), 'dd/MM/yyyy') : '-'}
+                              </td>
+                              <td className="px-6 py-4.5 text-center">
+                                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                  action.status === 'completado' 
+                                    ? 'bg-emerald-100 text-emerald-700' 
+                                    : overdue 
+                                      ? 'bg-red-100 text-red-700 animate-pulse'
+                                      : 'bg-amber-100 text-amber-700'
+                                }`}>
+                                  {action.status === 'completado' ? 'Completado' : overdue ? 'RETRASADO' : 'Pendiente'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                    );
+                    if (rows.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-10 text-center text-slate-400 font-bold uppercase tracking-wider text-xs">
+                            Sin planes de acción registrados en este periodo
+                          </td>
+                        </tr>
+                      );
+                    }
+                    return rows;
+                  })()}
                 </tbody>
               </table>
             </div>
