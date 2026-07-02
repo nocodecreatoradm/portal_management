@@ -816,13 +816,21 @@ export interface FiveWhys {
   why5: FiveWhyEntry | string;
 }
 
+export interface IshikawaFactor {
+  id: string;
+  cause: string;
+  why1?: string;
+  why2?: string;
+}
+
 export interface IshikawaData {
-  metodo: string[];
-  mano_obra: string[];
-  maquina_producto: string[];
-  materiales: string[];
-  medicion: string[];
-  medio_ambiente: string[];
+  effect?: string;
+  metodo: (IshikawaFactor | string)[];
+  mano_obra: (IshikawaFactor | string)[];
+  maquina_producto: (IshikawaFactor | string)[];
+  materiales: (IshikawaFactor | string)[];
+  medicion: (IshikawaFactor | string)[];
+  medio_ambiente: (IshikawaFactor | string)[];
 }
 
 export interface ActionPlanItem {

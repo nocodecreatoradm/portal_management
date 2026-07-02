@@ -5,7 +5,7 @@ import {
   Plus, Search, ChevronRight, Info, Trash2, ArrowRight, RefreshCw, Printer, AlertTriangle, ShieldCheck, Upload,
   Calendar, User, Home, Wrench, Edit, X, Save, Paperclip, MapPin, Globe
 } from 'lucide-react';
-import { HiyariHattoReport, ProductRecord, ActionPlanItem, FiveWhys, FiveWhyEntry, IshikawaData, Supplier, InvolvedPerson, FileInfo } from '../types';
+import { HiyariHattoReport, ProductRecord, ActionPlanItem, FiveWhys, FiveWhyEntry, IshikawaData, IshikawaFactor, Supplier, InvolvedPerson, FileInfo } from '../types';
 import { format, parseISO } from 'date-fns';
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -250,7 +250,14 @@ const normWhy = (val: FiveWhyEntry | string | undefined): FiveWhyEntry => {
   return val;
 };
 
+// Normalize an Ishikawa factor that may be a legacy string or a new {id, cause, why1, why2} object
+const normFactor = (f: IshikawaFactor | string): IshikawaFactor =>
+  typeof f === 'string'
+    ? { id: f, cause: f, why1: '', why2: '' }
+    : (f || { id: '', cause: '', why1: '', why2: '' });
+
 const DEFAULT_ISHIKAWA: IshikawaData = {
+  effect: '',
   metodo: [],
   mano_obra: [],
   maquina_producto: [],
@@ -440,7 +447,9 @@ export default function HiyariHattoModule({
 
   // Ishikawa Temp Inputs
   const [newIshikawaFactor, setNewIshikawaFactor] = useState('');
-  const [ishikawaTargetCategory, setIshikawaTargetCategory] = useState<keyof IshikawaData>('metodo');
+  const [newIshikawaWhy1, setNewIshikawaWhy1] = useState('');
+  const [newIshikawaWhy2, setNewIshikawaWhy2] = useState('');
+  const [ishikawaTargetCategory, setIshikawaTargetCategory] = useState<'metodo' | 'mano_obra' | 'maquina_producto' | 'materiales' | 'medicion' | 'medio_ambiente'>('metodo');
 
   // Print Preview state
   const [printingReport, setPrintingReport] = useState<HiyariHattoReport | null>(null);
@@ -813,20 +822,29 @@ export default function HiyariHattoModule({
   const addIshikawaFactor = () => {
     if (!newIshikawaFactor.trim() || !editingReport) return;
     const cat = ishikawaTargetCategory;
-    const currentList = editingReport.ishikawa?.[cat] || [];
-    
+    const currentList = (editingReport.ishikawa?.[cat] || []) as (IshikawaFactor | string)[];
+
+    const newFactor: IshikawaFactor = {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      cause: newIshikawaFactor.trim(),
+      why1: newIshikawaWhy1.trim(),
+      why2: newIshikawaWhy2.trim(),
+    };
+
     const updatedIshikawa = {
       ...editingReport.ishikawa || DEFAULT_ISHIKAWA,
-      [cat]: [...currentList, newIshikawaFactor.trim()]
+      [cat]: [...currentList, newFactor]
     };
 
     setEditingReport(prev => prev ? { ...prev, ishikawa: updatedIshikawa } : null);
     setNewIshikawaFactor('');
+    setNewIshikawaWhy1('');
+    setNewIshikawaWhy2('');
   };
 
-  const removeIshikawaFactor = (category: keyof IshikawaData, index: number) => {
+  const removeIshikawaFactor = (category: 'metodo' | 'mano_obra' | 'maquina_producto' | 'materiales' | 'medicion' | 'medio_ambiente', index: number) => {
     if (!editingReport) return;
-    const currentList = editingReport.ishikawa?.[category] || [];
+    const currentList = (editingReport.ishikawa?.[category] || []) as (IshikawaFactor | string)[];
     const updatedList = currentList.filter((_, idx) => idx !== index);
 
     const updatedIshikawa = {
@@ -895,17 +913,124 @@ export default function HiyariHattoModule({
       return lines.slice(0, 3); // max 3 lines per factor in SVG
     };
 
-    // Render stacked tspan lines for a factor
-    const renderFactorText = (text: string, x: number, y: number, anchor: 'start' | 'middle' = 'start') => {
-      const lines = wrapText(text);
-      return (
-        <text x={x} y={y} fill="#cbd5e1" fontSize="8" fontWeight="bold" textAnchor={anchor}>
-          {lines.map((line, li) => (
-            <tspan key={li} x={x} dy={li === 0 ? 0 : 11}>{line}</tspan>
+    const renderFactor = (fRaw: IshikawaFactor | string, idx: number, y: number, x_rib: number, isUpper: boolean, color: string) => {
+      const f = normFactor(fRaw);
+      const lineLen = 130;
+      const x2 = x_rib;
+      const x1 = x_rib - lineLen;
+      const lineY = y;
+
+      const elements: React.ReactNode[] = [];
+      elements.push(
+        <line key={`line-${idx}`} x1={x1} y1={lineY} x2={x2} y2={lineY} stroke="#475569" strokeWidth="1.5" />
+      );
+
+      // 1. Primary Cause Text
+      const causeLines = wrapText(f.cause, 16);
+      const causeSpacing = 8;
+      let causeY = lineY;
+      if (isUpper) {
+        causeY = lineY - 3 - (causeLines.length - 1) * causeSpacing;
+      } else {
+        causeY = lineY + 10;
+      }
+      elements.push(
+        <text key={`cause-txt-${idx}`} x={x2 - 42} y={causeY} fill="#e2e8f0" fontSize="7" fontWeight="bold" textAnchor="start">
+          {causeLines.map((line, li) => (
+            <tspan key={li} x={x2 - 42} dy={li === 0 ? 0 : causeSpacing}>{line}</tspan>
           ))}
         </text>
       );
+
+      // 2. why1 (1er Por qué)
+      if (f.why1) {
+        const connX = x2 - 50;
+        const endX = x2 - 62;
+        const endY = isUpper ? lineY - 12 : lineY + 12;
+        elements.push(
+          <line key={`why1-line-${idx}`} x1={connX} y1={lineY} x2={endX} y2={endY} stroke={color} strokeWidth="1" strokeDasharray="1 1" />
+        );
+        const why1Lines = wrapText(f.why1, 12);
+        const why1Spacing = 8;
+        let why1Y = endY;
+        if (isUpper) {
+          why1Y = endY - 2 - (why1Lines.length - 1) * why1Spacing;
+        } else {
+          why1Y = endY + 8;
+        }
+        elements.push(
+          <text key={`why1-txt-${idx}`} x={endX - 3} y={why1Y} fill="#fcd34d" fontSize="6.5" fontWeight="semibold" textAnchor="end">
+            {why1Lines.map((line, li) => (
+              <tspan key={li} x={endX - 3} dy={li === 0 ? 0 : why1Spacing}>{line}</tspan>
+            ))}
+          </text>
+        );
+      }
+
+      // 3. why2 (2do Por qué)
+      if (f.why2) {
+        const connX = x2 - 90;
+        const endX = x2 - 102;
+        const endY = isUpper ? lineY - 12 : lineY + 12;
+        elements.push(
+          <line key={`why2-line-${idx}`} x1={connX} y1={lineY} x2={endX} y2={endY} stroke={color} strokeWidth="1" strokeDasharray="1 1" />
+        );
+        const why2Lines = wrapText(f.why2, 12);
+        const why2Spacing = 8;
+        let why2Y = endY;
+        if (isUpper) {
+          why2Y = endY - 2 - (why2Lines.length - 1) * why2Spacing;
+        } else {
+          why2Y = endY + 8;
+        }
+        elements.push(
+          <text key={`why2-txt-${idx}`} x={endX - 3} y={why2Y} fill="#fef08a" fontSize="6.5" fontWeight="normal" textAnchor="end">
+            {why2Lines.map((line, li) => (
+              <tspan key={li} x={endX - 3} dy={li === 0 ? 0 : why2Spacing}>{line}</tspan>
+            ))}
+          </text>
+        );
+      }
+
+      return <g key={`factor-${idx}`}>{elements}</g>;
     };
+
+    const renderRib = (
+      factors: (IshikawaFactor | string)[],
+      isUpper: boolean,
+      ribX1: number,
+      ribY1: number,
+      ribX2: number,
+      ribY2: number,
+      color: string,
+      label: string
+    ) => {
+      const labelX = ribX1;
+      const labelY = isUpper ? ribY1 - 10 : ribY1 + 15;
+
+      const yStart = isUpper ? ribY1 + 35 : ribY1 - 35;
+      const yEnd = isUpper ? ribY2 - 25 : ribY2 + 25;
+      const step = (yEnd - yStart) / 3;
+
+      return (
+        <g key={label}>
+          <line x1={ribX1} y1={ribY1} x2={ribX2} y2={ribY2} stroke={color} strokeWidth="3" strokeDasharray="3 3" />
+          <text x={labelX} y={labelY} fill={color} fontSize="11" fontWeight="black" textAnchor="middle">{label}</text>
+          
+          {(factors || []).slice(0, 4).map((f, i) => {
+            const y = yStart + i * step;
+            const x_rib = ribX1 + (y - ribY1) * (ribX2 - ribX1) / (ribY2 - ribY1);
+            return renderFactor(f, i, y, x_rib, isUpper, color);
+          })}
+        </g>
+      );
+    };
+
+    const effectText = ishikawa.effect || 'EFECTO / Causa Raíz';
+    const effectLines = wrapText(effectText, 14);
+    const boxMiddleY = 225;
+    const effectSpacing = 10;
+    const startEffectY = boxMiddleY - ((effectLines.length - 1) * effectSpacing) / 2 + 3;
     
     return (
       <svg viewBox="0 0 800 450" className="w-full h-auto bg-slate-900 border border-slate-800 rounded-3xl p-4 text-white shadow-inner font-sans">
@@ -915,71 +1040,22 @@ export default function HiyariHattoModule({
         <polygon points="680,215 710,225 680,235" fill="#3b82f6" />
         
         {/* Head Label box */}
-        <rect x="710" y="195" width="80" height="60" rx="8" fill="#ef4444" opacity="0.9" />
-        <text x="750" y="230" fill="white" fontSize="11" fontWeight="bold" textAnchor="middle">EFECTO</text>
-        <text x="750" y="245" fill="white" fontSize="9" textAnchor="middle">Causa Raíz</text>
+        <rect x="710" y="185" width="85" height="80" rx="8" fill="#ef4444" opacity="0.9" />
+        <text x="752.5" y={startEffectY} fill="white" fontSize="9" fontWeight="bold" textAnchor="middle">
+          {effectLines.map((line, li) => (
+            <tspan key={li} x="752.5" dy={li === 0 ? 0 : effectSpacing}>{line}</tspan>
+          ))}
+        </text>
 
         {/* Ribs (Upper half) */}
-        {/* Métodos */}
-        <line x1="200" y1="50" x2="300" y2="225" stroke="#ef4444" strokeWidth="3" strokeDasharray="3 3" />
-        <text x="200" y="40" fill="#ef4444" fontSize="12" fontWeight="black" textAnchor="middle">MÉTODO</text>
-        {ishikawa.metodo.slice(0, 4).map((f, i) => (
-          <g key={i}>
-            {renderFactorText(f, 220 + i * 15, 85 + i * 35)}
-            <line x1={215 + i * 15} y1={100 + i * 35} x2={255 + i * 15} y2={100 + i * 35} stroke="#475569" strokeWidth="1" />
-          </g>
-        ))}
-
-        {/* Mano de Obra */}
-        <line x1="380" y1="50" x2="480" y2="225" stroke="#f59e0b" strokeWidth="3" strokeDasharray="3 3" />
-        <text x="380" y="40" fill="#f59e0b" fontSize="12" fontWeight="black" textAnchor="middle">MANO DE OBRA</text>
-        {ishikawa.mano_obra.slice(0, 4).map((f, i) => (
-          <g key={i}>
-            {renderFactorText(f, 400 + i * 15, 85 + i * 35)}
-            <line x1={395 + i * 15} y1={100 + i * 35} x2={435 + i * 15} y2={100 + i * 35} stroke="#475569" strokeWidth="1" />
-          </g>
-        ))}
-
-        {/* Máquina / Producto */}
-        <line x1="560" y1="50" x2="660" y2="225" stroke="#3b82f6" strokeWidth="3" strokeDasharray="3 3" />
-        <text x="560" y="40" fill="#3b82f6" fontSize="12" fontWeight="black" textAnchor="middle">MÁQUINA/PROD</text>
-        {ishikawa.maquina_producto.slice(0, 4).map((f, i) => (
-          <g key={i}>
-            {renderFactorText(f, 580 + i * 15, 85 + i * 35)}
-            <line x1={575 + i * 15} y1={100 + i * 35} x2={615 + i * 15} y2={100 + i * 35} stroke="#475569" strokeWidth="1" />
-          </g>
-        ))}
+        {renderRib(ishikawa.metodo, true, 200, 50, 300, 225, '#ef4444', 'MÉTODO')}
+        {renderRib(ishikawa.mano_obra, true, 380, 50, 480, 225, '#f59e0b', 'MANO DE OBRA')}
+        {renderRib(ishikawa.maquina_producto, true, 560, 50, 660, 225, '#3b82f6', 'MÁQUINA/PROD')}
 
         {/* Ribs (Lower half) */}
-        {/* Materiales */}
-        <line x1="150" y1="400" x2="250" y2="225" stroke="#10b981" strokeWidth="3" strokeDasharray="3 3" />
-        <text x="150" y="415" fill="#10b981" fontSize="12" fontWeight="black" textAnchor="middle">MATERIALES</text>
-        {ishikawa.materiales.slice(0, 4).map((f, i) => (
-          <g key={i}>
-            {renderFactorText(f, 190 + i * 15, 355 - i * 35)}
-            <line x1={185 + i * 15} y1={368 - i * 35} x2={225 + i * 15} y2={368 - i * 35} stroke="#475569" strokeWidth="1" />
-          </g>
-        ))}
-
-        {/* Medición */}
-        <line x1="330" y1="400" x2="430" y2="225" stroke="#6366f1" strokeWidth="3" strokeDasharray="3 3" />
-        <text x="330" y="415" fill="#6366f1" fontSize="12" fontWeight="black" textAnchor="middle">MEDICIÓN</text>
-        {ishikawa.medicion.slice(0, 4).map((f, i) => (
-          <g key={i}>
-            {renderFactorText(f, 370 + i * 15, 355 - i * 35)}
-            <line x1={365 + i * 15} y1={368 - i * 35} x2={405 + i * 15} y2={368 - i * 35} stroke="#475569" strokeWidth="1" />
-          </g>
-        ))}
-
-        {/* Medio Ambiente */}
-        <line x1="510" y1="400" x2="610" y2="225" stroke="#ec4899" strokeWidth="3" strokeDasharray="3 3" />
-        <text x="510" y="415" fill="#ec4899" fontSize="12" fontWeight="black" textAnchor="middle">MEDIO AMBIENTE</text>
-        {ishikawa.medio_ambiente.slice(0, 4).map((f, i) => (
-          <g key={i}>
-            {renderFactorText(f, 550 + i * 15, 355 - i * 35)}
-            <line x1={545 + i * 15} y1={368 - i * 35} x2={585 + i * 15} y2={368 - i * 35} stroke="#475569" strokeWidth="1" />
-          </g>
-        ))}
+        {renderRib(ishikawa.materiales, false, 150, 400, 250, 225, '#10b981', 'MATERIALES')}
+        {renderRib(ishikawa.medicion, false, 330, 400, 430, 225, '#6366f1', 'MEDICIÓN')}
+        {renderRib(ishikawa.medio_ambiente, false, 510, 400, 610, 225, '#ec4899', 'MEDIO AMBIENTE')}
       </svg>
     );
   };
@@ -2667,8 +2743,163 @@ export default function HiyariHattoModule({
               {/* STEP 4: ISHIKAWA & 5 WHYS */}
               {editorStep === 4 && (
                 <div className="space-y-8">
-                  {/* Part A: 5 Whys Visualizer */}
+                  
+                  {/* Part A: Ishikawa Fishbone Diagram Builder */}
                   <div className="space-y-4">
+                    
+                    {/* Ishikawa Factor Adder Panel */}
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3 w-full">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">I</div>
+                          <h4 className="text-base font-black text-slate-900 uppercase tracking-wider">Causa Raíz - Diagrama de Ishikawa</h4>
+                        </div>
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Categoría:</label>
+                          <select
+                            value={ishikawaTargetCategory}
+                            onChange={(e) => setIshikawaTargetCategory(e.target.value as any)}
+                            className="px-3 py-1.5 rounded-xl border border-slate-200 outline-none text-xs font-bold text-slate-700 bg-white"
+                          >
+                            <option value="metodo">Método</option>
+                            <option value="mano_obra">Mano de Obra (Instalación)</option>
+                            <option value="maquina_producto">Máquina/Producto</option>
+                            <option value="materiales">Materiales</option>
+                            <option value="medicion">Medición</option>
+                            <option value="medio_ambiente">Medio Ambiente</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Efecto (Recuadro Rojo)</label>
+                          <input
+                            type="text"
+                            value={editingReport.ishikawa?.effect || ''}
+                            onChange={(e) => {
+                              const updated = {
+                                ...editingReport.ishikawa || DEFAULT_ISHIKAWA,
+                                effect: e.target.value
+                              };
+                              updateField('ishikawa', updated);
+                            }}
+                            placeholder="EFECTO / Causa Raíz..."
+                            className="w-full bg-white px-3 py-2 border border-slate-200 rounded-xl outline-none focus:border-blue-400 text-xs font-semibold text-slate-800"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Causa principal (sin límite)</label>
+                          <textarea
+                            value={newIshikawaFactor}
+                            onChange={(e) => setNewIshikawaFactor(e.target.value)}
+                            placeholder="Describe la causa principal..."
+                            rows={1}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-xs bg-white font-semibold resize-none focus:border-blue-400"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">1er Por qué (opcional)</label>
+                          <textarea
+                            value={newIshikawaWhy1}
+                            onChange={(e) => setNewIshikawaWhy1(e.target.value)}
+                            placeholder="¿Por qué ocurrió esta causa?"
+                            rows={1}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-xs bg-white font-semibold resize-none focus:border-blue-400"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">2do Por qué (opcional)</label>
+                          <textarea
+                            value={newIshikawaWhy2}
+                            onChange={(e) => setNewIshikawaWhy2(e.target.value)}
+                            placeholder="¿Por qué ocurrió el 1er por qué?"
+                            rows={1}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 outline-none text-xs bg-white font-semibold resize-none focus:border-blue-400"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end pt-1">
+                        <button
+                          onClick={addIshikawaFactor}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20"
+                        >
+                          Agregar al Diagrama
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                      {/* SVG Visualizer */}
+                      <div className="lg:col-span-2">
+                        {renderIshikawaSVG(editingReport.ishikawa)}
+                      </div>
+
+                      {/* Factor Manager List */}
+                      <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200/60 max-h-[380px] overflow-y-auto custom-scrollbar">
+                        <h5 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Administrar Factores Registrados</h5>
+                        
+                        <div className="space-y-4">
+                          {[
+                            { key: 'metodo', label: 'Método', color: 'text-red-500' },
+                            { key: 'mano_obra', label: 'Mano de Obra', color: 'text-amber-500' },
+                            { key: 'maquina_producto', label: 'Máquina/Producto', color: 'text-blue-500' },
+                            { key: 'materiales', label: 'Materiales', color: 'text-emerald-500' },
+                            { key: 'medicion', label: 'Medición', color: 'text-indigo-500' },
+                            { key: 'medio_ambiente', label: 'Medio Ambiente', color: 'text-pink-500' }
+                          ].map(cat => {
+                            const list = (editingReport.ishikawa?.[cat.key as keyof IshikawaData] || []) as (IshikawaFactor | string)[];
+                            return (
+                              <div key={cat.key} className="space-y-1.5 border-b border-slate-100 pb-2 last:border-0 last:pb-0">
+                                <h6 className={`text-[10px] font-black uppercase tracking-widest ${cat.color}`}>{cat.label}</h6>
+                                {list.length === 0 ? (
+                                  <p className="text-[10px] text-slate-400 italic pl-2">Sin factores añadidos</p>
+                                ) : (
+                                  <div className="space-y-2 pl-2">
+                                    {list.map((rawItem, idx) => {
+                                      const item = normFactor(rawItem);
+                                      return (
+                                        <div key={idx} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                                          <div className="flex items-start justify-between gap-2">
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-xs font-bold text-slate-800 break-words whitespace-pre-wrap">{item.cause}</p>
+                                              {item.why1 && (
+                                                <p className="text-[10px] text-amber-600 font-semibold mt-1 pl-2 border-l-2 border-amber-300">
+                                                  <span className="font-bold">1°:</span> {item.why1}
+                                                </p>
+                                              )}
+                                              {item.why2 && (
+                                                <p className="text-[10px] text-amber-700 font-medium mt-0.5 pl-4 border-l-2 border-yellow-400">
+                                                  <span className="font-bold">2°:</span> {item.why2}
+                                                </p>
+                                              )}
+                                            </div>
+                                            <button 
+                                              type="button"
+                                              onClick={() => removeIshikawaFactor(cat.key as any, idx)}
+                                              className="text-slate-400 hover:text-red-500 transition-all flex-shrink-0"
+                                            >
+                                              <Trash2 size={13} />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Part B: 5 Whys Visualizer */}
+                  <div className="space-y-4 pt-6 border-t border-slate-100">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">5</div>
                       <h4 className="text-base font-black text-slate-900 uppercase tracking-wider">Causa Raíz - Método de los 5 Por Qués</h4>
@@ -2741,92 +2972,6 @@ export default function HiyariHattoModule({
                           </div>
                         );
                       })}
-                    </div>
-                  </div>
-
-                  {/* Part B: Ishikawa Fishbone Diagram Builder */}
-                  <div className="space-y-4 pt-6 border-t border-slate-100">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">I</div>
-                        <h4 className="text-base font-black text-slate-900 uppercase tracking-wider">Causa Raíz - Diagrama de Ishikawa</h4>
-                      </div>
-                      
-                      {/* Ishikawa Factor Adder Panel */}
-                      <div className="flex items-start gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200 w-full md:w-auto">
-                        <select
-                          value={ishikawaTargetCategory}
-                          onChange={(e) => setIshikawaTargetCategory(e.target.value as any)}
-                          className="px-3 py-2 rounded-xl border border-slate-200 outline-none text-xs font-bold text-slate-700 bg-white self-start"
-                        >
-                          <option value="metodo">Método</option>
-                          <option value="mano_obra">Mano de Obra (Instalación)</option>
-                          <option value="maquina_producto">Máquina/Producto</option>
-                          <option value="materiales">Materiales</option>
-                          <option value="medicion">Medición</option>
-                          <option value="medio_ambiente">Medio Ambiente</option>
-                        </select>
-                        <textarea
-                          value={newIshikawaFactor}
-                          onChange={(e) => setNewIshikawaFactor(e.target.value)}
-                          placeholder="Describe el factor (sin límite de texto)..."
-                          rows={2}
-                          className="px-3 py-2 flex-1 min-w-[220px] rounded-xl border border-slate-200 outline-none text-xs bg-white font-semibold resize-none focus:border-blue-400"
-                        />
-                        <button
-                          onClick={addIshikawaFactor}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all self-start whitespace-nowrap"
-                        >
-                          Agregar
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                      {/* SVG Visualizer */}
-                      <div className="lg:col-span-2">
-                        {renderIshikawaSVG(editingReport.ishikawa)}
-                      </div>
-
-                      {/* Factor Manager List */}
-                      <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200/60 max-h-[350px] overflow-y-auto custom-scrollbar">
-                        <h5 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Administrar Factores Registrados</h5>
-                        
-                        <div className="space-y-4">
-                          {[
-                            { key: 'metodo', label: 'Método', color: 'text-red-500' },
-                            { key: 'mano_obra', label: 'Mano de Obra', color: 'text-amber-500' },
-                            { key: 'maquina_producto', label: 'Máquina/Producto', color: 'text-blue-500' },
-                            { key: 'materiales', label: 'Materiales', color: 'text-emerald-500' },
-                            { key: 'medicion', label: 'Medición', color: 'text-indigo-500' },
-                            { key: 'medio_ambiente', label: 'Medio Ambiente', color: 'text-pink-500' }
-                          ].map(cat => {
-                            const list = editingReport.ishikawa?.[cat.key as keyof IshikawaData] || [];
-                            return (
-                              <div key={cat.key} className="space-y-1.5">
-                                <h6 className={`text-[10px] font-black uppercase tracking-widest ${cat.color}`}>{cat.label}</h6>
-                                {list.length === 0 ? (
-                                  <p className="text-[10px] text-slate-400 italic pl-2">Sin factores añadidos</p>
-                                ) : (
-                                  <div className="space-y-1 pl-2">
-                                    {list.map((item, idx) => (
-                                      <div key={idx} className="flex items-start justify-between bg-white px-3 py-2 rounded-lg border border-slate-100 text-xs gap-2">
-                                        <span className="font-medium text-slate-700 break-words whitespace-pre-wrap flex-1">{item}</span>
-                                        <button 
-                                          onClick={() => removeIshikawaFactor(cat.key as keyof IshikawaData, idx)}
-                                          className="text-slate-400 hover:text-red-500 transition-all flex-shrink-0 mt-0.5"
-                                        >
-                                          <Trash2 size={12} />
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
                     </div>
                   </div>
 
