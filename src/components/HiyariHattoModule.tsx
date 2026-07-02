@@ -833,6 +833,42 @@ export default function HiyariHattoModule({
   // Render Ishikawa SVG dynamically
   const renderIshikawaSVG = (data?: IshikawaData) => {
     const ishikawa = data || DEFAULT_ISHIKAWA;
+
+    // Helper: wrap text into lines of maxLen chars
+    const wrapText = (text: string, maxLen = 22): string[] => {
+      if (!text) return [];
+      const words = text.split(' ');
+      const lines: string[] = [];
+      let current = '';
+      for (const word of words) {
+        if ((current + (current ? ' ' : '') + word).length <= maxLen) {
+          current += (current ? ' ' : '') + word;
+        } else {
+          if (current) lines.push(current);
+          // If single word too long, hard-break it
+          if (word.length > maxLen) {
+            for (let s = 0; s < word.length; s += maxLen) lines.push(word.slice(s, s + maxLen));
+            current = '';
+          } else {
+            current = word;
+          }
+        }
+      }
+      if (current) lines.push(current);
+      return lines.slice(0, 3); // max 3 lines per factor in SVG
+    };
+
+    // Render stacked tspan lines for a factor
+    const renderFactorText = (text: string, x: number, y: number, anchor: 'start' | 'middle' = 'start') => {
+      const lines = wrapText(text);
+      return (
+        <text x={x} y={y} fill="#cbd5e1" fontSize="8" fontWeight="bold" textAnchor={anchor}>
+          {lines.map((line, li) => (
+            <tspan key={li} x={x} dy={li === 0 ? 0 : 11}>{line}</tspan>
+          ))}
+        </text>
+      );
+    };
     
     return (
       <svg viewBox="0 0 800 450" className="w-full h-auto bg-slate-900 border border-slate-800 rounded-3xl p-4 text-white shadow-inner font-sans">
@@ -850,30 +886,30 @@ export default function HiyariHattoModule({
         {/* Métodos */}
         <line x1="200" y1="50" x2="300" y2="225" stroke="#ef4444" strokeWidth="3" strokeDasharray="3 3" />
         <text x="200" y="40" fill="#ef4444" fontSize="12" fontWeight="black" textAnchor="middle">MÉTODO</text>
-        {ishikawa.metodo.slice(0, 3).map((f, i) => (
+        {ishikawa.metodo.slice(0, 4).map((f, i) => (
           <g key={i}>
-            <text x={220 + i * 20} y={90 + i * 40} fill="#cbd5e1" fontSize="9" fontWeight="bold" textAnchor="start">{f.substring(0, 20)}</text>
-            <line x1={215 + i * 20} y1={95 + i * 40} x2={250 + i * 20} y2={95 + i * 40} stroke="#475569" strokeWidth="1" />
+            {renderFactorText(f, 220 + i * 15, 85 + i * 35)}
+            <line x1={215 + i * 15} y1={100 + i * 35} x2={255 + i * 15} y2={100 + i * 35} stroke="#475569" strokeWidth="1" />
           </g>
         ))}
 
         {/* Mano de Obra */}
         <line x1="380" y1="50" x2="480" y2="225" stroke="#f59e0b" strokeWidth="3" strokeDasharray="3 3" />
         <text x="380" y="40" fill="#f59e0b" fontSize="12" fontWeight="black" textAnchor="middle">MANO DE OBRA</text>
-        {ishikawa.mano_obra.slice(0, 3).map((f, i) => (
+        {ishikawa.mano_obra.slice(0, 4).map((f, i) => (
           <g key={i}>
-            <text x={400 + i * 20} y={90 + i * 40} fill="#cbd5e1" fontSize="9" fontWeight="bold" textAnchor="start">{f.substring(0, 20)}</text>
-            <line x1={395 + i * 20} y1={95 + i * 40} x2={430 + i * 20} y2={95 + i * 40} stroke="#475569" strokeWidth="1" />
+            {renderFactorText(f, 400 + i * 15, 85 + i * 35)}
+            <line x1={395 + i * 15} y1={100 + i * 35} x2={435 + i * 15} y2={100 + i * 35} stroke="#475569" strokeWidth="1" />
           </g>
         ))}
 
         {/* Máquina / Producto */}
         <line x1="560" y1="50" x2="660" y2="225" stroke="#3b82f6" strokeWidth="3" strokeDasharray="3 3" />
         <text x="560" y="40" fill="#3b82f6" fontSize="12" fontWeight="black" textAnchor="middle">MÁQUINA/PROD</text>
-        {ishikawa.maquina_producto.slice(0, 3).map((f, i) => (
+        {ishikawa.maquina_producto.slice(0, 4).map((f, i) => (
           <g key={i}>
-            <text x={580 + i * 20} y={90 + i * 40} fill="#cbd5e1" fontSize="9" fontWeight="bold" textAnchor="start">{f.substring(0, 20)}</text>
-            <line x1={575 + i * 20} y1={95 + i * 40} x2={610 + i * 20} y2={95 + i * 40} stroke="#475569" strokeWidth="1" />
+            {renderFactorText(f, 580 + i * 15, 85 + i * 35)}
+            <line x1={575 + i * 15} y1={100 + i * 35} x2={615 + i * 15} y2={100 + i * 35} stroke="#475569" strokeWidth="1" />
           </g>
         ))}
 
@@ -881,30 +917,30 @@ export default function HiyariHattoModule({
         {/* Materiales */}
         <line x1="150" y1="400" x2="250" y2="225" stroke="#10b981" strokeWidth="3" strokeDasharray="3 3" />
         <text x="150" y="415" fill="#10b981" fontSize="12" fontWeight="black" textAnchor="middle">MATERIALES</text>
-        {ishikawa.materiales.slice(0, 3).map((f, i) => (
+        {ishikawa.materiales.slice(0, 4).map((f, i) => (
           <g key={i}>
-            <text x={190 + i * 20} y={350 - i * 40} fill="#cbd5e1" fontSize="9" fontWeight="bold" textAnchor="start">{f.substring(0, 20)}</text>
-            <line x1={185 + i * 20} y1={355 - i * 40} x2={220 + i * 20} y2={355 - i * 40} stroke="#475569" strokeWidth="1" />
+            {renderFactorText(f, 190 + i * 15, 355 - i * 35)}
+            <line x1={185 + i * 15} y1={368 - i * 35} x2={225 + i * 15} y2={368 - i * 35} stroke="#475569" strokeWidth="1" />
           </g>
         ))}
 
         {/* Medición */}
         <line x1="330" y1="400" x2="430" y2="225" stroke="#6366f1" strokeWidth="3" strokeDasharray="3 3" />
         <text x="330" y="415" fill="#6366f1" fontSize="12" fontWeight="black" textAnchor="middle">MEDICIÓN</text>
-        {ishikawa.medicion.slice(0, 3).map((f, i) => (
+        {ishikawa.medicion.slice(0, 4).map((f, i) => (
           <g key={i}>
-            <text x={370 + i * 20} y={350 - i * 40} fill="#cbd5e1" fontSize="9" fontWeight="bold" textAnchor="start">{f.substring(0, 20)}</text>
-            <line x1={365 + i * 20} y1={355 - i * 40} x2={400 + i * 20} y2={355 - i * 40} stroke="#475569" strokeWidth="1" />
+            {renderFactorText(f, 370 + i * 15, 355 - i * 35)}
+            <line x1={365 + i * 15} y1={368 - i * 35} x2={405 + i * 15} y2={368 - i * 35} stroke="#475569" strokeWidth="1" />
           </g>
         ))}
 
         {/* Medio Ambiente */}
         <line x1="510" y1="400" x2="610" y2="225" stroke="#ec4899" strokeWidth="3" strokeDasharray="3 3" />
         <text x="510" y="415" fill="#ec4899" fontSize="12" fontWeight="black" textAnchor="middle">MEDIO AMBIENTE</text>
-        {ishikawa.medio_ambiente.slice(0, 3).map((f, i) => (
+        {ishikawa.medio_ambiente.slice(0, 4).map((f, i) => (
           <g key={i}>
-            <text x={550 + i * 20} y={350 - i * 40} fill="#cbd5e1" fontSize="9" fontWeight="bold" textAnchor="start">{f.substring(0, 20)}</text>
-            <line x1={545 + i * 20} y1={355 - i * 40} x2={580 + i * 20} y2={355 - i * 40} stroke="#475569" strokeWidth="1" />
+            {renderFactorText(f, 550 + i * 15, 355 - i * 35)}
+            <line x1={545 + i * 15} y1={368 - i * 35} x2={585 + i * 15} y2={368 - i * 35} stroke="#475569" strokeWidth="1" />
           </g>
         ))}
       </svg>
@@ -2599,11 +2635,11 @@ export default function HiyariHattoModule({
                       </div>
                       
                       {/* Ishikawa Factor Adder Panel */}
-                      <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-200">
+                      <div className="flex items-start gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200 w-full md:w-auto">
                         <select
                           value={ishikawaTargetCategory}
                           onChange={(e) => setIshikawaTargetCategory(e.target.value as any)}
-                          className="px-3 py-1.5 rounded-xl border border-slate-200 outline-none text-xs font-bold text-slate-700 bg-white"
+                          className="px-3 py-2 rounded-xl border border-slate-200 outline-none text-xs font-bold text-slate-700 bg-white self-start"
                         >
                           <option value="metodo">Método</option>
                           <option value="mano_obra">Mano de Obra (Instalación)</option>
@@ -2612,16 +2648,16 @@ export default function HiyariHattoModule({
                           <option value="medicion">Medición</option>
                           <option value="medio_ambiente">Medio Ambiente</option>
                         </select>
-                        <input
-                          type="text"
+                        <textarea
                           value={newIshikawaFactor}
                           onChange={(e) => setNewIshikawaFactor(e.target.value)}
-                          placeholder="Añadir factor a la espina..."
-                          className="px-3 py-1.5 w-48 rounded-xl border border-slate-200 outline-none text-xs bg-white font-semibold"
+                          placeholder="Describe el factor (sin límite de texto)..."
+                          rows={2}
+                          className="px-3 py-2 flex-1 min-w-[220px] rounded-xl border border-slate-200 outline-none text-xs bg-white font-semibold resize-none focus:border-blue-400"
                         />
                         <button
                           onClick={addIshikawaFactor}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all self-start whitespace-nowrap"
                         >
                           Agregar
                         </button>
@@ -2656,11 +2692,11 @@ export default function HiyariHattoModule({
                                 ) : (
                                   <div className="space-y-1 pl-2">
                                     {list.map((item, idx) => (
-                                      <div key={idx} className="flex items-center justify-between bg-white px-2 py-1 rounded-lg border border-slate-100 text-xs">
-                                        <span className="font-medium text-slate-700 truncate max-w-[150px]">{item}</span>
+                                      <div key={idx} className="flex items-start justify-between bg-white px-3 py-2 rounded-lg border border-slate-100 text-xs gap-2">
+                                        <span className="font-medium text-slate-700 break-words whitespace-pre-wrap flex-1">{item}</span>
                                         <button 
                                           onClick={() => removeIshikawaFactor(cat.key as keyof IshikawaData, idx)}
-                                          className="text-slate-400 hover:text-red-500 transition-all"
+                                          className="text-slate-400 hover:text-red-500 transition-all flex-shrink-0 mt-0.5"
                                         >
                                           <Trash2 size={12} />
                                         </button>
