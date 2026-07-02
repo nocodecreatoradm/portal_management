@@ -3,9 +3,9 @@ import SearchableSelect from './SearchableSelect';
 import { 
   TrendingUp, AlertCircle, FileText, Download, CheckCircle2, Clock, HelpCircle,
   Plus, Search, ChevronRight, Info, Trash2, ArrowRight, RefreshCw, Printer, AlertTriangle, ShieldCheck, Upload,
-  Calendar, User, Home, Wrench, Edit, X, Save, Paperclip
+  Calendar, User, Home, Wrench, Edit, X, Save, Paperclip, MapPin, Globe, Compass
 } from 'lucide-react';
-import { HiyariHattoReport, ProductRecord, ActionPlanItem, FiveWhys, IshikawaData, Supplier } from '../types';
+import { HiyariHattoReport, ProductRecord, ActionPlanItem, FiveWhys, IshikawaData, Supplier, InvolvedPerson, FileInfo } from '../types';
 import { format, parseISO } from 'date-fns';
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -13,6 +13,86 @@ import {
 } from 'recharts';
 import { SupabaseService } from '../lib/SupabaseService';
 import { toast } from 'sonner';
+
+export const REGIONS = [
+  'AMAZONAS', 'ANCASH', 'APURIMAC', 'AREQUIPA', 'AYACUCHO', 
+  'CAJAMARCA', 'CALLAO', 'CUSCO', 'HUANCAVELICA', 'HUANUCO', 
+  'ICA', 'JUNIN', 'LA LIBERTAD', 'LAMBAYEQUE', 'LIMA', 
+  'LORETO', 'MADRE DE DIOS', 'MOQUEGUA', 'PASCO', 'PIURA', 
+  'PUNO', 'SAN MARTIN', 'TACNA', 'TUMBES', 'UCAYALI'
+];
+
+export const PERU_COORDINATES: Record<string, { x: number; y: number; label: string }> = {
+  LIMA: { x: 180, y: 310, label: 'Lima' },
+  CALLAO: { x: 162, y: 305, label: 'Callao' },
+  AREQUIPA: { x: 285, y: 410, label: 'Arequipa' },
+  LA_LIBERTAD: { x: 110, y: 190, label: 'La Libertad' },
+  LAMBAYEQUE: { x: 75, y: 160, label: 'Lambayeque' },
+  PIURA: { x: 50, y: 120, label: 'Piura' },
+  ANCASH: { x: 140, y: 240, label: 'Ancash' },
+  CUSCO: { x: 285, y: 340, label: 'Cusco' },
+  ICA: { x: 205, y: 360, label: 'Ica' },
+  JUNIN: { x: 200, y: 280, label: 'Junín' },
+  CAJAMARCA: { x: 100, y: 140, label: 'Cajamarca' },
+  SAN_MARTIN: { x: 160, y: 150, label: 'San Martín' },
+  LORETO: { x: 220, y: 90, label: 'Loreto' },
+  PUNO: { x: 345, y: 380, label: 'Puno' },
+  HUANUCO: { x: 170, y: 220, label: 'Huánuco' },
+  UCAYALI: { x: 230, y: 210, label: 'Ucayali' },
+  TACNA: { x: 340, y: 450, label: 'Tacna' },
+  PASCO: { x: 190, y: 250, label: 'Pasco' },
+  AYACUCHO: { x: 240, y: 340, label: 'Ayacucho' },
+  AMAZONAS: { x: 120, y: 100, label: 'Amazonas' },
+  MADRE_DE_DIOS: { x: 335, y: 280, label: 'Madre de Dios' },
+  MOQUEGUA: { x: 315, y: 430, label: 'Moquegua' },
+  APURIMAC: { x: 260, y: 360, label: 'Apurímac' },
+  HUANCAVELICA: { x: 205, y: 320, label: 'Huancavelica' },
+  TUMBES: { x: 30, y: 70, label: 'Tumbes' }
+};
+
+export const MESH_CONNECTIONS = [
+  ['TUMBES', 'PIURA'],
+  ['PIURA', 'LAMBAYEQUE'],
+  ['LAMBAYEQUE', 'CAJAMARCA'],
+  ['LAMBAYEQUE', 'LA_LIBERTAD'],
+  ['LA_LIBERTAD', 'ANCASH'],
+  ['LA_LIBERTAD', 'SAN_MARTIN'],
+  ['SAN_MARTIN', 'AMAZONAS'],
+  ['AMAZONAS', 'LORETO'],
+  ['LORETO', 'UCAYALI'],
+  ['UCAYALI', 'HUANUCO'],
+  ['HUANUCO', 'PASCO'],
+  ['ANCASH', 'PASCO'],
+  ['PASCO', 'JUNIN'],
+  ['ANCASH', 'LIMA'],
+  ['LIMA', 'CALLAO'],
+  ['LIMA', 'HUANCAVELICA'],
+  ['LIMA', 'ICA'],
+  ['ICA', 'AYACUCHO'],
+  ['HUANCAVELICA', 'AYACUCHO'],
+  ['JUNIN', 'AYACUCHO'],
+  ['JUNIN', 'CUSCO'],
+  ['UCAYALI', 'CUSCO'],
+  ['CUSCO', 'MADRE_DE_DIOS'],
+  ['MADRE_DE_DIOS', 'PUNO'],
+  ['AYACUCHO', 'APURIMAC'],
+  ['APURIMAC', 'CUSCO'],
+  ['APURIMAC', 'AREQUIPA'],
+  ['ICA', 'AREQUIPA'],
+  ['AREQUIPA', 'MOQUEGUA'],
+  ['AREQUIPA', 'PUNO'],
+  ['MOQUEGUA', 'TACNA'],
+  ['PUNO', 'TACNA']
+];
+
+export const getNormalizeKey = (str: string): string => {
+  return (str || '')
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, '_')
+    .trim();
+};
 
 interface HiyariHattoModuleProps {
   products: ProductRecord[];
@@ -243,6 +323,7 @@ export default function HiyariHattoModule({
   const [reports, setReports] = useState<HiyariHattoReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'records'>('dashboard');
+  const [expandedRegion, setExpandedRegion] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
   // Handle file uploads for various steps
@@ -597,6 +678,44 @@ export default function HiyariHattoModule({
     });
   }, [filteredReportsForDashboard]);
 
+  // Heatmap Geo Stats Data
+  const geoStats = useMemo(() => {
+    const regionMap: Record<string, { count: number; districts: Record<string, number> }> = {};
+    let totalWithRegion = 0;
+
+    filteredReportsForDashboard.forEach(r => {
+      if (!r.region) return;
+      const reg = r.region.toUpperCase().trim();
+      const dist = (r.district || 'NO ESPECIFICADO').toUpperCase().trim();
+      
+      if (!regionMap[reg]) {
+        regionMap[reg] = { count: 0, districts: {} };
+      }
+      regionMap[reg].count += 1;
+      regionMap[reg].districts[dist] = (regionMap[reg].districts[dist] || 0) + 1;
+      totalWithRegion += 1;
+    });
+
+    const sortedRegions = Object.entries(regionMap)
+      .map(([region, data]) => {
+        const sortedDistricts = Object.entries(data.districts)
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count);
+        return {
+          region,
+          count: data.count,
+          percentage: totalWithRegion > 0 ? (data.count / totalWithRegion) * 100 : 0,
+          districts: sortedDistricts
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      regions: sortedRegions,
+      total: totalWithRegion
+    };
+  }, [filteredReportsForDashboard]);
+
   // Open Editor for new or existing report
   const handleOpenEditor = (report?: HiyariHattoReport) => {
     if (report) {
@@ -623,6 +742,8 @@ export default function HiyariHattoModule({
         hasHomeDamage: false,
         hasClientDamage: false,
         status: 'flash_report',
+        region: '',
+        district: '',
         fiveWhys: { ...DEFAULT_FIVE_WHYS },
         ishikawa: { ...DEFAULT_ISHIKAWA },
         actionPlan: createDefaultActionPlan()
@@ -1224,6 +1345,218 @@ export default function HiyariHattoModule({
             </div>
           </div>
 
+          {/* Geographical Heatmap Section */}
+          <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm p-6 mb-6">
+            <h3 className="text-base font-black text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Globe size={18} className="text-blue-500" />
+              Mapa de Calor Geográfico de Incidentes (Perú)
+            </h3>
+            <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+              Distribución de incidencias críticas reportadas a nivel nacional por región y distrito/localidad.
+            </p>
+
+            {geoStats.regions.length === 0 ? (
+              <div className="text-center py-12 bg-slate-50 border border-slate-200/60 rounded-2xl text-slate-400 font-semibold text-xs italic">
+                No hay incidentes con región y distrito registrados.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                {/* Left side: Region List */}
+                <div className="lg:col-span-2 space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                  {geoStats.regions.map((reg) => {
+                    const normKey = getNormalizeKey(reg.region);
+                    const isExpanded = expandedRegion === reg.region;
+                    
+                    return (
+                      <div 
+                        key={reg.region} 
+                        className={`border rounded-2xl p-4 transition-all duration-200 ${
+                          isExpanded 
+                            ? 'bg-slate-50 border-blue-200 shadow-sm' 
+                            : 'bg-white border-slate-100 hover:border-slate-200'
+                        }`}
+                      >
+                        <div 
+                          className="flex justify-between items-center cursor-pointer"
+                          onClick={() => setExpandedRegion(isExpanded ? null : reg.region)}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className={`p-2 rounded-xl ${
+                              reg.count >= 5 ? 'bg-red-50 text-red-500' :
+                              reg.count >= 2 ? 'bg-amber-50 text-amber-500' :
+                              'bg-blue-50 text-blue-500'
+                            }`}>
+                              <MapPin size={16} />
+                            </div>
+                            <div>
+                              <span className="text-xs font-black text-slate-800 uppercase block">{reg.region}</span>
+                              <span className="text-[10px] text-slate-400 font-bold uppercase">
+                                {reg.districts.length} {reg.districts.length === 1 ? 'distrito' : 'distritos'}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="text-right">
+                            <span className={`text-xs font-black px-2.5 py-1 rounded-full ${
+                              reg.count >= 5 ? 'bg-red-100 text-red-700' :
+                              reg.count >= 2 ? 'bg-amber-100 text-amber-700' :
+                              'bg-blue-100 text-blue-700'
+                            }`}>
+                              {reg.count} {reg.count === 1 ? 'caso' : 'casos'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Progress Bar Heat Indicator */}
+                        <div className="mt-3">
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full transition-all ${
+                                reg.count >= 5 ? 'bg-red-500' :
+                                reg.count >= 2 ? 'bg-amber-500' :
+                                'bg-blue-500'
+                              }`}
+                              style={{ width: `${reg.percentage}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Expandable Districts List */}
+                        {isExpanded && (
+                          <div className="mt-4 pt-3 border-t border-slate-200/60 space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">Desglose de Distritos</div>
+                            {reg.districts.map(dist => (
+                              <div key={dist.name} className="flex justify-between items-center text-xs font-bold text-slate-600 pl-2">
+                                <span className="uppercase text-slate-700 font-semibold">• {dist.name}</span>
+                                <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-black text-slate-500">
+                                  {dist.count} {dist.count === 1 ? 'caso' : 'casos'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Right side: Stylized interactive constellation network geo-heatmap */}
+                <div className="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-3xl p-4 flex flex-col items-center justify-center min-h-[480px] relative overflow-hidden shadow-inner">
+                  {/* Decorative Elements to make it feel premium */}
+                  <div className="absolute top-4 left-4 flex items-center gap-1.5 text-slate-500 text-[10px] font-black uppercase tracking-widest select-none">
+                    <Compass size={12} className="animate-spin-slow text-blue-500" style={{ animationDuration: '10s' }} />
+                    Sistema Satelital de Calor sole
+                  </div>
+                  <div className="absolute top-4 right-4 text-slate-600 text-[9px] font-mono tracking-widest uppercase">
+                    Status: Tracking Online
+                  </div>
+
+                  {/* SVG Constellation Network Mesh Map */}
+                  <svg className="w-full max-w-[400px] h-[400px] relative z-10 select-none" viewBox="0 0 400 480">
+                    {/* Render Mesh Connections */}
+                    {MESH_CONNECTIONS.map(([fromKey, toKey], idx) => {
+                      const fromNode = PERU_COORDINATES[fromKey];
+                      const toNode = PERU_COORDINATES[toKey];
+                      if (!fromNode || !toNode) return null;
+                      return (
+                        <line 
+                          key={idx} 
+                          x1={fromNode.x} 
+                          y1={fromNode.y} 
+                          x2={toNode.x} 
+                          y2={toNode.y} 
+                          stroke="#1e293b" 
+                          strokeWidth="1" 
+                          strokeDasharray="4 4" 
+                        />
+                      );
+                    })}
+
+                    {/* Render Base Constellation Department Nodes */}
+                    {Object.entries(PERU_COORDINATES).map(([key, node]) => (
+                      <circle 
+                        key={key} 
+                        cx={node.x} 
+                        cy={node.y} 
+                        r="3.5" 
+                        fill="#334155" 
+                      />
+                    ))}
+
+                    {/* Render Pulsing Heat Indicator Circles for active departments */}
+                    {geoStats.regions.map(reg => {
+                      const normKey = getNormalizeKey(reg.region);
+                      const coords = PERU_COORDINATES[normKey];
+                      if (!coords) return null;
+
+                      // Color config
+                      const colorClass = reg.count >= 5 ? '#ef4444' : reg.count >= 2 ? '#f59e0b' : '#3b82f6';
+                      const glowClass = reg.count >= 5 ? 'rgba(239, 68, 68, 0.4)' : reg.count >= 2 ? 'rgba(245, 158, 11, 0.4)' : 'rgba(59, 130, 246, 0.4)';
+                      const pulseRadius = reg.count >= 5 ? 18 : reg.count >= 2 ? 13 : 9;
+
+                      return (
+                        <g key={`pulse-${reg.region}`}>
+                          {/* Pulsing ring */}
+                          <circle 
+                            cx={coords.x} 
+                            cy={coords.y} 
+                            r={pulseRadius} 
+                            fill="none" 
+                            stroke={colorClass} 
+                            strokeWidth="2" 
+                            className="animate-ping" 
+                            style={{ transformOrigin: `${coords.x}px ${coords.y}px`, animationDuration: '1.8s' }} 
+                          />
+                          {/* Inner glowing circle */}
+                          <circle 
+                            cx={coords.x} 
+                            cy={coords.y} 
+                            r={pulseRadius * 0.7} 
+                            fill={glowClass} 
+                          />
+                          {/* Core dot */}
+                          <circle 
+                            cx={coords.x} 
+                            cy={coords.y} 
+                            r="5" 
+                            fill={colorClass} 
+                          />
+                          {/* Text Label */}
+                          <text 
+                            x={coords.x + 8} 
+                            y={coords.y + 4} 
+                            fill="#94a3b8" 
+                            fontSize="8" 
+                            fontWeight="bold" 
+                            className="pointer-events-none uppercase font-sans"
+                          >
+                            {coords.label}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+
+                  {/* Heatmap Legend */}
+                  <div className="mt-2 flex gap-6 text-[10px] font-black uppercase tracking-widest text-slate-500 z-10">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 block shadow shadow-red-500/50" />
+                      <span>Alto Riesgo (&gt;=5)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 block shadow shadow-amber-500/50" />
+                      <span>Moderado (2-4)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 block shadow shadow-blue-500/50" />
+                      <span>Bajo (1)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Action Plans Control Center */}
           <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between">
@@ -1676,6 +2009,32 @@ export default function HiyariHattoModule({
                         value={editingReport.customerAddress || ''}
                         onChange={(e) => updateField('customerAddress', e.target.value)}
                         placeholder="Ej. Calle César Vallejo 384, Surco"
+                        className="px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-800 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex flex-col">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Región del Evento</label>
+                      <select
+                        value={editingReport.region || ''}
+                        onChange={(e) => updateField('region', e.target.value)}
+                        className="px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-800 text-sm bg-white"
+                      >
+                        <option value="">Seleccione región...</option>
+                        {REGIONS.map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex flex-col">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Distrito / Localidad</label>
+                      <input
+                        type="text"
+                        value={editingReport.district || ''}
+                        onChange={(e) => updateField('district', e.target.value)}
+                        placeholder="Ej. Miraflores, Trujillo, Chiclayo..."
                         className="px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-800 text-sm"
                       />
                     </div>

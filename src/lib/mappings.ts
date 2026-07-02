@@ -959,6 +959,8 @@ export const mapHiyariHattoReportToDB = (report: Partial<HiyariHattoReport>) => 
   if (report.supplierCommunication !== undefined) dbRow.supplier_communication = report.supplierCommunication ? 1 : 0;
   if (report.supplierName !== undefined) dbRow.supplier_name = report.supplierName;
   if (report.supplierId !== undefined) dbRow.supplier_id_hh = report.supplierId;
+  if (report.region !== undefined) dbRow.region = report.region;
+  if (report.district !== undefined) dbRow.district = report.district;
   
   if (report.createdAt !== undefined) dbRow.created_at = report.createdAt;
   if (report.updatedAt !== undefined) dbRow.updated_at = report.updatedAt;
@@ -1008,6 +1010,8 @@ export const mapDBToHiyariHattoReport = (dbRow: any): HiyariHattoReport => ({
   supplierCommunication: dbRow.supplier_communication === 1 || dbRow.supplier_communication === true || dbRow.supplier_communication === '1',
   supplierName: dbRow.supplier_name || '',
   supplierId: dbRow.supplier_id_hh || '',
+  region: dbRow.region || '',
+  district: dbRow.district || '',
   createdAt: dbRow.created_at,
   updatedAt: dbRow.updated_at
 });

@@ -2271,6 +2271,8 @@ function buildMimeMessage(options: {
                 category_name nvarchar(100) NULL,
                 customer_dni nvarchar(50) NULL,
                 affected_people nvarchar(max) NULL,
+                region nvarchar(100) NULL,
+                district nvarchar(100) NULL,
                 created_at datetime2 DEFAULT GETDATE(),
                 updated_at datetime2 DEFAULT GETDATE()
             );
@@ -2301,6 +2303,10 @@ function buildMimeMessage(options: {
                 ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD supplier_name nvarchar(255) NULL;
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'supplier_id_hh')
                 ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD supplier_id_hh nvarchar(100) NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'region')
+                ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD region nvarchar(100) NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.hiyari_hatto_reports') AND name = 'district')
+                ALTER TABLE ID_PORTAL.hiyari_hatto_reports ADD district nvarchar(100) NULL;
             
             -- Categorías Checklist Templates
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('ID_PORTAL.categories') AND name = 'hiyari_visit_checklist')

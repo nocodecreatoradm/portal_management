@@ -877,6 +877,8 @@ export interface HiyariHattoReport {
   visitAttachments?: FileInfo[];
   qualityAttachments?: FileInfo[];
   rootCauseAttachments?: FileInfo[];
+  region?: string;
+  district?: string;
   createdAt?: string;
   updatedAt?: string;
 }
