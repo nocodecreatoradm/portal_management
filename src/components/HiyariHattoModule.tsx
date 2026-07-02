@@ -41,6 +41,34 @@ export const formatLocalDate = (dateStr?: string): string => {
   return dateStr;
 };
 
+// Helper to render evidence list in the printable view
+export const renderPrintEvidence = (files?: FileInfo[], label?: string) => {
+  if (!files || files.length === 0) return null;
+  return (
+    <div className="mt-4 border border-slate-200 rounded-3xl p-4 bg-slate-50">
+      <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">{label || 'Evidencias'}</div>
+      <div className="flex flex-wrap gap-3">
+        {files.map((file, idx) => {
+          const isImage = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+          return (
+            <div key={idx} className="evidence-card" style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '8px', width: '196px', textAlign: 'center', margin: '5px' }}>
+              {isImage ? (
+                <img src={file.url} alt={file.name} style={{ width: '180px', height: '120px', objectFit: 'cover', borderRadius: '8px' }} />
+              ) : (
+                <div className="evidence-doc" style={{ width: '180px', height: '120px', backgroundColor: '#f1f5f9', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
+                  <FileText size={24} style={{ marginBottom: '4px' }} />
+                  <span style={{ fontSize: '9px', fontFamily: 'monospace', textTransform: 'uppercase', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name.split('.').pop()}</span>
+                </div>
+              )}
+              <span className="evidence-label" style={{ fontSize: '10px', fontWeight: 'bold', color: '#475569', marginTop: '6px', width: '180px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={file.label || file.name}>{file.label || file.name}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export const getDefaultChecklist = (categoryName: string, type: 'visit' | 'lab'): ChecklistItem[] => {
   const isTermas = (categoryName || '').toLowerCase().includes('terma') || 
                    (categoryName || '').toLowerCase().includes('calentador') || 
@@ -1435,7 +1463,7 @@ export default function HiyariHattoModule({
             <div className="flex border-b border-slate-100 bg-slate-50/40">
               {[
                 { step: 1, name: '1. Flash Report' },
-                { step: 2, name: '2. Protocolo Visita' },
+                { step: 2, name: '2. Protocolo Visita de Calidad' },
                 { step: 3, name: '3. Informe Calidad' },
                 { step: 4, name: '4. Ishikawa & 5 Whys' },
                 { step: 5, name: '5. Action Plan (Q5)' }
@@ -1929,7 +1957,7 @@ export default function HiyariHattoModule({
                       ))}
                     </div>
                   </div>
-                  {renderAttachmentsSection('visitAttachments', 'Evidencias del Protocolo de Visita / Recepción')}
+                  {renderAttachmentsSection('visitAttachments', 'Evidencias del Protocolo de Visita de Calidad / Recepción')}
                 </div>
               )}
 
@@ -2534,42 +2562,53 @@ export default function HiyariHattoModule({
                           <html>
                             <head>
                               <title>Reporte Hiyari Hatto - ${printingReport.ticketNumber}</title>
+                        `);
+                        
+                        // Copy all styles from the main page to the print window
+                        const headStyles = document.querySelectorAll('link[rel="stylesheet"], style');
+                        headStyles.forEach(style => {
+                          printWindow.document.write(style.outerHTML);
+                        });
+
+                        printWindow.document.write(`
                               <style>
                                 * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                                body { font-family: sans-serif; padding: 30px; color: #1e293b; }
+                                body { font-family: sans-serif; padding: 30px; color: #1e293b; background: #ffffff !important; }
                                 svg { max-width: 100%; height: auto; display: block; margin: 15px auto; }
-                                .header { display: flex; justify-content: space-between; border-bottom: 2px solid #cbd5e1; padding-bottom: 15px; margin-bottom: 25px; }
-                                .title { font-size: 20px; font-weight: bold; }
-                                .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-                                .section { margin-bottom: 25px; }
-                                .section-title { font-size: 14px; font-weight: bold; background: #f1f5f9; padding: 6px 10px; margin-bottom: 10px; text-transform: uppercase; border-left: 4px solid #3b82f6; }
-                                .label { font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase; }
-                                .value { font-size: 13px; font-weight: bold; margin-bottom: 8px; }
-                                .five-whys-chain { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-                                .why-item { display: flex; gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 8px; }
                                 table { width: 100%; border-collapse: collapse; margin-top: 10px; }
                                 th, td { border: 1px solid #e2e8f0; padding: 8px; font-size: 12px; }
                                 th { background: #f8fafc; font-weight: bold; text-align: left; }
                                 .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; text-transform: uppercase; background: #e2e8f0; }
-                                .border { border: 1px solid #e2e8f0; }
-                                .rounded-3xl { border-radius: 1.5rem; }
-                                .p-2 { padding: 0.5rem; }
-                                .bg-slate-50 { background-color: #f8fafc; }
                                 
                                 /* Custom Checklist and Evidence Annex Print Layout Styles */
-                                .evidence-card { display: inline-flex !important; flex-direction: column !important; align-items: center !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; border-radius: 12px !important; padding: 8px !important; width: 196px !important; text-align: center !important; margin: 5px !important; }
+                                .evidence-card { display: inline-flex !important; flex-direction: column !important; align-items: center !important; background: #ffffff !important; border: 1px solid #e2e8f0 !important; border-radius: 12px !important; padding: 8px !important; width: 196px !important; text-align: center !important; margin: 5px !important; page-break-inside: avoid; }
                                 .evidence-card img { width: 180px !important; height: 120px !important; object-fit: cover !important; border-radius: 8px !important; }
                                 .evidence-doc { width: 180px !important; height: 120px !important; background: #f1f5f9 !important; border-radius: 8px !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; color: #3b82f6 !important; }
                                 .evidence-label { font-size: 10px !important; font-weight: bold !important; color: #475569 !important; margin-top: 6px !important; width: 180px !important; display: block !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+                                
+                                @media print {
+                                  body { padding: 0 !important; margin: 0 !important; }
+                                  #printable-area { padding: 0 !important; }
+                                  .section { page-break-inside: avoid; }
+                                }
                               </style>
                             </head>
                             <body>
-                              ${printable.innerHTML}
+                              <div id="printable-area">
+                                ${printable.innerHTML}
+                              </div>
+                              <script>
+                                window.onload = function() {
+                                  setTimeout(function() {
+                                    window.print();
+                                    window.close();
+                                  }, 500);
+                                };
+                              </script>
                             </body>
                           </html>
                         `);
                         printWindow.document.close();
-                        printWindow.print();
                       }
                     }
                   }}
@@ -2670,12 +2709,13 @@ export default function HiyariHattoModule({
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Descripción del Accidente</div>
                   <div className="text-sm font-semibold text-slate-700 mt-1 leading-relaxed">{printingReport.incidentDescription || '-'}</div>
                 </div>
+                {renderPrintEvidence(printingReport.flashAttachments, 'Evidencias de Flash Report')}
               </div>
 
               {/* Step 2 data */}
               <div className="section mb-6">
                 <div className="section-title bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg border-l-4 border-blue-500 mb-4">
-                  2. Protocolo de Inspección Técnica
+                  2. Protocolo Visita de Calidad
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -2739,6 +2779,7 @@ export default function HiyariHattoModule({
                     );
                   })()}
                 </div>
+                {renderPrintEvidence(printingReport.visitAttachments, 'Evidencias de Protocolo Visita de Calidad / Recepción')}
               </div>
 
               {/* Step 3 data */}
@@ -2826,6 +2867,7 @@ export default function HiyariHattoModule({
                     );
                   })()}
                 </div>
+                {renderPrintEvidence(printingReport.qualityAttachments, 'Evidencias de Informe de Calidad')}
               </div>
 
               {/* Step 4 data */}
@@ -2862,6 +2904,7 @@ export default function HiyariHattoModule({
                     <div className="font-semibold mt-1 text-slate-700 leading-relaxed">{printingReport.hiyariQ4 || '-'}</div>
                   </div>
                 </div>
+                {renderPrintEvidence(printingReport.rootCauseAttachments, 'Evidencias de Causa Raíz / Ishikawa')}
               </div>
 
               {/* Step 5 data */}
@@ -2895,50 +2938,7 @@ export default function HiyariHattoModule({
                           {formatLocalDate(action.maxDate)}
                         </td>
                         <td>
-                          <span className="badge">
-                            {action.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Anexo de Evidencias en PDF */}
-              {((printingReport.flashAttachments && printingReport.flashAttachments.length > 0) ||
-                (printingReport.visitAttachments && printingReport.visitAttachments.length > 0) ||
-                (printingReport.qualityAttachments && printingReport.qualityAttachments.length > 0) ||
-                (printingReport.rootCauseAttachments && printingReport.rootCauseAttachments.length > 0)) && (
-                <div className="section mb-6">
-                  <div className="section-title bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg border-l-4 border-blue-500 mb-4">
-                    6. Anexo de Evidencias Fotográficas y Documentos
-                  </div>
-                  <div className="grid gap-4">
-                    {[
-                      { title: 'Evidencias de Flash Report', files: printingReport.flashAttachments },
-                      { title: 'Evidencias de Protocolo de Visita / Recepción', files: printingReport.visitAttachments },
-                      { title: 'Evidencias de Informe de Calidad', files: printingReport.qualityAttachments },
-                      { title: 'Evidencias de Causa Raíz / Ishikawa', files: printingReport.rootCauseAttachments }
-                    ].map(group => {
-                      if (!group.files || group.files.length === 0) return null;
-                      return (
-                        <div key={group.title} className="border border-slate-200 rounded-3xl p-4 bg-slate-50">
-                          <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">{group.title}</div>
-                          <div className="flex flex-wrap gap-3">
-                            {group.files.map((file, idx) => {
-                              const isImage = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
-                              return (
-                                <div key={idx} className="evidence-card" style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '8px', width: '196px', textAlign: 'center', margin: '5px' }}>
-                                  {isImage ? (
-                                    <img src={file.url} alt={file.name} style={{ width: '180px', height: '120px', objectFit: 'cover', borderRadius: '8px' }} />
-                                  ) : (
-                                    <div className="evidence-doc" style={{ width: '180px', height: '120px', backgroundColor: '#f1f5f9', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
-                                      <FileText size={24} style={{ marginBottom: '4px' }} />
-                                      <span style={{ fontSize: '9px', fontFamily: 'monospace', textTransform: 'uppercase', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name.split('.').pop()}</span>
-                                    </div>
-                                  )}
-                                  <span className="evidence-label" style={{ fontSize: '10px', fontWeight: 'bold', color: '#475569', marginTop: '6px', width: '180px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={file.label || file.name}>{file.label || file.name}</span>
+                    {/* Removed annex to place evidences inline under each stage */}
                                 </div>
                               );
                             })}
