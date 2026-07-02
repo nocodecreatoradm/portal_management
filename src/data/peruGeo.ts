@@ -345,3 +345,32 @@ export const PERU_SVG_PATHS: RegionPath[] = [
     labelX: 306, labelY: 307,
   },
 ];
+
+export const REGION_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  AMAZONAS: { lat: -6.2294, lng: -77.8690 },
+  ANCASH: { lat: -9.5278, lng: -77.5278 },
+  APURIMAC: { lat: -13.6339, lng: -72.8814 },
+  AREQUIPA: { lat: -15.4090, lng: -71.5375 },
+  AYACUCHO: { lat: -13.1588, lng: -74.2239 },
+  CAJAMARCA: { lat: -7.1594, lng: -78.5156 },
+  CALLAO: { lat: -12.0566, lng: -77.1944 },
+  CUSCO: { lat: -13.5320, lng: -71.9675 },
+  HUANCAVELICA: { lat: -12.7876, lng: -74.9727 },
+  HUANUCO: { lat: -9.9306, lng: -76.2422 },
+  ICA: { lat: -14.0678, lng: -75.7286 },
+  JUNIN: { lat: -11.1582, lng: -75.9930 },
+  LA_LIBERTAD: { lat: -8.1160, lng: -79.0299 },
+  LAMBAYEQUE: { lat: -6.7011, lng: -79.9061 },
+  LIMA: { lat: -12.0464, lng: -77.0428 },
+  LORETO: { lat: -3.7496, lng: -73.2538 },
+  MADRE_DE_DIOS: { lat: -12.5933, lng: -69.1891 },
+  MOQUEGUA: { lat: -17.1983, lng: -70.9328 },
+  PASCO: { lat: -10.6675, lng: -76.2567 },
+  PIURA: { lat: -5.1945, lng: -80.6328 },
+  PUNO: { lat: -15.8402, lng: -70.0219 },
+  SAN_MARTIN: { lat: -6.8926, lng: -76.6346 },
+  TACNA: { lat: -18.0138, lng: -70.2512 },
+  TUMBES: { lat: -3.5669, lng: -80.4515 },
+  UCAYALI: { lat: -8.3791, lng: -74.5539 }
+};
+

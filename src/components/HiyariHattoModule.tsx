@@ -13,7 +13,33 @@ import {
 } from 'recharts';
 import { SupabaseService } from '../lib/SupabaseService';
 import { toast } from 'sonner';
-import { REGIONS, PERU_DISTRICTS, PERU_SVG_PATHS, getNormalizeKey } from '../data/peruGeo';
+import { REGIONS, PERU_DISTRICTS, PERU_SVG_PATHS, getNormalizeKey, REGION_COORDINATES } from '../data/peruGeo';
+import { MapContainer, TileLayer, CircleMarker, Tooltip as LeafletTooltip, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix default Leaflet icon issue
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+const MapController: React.FC<{ selectedRegion: string | null }> = ({ selectedRegion }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (selectedRegion && REGION_COORDINATES[selectedRegion]) {
+      const { lat, lng } = REGION_COORDINATES[selectedRegion];
+      map.setView([lat, lng], 7, { animate: true, duration: 1.2 });
+    } else {
+      map.setView([-9.19, -75.0152], 5, { animate: true, duration: 1.2 });
+    }
+  }, [selectedRegion, map]);
+  return null;
+};
+
+
 
 
 
@@ -1436,127 +1462,90 @@ export default function HiyariHattoModule({
                     )}
                   </div>
 
-                  {/* Real Peru SVG Map */}
-                  <svg
-                    className="w-full flex-1 select-none"
-                    viewBox="0 0 500 580"
-                    style={{ maxHeight: 460 }}
-                  >
-                    <defs>
-                      {/* Glow filter for selected region */}
-                      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                        <feMerge>
-                          <feMergeNode in="coloredBlur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
-
-                    {PERU_SVG_PATHS.map(dept => {
-                      const incidentData = geoStats.regions.find(r => getNormalizeKey(r.region) === dept.key);
-                      const isSelected = selectedMapRegion === dept.key;
-                      const count = incidentData?.count || 0;
-
-                      // Color logic: dark navy base, colored by incidents
-                      const fill = isSelected
-                        ? (count >= 5 ? '#dc2626' : count >= 2 ? '#d97706' : count > 0 ? '#2563eb' : '#3b82f6')
-                        : count >= 5 ? '#991b1b'
-                        : count >= 2 ? '#92400e'
-                        : count > 0  ? '#1e3a8a'
-                        : '#1e3a5f';
-
-                      const stroke = isSelected ? '#f8fafc' : '#0f172a';
-                      const strokeWidth = isSelected ? 2 : 0.8;
-
-                      return (
-                        <g
-                          key={dept.key}
-                          onClick={() => setSelectedMapRegion(prev => prev === dept.key ? null : dept.key)}
-                          style={{ cursor: 'pointer' }}
-                          className="group"
-                        >
-                          <title>{dept.name}{count > 0 ? ` — ${count} incidente${count !== 1 ? 's' : ''}` : ' — Sin incidentes'}</title>
-                          <path
-                            d={dept.path}
-                            fill={fill}
-                            stroke={stroke}
-                            strokeWidth={strokeWidth}
-                            strokeLinejoin="round"
-                            filter={isSelected ? 'url(#glow)' : undefined}
-                            style={{ transition: 'fill 0.2s ease' }}
-                          />
-                          {/* Incident count badge */}
-                          {count > 0 && (
-                            <>
-                              {/* Pulsing ring for high-incident regions */}
-                              {count >= 2 && (
-                                <circle
-                                  cx={dept.labelX}
-                                  cy={dept.labelY}
-                                  r={count >= 5 ? 10 : 7}
-                                  fill="none"
-                                  stroke={count >= 5 ? '#ef4444' : '#f59e0b'}
-                                  strokeWidth="1.5"
-                                  className="animate-ping"
-                                  style={{ transformOrigin: `${dept.labelX}px ${dept.labelY}px`, animationDuration: '2s' }}
-                                />
-                              )}
-                              <circle
-                                cx={dept.labelX}
-                                cy={dept.labelY}
-                                r={count >= 5 ? 9 : count >= 2 ? 7 : 5.5}
-                                fill={count >= 5 ? '#ef4444' : count >= 2 ? '#f59e0b' : '#60a5fa'}
-                              />
-                              <text
-                                x={dept.labelX}
-                                y={dept.labelY + 3}
-                                textAnchor="middle"
-                                fill="white"
-                                fontSize={count >= 10 ? 6 : 7}
-                                fontWeight="bold"
-                                className="pointer-events-none"
-                              >
-                                {count}
-                              </text>
-                            </>
-                          )}
-                          {/* Dept name label — only shown for selected */}
-                          {isSelected && (
-                            <text
-                              x={dept.labelX}
-                              y={dept.labelY - 14}
-                              textAnchor="middle"
-                              fill="#f1f5f9"
-                              fontSize="7"
-                              fontWeight="bold"
-                              className="pointer-events-none uppercase"
-                            >
-                              {dept.name}
-                            </text>
-                          )}
-                        </g>
-                      );
-                    })}
-                  </svg>
+                  {/* Real Peru Leaflet Map */}
+                  <div className="w-full flex-1 min-h-[440px] rounded-2xl overflow-hidden relative z-0 mt-2">
+                    <MapContainer
+                      center={[-9.19, -75.0152]}
+                      zoom={5}
+                      zoomControl={false}
+                      style={{ height: '100%', width: '100%' }}
+                    >
+                      <TileLayer
+                        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                      />
+                      <MapController selectedRegion={selectedMapRegion} />
+                      
+                      {geoStats.regions.map(reg => {
+                        const normKey = getNormalizeKey(reg.region);
+                        const coords = REGION_COORDINATES[normKey];
+                        if (!coords) return null;
+                        
+                        const isSelected = selectedMapRegion === normKey;
+                        const count = reg.count;
+                        
+                        // Color logic
+                        const color = count >= 5 ? '#ef4444' : count >= 2 ? '#f59e0b' : '#3b82f6';
+                        const fillColor = count >= 5 ? '#ef4444' : count >= 2 ? '#f59e0b' : '#3b82f6';
+                        const radius = count >= 5 ? 16 : count >= 2 ? 12 : 8;
+                        
+                        return (
+                          <CircleMarker
+                            key={normKey}
+                            center={[coords.lat, coords.lng]}
+                            radius={radius}
+                            fillColor={fillColor}
+                            color={isSelected ? '#ffffff' : color}
+                            weight={isSelected ? 3 : 1.5}
+                            fillOpacity={0.65}
+                            eventHandlers={{
+                              click: () => {
+                                setSelectedMapRegion(prev => prev === normKey ? null : normKey);
+                              }
+                            }}
+                          >
+                            <LeafletTooltip direction="top" offset={[0, -5]} opacity={0.95}>
+                              <div className="p-2 font-sans bg-slate-950 text-white rounded-xl shadow-lg border border-slate-800 text-left min-w-[150px]">
+                                <h4 className="text-xs font-black uppercase text-blue-400 tracking-wider mb-1">
+                                  {reg.region}
+                                </h4>
+                                <p className="text-[10px] font-bold text-slate-200 uppercase mb-2">
+                                  {count} {count === 1 ? 'incidente' : 'incidentes'}
+                                </p>
+                                <div className="border-t border-slate-800 my-1 pt-1">
+                                  <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Desglose de Distritos</div>
+                                  <div className="space-y-1 max-h-[100px] overflow-y-auto pr-1">
+                                    {reg.districts.map(dist => (
+                                      <div key={dist.name} className="flex justify-between items-center text-[10px] text-slate-300 font-semibold">
+                                        <span className="uppercase">• {dist.name}</span>
+                                        <span className="bg-slate-800/80 px-1.5 py-0.5 rounded text-[9px] font-black text-slate-400">
+                                          {dist.count}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </LeafletTooltip>
+                          </CircleMarker>
+                        );
+                      })}
+                    </MapContainer>
+                  </div>
 
                   {/* Legend */}
                   <div className="flex flex-wrap gap-4 text-[10px] font-black uppercase tracking-widest text-slate-500 mt-3 z-10">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-red-600 block" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 block" />
                       <span>Alto (&ge;5)</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-600 block" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 block" />
                       <span>Moderado (2-4)</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-blue-500 block" />
                       <span>Bajo (1)</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-slate-700 block" />
-                      <span>Sin incidentes</span>
                     </div>
                   </div>
                 </div>
