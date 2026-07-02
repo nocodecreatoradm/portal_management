@@ -1049,9 +1049,9 @@ export default function HiyariHattoModule({
         </text>
 
         {/* Ribs (Upper half) */}
-        {renderRib(ishikawa.metodo, true, 200, 50, 300, 225, '#ef4444', 'MÉTODO')}
-        {renderRib(ishikawa.mano_obra, true, 380, 50, 480, 225, '#f59e0b', 'MANO DE OBRA')}
-        {renderRib(ishikawa.maquina_producto, true, 560, 50, 660, 225, '#3b82f6', 'MÁQUINA/PROD')}
+        {renderRib(ishikawa.metodo, true, 200, 50, 300, 225, '#ef4444', 'INSTALACIÓN')}
+        {renderRib(ishikawa.mano_obra, true, 380, 50, 480, 225, '#f59e0b', 'USUARIO')}
+        {renderRib(ishikawa.maquina_producto, true, 560, 50, 660, 225, '#3b82f6', 'PRODUCTO')}
 
         {/* Ribs (Lower half) */}
         {renderRib(ishikawa.materiales, false, 150, 400, 250, 225, '#10b981', 'MATERIALES')}
@@ -2804,9 +2804,9 @@ export default function HiyariHattoModule({
                             onChange={(e) => setIshikawaTargetCategory(e.target.value as any)}
                             className="px-3 py-1.5 rounded-xl border border-slate-200 outline-none text-xs font-bold text-slate-700 bg-white"
                           >
-                            <option value="metodo">Método</option>
-                            <option value="mano_obra">Mano de Obra (Instalación)</option>
-                            <option value="maquina_producto">Máquina/Producto</option>
+                            <option value="metodo">Instalación</option>
+                            <option value="mano_obra">Usuario</option>
+                            <option value="maquina_producto">Producto</option>
                             <option value="materiales">Materiales</option>
                             <option value="medicion">Medición</option>
                             <option value="medio_ambiente">Medio Ambiente</option>
@@ -2887,9 +2887,9 @@ export default function HiyariHattoModule({
                         
                         <div className="space-y-4">
                           {[
-                            { key: 'metodo', label: 'Método', color: 'text-red-500' },
-                            { key: 'mano_obra', label: 'Mano de Obra', color: 'text-amber-500' },
-                            { key: 'maquina_producto', label: 'Máquina/Producto', color: 'text-blue-500' },
+                            { key: 'metodo', label: 'Instalación', color: 'text-red-500' },
+                            { key: 'mano_obra', label: 'Usuario', color: 'text-amber-500' },
+                            { key: 'maquina_producto', label: 'Producto', color: 'text-blue-500' },
                             { key: 'materiales', label: 'Materiales', color: 'text-emerald-500' },
                             { key: 'medicion', label: 'Medición', color: 'text-indigo-500' },
                             { key: 'medio_ambiente', label: 'Medio Ambiente', color: 'text-pink-500' }
