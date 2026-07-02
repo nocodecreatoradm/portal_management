@@ -2477,7 +2477,7 @@ export default function HiyariHattoModule({
                                         toast.success('Evidencia subida', { id: 'upload-check-visit' });
                                         
                                         const list = getChecklist(editingReport.visitTechnicalReport, 'visit', editingReport.categoryName || '', categories);
-                                        list[idx].attachments = [...(list[idx].attachments || []), { name: file.name, url: uploaded.publicUrl, type: file.type }];
+                                        list[idx].attachments = [...(list[idx].attachments || []), { name: file.name, url: uploaded.url, type: file.type }];
                                         updateField('visitTechnicalReport', JSON.stringify(list));
                                       } catch (err) {
                                         toast.error('Error al subir archivo', { id: 'upload-check-visit' });
@@ -2641,7 +2641,7 @@ export default function HiyariHattoModule({
                                       toast.success('Evidencia subida', { id: 'upload-check-lab' });
                                       
                                       const list = getChecklist(editingReport.qualityReportTests, 'lab', editingReport.categoryName || '', categories);
-                                      list[idx].attachments = [...(list[idx].attachments || []), { name: file.name, url: uploaded.publicUrl, type: file.type }];
+                                      list[idx].attachments = [...(list[idx].attachments || []), { name: file.name, url: uploaded.url, type: file.type }];
                                       updateField('qualityReportTests', JSON.stringify(list));
                                     } catch (err) {
                                       toast.error('Error al subir archivo', { id: 'upload-check-lab' });
@@ -3480,7 +3480,7 @@ export default function HiyariHattoModule({
                                     const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
                                     if (isImg) {
                                       return (
-                                        <img key={fIdx} src={file.url} alt={file.name} style={{ width: '100px', height: '70px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                        <img key={fIdx} src={file.url} alt={file.name} style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
                                       );
                                     }
                                     return (
@@ -3546,7 +3546,7 @@ export default function HiyariHattoModule({
                                   const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
                                   if (isImg) {
                                     return (
-                                      <img key={fIdx} src={file.url} alt={file.name} style={{ width: '100px', height: '70px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                      <img key={fIdx} src={file.url} alt={file.name} style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
                                     );
                                   }
                                   return (
