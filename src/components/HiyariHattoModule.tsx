@@ -1403,8 +1403,8 @@ export default function HiyariHattoModule({
                   {/* Real Peru SVG Map */}
                   <svg
                     className="w-full flex-1 select-none"
-                    viewBox="0 0 480 540"
-                    style={{ maxHeight: 440 }}
+                    viewBox="0 0 500 580"
+                    style={{ maxHeight: 460 }}
                   >
                     <defs>
                       {/* Glow filter for selected region */}
