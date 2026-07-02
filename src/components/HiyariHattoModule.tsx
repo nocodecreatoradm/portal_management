@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import SearchableSelect from './SearchableSelect';
 import { 
   TrendingUp, AlertCircle, FileText, Download, CheckCircle2, Clock, HelpCircle,
   Plus, Search, ChevronRight, Info, Trash2, ArrowRight, RefreshCw, Printer, AlertTriangle, ShieldCheck, Upload,
@@ -347,6 +348,8 @@ export default function HiyariHattoModule({
   const [selectedYear, setSelectedYear] = useState<string>('2026');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedBrand, setSelectedBrand] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedSupplier, setSelectedSupplier] = useState<string>('all');
   
   // Incident Records state
   const [searchTerm, setSearchTerm] = useState('');
@@ -440,9 +443,15 @@ export default function HiyariHattoModule({
         const brandName = prod?.brand?.name || '';
         if (!brandName.toLowerCase().includes(selectedBrand.toLowerCase())) return false;
       }
+      if (selectedCategory !== 'all') {
+        if ((r.categoryName || '').toLowerCase() !== selectedCategory.toLowerCase()) return false;
+      }
+      if (selectedSupplier !== 'all') {
+        if ((r.supplierName || '').toLowerCase() !== selectedSupplier.toLowerCase()) return false;
+      }
       return true;
     });
-  }, [reports, selectedYear, selectedMonth, selectedBrand, products]);
+  }, [reports, selectedYear, selectedMonth, selectedBrand, selectedCategory, selectedSupplier, products]);
 
   // General Filtered Reports List
   const filteredReportsList = useMemo(() => {
@@ -451,6 +460,8 @@ export default function HiyariHattoModule({
         r.ticketNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (r.sapCode || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (r.productName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (r.categoryName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (r.supplierName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (r.customerName || '').toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
@@ -635,6 +646,23 @@ export default function HiyariHattoModule({
 
   // Select product from search
   const handleSelectProduct = (prod: ProductRecord) => {
+    const suppId = (prod as any).supplierId || (prod as any).proveedor_id;
+    let suppName = (prod as any).proveedor || '';
+    if (suppId && suppliers?.length) {
+      const found = suppliers.find(s => s.id === suppId);
+      if (found) {
+        suppName = found.commercialAlias || found.legalName;
+      }
+    } else if (suppName && suppliers?.length) {
+      const found = suppliers.find(s =>
+        s.legalName?.toLowerCase() === suppName.toLowerCase() ||
+        s.commercialAlias?.toLowerCase() === suppName.toLowerCase()
+      );
+      if (found) {
+        suppName = found.commercialAlias || found.legalName;
+      }
+    }
+
     setEditingReport(prev => {
       if (!prev) return null;
       return {
@@ -643,7 +671,9 @@ export default function HiyariHattoModule({
         productName: prod.descripcionSAP,
         brandName: prod.marca || '',
         lineName: prod.linea || '',
-        categoryName: prod.categoria || ''
+        categoryName: prod.categoria || '',
+        supplierName: suppName || '',
+        supplierId: suppId || ''
       };
     });
     setProductSearch('');
@@ -886,6 +916,34 @@ export default function HiyariHattoModule({
                   <option value="all">Todas las marcas</option>
                   {(brands || []).map(b => (
                     <option key={b.id || b.name} value={b.name}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Categoría</span>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="px-4 py-2.5 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-700 text-sm"
+                >
+                  <option value="all">Todas las categorías</option>
+                  {(categories || []).map(c => (
+                    <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Proveedor</span>
+                <select
+                  value={selectedSupplier}
+                  onChange={(e) => setSelectedSupplier(e.target.value)}
+                  className="px-4 py-2.5 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-700 text-sm max-w-[200px]"
+                >
+                  <option value="all">Todos los proveedores</option>
+                  {Array.from(new Set(reports.map(r => r.supplierName).filter(Boolean))).map(name => (
+                    <option key={name} value={name}>{name}</option>
                   ))}
                 </select>
               </div>
@@ -1244,6 +1302,8 @@ export default function HiyariHattoModule({
                     <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">TICKET / VUELO</th>
                     <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">PRODUCTO</th>
                     <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">CÓDIGO SAP</th>
+                    <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">CATEGORÍA</th>
+                    <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">PROVEEDOR</th>
                     <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">FECHA INCIDENTE</th>
                     <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">CLIENTE</th>
                     <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">DAÑOS</th>
@@ -1254,7 +1314,7 @@ export default function HiyariHattoModule({
                 <tbody className="divide-y divide-slate-100">
                   {filteredReportsList.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-6 py-20 text-center text-slate-400 font-bold uppercase tracking-wider text-xs">
+                      <td colSpan={10} className="px-6 py-20 text-center text-slate-400 font-bold uppercase tracking-wider text-xs">
                         No hay reportes de incidentes registrados
                       </td>
                     </tr>
@@ -1267,6 +1327,8 @@ export default function HiyariHattoModule({
                           <p className="text-[10px] font-semibold text-slate-400">S/N: {report.serialNumber || 'No reg.'}</p>
                         </td>
                         <td className="px-6 py-5 font-mono text-xs font-bold text-slate-500">{report.sapCode || '-'}</td>
+                        <td className="px-6 py-5 text-sm font-semibold text-slate-600">{report.categoryName || '-'}</td>
+                        <td className="px-6 py-5 text-sm font-semibold text-slate-600">{report.supplierName || '-'}</td>
                         <td className="px-6 py-5 font-mono text-xs font-bold text-slate-600">
                           {report.incidentDate ? format(parseISO(report.incidentDate), 'dd/MM/yyyy') : '-'}
                         </td>
@@ -1445,7 +1507,7 @@ export default function HiyariHattoModule({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div className="flex flex-col">
                       <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Marca *</label>
                       <select
@@ -1492,6 +1554,21 @@ export default function HiyariHattoModule({
                             <option key={c.id || c.name} value={c.name}>{c.name}</option>
                           ))}
                       </select>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">Proveedor / Fabricante</label>
+                      <SearchableSelect
+                        options={suppliers.map(s => ({ value: s.id, label: s.commercialAlias || s.legalName }))}
+                        value={editingReport.supplierId || ''}
+                        onChange={(val) => {
+                          const found = suppliers.find(s => s.id === val);
+                          updateField('supplierId', val);
+                          updateField('supplierName', found ? (found.commercialAlias || found.legalName) : '');
+                        }}
+                        placeholder="Buscar proveedor..."
+                        inputClassName="w-full pl-4 pr-10 py-3 rounded-2xl border-2 border-slate-200 focus:border-blue-500 outline-none font-bold text-slate-800 text-sm"
+                      />
                     </div>
                   </div>
 
