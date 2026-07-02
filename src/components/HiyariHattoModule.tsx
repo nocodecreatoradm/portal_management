@@ -2416,11 +2416,20 @@ export default function HiyariHattoModule({
                                 {item.attachments && item.attachments.map((file, fIdx) => {
                                   const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
                                   return (
-                                    <div key={fIdx} className="relative group w-14 h-14 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center shadow-sm">
-                                      {file.url && isImg ? (
-                                        <img src={file.url} className="w-full h-full object-cover" />
+                                    <div key={fIdx} className="relative w-14 h-14 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center shadow-sm">
+                                      {file.url ? (
+                                        <a href={file.url} target="_blank" rel="noopener noreferrer" className="w-full h-full cursor-zoom-in" title="Ver archivo en tamaño completo">
+                                          {isImg ? (
+                                            <img src={file.url} className="w-full h-full object-cover" />
+                                          ) : (
+                                            <div className="flex flex-col items-center p-1 text-center justify-center h-full">
+                                              <FileText size={16} className="text-slate-400" />
+                                              <span className="text-[7px] truncate w-10 font-bold uppercase">{file.name.split('.').pop()}</span>
+                                            </div>
+                                          )}
+                                        </a>
                                       ) : (
-                                        <div className="flex flex-col items-center p-1 text-center">
+                                        <div className="flex flex-col items-center p-1 text-center justify-center h-full">
                                           <FileText size={16} className="text-slate-400" />
                                           <span className="text-[7px] truncate w-10 font-bold uppercase">{file.name.split('.').pop()}</span>
                                         </div>
@@ -2432,9 +2441,10 @@ export default function HiyariHattoModule({
                                           list[idx].attachments = list[idx].attachments.filter((_, i) => i !== fIdx);
                                           updateField('visitTechnicalReport', JSON.stringify(list));
                                         }}
-                                        className="absolute inset-0 bg-red-600/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="absolute top-0 right-0 bg-red-650 text-white p-0.5 rounded-bl-lg hover:bg-red-700 transition-colors shadow"
+                                        title="Eliminar evidencia"
                                       >
-                                        <Trash2 size={14} />
+                                        <X size={10} />
                                       </button>
                                     </div>
                                   );
@@ -2559,11 +2569,20 @@ export default function HiyariHattoModule({
                               {item.attachments && item.attachments.map((file, fIdx) => {
                                 const isImg = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
                                 return (
-                                  <div key={fIdx} className="relative group w-14 h-14 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center shadow-sm">
-                                    {file.url && isImg ? (
-                                      <img src={file.url} className="w-full h-full object-cover" />
+                                  <div key={fIdx} className="relative w-14 h-14 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center shadow-sm">
+                                    {file.url ? (
+                                      <a href={file.url} target="_blank" rel="noopener noreferrer" className="w-full h-full cursor-zoom-in" title="Ver archivo en tamaño completo">
+                                        {isImg ? (
+                                          <img src={file.url} className="w-full h-full object-cover" />
+                                        ) : (
+                                          <div className="flex flex-col items-center p-1 text-center justify-center h-full">
+                                            <FileText size={16} className="text-slate-400" />
+                                            <span className="text-[7px] truncate w-10 font-bold uppercase">{file.name.split('.').pop()}</span>
+                                          </div>
+                                        )}
+                                      </a>
                                     ) : (
-                                      <div className="flex flex-col items-center p-1 text-center">
+                                      <div className="flex flex-col items-center p-1 text-center justify-center h-full">
                                         <FileText size={16} className="text-slate-400" />
                                         <span className="text-[7px] truncate w-10 font-bold uppercase">{file.name.split('.').pop()}</span>
                                       </div>
@@ -2575,9 +2594,10 @@ export default function HiyariHattoModule({
                                         list[idx].attachments = list[idx].attachments.filter((_, i) => i !== fIdx);
                                         updateField('qualityReportTests', JSON.stringify(list));
                                       }}
-                                      className="absolute inset-0 bg-red-650/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                      className="absolute top-0 right-0 bg-red-650 text-white p-0.5 rounded-bl-lg hover:bg-red-700 transition-colors shadow"
+                                      title="Eliminar evidencia"
                                     >
-                                      <Trash2 size={14} />
+                                      <X size={10} />
                                     </button>
                                   </div>
                                 );
