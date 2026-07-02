@@ -3265,7 +3265,7 @@ export default function HiyariHattoModule({
                         printWindow.document.write(`
                               <style>
                                 * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                                body { font-family: sans-serif; padding: 30px; color: #1e293b; background: #ffffff !important; }
+                                body { font-family: sans-serif; padding: 1.2cm !important; color: #1e293b; background: #ffffff !important; box-sizing: border-box; }
                                 svg { max-width: 100%; height: auto; display: block; margin: 15px auto; }
                                 svg text { font-family: sans-serif !important; }
                                 table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -3280,10 +3280,7 @@ export default function HiyariHattoModule({
                                 .evidence-label { font-size: 10px !important; font-weight: bold !important; color: #475569 !important; margin-top: 6px !important; width: 180px !important; display: block !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
                                 
                                 @page {
-                                  margin-top: 1.2cm;
-                                  margin-bottom: 1.2cm;
-                                  margin-left: 1.2cm;
-                                  margin-right: 1.2cm;
+                                  margin: 0;
                                 }
 
                                 .print-footer {
@@ -3291,15 +3288,15 @@ export default function HiyariHattoModule({
                                 }
 
                                 @media print {
-                                  body { padding: 0 !important; margin: 0 !important; }
+                                  body { padding: 1.2cm !important; margin: 0 !important; }
                                   #printable-area { padding: 0 !important; }
                                   .section { page-break-inside: avoid; }
                                   
                                   .print-footer {
                                     display: block !important;
                                     position: fixed !important;
-                                    bottom: -20px !important;
-                                    right: 0 !important;
+                                    bottom: 0.4cm !important;
+                                    right: 1.2cm !important;
                                     font-size: 10px !important;
                                     font-weight: bold !important;
                                     color: #94a3b8 !important;
