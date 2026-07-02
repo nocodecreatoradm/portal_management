@@ -911,7 +911,7 @@ export default function HiyariHattoModule({
         }
       }
       if (current) lines.push(current);
-      return lines.slice(0, 3); // max 3 lines per factor in SVG
+      return lines.slice(0, 4); // max 4 lines per factor in SVG
     };
 
     const renderFactor = (fRaw: IshikawaFactor | string, idx: number, y: number, x_rib: number, isUpper: boolean, color: string) => {
@@ -927,7 +927,7 @@ export default function HiyariHattoModule({
       );
 
       // 1. Primary Cause Text
-      const causeLines = wrapText(f.cause, 16);
+      const causeLines = wrapText(f.cause, 24);
       const causeSpacing = 8;
       let causeY = lineY;
       if (isUpper) {
@@ -951,7 +951,7 @@ export default function HiyariHattoModule({
         elements.push(
           <line key={`why1-line-${idx}`} x1={connX} y1={lineY} x2={endX} y2={endY} stroke={color} strokeWidth="1" strokeDasharray="1 1" />
         );
-        const why1Lines = wrapText(f.why1, 12);
+        const why1Lines = wrapText(f.why1, 18);
         const why1Spacing = 8;
         let why1Y = endY;
         if (isUpper) {
@@ -976,7 +976,7 @@ export default function HiyariHattoModule({
         elements.push(
           <line key={`why2-line-${idx}`} x1={connX} y1={lineY} x2={endX} y2={endY} stroke={color} strokeWidth="1" strokeDasharray="1 1" />
         );
-        const why2Lines = wrapText(f.why2, 12);
+        const why2Lines = wrapText(f.why2, 18);
         const why2Spacing = 8;
         let why2Y = endY;
         if (isUpper) {
@@ -3516,6 +3516,60 @@ export default function HiyariHattoModule({
                     {renderIshikawaSVG(printingReport.ishikawa)}
                   </div>
                 </div>
+
+                {/* Tabla de Factores Detallados de Ishikawa */}
+                {(() => {
+                  const hasFactors = Object.values(printingReport.ishikawa || {}).some(
+                    (list: any) => Array.isArray(list) && list.length > 0
+                  );
+                  if (!hasFactors) return null;
+                  
+                  return (
+                    <div className="mt-4" style={{ pageBreakInside: 'avoid' }}>
+                      <div className="text-[10px] text-slate-400 font-bold uppercase mb-2">Detalle de Factores Identificados (Ishikawa)</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        {[
+                          { key: 'metodo', label: 'Instalación', color: '#ef4444' },
+                          { key: 'mano_obra', label: 'Usuario', color: '#f59e0b' },
+                          { key: 'maquina_producto', label: 'Producto', color: '#3b82f6' },
+                          { key: 'materiales', label: 'Materiales', color: '#10b981' },
+                          { key: 'medicion', label: 'Medición', color: '#6366f1' },
+                          { key: 'medio_ambiente', label: 'Medio Ambiente', color: '#ec4899' }
+                        ].map(cat => {
+                          const list = (printingReport.ishikawa?.[cat.key as keyof IshikawaData] || []) as (IshikawaFactor | string)[];
+                          if (list.length === 0) return null;
+                          return (
+                            <div key={cat.key} style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '10px 14px', backgroundColor: '#f8fafc' }}>
+                              <div style={{ fontSize: '10px', fontWeight: '900', color: cat.color, textTransform: 'uppercase', marginBottom: '6px', borderBottom: `2px solid ${cat.color}33`, paddingBottom: '3px' }}>
+                                {cat.label}
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {list.map((rawItem, idx) => {
+                                  const item = normFactor(rawItem);
+                                  return (
+                                    <div key={idx} style={{ fontSize: '11px', color: '#334155', lineHeight: '1.4' }}>
+                                      <div style={{ fontWeight: 'bold' }}>• {item.cause}</div>
+                                      {item.why1 && (
+                                        <div style={{ fontSize: '10px', color: '#475569', marginLeft: '10px', fontStyle: 'italic', marginTop: '2px' }}>
+                                          → <strong>1° Por qué:</strong> {item.why1}
+                                        </div>
+                                      )}
+                                      {item.why2 && (
+                                        <div style={{ fontSize: '10px', color: '#475569', marginLeft: '20px', fontStyle: 'italic', marginTop: '1px' }}>
+                                          → <strong>2° Por qué:</strong> {item.why2}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="five-whys-chain mt-4 space-y-3" style={{ pageBreakBefore: 'always' }}>
                   <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Cadena de Causalidad (5 Por qués)</div>
